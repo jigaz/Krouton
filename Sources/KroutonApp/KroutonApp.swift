@@ -84,6 +84,7 @@ struct KroutonMainWorkspaceView: View {
     @State private var autoLabelSearchQuery: String = "Dark Side of the Moon"
     @State private var depotSearchQuery: String = ""
     @State private var isDropTargeted: Bool = false
+    @State private var burnStatusAlertMessage: String? = nil
 
     private var activeDiscCapacityBytes: Int64 {
         if let drive = driveManager.selectedDrive, drive.isMediaPresent, drive.freeBytes > 0 {
@@ -124,13 +125,22 @@ struct KroutonMainWorkspaceView: View {
                     .frame(minWidth: 580, maxWidth: .infinity, maxHeight: .infinity)
 
                 rightDestinationColumn
-                    .frame(minWidth: 325, idealWidth: 355, maxWidth: 400)
+                    .frame(minWidth: 335, idealWidth: 365, maxWidth: 410)
             }
         }
         .frame(minWidth: 1280, idealWidth: 1380, minHeight: 820, idealHeight: 880)
         .background(Color(NSColor.windowBackgroundColor))
+        .alert("Krouton Mastering Engine", isPresented: Binding(
+            get: { burnStatusAlertMessage != nil },
+            set: { if !$0 { burnStatusAlertMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { burnStatusAlertMessage = nil }
+        } message: {
+            Text(burnStatusAlertMessage ?? "")
+        }
     }
 
+    // MARK: - Top Pro Toolbar (Eject button removed from toolbar for cleaner layout)
     private var topProToolbar: some View {
         HStack(spacing: 16) {
             HStack(spacing: 9) {
@@ -140,16 +150,15 @@ struct KroutonMainWorkspaceView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("KROUTON")
                         .font(.system(size: 13, weight: .heavy, design: .rounded))
-                    Text(driveManager.hardwareStatusLog)
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(driveManager.selectedDrive?.isMediaPresent == true ? .green : .secondary)
+                    Text("Optical Mastering & Archival Suite")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
             }
 
             Spacer()
 
-            // Live Capacity & Sector Gauge
             HStack(spacing: 10) {
                 Image(systemName: "chart.bar.fill")
                     .foregroundStyle(store.activeAccent)
@@ -171,22 +180,6 @@ struct KroutonMainWorkspaceView: View {
             Spacer()
 
             HStack(spacing: 8) {
-                Button {
-                    driveManager.ejectDrive(id: driveManager.selectedDrive?.id)
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "eject.fill")
-                        Text("Eject")
-                    }
-                    .font(.system(size: 12, weight: .semibold))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color(NSColor.controlBackgroundColor))
-                    .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .help("Eject disc from \(driveManager.selectedDrive?.displayName ?? "connected drive")")
-
                 Button {
                     KroutonWindowManager.shared.openSettingsWindow(store: store, driveManager: driveManager)
                 } label: {
@@ -488,7 +481,7 @@ struct KroutonMainWorkspaceView: View {
         }
     }
 
-    // MARK: - BURN WORKSPACE WITH REAL FILE STAGING & FINDER DRAG-AND-DROP
+    // MARK: - BURN WORKSPACE WITH "File List" & "Add..." DIALOG
     private var burnWorkspaceView: some View {
         let activeSpec = store.discFormats.first(where: { $0.id == store.selectedTaskID }) ?? store.discFormats[0]
         return VStack(alignment: .leading, spacing: 14) {
@@ -566,11 +559,15 @@ struct KroutonMainWorkspaceView: View {
 
                     if enableCustomFinderLayoutTab {
                         Picker("", selection: $activeDataWorkspaceTab) {
-                            Text("Staged File List").tag(0)
+                            Text("File List").tag(0)
                             Text("Custom Finder Window Preview").tag(1)
                         }
                         .pickerStyle(.segmented)
                         .frame(width: 240)
+                    } else {
+                        Label("File List", systemImage: "list.bullet.indent")
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
                     }
                 }
                 Spacer()
@@ -628,7 +625,7 @@ struct KroutonMainWorkspaceView: View {
                                 .foregroundStyle(store.activeAccent.opacity(0.8))
                             Text("Drag & Drop Files, Folders, or Disc Images Here from Finder")
                                 .font(.headline)
-                            Text("Or click 'Add Media or Files...' above to stage content for \(driveManager.selectedDrive?.displayName ?? "your optical burner").")
+                            Text("Or click 'Add Media or Files...' above to add items to the File List.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -693,7 +690,7 @@ struct KroutonMainWorkspaceView: View {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
-        panel.prompt = "Stage for Disc"
+        panel.prompt = "Add..."
         if panel.runModal() == .OK {
             store.addStagedURLs(panel.urls)
         }
@@ -874,7 +871,7 @@ struct KroutonMainWorkspaceView: View {
         .padding(.vertical, 9)
     }
 
-    // MARK: - RIGHT COLUMN: CONTEXT-AWARE DESTINATION QUEUE (Bound to Live DriveManager)
+    // MARK: - RIGHT COLUMN: DESTINATIONS WITH DEDICATED STATUS PILLS & LIVE BURN EXECUTION
     private var rightDestinationColumn: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -913,26 +910,51 @@ struct KroutonMainWorkspaceView: View {
 
             Divider()
 
+            // Live Burn / Image Mastering Progress Telemetry Box (When Running)
+            if driveManager.isExecutingQueue || driveManager.activeJobProgress > 0 {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text(driveManager.activeJobPhase)
+                            .font(.system(size: 11, weight: .bold))
+                            .lineLimit(1)
+                        Spacer()
+                        Text(String(format: "%.0f%%", driveManager.activeJobProgress * 100.0))
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    }
+                    ProgressView(value: driveManager.activeJobProgress, total: 1.0)
+                        .tint(store.activeAccent)
+                    if !driveManager.activeJobDetail.isEmpty {
+                        Text(driveManager.activeJobDetail)
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.top, 10)
+            }
+
             VStack(spacing: 8) {
                 Button {
+                    executeDestinationQueue()
                 } label: {
                     HStack {
-                        Image(systemName: primaryActionSymbol)
+                        Image(systemName: driveManager.isExecutingQueue ? "stop.circle.fill" : primaryActionSymbol)
                             .font(.system(size: 15, weight: .bold))
-                        Text(primaryActionTitle)
+                        Text(driveManager.isExecutingQueue ? "ABORT BURN" : primaryActionTitle)
                             .font(.system(size: 14, weight: .heavy, design: .rounded))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(store.activeAccent)
+                    .background(driveManager.isExecutingQueue ? Color.red : store.activeAccent)
                     .foregroundStyle(.white)
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
 
-                Text(driveManager.selectedDrive?.statusBadgeText ?? "Insert Blank Media or Add Disc Image Output")
+                Text("Queue Ready • \(store.stagedFiles.count) Items (\(ByteCountFormatter.string(fromByteCount: store.totalStagedBytes, countStyle: .file)))")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(driveManager.selectedDrive?.isMediaPresent == true ? .green : .secondary)
+                    .foregroundStyle(.secondary)
             }
             .padding(14)
         }
@@ -955,8 +977,15 @@ struct KroutonMainWorkspaceView: View {
                     Button {
                         driveManager.ejectDrive(id: driveManager.selectedDrive?.id)
                     } label: {
-                        Image(systemName: "eject.fill")
-                            .foregroundStyle(.secondary)
+                        HStack(spacing: 4) {
+                            Image(systemName: "eject.fill")
+                            Text("Eject")
+                        }
+                        .font(.system(size: 10, weight: .semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.secondary.opacity(0.15))
+                        .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
                     .help("Eject Disc")
@@ -974,16 +1003,48 @@ struct KroutonMainWorkspaceView: View {
 
             if item.kind == .physicalBurner {
                 if driveManager.availableDrives.isEmpty {
-                    Text("No USB Optical Drive Connected")
-                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.orange)
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text("No USB Optical Drive Connected")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
                 } else {
+                    // Drive chooser menu shows ONLY the clean hardware name
                     Picker("Drive:", selection: $driveManager.selectedDrive) {
                         ForEach(driveManager.availableDrives) { d in
-                            Text("\(d.displayName) — \(d.statusBadgeText)").tag(Optional(d))
+                            Text(d.displayName).tag(Optional(d))
                         }
                     }
                     .labelsHidden()
+
+                    // Burner status shown in its own dedicated Pill (not inside the dropdown menu)
+                    if let activeDrive = driveManager.selectedDrive {
+                        HStack(spacing: 6) {
+                            HStack(spacing: 5) {
+                                Circle()
+                                    .fill(activeDrive.isMediaPresent ? Color.green : Color.secondary)
+                                    .frame(width: 7, height: 7)
+                                Text(activeDrive.statusBadgeText)
+                                    .font(.system(size: 10, weight: .semibold))
+                            }
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 4)
+                            .background((activeDrive.isMediaPresent ? Color.green : Color.secondary).opacity(0.15))
+                            .foregroundStyle(activeDrive.isMediaPresent ? .green : .secondary)
+                            .clipShape(Capsule())
+
+                            Text("FW \(activeDrive.firmware)")
+                                .font(.system(size: 10, design: .monospaced))
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 4)
+                                .background(Color.secondary.opacity(0.12))
+                                .foregroundStyle(.secondary)
+                                .clipShape(Capsule())
+
+                            Spacer()
+                        }
+                    }
                 }
 
                 HStack {
@@ -999,19 +1060,40 @@ struct KroutonMainWorkspaceView: View {
                     .labelsHidden()
                     .frame(width: 145)
                 }
+            } else if item.kind == .networkBurner {
+                Text(item.hardwareOrPath)
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                HStack(spacing: 6) {
+                    HStack(spacing: 5) {
+                        Circle().fill(Color.green).frame(width: 7, height: 7)
+                        Text("LAN Node Online (256 MB Ring Buffer)")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(Color.green.opacity(0.15))
+                    .foregroundStyle(.green)
+                    .clipShape(Capsule())
+                    Spacer()
+                }
+            } else if item.kind == .discImage {
+                HStack(spacing: 6) {
+                    TextField("~/Desktop/Krouton_Master.dmg", text: $store.destinationQueue[index].hardwareOrPath)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(size: 11, design: .monospaced))
+                    Button("Save As...") {
+                        let panel = NSSavePanel()
+                        panel.nameFieldStringValue = "\(store.discVolumeTitle).dmg"
+                        if panel.runModal() == .OK, let url = panel.url {
+                            store.destinationQueue[index].hardwareOrPath = url.path
+                        }
+                    }
+                    .controlSize(.small)
+                }
             } else {
                 Text(item.hardwareOrPath)
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .foregroundStyle(.primary)
-
-                HStack {
-                    Text("Profile / Speed:")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(item.speedOrCodec)
-                        .font(.caption.bold())
-                }
             }
 
             if item.kind == .physicalBurner || item.kind == .networkBurner {
@@ -1033,6 +1115,60 @@ struct KroutonMainWorkspaceView: View {
             RoundedRectangle(cornerRadius: 10)
                 .stroke(store.activeAccent.opacity(0.35), lineWidth: 1)
         )
+    }
+
+    // MARK: - Sprint 2 Execution Dispatcher
+    private func executeDestinationQueue() {
+        if driveManager.isExecutingQueue {
+            driveManager.abortActiveBurn()
+            return
+        }
+
+        if store.stagedFiles.isEmpty && store.selectedCategory == .burn {
+            burnStatusAlertMessage = "Your File List is currently empty. Add at least one file or folder before starting the burn queue."
+            return
+        }
+
+        Task { @MainActor in
+            for target in store.destinationQueue {
+                switch target.kind {
+                case .discImage:
+                    let res = await driveManager.createDiscImageFile(
+                        stagedFiles: store.stagedFiles,
+                        volumeTitle: store.discVolumeTitle,
+                        outputPathString: target.hardwareOrPath,
+                        compressImage: target.compressAfterCreation,
+                        enableCustomLayout: enableCustomFinderLayoutTab,
+                        iconSizePx: Int(finderIconSize)
+                    )
+                    switch res {
+                    case .success(let savedPath):
+                        burnStatusAlertMessage = "Successfully created disc image at:\n\(savedPath)"
+                    case .failure(let err):
+                        burnStatusAlertMessage = "Disc image creation failed:\n\(err.localizedDescription)"
+                        return
+                    }
+
+                case .physicalBurner:
+                    driveManager.startPhysicalDataBurn(
+                        stagedFiles: store.stagedFiles,
+                        volumeTitle: store.discVolumeTitle,
+                        simulationMode: target.simulationMode,
+                        verifyDisc: target.verifyAfterBurn
+                    ) { result in
+                        switch result {
+                        case .success(let msg):
+                            burnStatusAlertMessage = msg
+                        case .failure(let err):
+                            burnStatusAlertMessage = err.localizedDescription
+                        }
+                    }
+
+                default:
+                    burnStatusAlertMessage = "Queued output '\(target.kind.rawValue)' scheduled."
+                }
+            }
+        }
     }
 
     private var allowedDestinationsForCurrentCategory: [DestinationOutputKind] {

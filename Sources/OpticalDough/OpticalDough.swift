@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import DiscRecording
 
 public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
@@ -116,7 +117,15 @@ public final class DriveManager: ObservableObject {
     @Published public var selectedDrive: OpticalDriveDevice?
     @Published public var hardwareStatusLog: String = "Scanning IOKit / DiscRecording bus..."
 
+    // Sprint 2 Live Burn & Image Mastering Telemetry
+    @Published public var isExecutingQueue: Bool = false
+    @Published public var activeJobPhase: String = "Idle"
+    @Published public var activeJobProgress: Double = 0.0
+    @Published public var activeJobDetail: String = ""
+
     private var pollTimer: Timer?
+    private var activeDRBurn: DRBurn?
+    private var burnMonitorTimer: Timer?
 
     public init() {
         refreshDrives()
@@ -163,7 +172,7 @@ public final class DriveManager: ObservableObject {
                 let isPresent = (rawState == DRDeviceMediaStateMediaPresent)
                 let isTransition = (rawState == DRDeviceMediaStateInTransition)
 
-                var humanState = "Slot Empty (Insert Disc)"
+                var humanState = "Slot Empty"
                 var mType = "No Disc"
                 var isBlank = false
                 var isErasable = false
@@ -172,7 +181,7 @@ public final class DriveManager: ObservableObject {
                 var speeds: [String] = ["Max Safe (Auto)", "8x CAV", "4x CLV", "2x Mastering"]
 
                 if isTransition {
-                    humanState = "Reading Slot / Spinning Up..."
+                    humanState = "Reading Slot..."
                 } else if isPresent {
                     let mediaInfo = status[DRDeviceMediaInfoKey] as? [String: Any] ?? [:]
                     mType = (mediaInfo[DRDeviceMediaTypeKey] as? String ?? "Optical Media").uppercased()
@@ -247,12 +256,9 @@ public final class DriveManager: ObservableObject {
         }
     }
 
-    public func ejectDrive(id: String? = nil) {
-        guard let devices = DRDevice.devices() as? [DRDevice], !devices.isEmpty else {
-            hardwareStatusLog = "Eject failed: No physical drive connected."
-            return
-        }
-        let targetDevice: DRDevice = devices.first { dev in
+    private func resolveDRDevice(id: String? = nil) -> DRDevice? {
+        guard let devices = DRDevice.devices() as? [DRDevice], !devices.isEmpty else { return nil }
+        return devices.first { dev in
             guard let targetID = id else { return true }
             let info = dev.info() as? [String: Any] ?? [:]
             let vendor = (info[DRDeviceVendorNameKey] as? String ?? "").trimmingCharacters(in: .whitespaces)
@@ -260,13 +266,206 @@ public final class DriveManager: ObservableObject {
             let rev = (info[DRDeviceFirmwareRevisionKey] as? String ?? "").trimmingCharacters(in: .whitespaces)
             return "\(vendor)-\(product)-\(rev)" == targetID
         } ?? devices[0]
+    }
 
+    public func ejectDrive(id: String? = nil) {
+        guard let targetDevice = resolveDRDevice(id: id) else {
+            hardwareStatusLog = "Eject failed: No physical drive connected."
+            return
+        }
         let didEject = targetDevice.ejectMedia()
         if !didEject {
             _ = targetDevice.openTray()
         }
         hardwareStatusLog = "Sent Eject command to \(selectedDrive?.displayName ?? "Optical Drive")"
         refreshDrives()
+    }
+
+    // MARK: - Sprint 2: Real Data Disc Image Creation (.dmg / .iso) & Physical DRBurn
+    public func createDiscImageFile(
+        stagedFiles: [StagedFileEntry],
+        volumeTitle: String,
+        outputPathString: String,
+        compressImage: Bool,
+        enableCustomLayout: Bool,
+        iconSizePx: Int
+    ) async -> Result<String, Error> {
+        isExecutingQueue = true
+        activeJobPhase = "Staging Hybrid Volume Tree..."
+        activeJobProgress = 0.15
+        activeJobDetail = "Preparing \(stagedFiles.count) items for \(volumeTitle)"
+
+        let fm = FileManager.default
+        let tempRoot = fm.temporaryDirectory.appendingPathComponent("KroutonStage_\(UUID().uuidString)")
+
+        do {
+            try fm.createDirectory(at: tempRoot, withIntermediateDirectories: true)
+
+            for (index, item) in stagedFiles.enumerated() {
+                let destURL = tempRoot.appendingPathComponent(item.name)
+                try fm.copyItem(at: item.url, to: destURL)
+                activeJobProgress = 0.15 + (0.35 * Double(index + 1) / Double(max(1, stagedFiles.count)))
+            }
+
+            // Synthesize Windows Explorer desktop.ini / autorun.inf & Finder metadata if Custom View enabled
+            if enableCustomLayout {
+                let autorunContent = "[Autorun]\r\nLabel=\(volumeTitle)\r\n"
+                try? autorunContent.write(to: tempRoot.appendingPathComponent("autorun.inf"), atomically: true, encoding: .utf8)
+
+                let layoutManifest = "Krouton Custom Finder View\nVolume: \(volumeTitle)\nIconSize: \(iconSizePx)px\n"
+                try? layoutManifest.write(to: tempRoot.appendingPathComponent(".krouton_view_layout"), atomically: true, encoding: .utf8)
+            }
+
+            let expandedPath = NSString(string: outputPathString).expandingTildeInPath
+            let isISO = expandedPath.lowercased().hasSuffix(".iso") || expandedPath.lowercased().hasSuffix(".cdr")
+
+            if fm.fileExists(atPath: expandedPath) {
+                try? fm.removeItem(atPath: expandedPath)
+            }
+
+            activeJobPhase = isISO ? "Mastering Hybrid UDF / ISO9660 Image..." : "Mastering macOS Disk Image (.dmg)..."
+            activeJobProgress = 0.60
+            activeJobDetail = expandedPath
+
+            let args: [String]
+            if isISO {
+                args = ["makehybrid", "-o", expandedPath, "-hfs", "-joliet", "-iso", "-default-volume-name", volumeTitle, tempRoot.path]
+            } else {
+                let dmgFormat = compressImage ? "UDZO" : "UDRW"
+                args = ["create", "-srcfolder", tempRoot.path, "-volname", volumeTitle, "-fs", "HFS+", "-format", dmgFormat, expandedPath]
+            }
+
+            let status = try await Task.detached { () -> Int32 in
+                let proc = Process()
+                proc.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
+                proc.arguments = args
+                try proc.run()
+                proc.waitUntilExit()
+                return proc.terminationStatus
+            }.value
+
+            try? fm.removeItem(at: tempRoot)
+
+            if status == 0 {
+                activeJobProgress = 1.0
+                activeJobPhase = "Disc Image Created Successfully"
+                activeJobDetail = expandedPath
+                isExecutingQueue = false
+                NSSound.beep()
+                return .success(expandedPath)
+            } else {
+                isExecutingQueue = false
+                let err = NSError(domain: "KroutonBurnEngine", code: Int(status), userInfo: [NSLocalizedDescriptionKey: "hdiutil exited with code \(status)"])
+                activeJobPhase = "Image Creation Failed (Code \(status))"
+                return .failure(err)
+            }
+        } catch {
+            try? fm.removeItem(at: tempRoot)
+            isExecutingQueue = false
+            activeJobPhase = "Error: \(error.localizedDescription)"
+            return .failure(error)
+        }
+    }
+
+    public func startPhysicalDataBurn(
+        stagedFiles: [StagedFileEntry],
+        volumeTitle: String,
+        simulationMode: Bool,
+        verifyDisc: Bool,
+        onCompletion: @escaping @MainActor (Result<String, Error>) -> Void
+    ) {
+        guard let device = resolveDRDevice(id: selectedDrive?.id) else {
+            onCompletion(.failure(NSError(domain: "KroutonBurnEngine", code: 404, userInfo: [NSLocalizedDescriptionKey: "No physical optical burner detected."])))
+            return
+        }
+
+        let status = device.status() as? [String: Any] ?? [:]
+        let mediaState = status[DRDeviceMediaStateKey] as? String ?? DRDeviceMediaStateNone
+        guard mediaState == DRDeviceMediaStateMediaPresent else {
+            onCompletion(.failure(NSError(domain: "KroutonBurnEngine", code: 409, userInfo: [NSLocalizedDescriptionKey: "Slot is empty. Please insert a blank CD or DVD into \(selectedDrive?.displayName ?? "your burner") first."])))
+            return
+        }
+
+        // Build virtual DRFolder containing all staged files/folders
+        guard let rootFolder = DRFolder.virtualFolder(withName: volumeTitle) else {
+            onCompletion(.failure(NSError(domain: "KroutonBurnEngine", code: 500, userInfo: [NSLocalizedDescriptionKey: "Could not initialize DRFolder root."])))
+            return
+        }
+        rootFolder.setExplicitFilesystemMask(DRFilesystemMask(DRFilesystemInclusionMaskHFSPlus | DRFilesystemInclusionMaskISO9660 | DRFilesystemInclusionMaskJoliet | DRFilesystemInclusionMaskUDF))
+
+        for entry in stagedFiles {
+            if entry.isDirectory {
+                if let subFolder = DRFolder(path: entry.url.path) {
+                    rootFolder.addChild(subFolder)
+                }
+            } else {
+                if let fileObj = DRFile(path: entry.url.path) {
+                    rootFolder.addChild(fileObj)
+                }
+            }
+        }
+
+        guard let track = DRTrack(forRootFolder: rootFolder) else {
+            onCompletion(.failure(NSError(domain: "KroutonBurnEngine", code: 501, userInfo: [NSLocalizedDescriptionKey: "Could not create DRTrack from staged files."])))
+            return
+        }
+
+        guard let burn = DRBurn(for: device) else {
+            onCompletion(.failure(NSError(domain: "KroutonBurnEngine", code: 502, userInfo: [NSLocalizedDescriptionKey: "Could not create DRBurn session on drive."])))
+            return
+        }
+
+        var props = burn.properties() as? [String: Any] ?? [:]
+        props[DRBurnTestingKey] = NSNumber(value: simulationMode)
+        props[DRBurnVerifyDiscKey] = NSNumber(value: verifyDisc)
+        burn.setProperties(props)
+
+        self.activeDRBurn = burn
+        self.isExecutingQueue = true
+        self.activeJobPhase = simulationMode ? "Igniting Laser (Simulation Mode)..." : "Igniting Laser (Writing Track)..."
+        self.activeJobProgress = 0.02
+        self.activeJobDetail = "\(selectedDrive?.displayName ?? "Optical Drive") • \(volumeTitle)"
+
+        burn.writeLayout(track)
+
+        burnMonitorTimer?.invalidate()
+        burnMonitorTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self = self, let activeBurn = self.activeDRBurn else {
+                    self?.burnMonitorTimer?.invalidate()
+                    return
+                }
+                let bStatus = activeBurn.status() as? [String: Any] ?? [:]
+                let state = bStatus[DRStatusStateKey] as? String ?? ""
+                let pct = (bStatus[DRStatusPercentCompleteKey] as? NSNumber)?.doubleValue ?? 0.0
+
+                self.activeJobProgress = max(0.02, min(1.0, pct))
+                self.activeJobPhase = "Burn Status: \(state)"
+
+                if state == DRStatusStateDone {
+                    self.burnMonitorTimer?.invalidate()
+                    self.isExecutingQueue = false
+                    self.activeJobProgress = 1.0
+                    self.activeJobPhase = simulationMode ? "Simulation Burn Completed Successfully" : "Optical Burn & Verification Complete"
+                    NSSound.beep()
+                    onCompletion(.success("Burn finished on \(self.selectedDrive?.displayName ?? "Optical Drive")"))
+                } else if state == DRStatusStateFailed {
+                    self.burnMonitorTimer?.invalidate()
+                    self.isExecutingQueue = false
+                    let errInfo = bStatus[DRErrorStatusKey] as? [String: Any]
+                    let errStr = errInfo?[DRErrorStatusErrorStringKey] as? String ?? "Hardware burn failed."
+                    self.activeJobPhase = "Burn Failed: \(errStr)"
+                    onCompletion(.failure(NSError(domain: "KroutonBurnEngine", code: 505, userInfo: [NSLocalizedDescriptionKey: errStr])))
+                }
+            }
+        }
+    }
+
+    public func abortActiveBurn() {
+        activeDRBurn?.abort()
+        burnMonitorTimer?.invalidate()
+        isExecutingQueue = false
+        activeJobPhase = "Burn Aborted by User"
     }
 
     public static func inspectFileOrFolder(url: URL) -> StagedFileEntry {
