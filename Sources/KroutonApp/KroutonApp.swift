@@ -16,7 +16,7 @@ final class KroutonWindowManager {
 
         let hostingController = NSHostingController(rootView: KroutonSettingsWindowView(store: store))
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1020, height: 680),
+            contentRect: NSRect(x: 0, y: 0, width: 1120, height: 720),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
@@ -81,6 +81,7 @@ struct KroutonMainWorkspaceView: View {
     @State private var labelDiscTitle: String = "THE KROUTON ARCHIVE"
     @State private var labelSubtitle: String = "2026 MASTER EDITION"
     @State private var autoLabelSearchQuery: String = "Dark Side of the Moon"
+    @State private var depotSearchQuery: String = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -88,8 +89,8 @@ struct KroutonMainWorkspaceView: View {
             Divider()
 
             HSplitView {
-                leftTaskChooserColumn
-                    .frame(minWidth: 255, idealWidth: 275, maxWidth: 310)
+                leftFormatChooserColumn
+                    .frame(minWidth: 265, idealWidth: 285, maxWidth: 325)
 
                 centerAdaptableWorkspace
                     .frame(minWidth: 580, maxWidth: .infinity, maxHeight: .infinity)
@@ -159,10 +160,11 @@ struct KroutonMainWorkspaceView: View {
         .background(.ultraThinMaterial)
     }
 
-    private var leftTaskChooserColumn: some View {
+    // MARK: - LEFT COLUMN: FORMAT CHOOSER (BURN / DISC IMAGE DEPOT / COPY / LABEL)
+    private var leftFormatChooserColumn: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Label("TASK CHOOSER", systemImage: "sidebar.left")
+                Label("FORMAT CHOOSER", systemImage: "list.bullet.rectangle")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -173,7 +175,7 @@ struct KroutonMainWorkspaceView: View {
                         .font(.system(size: 11))
                 }
                 .buttonStyle(.plain)
-                .help("Customize visible formats in Settings -> Task Chooser")
+                .help("Configure visible formats in Settings -> Format Chooser")
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -182,6 +184,7 @@ struct KroutonMainWorkspaceView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
+                    // 1. BURN CATEGORY
                     VStack(alignment: .leading, spacing: 4) {
                         Text("BURN")
                             .font(.system(size: 10, weight: .bold))
@@ -200,6 +203,40 @@ struct KroutonMainWorkspaceView: View {
                         }
                     }
 
+                    // 2. DISC IMAGE DEPOT CATEGORY (App Store for Bootable / Rescue / Archival ISOs)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("DISC IMAGE DEPOT")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 10)
+
+                        taskRowButton(
+                            id: "depot-rescue",
+                            category: .depot,
+                            title: "System Rescue & BIOS",
+                            colloquial: "SystemRescue, GParted, FreeDOS 1.4",
+                            badge: "Get ISO",
+                            sfSymbol: "cross.case.fill"
+                        )
+                        taskRowButton(
+                            id: "depot-linux-win",
+                            category: .depot,
+                            title: "Live OS & Installers",
+                            colloquial: "Ubuntu, Fedora, Windows 11 API",
+                            badge: "Get ISO",
+                            sfSymbol: "terminal.fill"
+                        )
+                        taskRowButton(
+                            id: "depot-archive-mac",
+                            category: .depot,
+                            title: "Vintage Apple & Archive.org",
+                            colloquial: "Mac OS 9.2.2, System 7.5, Shareware",
+                            badge: "Vault",
+                            sfSymbol: "desktopcomputer"
+                        )
+                    }
+
+                    // 3. COPY CATEGORY
                     VStack(alignment: .leading, spacing: 4) {
                         Text("COPY")
                             .font(.system(size: 10, weight: .bold))
@@ -232,6 +269,7 @@ struct KroutonMainWorkspaceView: View {
                         )
                     }
 
+                    // 4. LABEL CATEGORY
                     VStack(alignment: .leading, spacing: 4) {
                         Text("LABEL")
                             .font(.system(size: 10, weight: .bold))
@@ -302,11 +340,14 @@ struct KroutonMainWorkspaceView: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: - CENTER COLUMN: ADAPTABLE WORKSPACE
     private var centerAdaptableWorkspace: some View {
         VStack(alignment: .leading, spacing: 14) {
             switch store.selectedCategory {
             case .burn:
                 burnWorkspaceView
+            case .depot:
+                depotWorkspaceView
             case .copy:
                 copyWorkspaceView
             case .label:
@@ -314,6 +355,111 @@ struct KroutonMainWorkspaceView: View {
             }
         }
         .padding(18)
+    }
+
+    // Storefront Workspace for Disc Image Depot
+    private var depotWorkspaceView: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Image(systemName: "arrow.down.doc.fill")
+                    .font(.title2)
+                    .foregroundStyle(store.activeAccent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Disc Image Depot — Verified Bootable & Archival Storefront")
+                        .font(.title3.bold())
+                    Text("One-click download, SHA-256 verification, Virtualization.framework VM test-boot, and direct hardware burning.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+                    TextField("Search Depot & archive.org...", text: $depotSearchQuery)
+                        .textFieldStyle(.plain)
+                        .frame(width: 180)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color(NSColor.controlBackgroundColor))
+                .clipShape(Capsule())
+            }
+
+            Divider()
+
+            ScrollView {
+                VStack(spacing: 10) {
+                    ForEach(store.depotItems) { item in
+                        HStack(spacing: 14) {
+                            Image(systemName: item.sfSymbol)
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundStyle(store.activeAccent)
+                                .frame(width: 36, height: 36)
+                                .background(store.activeAccent.opacity(0.14))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                HStack(spacing: 8) {
+                                    Text(item.title)
+                                        .font(.system(size: 13, weight: .bold))
+                                    Text(item.version)
+                                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Color.secondary.opacity(0.15))
+                                        .clipShape(Capsule())
+                                    Text(item.channel)
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(store.activeAccent)
+                                }
+                                Text(item.subtitle)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                                Text("Boot Spec: \(item.bootStandard) • Arch: \(item.architecture) • Size: \(item.sizeDisplay) • SHA-256: \(item.sha256Short)")
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            if store.enableVMTestBootInDepot {
+                                Button {
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "play.desktopcomputer")
+                                        Text("Test in VM")
+                                    }
+                                    .font(.system(size: 11, weight: .medium))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(Color(NSColor.windowBackgroundColor))
+                                    .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
+
+                            Button {
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Image(systemName: item.isDownloaded ? "checkmark.circle.fill" : "arrow.down.circle.fill")
+                                    Text(item.isDownloaded ? "Staged Ready" : "Get & Stage")
+                                }
+                                .font(.system(size: 11, weight: .bold))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(item.isDownloaded ? Color.green.opacity(0.2) : store.activeAccent)
+                                .foregroundStyle(item.isDownloaded ? .green : .white)
+                                .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(12)
+                        .background(Color(NSColor.controlBackgroundColor))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                }
+            }
+        }
     }
 
     private var burnWorkspaceView: some View {
@@ -339,7 +485,7 @@ struct KroutonMainWorkspaceView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "plus.rectangle.on.folder.fill")
-                        Text("Add Media or Files...")
+                        Text(activeSpec.sourceSupport == "Image Only" ? "Select Disc Image / ROM..." : "Add Media or Files...")
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
@@ -411,7 +557,7 @@ struct KroutonMainWorkspaceView: View {
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "list.bullet.indent")
-                                Text("File System Tree")
+                                Text(activeSpec.filterGroup == .console ? "ROM Sector & Partition Inspector" : "File System Tree")
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
@@ -420,31 +566,33 @@ struct KroutonMainWorkspaceView: View {
                         }
                         .buttonStyle(.plain)
 
-                        Toggle("Customize Finder & Explorer Window Layout", isOn: $enableCustomFinderLayoutTab)
-                            .toggleStyle(.checkbox)
-                            .onChange(of: enableCustomFinderLayoutTab) { _, enabled in
-                                activeDataWorkspaceTab = enabled ? 1 : 0
-                            }
-
-                        if enableCustomFinderLayoutTab {
-                            Button {
-                                activeDataWorkspaceTab = 1
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "macwindow.badge.plus")
-                                    Text("Custom Window & Icons Tab")
+                        if activeSpec.isDataDisc {
+                            Toggle("Customize Finder & Explorer Window Layout", isOn: $enableCustomFinderLayoutTab)
+                                .toggleStyle(.checkbox)
+                                .onChange(of: enableCustomFinderLayoutTab) { _, enabled in
+                                    activeDataWorkspaceTab = enabled ? 1 : 0
                                 }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(activeDataWorkspaceTab == 1 ? store.activeAccent.opacity(0.22) : Color.clear)
-                                .clipShape(Capsule())
+
+                            if enableCustomFinderLayoutTab {
+                                Button {
+                                    activeDataWorkspaceTab = 1
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "macwindow.badge.plus")
+                                        Text("Custom Window & Icons Tab")
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(activeDataWorkspaceTab == 1 ? store.activeAccent.opacity(0.22) : Color.clear)
+                                    .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
                         }
                         Spacer()
                     }
 
-                    if activeDataWorkspaceTab == 1 && enableCustomFinderLayoutTab {
+                    if activeDataWorkspaceTab == 1 && enableCustomFinderLayoutTab && activeSpec.isDataDisc {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 20) {
                                 ColorPicker("Finder Window Background:", selection: $finderBgColor)
@@ -481,11 +629,11 @@ struct KroutonMainWorkspaceView: View {
                         }
                     } else {
                         VStack(spacing: 0) {
-                            playlistRow(num: "DIR", title: "/Applications & Utilities", duration: "1.84 GB", transition: "HFS+ / APFS + UDF", info: "Permissions: rwxr-xr-x")
+                            playlistRow(num: "SEC", title: activeSpec.filterGroup == .console ? "Disc Header & Region Boot Sector" : "/Applications & Utilities", duration: "1.84 GB", transition: activeSpec.bookOrFileSystem, info: "Verified")
                             Divider()
-                            playlistRow(num: "DIR", title: "/Project_Masters_2026", duration: "1.58 GB", transition: "Hybrid Shared", info: "SHA-256 Verified")
+                            playlistRow(num: "DAT", title: activeSpec.filterGroup == .console ? "Primary Game Partition Stream" : "/Project_Masters_2026", duration: "1.58 GB", transition: activeSpec.laserType, info: "SHA-256 Verified")
                             Divider()
-                            playlistRow(num: "SYS", title: ".DS_Store & autorun.inf", duration: "64 KB", transition: enableCustomFinderLayoutTab ? "Custom View Active" : "Standard View", info: "Auto-Generated")
+                            playlistRow(num: "SYS", title: activeSpec.filterGroup == .console ? "EDC / ECC Subchannel Integrity" : ".DS_Store & autorun.inf", duration: "64 KB", transition: "Ready", info: "Auto-Generated")
                         }
                         .background(Color(NSColor.controlBackgroundColor))
                         .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -773,7 +921,7 @@ struct KroutonMainWorkspaceView: View {
 
     private var allowedDestinationsForCurrentCategory: [DestinationOutputKind] {
         switch store.selectedCategory {
-        case .burn:
+        case .burn, .depot:
             return [.networkBurner, .physicalBurner, .discImage]
         case .copy:
             return [.networkBurner, .physicalBurner, .discImage, .audioRip, .videoExtract]
@@ -784,7 +932,7 @@ struct KroutonMainWorkspaceView: View {
 
     private func syncDefaultDestinationForCategory(_ category: TaskMasterCategory, taskID: String) {
         switch category {
-        case .burn:
+        case .burn, .depot:
             store.destinationQueue = [
                 DestinationQueueItem(kind: .networkBurner, hardwareOrPath: "Pioneer BDR-S13U-X (krouton-server.local)", speedOrCodec: "8x CAV (Optimal)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
             ]
@@ -811,7 +959,7 @@ struct KroutonMainWorkspaceView: View {
 
     private func appendContextAwareDestination() {
         switch store.selectedCategory {
-        case .burn:
+        case .burn, .depot:
             store.destinationQueue.append(
                 DestinationQueueItem(kind: .discImage, hardwareOrPath: "~/Desktop/Krouton_Master.dmg", speedOrCodec: "Hybrid UDF / HFS+ Image", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: true)
             )
@@ -829,6 +977,7 @@ struct KroutonMainWorkspaceView: View {
     private var primaryActionTitle: String {
         switch store.selectedCategory {
         case .burn: return "BURN (\(store.destinationQueue.count))"
+        case .depot: return "GET & BURN ISO (\(store.destinationQueue.count))"
         case .copy: return "START COPY / EXTRACT (\(store.destinationQueue.count))"
         case .label: return "PRINT LABEL (\(store.destinationQueue.count))"
         }
@@ -837,6 +986,7 @@ struct KroutonMainWorkspaceView: View {
     private var primaryActionSymbol: String {
         switch store.selectedCategory {
         case .burn: return "flame.fill"
+        case .depot: return "arrow.down.doc.fill"
         case .copy: return "doc.on.doc.fill"
         case .label: return "printer.fill"
         }
