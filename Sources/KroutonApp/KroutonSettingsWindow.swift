@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import OpticalDough
 
 public enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendable {
     case general = "General"
@@ -29,10 +30,10 @@ public enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendabl
 
 public struct KroutonSettingsWindowView: View {
     @ObservedObject var store: KroutonStateStore
+    @ObservedObject var driveManager: DriveManager
     @State private var selectedPane: KroutonSettingsCategory = .general
     @State private var searchText: String = ""
 
-    // Finder-Style Table Sort & Filter State for Format Chooser
     @State private var formatFilter: FormatFilterGroup = .all
     @State private var formatSortOrder: [KeyPathComparator<DiscFormatSpec>] = [
         .init(\.technicalName, order: .forward)
@@ -40,15 +41,15 @@ public struct KroutonSettingsWindowView: View {
     @State private var selectedFormatIDs: Set<DiscFormatSpec.ID> = []
     @AppStorage("KroutonFormatTableColumnCustomization") private var columnCustomization: TableColumnCustomization<DiscFormatSpec>
 
-    // Labels & Printers New Preset State
     @State private var newPresetName: String = "Custom Disc Tray Preset"
     @State private var newOuterMM: Double = 120.0
     @State private var newInnerMM: Double = 18.0
     @State private var newOffsetX: Double = 0.0
     @State private var newOffsetY: Double = 0.0
 
-    public init(store: KroutonStateStore) {
+    public init(store: KroutonStateStore, driveManager: DriveManager) {
         self.store = store
+        self.driveManager = driveManager
     }
 
     public var body: some View {
@@ -85,7 +86,6 @@ public struct KroutonSettingsWindowView: View {
         } detail: {
             Group {
                 if selectedPane == .formatChooser {
-                    // Full-height native Finder List View table for Format Chooser
                     formatChooserPane
                         .padding(24)
                 } else {
@@ -125,7 +125,6 @@ public struct KroutonSettingsWindowView: View {
         .tint(store.activeAccent)
     }
 
-    // MARK: - 1. GENERAL PANE (Rainbow Order Accent Dots, No Menu Bar Clutter, Choose Folder Button)
     private var generalPane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "Appearance & Accent Color") {
@@ -241,7 +240,6 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    // MARK: - 2. FORMAT CHOOSER PANE (True macOS Finder List View Table: Sort, Resize & Rearrange Columns)
     private var filteredAndSortedFormats: [DiscFormatSpec] {
         let filtered = store.discFormats.filter { fmt in
             switch formatFilter {
@@ -269,7 +267,6 @@ public struct KroutonSettingsWindowView: View {
                 }
             }
 
-            // Filter Pills Bar
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(FormatFilterGroup.allCases) { group in
@@ -284,7 +281,6 @@ public struct KroutonSettingsWindowView: View {
                 }
             }
 
-            // Native macOS Finder List View Table
             Table(of: DiscFormatSpec.self, selection: $selectedFormatIDs, sortOrder: $formatSortOrder, columnCustomization: $columnCustomization) {
                 TableColumn("Show", value: \.visibilitySortKey) { fmt in
                     Toggle("", isOn: Binding(
@@ -298,7 +294,6 @@ public struct KroutonSettingsWindowView: View {
                 .width(min: 46, ideal: 54, max: 64)
                 .customizationID("col-show")
 
-                // Two-line Format column: Line 1 = Official Technical Name, Line 2 = Colloquial Name underneath
                 TableColumn("Format", value: \.technicalName) { fmt in
                     HStack(spacing: 8) {
                         Image(systemName: fmt.sfSymbol)
@@ -377,7 +372,6 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    // MARK: - 3. DISC IMAGE DEPOT PANE (Curated OS, Rescue & Archive.org Channels)
     private var discImageDepotPane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "Disc Image Depot — Subscribed Channels & Repositories") {
@@ -431,7 +425,6 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    // MARK: - 4. AUDIO & VIDEO PANE (Includes Fit-to-Disc Defaults)
     private var audioVideoPane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "Red Book Audio CD & Jam Crossfade Defaults") {
@@ -461,14 +454,13 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    // MARK: - 5. RIPPING & TRANSCODING PANE (With Interactive Active Token Tray)
     private var rippingTranscodingPane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "Optical Drive Read Offset & Error Recovery (CD / DVD / BD Ripping)") {
                 HStack {
                     VStack(alignment: .leading) {
                         Text("Drive Sample Read Offset Correction")
-                        Text("Compensates for physical laser lead-in/lead-out offset on Pioneer/LG drives")
+                        Text("Compensates for physical laser lead-in/lead-out offset on Matshita/Pioneer/LG drives")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -516,7 +508,6 @@ public struct KroutonSettingsWindowView: View {
 
                 Divider()
 
-                // Active Token Sequence Tray
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         Text("Active Pattern:")
@@ -550,42 +541,72 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    // MARK: - 6. BURNERS & NETWORK PANE (With Discovered Hardware Status Table)
+    // MARK: - 6. BURNERS & NETWORK PANE (Live Connected Hardware via DriveManager)
     private var burnersNetworkPane: some View {
         VStack(alignment: .leading, spacing: 18) {
-            settingsCard(title: "Discovered Local & Network Optical Burners") {
-                ForEach(Array(store.discoveredBurners.enumerated()), id: \.element.id) { idx, drive in
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Image(systemName: drive.isNetworkNode ? "server.rack" : "opticaldiscdrive.fill")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(store.activeAccent)
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack(spacing: 8) {
-                                    Text(drive.name)
-                                        .font(.system(size: 13, weight: .bold))
-                                    Text(drive.firmware)
-                                        .font(.system(size: 10, design: .monospaced))
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.secondary.opacity(0.15))
-                                        .clipShape(Capsule())
+            settingsCard(title: "Connected Optical Burners (Live IOKit / DiscRecording Bus)") {
+                HStack {
+                    Text(driveManager.hardwareStatusLog)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    pillToggleButton(title: "Rescan Bus", sfSymbol: "arrow.clockwise", isSelected: false) {
+                        driveManager.refreshDrives()
+                    }
+                }
+                Divider()
+
+                if driveManager.availableDrives.isEmpty {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text("No physical optical drives detected. Plug in your USB burner and click Rescan Bus.")
+                            .font(.caption)
+                    }
+                } else {
+                    ForEach(Array(driveManager.availableDrives.enumerated()), id: \.element.id) { idx, drive in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Image(systemName: drive.isNetworkNode ? "server.rack" : "opticaldiscdrive.fill")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(store.activeAccent)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack(spacing: 8) {
+                                        Text(drive.displayName)
+                                            .font(.system(size: 13, weight: .bold))
+                                        Text("FW \(drive.firmware)")
+                                            .font(.system(size: 10, design: .monospaced))
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(Color.secondary.opacity(0.15))
+                                            .clipShape(Capsule())
+                                        Text(drive.interconnect)
+                                            .font(.system(size: 10, design: .monospaced))
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(store.activeAccent.opacity(0.18))
+                                            .clipShape(Capsule())
+                                    }
+                                    Text("Write Capabilities: \(drive.capabilitiesSummary)")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.secondary)
                                 }
-                                Text("\(drive.connectionBus) • \(drive.capabilities)")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Text(drive.statusBadgeText)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(drive.isMediaPresent ? .green : .secondary)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background((drive.isMediaPresent ? Color.green : Color.secondary).opacity(0.12))
+                                    .clipShape(Capsule())
+
+                                pillToggleButton(title: "Eject", sfSymbol: "eject.fill", isSelected: false) {
+                                    driveManager.ejectDrive(id: drive.id)
+                                }
                             }
-                            Spacer()
-                            Text(drive.statusBadge)
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(.green)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.green.opacity(0.12))
-                                .clipShape(Capsule())
-                        }
-                        if idx < store.discoveredBurners.count - 1 {
-                            Divider()
+                            if idx < driveManager.availableDrives.count - 1 {
+                                Divider()
+                            }
                         }
                     }
                 }
@@ -612,7 +633,6 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    // MARK: - 7. LABELS & PRINTERS PANE (Dedicated Category)
     private var labelsPrintersPane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "Saved Disc Label Geometry & Tray Offset Presets (Epson EcoTank ET-8550 & Standard Trays)") {
@@ -693,7 +713,6 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    // MARK: - 8. NOTIFICATIONS PANE (CCC 4-Icon Toggle Row)
     private var notificationsPane: some View {
         VStack(alignment: .leading, spacing: 16) {
             settingsCard(title: "Alerts, iPhone Live Activities & Apple Watch Notifications") {

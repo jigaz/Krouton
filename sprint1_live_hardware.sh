@@ -3,12 +3,341 @@ set -e
 
 cd ~/Developer/krouton
 
+# ------------------------------------------------------------------------------
+# 1. Update Sources/OpticalDough/OpticalDough.swift (Live DRDevice & Staging)
+# ------------------------------------------------------------------------------
+cat << 'EOF_DOUGH' > Sources/OpticalDough/OpticalDough.swift
+import Foundation
+import DiscRecording
+
+public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
+    public let id: String
+    public let vendor: String
+    public let product: String
+    public let firmware: String
+    public let interconnect: String
+    public let capabilitiesSummary: String
+    public let isNetworkNode: Bool
+    public let hostName: String
+    public let mediaState: String
+    public let mediaType: String
+    public let isMediaPresent: Bool
+    public let isMediaBlank: Bool
+    public let isMediaErasable: Bool
+    public let freeSectorsLBA: Int64
+    public let freeBytes: Int64
+    public let availableWriteSpeeds: [String]
+
+    public init(
+        id: String,
+        vendor: String,
+        product: String,
+        firmware: String,
+        interconnect: String = "USB",
+        capabilitiesSummary: String = "DVD±R DL • CD-R/RW • CD-TEXT",
+        isNetworkNode: Bool = false,
+        hostName: String = "Local Mac",
+        mediaState: String = "Slot Empty",
+        mediaType: String = "No Disc",
+        isMediaPresent: Bool = false,
+        isMediaBlank: Bool = false,
+        isMediaErasable: Bool = false,
+        freeSectorsLBA: Int64 = 0,
+        freeBytes: Int64 = 0,
+        availableWriteSpeeds: [String] = ["Max Safe", "8x CAV", "4x CLV"]
+    ) {
+        self.id = id
+        self.vendor = vendor
+        self.product = product
+        self.firmware = firmware
+        self.interconnect = interconnect
+        self.capabilitiesSummary = capabilitiesSummary
+        self.isNetworkNode = isNetworkNode
+        self.hostName = hostName
+        self.mediaState = mediaState
+        self.mediaType = mediaType
+        self.isMediaPresent = isMediaPresent
+        self.isMediaBlank = isMediaBlank
+        self.isMediaErasable = isMediaErasable
+        self.freeSectorsLBA = freeSectorsLBA
+        self.freeBytes = freeBytes
+        self.availableWriteSpeeds = availableWriteSpeeds
+    }
+
+    public var displayName: String {
+        isNetworkNode ? "\(vendor) \(product) (\(hostName))" : "\(vendor) \(product)"
+    }
+
+    public var statusBadgeText: String {
+        if isMediaPresent {
+            let gb = Double(freeBytes) / 1_000_000_000.0
+            let statePrefix = isMediaBlank ? "Blank" : "Disc"
+            if gb >= 0.9 {
+                return String(format: "%@ %@ (%.2f GB)", statePrefix, mediaType, gb)
+            } else if freeBytes > 0 {
+                let mb = Double(freeBytes) / 1_000_000.0
+                return String(format: "%@ %@ (%.0f MB)", statePrefix, mediaType, mb)
+            }
+            return "\(statePrefix): \(mediaType)"
+        }
+        return mediaState
+    }
+}
+
+public struct StagedFileEntry: Identifiable, Hashable, Sendable {
+    public let id: UUID
+    public let url: URL
+    public let name: String
+    public let isDirectory: Bool
+    public let byteSize: Int64
+    public let itemCount: Int
+    public let posixPermissions: String
+    public let modifiedDate: Date
+
+    public init(
+        id: UUID = UUID(),
+        url: URL,
+        name: String,
+        isDirectory: Bool,
+        byteSize: Int64,
+        itemCount: Int,
+        posixPermissions: String,
+        modifiedDate: Date
+    ) {
+        self.id = id
+        self.url = url
+        self.name = name
+        self.isDirectory = isDirectory
+        self.byteSize = byteSize
+        self.itemCount = itemCount
+        self.posixPermissions = posixPermissions
+        self.modifiedDate = modifiedDate
+    }
+
+    public var sectorsLBA: Int64 {
+        max(1, (byteSize + 2047) / 2048)
+    }
+}
+
+@MainActor
+public final class DriveManager: ObservableObject {
+    @Published public var availableDrives: [OpticalDriveDevice] = []
+    @Published public var selectedDrive: OpticalDriveDevice?
+    @Published public var hardwareStatusLog: String = "Scanning IOKit / DiscRecording bus..."
+
+    private var pollTimer: Timer?
+
+    public init() {
+        refreshDrives()
+        startHardwarePolling()
+    }
+
+    private func startHardwarePolling() {
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.refreshDrives()
+            }
+        }
+    }
+
+    public func refreshDrives() {
+        var found: [OpticalDriveDevice] = []
+
+        if let devices = DRDevice.devices() as? [DRDevice] {
+            for dev in devices {
+                let info = dev.info() as? [String: Any] ?? [:]
+                let status = dev.status() as? [String: Any] ?? [:]
+
+                let vendor = (info[DRDeviceVendorNameKey] as? String ?? "MATSHITA").trimmingCharacters(in: .whitespaces)
+                let product = (info[DRDeviceProductNameKey] as? String ?? "Optical Drive").trimmingCharacters(in: .whitespaces)
+                let revision = (info[DRDeviceFirmwareRevisionKey] as? String ?? "1.0").trimmingCharacters(in: .whitespaces)
+                let interconnect = (info[DRDevicePhysicalInterconnectKey] as? String ?? "USB").trimmingCharacters(in: .whitespaces)
+
+                let writeCaps = info[DRDeviceWriteCapabilitiesKey] as? [String: Any] ?? [:]
+                var capList: [String] = []
+                if (writeCaps[DRDeviceCanWriteCDRKey] as? Bool) == true { capList.append("CD-R") }
+                if (writeCaps[DRDeviceCanWriteCDRWKey] as? Bool) == true { capList.append("CD-RW") }
+                if (writeCaps[DRDeviceCanWriteDVDRKey] as? Bool) == true { capList.append("DVD-R") }
+                if (writeCaps[DRDeviceCanWriteDVDRDualLayerKey] as? Bool) == true { capList.append("DVD-R DL") }
+                if (writeCaps[DRDeviceCanWriteDVDPlusRKey] as? Bool) == true { capList.append("DVD+R") }
+                if (writeCaps[DRDeviceCanWriteDVDPlusRDoubleLayerKey] as? Bool) == true { capList.append("DVD+R DL") }
+                if (writeCaps[DRDeviceCanWriteDVDRAMKey] as? Bool) == true { capList.append("DVD-RAM") }
+                if (writeCaps[DRDeviceCanWriteBDREKey] as? Bool) == true || (writeCaps[DRDeviceCanWriteBDRKey] as? Bool) == true {
+                    capList.append("BD-R/RE")
+                }
+                if (writeCaps[DRDeviceCanWriteCDTextKey] as? Bool) == true { capList.append("CD-TEXT") }
+                let capSummary = capList.isEmpty ? "DVD±R DL • CD-R/RW" : capList.joined(separator: " • ")
+
+                let rawState = status[DRDeviceMediaStateKey] as? String ?? DRDeviceMediaStateNone
+                let isPresent = (rawState == DRDeviceMediaStateMediaPresent)
+                let isTransition = (rawState == DRDeviceMediaStateInTransition)
+
+                var humanState = "Slot Empty (Insert Disc)"
+                var mType = "No Disc"
+                var isBlank = false
+                var isErasable = false
+                var freeBlocks: Int64 = 0
+                var freeByteCount: Int64 = 0
+                var speeds: [String] = ["Max Safe (Auto)", "8x CAV", "4x CLV", "2x Mastering"]
+
+                if isTransition {
+                    humanState = "Reading Slot / Spinning Up..."
+                } else if isPresent {
+                    let mediaInfo = status[DRDeviceMediaInfoKey] as? [String: Any] ?? [:]
+                    mType = (mediaInfo[DRDeviceMediaTypeKey] as? String ?? "Optical Media").uppercased()
+                    isBlank = (mediaInfo[DRDeviceMediaIsBlankKey] as? Bool) ?? false
+                    isErasable = (mediaInfo[DRDeviceMediaIsErasableKey] as? Bool) ?? false
+
+                    if let blocks = mediaInfo[DRDeviceMediaFreeSpaceKey] as? NSNumber {
+                        freeBlocks = blocks.int64Value
+                        freeByteCount = freeBlocks * 2048
+                    } else if let totalBlocks = mediaInfo[DRDeviceMediaBlocksOverwritableKey] as? NSNumber, totalBlocks.int64Value > 0 {
+                        freeBlocks = totalBlocks.int64Value
+                        freeByteCount = freeBlocks * 2048
+                    } else if isBlank {
+                        if mType.contains("DVD") {
+                            freeBlocks = 2_295_104
+                            freeByteCount = 4_700_372_992
+                        } else {
+                            freeBlocks = 359_847
+                            freeByteCount = 736_966_656
+                        }
+                    }
+
+                    if let rawSpeeds = mediaInfo[DRDeviceBurnSpeedsKey] as? [NSNumber], !rawSpeeds.isEmpty {
+                        let divisor: Double = mType.contains("DVD") ? 1385.0 : 176.4
+                        var parsedSpeeds: [String] = ["Max Safe (Auto)"]
+                        for kbs in rawSpeeds {
+                            let mult = max(1, Int(round(kbs.doubleValue / divisor)))
+                            let label = "\(mult)x (\(Int(kbs.doubleValue)) KB/s)"
+                            if !parsedSpeeds.contains(label) {
+                                parsedSpeeds.append(label)
+                            }
+                        }
+                        speeds = parsedSpeeds
+                    }
+                    humanState = isBlank ? "Blank \(mType) Ready" : "\(mType) Mounted"
+                }
+
+                let deviceID = "\(vendor)-\(product)-\(revision)"
+                found.append(OpticalDriveDevice(
+                    id: deviceID,
+                    vendor: vendor,
+                    product: product,
+                    firmware: revision,
+                    interconnect: interconnect,
+                    capabilitiesSummary: capSummary,
+                    isNetworkNode: false,
+                    hostName: "Local \(interconnect)",
+                    mediaState: humanState,
+                    mediaType: mType,
+                    isMediaPresent: isPresent,
+                    isMediaBlank: isBlank,
+                    isMediaErasable: isErasable,
+                    freeSectorsLBA: freeBlocks,
+                    freeBytes: freeByteCount,
+                    availableWriteSpeeds: speeds
+                ))
+            }
+        }
+
+        let previousSelectedID = self.selectedDrive?.id
+        self.availableDrives = found
+        if let prevID = previousSelectedID, let match = found.first(where: { $0.id == prevID }) {
+            self.selectedDrive = match
+        } else {
+            self.selectedDrive = found.first
+        }
+
+        if let primary = self.selectedDrive {
+            self.hardwareStatusLog = "\(primary.displayName) [FW \(primary.firmware)] — \(primary.statusBadgeText)"
+        } else {
+            self.hardwareStatusLog = "No Local Optical Drive Detected — Check USB Connection"
+        }
+    }
+
+    public func ejectDrive(id: String? = nil) {
+        guard let devices = DRDevice.devices() as? [DRDevice], !devices.isEmpty else {
+            hardwareStatusLog = "Eject failed: No physical drive connected."
+            return
+        }
+        let targetDevice: DRDevice = devices.first { dev in
+            guard let targetID = id else { return true }
+            let info = dev.info() as? [String: Any] ?? [:]
+            let vendor = (info[DRDeviceVendorNameKey] as? String ?? "").trimmingCharacters(in: .whitespaces)
+            let product = (info[DRDeviceProductNameKey] as? String ?? "").trimmingCharacters(in: .whitespaces)
+            let rev = (info[DRDeviceFirmwareRevisionKey] as? String ?? "").trimmingCharacters(in: .whitespaces)
+            return "\(vendor)-\(product)-\(rev)" == targetID
+        } ?? devices[0]
+
+        let didEject = targetDevice.ejectMedia()
+        if !didEject {
+            _ = targetDevice.openTray()
+        }
+        hardwareStatusLog = "Sent Eject command to \(selectedDrive?.displayName ?? "Optical Drive")"
+        refreshDrives()
+    }
+
+    public static func inspectFileOrFolder(url: URL) -> StagedFileEntry {
+        let fm = FileManager.default
+        var isDir: ObjCBool = false
+        _ = fm.fileExists(atPath: url.path, isDirectory: &isDir)
+
+        var totalBytes: Int64 = 0
+        var count: Int = 1
+        var modDate = Date()
+        var permsString = "rwxr-xr-x"
+
+        if let attrs = try? fm.attributesOfItem(atPath: url.path) {
+            if let d = attrs[.modificationDate] as? Date { modDate = d }
+            if let posix = attrs[.posixPermissions] as? NSNumber {
+                permsString = String(format: "0%o", posix.intValue)
+            }
+            if !isDir.boolValue, let sz = attrs[.size] as? NSNumber {
+                totalBytes = sz.int64Value
+            }
+        }
+
+        if isDir.boolValue {
+            count = 0
+            if let enumerator = fm.enumerator(
+                at: url,
+                includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
+                options: [.skipsHiddenFiles]
+            ) {
+                for case let childURL as URL in enumerator {
+                    if let vals = try? childURL.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey]) {
+                        if vals.isDirectory != true {
+                            totalBytes += Int64(vals.fileSize ?? 0)
+                            count += 1
+                        }
+                    }
+                }
+            }
+        }
+
+        return StagedFileEntry(
+            url: url,
+            name: url.lastPathComponent,
+            isDirectory: isDir.boolValue,
+            byteSize: totalBytes,
+            itemCount: count,
+            posixPermissions: permsString,
+            modifiedDate: modDate
+        )
+    }
+}
+EOF_DOUGH
+echo "[OK] Updated Sources/OpticalDough/OpticalDough.swift with live DRDevice & Finder file staging"
+
+# ------------------------------------------------------------------------------
+# 2. Update Sources/KroutonApp/KroutonModels.swift (Real Staged Files & Capacity Math)
+# ------------------------------------------------------------------------------
 cat << 'EOF_MODELS' > Sources/KroutonApp/KroutonModels.swift
 import SwiftUI
 import AppKit
 import OpticalDough
 
-// MARK: - 10 Rainbow-Ordered Accent Color Presets + Black/White Monochrome
 public struct AccentColorPreset: Identifiable, Hashable, Sendable {
     public let id: Int
     public let primary: Color
@@ -16,25 +345,15 @@ public struct AccentColorPreset: Identifiable, Hashable, Sendable {
     public let isMonochrome: Bool
 
     public static let allPresets: [AccentColorPreset] = [
-        // 0: Red
         AccentColorPreset(id: 0, primary: Color(red: 0.92, green: 0.24, blue: 0.24), secondary: Color.red, isMonochrome: false),
-        // 1: Orange (Toast Amber)
         AccentColorPreset(id: 1, primary: Color.orange, secondary: Color.orange, isMonochrome: false),
-        // 2: Yellow
         AccentColorPreset(id: 2, primary: Color.yellow, secondary: Color.orange, isMonochrome: false),
-        // 3: Green (Archival Emerald)
         AccentColorPreset(id: 3, primary: Color.green, secondary: Color.mint, isMonochrome: false),
-        // 4: Cyan / Teal
         AccentColorPreset(id: 4, primary: Color.cyan, secondary: Color.teal, isMonochrome: false),
-        // 5: 405nm Laser Blue
         AccentColorPreset(id: 5, primary: Color.blue, secondary: Color.cyan, isMonochrome: false),
-        // 6: CCC Slate Blue (Default)
         AccentColorPreset(id: 6, primary: Color(red: 0.35, green: 0.52, blue: 0.78), secondary: Color.blue, isMonochrome: false),
-        // 7: Indigo / Violet
         AccentColorPreset(id: 7, primary: Color.indigo, secondary: Color.purple, isMonochrome: false),
-        // 8: Pink / Magenta
         AccentColorPreset(id: 8, primary: Color.pink, secondary: Color.pink, isMonochrome: false),
-        // 9: Black & White Monochrome
         AccentColorPreset(id: 9, primary: Color.primary, secondary: Color.secondary, isMonochrome: true)
     ]
 }
@@ -127,16 +446,6 @@ public struct DepotChannelSubscription: Identifiable, Hashable, Sendable {
     public var sfSymbol: String
 }
 
-public struct DiscoveredBurnerHardware: Identifiable, Hashable, Sendable {
-    public let id: String
-    public var name: String
-    public var firmware: String
-    public var connectionBus: String
-    public var capabilities: String
-    public var statusBadge: String
-    public var isNetworkNode: Bool
-}
-
 public struct LabelGeometryPreset: Identifiable, Hashable, Sendable {
     public var id = UUID()
     public var name: String
@@ -191,7 +500,6 @@ public struct DestinationQueueItem: Identifiable, Hashable, Sendable {
 
 @MainActor
 public final class KroutonStateStore: ObservableObject {
-    // 1. General Settings (Menu Bar toggle removed; Rainbow index 6 = Slate Blue default)
     @Published public var appearanceMode: AppAppearanceMode = .dark
     @Published public var selectedAccentIndex: Int = 6
     @Published public var rememberLastTaskOnLaunch: Bool = true
@@ -199,33 +507,31 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var scratchDiskPath: String = "~/Library/Caches/app.krouton.staging"
     @Published public var autoPurgeScratch: Bool = true
 
-    // 2. Active Workspace Selection
     @Published public var selectedCategory: TaskMasterCategory = .burn
-    @Published public var selectedTaskID: String = "cd-da"
+    @Published public var selectedTaskID: String = "data-hybrid"
 
-    // 3. Expanded 27-Format Optical Catalog (1982-2026, Individual Console ROMs, El Torito moved to Disc Image Depot)
+    // Real Staged Files from Finder (Sprint 1)
+    @Published public var stagedFiles: [StagedFileEntry] = []
+    @Published public var discVolumeTitle: String = "KROUTON_DISC"
+
     @Published public var discFormats: [DiscFormatSpec] = [
-        // Audio Formats
         DiscFormatSpec(id: "cd-da", showInTaskChooser: true, technicalName: "CD-DA (Red Book)", colloquialName: "Audio CD w/ CD-TEXT & ISRC", launchYear: "1982", capacity: "700 MB / 80m", capacityGB: 0.7, laserType: "780nm IR", platform: "All CD / DVD / BD Players", deprecationStatus: "Current", sourceSupport: "New & Image", bookOrFileSystem: "IEC 60908 Red Book", sfSymbol: "waveform.circle.fill", filterGroup: .audio, isMediaPlaylist: true, isDataDisc: false),
         DiscFormatSpec(id: "mp3-cd", showInTaskChooser: true, technicalName: "ISO9660 / UDF Audio", colloquialName: "MP3 / FLAC Car-Safe Audio Disc", launchYear: "1998", capacity: "700 MB / 4.7 GB", capacityGB: 0.7, laserType: "780nm / 650nm", platform: "Car Stereos, Mac/PC, DVD Decks", deprecationStatus: "Current", sourceSupport: "New & Image", bookOrFileSystem: "ISO9660 + Joliet (ID3v2.3)", sfSymbol: "music.note.list", filterGroup: .audio, isMediaPlaylist: true, isDataDisc: false),
         DiscFormatSpec(id: "cd-extra", showInTaskChooser: true, technicalName: "CD-Extra (Blue Book)", colloquialName: "Enhanced Mixed-Mode Audio + Data CD", launchYear: "1995", capacity: "700 MB", capacityGB: 0.7, laserType: "780nm IR", platform: "CD Players + Mac/PC", deprecationStatus: "2008 (Legacy)", sourceSupport: "New & Image", bookOrFileSystem: "Multi-Session Red + Yellow", sfSymbol: "opticaldisc.fill", filterGroup: .audio, isMediaPlaylist: true, isDataDisc: true),
-        DiscFormatSpec(id: "dts-cd", showInTaskChooser: false, technicalName: "DTS-CD (5.1 PCM Wrapper)", colloquialName: "5.1 Surround Sound Audio CD", launchYear: "1997", capacity: "700 MB", capacityGB: 0.7, laserType: "780nm IR", platform: " S/PDIF Home Theater Receivers", deprecationStatus: "2006 (Niche)", sourceSupport: "New & Image", bookOrFileSystem: "Red Book 14-bit DTS Coherent", sfSymbol: "hifispeaker.2.fill", filterGroup: .audio, isMediaPlaylist: true, isDataDisc: false),
+        DiscFormatSpec(id: "dts-cd", showInTaskChooser: false, technicalName: "DTS-CD (5.1 PCM Wrapper)", colloquialName: "5.1 Surround Sound Audio CD", launchYear: "1997", capacity: "700 MB", capacityGB: 0.7, laserType: "780nm IR", platform: "S/PDIF Home Theater Receivers", deprecationStatus: "2006 (Niche)", sourceSupport: "New & Image", bookOrFileSystem: "Red Book 14-bit DTS Coherent", sfSymbol: "hifispeaker.2.fill", filterGroup: .audio, isMediaPlaylist: true, isDataDisc: false),
         DiscFormatSpec(id: "dvd-audio", showInTaskChooser: false, technicalName: "DVD-Audio (AUDIO_TS)", colloquialName: "24-bit/192kHz Lossless MLP DVD", launchYear: "2000", capacity: "4.7 GB / 8.5 GB", capacityGB: 4.7, laserType: "650nm Red", platform: "DVD-Audio & Universal Players", deprecationStatus: "2009 (Audiophile)", sourceSupport: "New & Image", bookOrFileSystem: "UDF 1.02 + Meridian Lossless", sfSymbol: "waveform.badge.magnifyingglass", filterGroup: .audio, isMediaPlaylist: true, isDataDisc: false),
         DiscFormatSpec(id: "sacd-r", showInTaskChooser: false, technicalName: "Scarlet Book DSD (SACD-R)", colloquialName: "1-Bit 2.8MHz DSD Audiophile Disc", launchYear: "1999", capacity: "4.7 GB", capacityGB: 4.7, laserType: "650nm Red", platform: "SACD-R Compatible Decks", deprecationStatus: "2011 (Audiophile)", sourceSupport: "New & Image", bookOrFileSystem: "UDF 1.02 Scarlet Book (.dsf/.dff)", sfSymbol: "hifispeaker.fill", filterGroup: .audio, isMediaPlaylist: true, isDataDisc: false),
 
-        // Video & Blu-ray Formats
         DiscFormatSpec(id: "dvd-video", showInTaskChooser: true, technicalName: "DVD-Video (DVD-5 / DVD-9)", colloquialName: "Standard Movie DVD w/ Menus", launchYear: "1996", capacity: "4.7 GB / 8.5 GB", capacityGB: 4.7, laserType: "650nm Red", platform: "Standalone DVD & BD Players", deprecationStatus: "Current", sourceSupport: "New & Image", bookOrFileSystem: "UDF 1.02 Bridge (VIDEO_TS)", sfSymbol: "film.fill", filterGroup: .video, isMediaPlaylist: true, isDataDisc: false),
         DiscFormatSpec(id: "bd-on-dvd", showInTaskChooser: true, technicalName: "AVCHD / BD-5 / BD-9", colloquialName: "1080p Blu-ray Video on 4.7GB DVD", launchYear: "2006", capacity: "4.7 GB / 8.5 GB", capacityGB: 4.7, laserType: "650nm Red", platform: "Blu-ray Players, PS3/PS4/PS5", deprecationStatus: "Current", sourceSupport: "New & Image", bookOrFileSystem: "UDF 2.50 (BDMV on DVD)", sfSymbol: "sparkles.tv.fill", filterGroup: .video, isMediaPlaylist: true, isDataDisc: false),
         DiscFormatSpec(id: "bd-25", showInTaskChooser: true, technicalName: "BD-R / BD-RE SL (BDMV)", colloquialName: "25 GB Single-Layer Blu-ray Video", launchYear: "2006", capacity: "25.0 GB", capacityGB: 25.0, laserType: "405nm Violet", platform: "Blu-ray Players & Consoles", deprecationStatus: "Current", sourceSupport: "New & Image", bookOrFileSystem: "UDF 2.50 / 2.60 (BDMV)", sfSymbol: "film.stack.fill", filterGroup: .video, isMediaPlaylist: true, isDataDisc: false),
         DiscFormatSpec(id: "bd-50", showInTaskChooser: true, technicalName: "BD-R DL Dual-Layer (BDMV)", colloquialName: "50 GB Dual-Layer Blu-ray Video", launchYear: "2006", capacity: "50.0 GB", capacityGB: 50.0, laserType: "405nm Violet", platform: "Blu-ray Players & Consoles", deprecationStatus: "Current", sourceSupport: "New & Image", bookOrFileSystem: "UDF 2.50 Seamless Break", sfSymbol: "square.stack.3d.up.fill", filterGroup: .video, isMediaPlaylist: true, isDataDisc: false),
         DiscFormatSpec(id: "bd-uhd", showInTaskChooser: true, technicalName: "BDXL / UHD-BD (TL / QL)", colloquialName: "4K UHD HDR10 / Dolby Atmos Blu-ray", launchYear: "2016", capacity: "66 / 100 / 128 GB", capacityGB: 100.0, laserType: "405nm Violet", platform: "4K UHD Players, Xbox/PS5", deprecationStatus: "Current", sourceSupport: "New & Image", bookOrFileSystem: "UDF 2.60 HEVC 10-bit HDR", sfSymbol: "4k.tv.fill", filterGroup: .video, isMediaPlaylist: true, isDataDisc: false),
 
-        // Data & Archival Formats
         DiscFormatSpec(id: "data-hybrid", showInTaskChooser: true, technicalName: "UDF / HFS+ / APFS / ISO", colloquialName: "Mac & PC Custom View Data Disc", launchYear: "1985", capacity: "700 MB - 128 GB", capacityGB: 4.7, laserType: "All Lasers", platform: "macOS, Windows, Linux", deprecationStatus: "Current", sourceSupport: "New & Image", bookOrFileSystem: "Hybrid HFS+ / UDF 2.60", sfSymbol: "externaldrive.fill.badge.plus", filterGroup: .data, isMediaPlaylist: false, isDataDisc: true),
         DiscFormatSpec(id: "mdisc-vault", showInTaskChooser: true, technicalName: "M-DISC Archival + PAR2", colloquialName: "1,000-Year Inorganic Vault w/ Parity", launchYear: "2009", capacity: "25 / 50 / 100 GB", capacityGB: 25.0, laserType: "405nm / 650nm", platform: "macOS, Windows, Linux", deprecationStatus: "Current", sourceSupport: "New & Image", bookOrFileSystem: "UDF 2.60 + 10% PAR2 Recovery", sfSymbol: "lock.shield.fill", filterGroup: .data, isMediaPlaylist: false, isDataDisc: true),
         DiscFormatSpec(id: "dvd-ram", showInTaskChooser: false, technicalName: "DVD-RAM (UDF 1.50 / 2.01)", colloquialName: "Random-Access Zoned Rewritable Disc", launchYear: "1996", capacity: "4.7 GB / 9.4 GB", capacityGB: 4.7, laserType: "650nm Red", platform: "Broadcast Recorders, Mac/PC", deprecationStatus: "2015 (Pro Broadcast)", sourceSupport: "New & Image", bookOrFileSystem: "Hardware Defect Mgmt UDF", sfSymbol: "memorychip.fill", filterGroup: .data, isMediaPlaylist: false, isDataDisc: true),
 
-        // Broken-Out Individual Console ROM & Optical Formats
         DiscFormatSpec(id: "console-wii", showInTaskChooser: true, technicalName: "Nintendo Wii (RVL-006)", colloquialName: "Wii Optical Disc (.rvz / .wbfs / .iso)", launchYear: "2006", capacity: "4.7 GB / 8.54 GB", capacityGB: 4.7, laserType: "650nm Red", platform: "Nintendo Wii & Dolphin", deprecationStatus: "Archival", sourceSupport: "Image Only", bookOrFileSystem: "Wii Partition Table (.rvz/.wbfs)", sfSymbol: "gamecontroller.fill", filterGroup: .console, isMediaPlaylist: false, isDataDisc: false),
         DiscFormatSpec(id: "console-gc", showInTaskChooser: true, technicalName: "Nintendo GameCube (DOL-006)", colloquialName: "80mm GameCube Mini-DVD (.rvz / .gcm)", launchYear: "2001", capacity: "1.46 GB (80mm)", capacityGB: 1.46, laserType: "650nm Red", platform: "GameCube, Wii & Dolphin", deprecationStatus: "Archival", sourceSupport: "Image Only", bookOrFileSystem: "GCM / RVZ Sector Rebuilder", sfSymbol: "circle.grid.cross.fill", filterGroup: .console, isMediaPlaylist: false, isDataDisc: false),
         DiscFormatSpec(id: "console-ps2", showInTaskChooser: true, technicalName: "PlayStation 2 DVD / CD", colloquialName: "Sony PS2 Game Disc (+ FreeDVDBoot ESR)", launchYear: "2000", capacity: "700 MB / 4.7 GB", capacityGB: 4.7, laserType: "650nm / 780nm", platform: "PlayStation 2 & PCSX2", deprecationStatus: "Archival", sourceSupport: "Image Only", bookOrFileSystem: "ISO9660 + UDF 1.02 (.iso/.chd)", sfSymbol: "playstation.logo", filterGroup: .console, isMediaPlaylist: false, isDataDisc: false),
@@ -236,14 +542,12 @@ public final class KroutonStateStore: ObservableObject {
         DiscFormatSpec(id: "console-saturn", showInTaskChooser: false, technicalName: "Sega Saturn / Mega-CD", colloquialName: "Saturn & Sega CD Mixed-Mode (.chd/.cue)", launchYear: "1991", capacity: "650 MB", capacityGB: 0.65, laserType: "780nm IR", platform: "Sega Saturn, Sega CD & Mednafen", deprecationStatus: "Archival", sourceSupport: "Image Only", bookOrFileSystem: "Track 1 ISO + Red Book Audio", sfSymbol: "globe.asia.australia.fill", filterGroup: .console, isMediaPlaylist: false, isDataDisc: false),
         DiscFormatSpec(id: "console-3do", showInTaskChooser: false, technicalName: "3DO / PC Engine CD-ROM²", colloquialName: "3DO Interactive & TurboGrafx-CD", launchYear: "1988", capacity: "650 MB", capacityGB: 0.65, laserType: "780nm IR", platform: "3DO, PC Engine & RetroArch", deprecationStatus: "Archival", sourceSupport: "Image Only", bookOrFileSystem: "Opera FS / Mode 1 Raw", sfSymbol: "sparkles.rectangle.stack.fill", filterGroup: .console, isMediaPlaylist: false, isDataDisc: false),
 
-        // Obsolete / Legacy Vault Formats
         DiscFormatSpec(id: "macos9-hfs", showInTaskChooser: false, technicalName: "HFS Standard (Mac OS 9 APM)", colloquialName: "Bootable Classic System 7 / OS 9 CD", launchYear: "1985", capacity: "650 MB", capacityGB: 0.65, laserType: "780nm IR", platform: "68k & PowerPC Macintoshes", deprecationStatus: "2002 (Obsolete)", sourceSupport: "New & Image", bookOrFileSystem: "Apple Partition Map + Blessed HFS", sfSymbol: "desktopcomputer", filterGroup: .legacy, isMediaPlaylist: false, isDataDisc: true),
         DiscFormatSpec(id: "photo-cd", showInTaskChooser: false, technicalName: "Kodak Photo CD (Beige Book)", colloquialName: "Multi-Resolution .PCD Archival Disc", launchYear: "1992", capacity: "650 MB", capacityGB: 0.65, laserType: "780nm IR", platform: "Photo CD Decks & Mac/PC", deprecationStatus: "2004 (Obsolete)", sourceSupport: "New & Image", bookOrFileSystem: "CD-ROM XA Bridge (Image Pac)", sfSymbol: "camera.aperture", filterGroup: .legacy, isMediaPlaylist: false, isDataDisc: true),
         DiscFormatSpec(id: "vcd-svcd", showInTaskChooser: false, technicalName: "White Book VCD / SVCD", colloquialName: "Video CD (MPEG-1 / MPEG-2)", launchYear: "1993", capacity: "700 MB", capacityGB: 0.7, laserType: "780nm IR", platform: "VCD & DVD Players", deprecationStatus: "2005 (Obsolete)", sourceSupport: "New & Image", bookOrFileSystem: "Mode 2 Form 2 (2324-Byte)", sfSymbol: "play.tv.fill", filterGroup: .legacy, isMediaPlaylist: true, isDataDisc: false),
         DiscFormatSpec(id: "cd-g", showInTaskChooser: false, technicalName: "Red Book + R-W Subchannel", colloquialName: "Karaoke CD+G Graphics Disc", launchYear: "1985", capacity: "700 MB", capacityGB: 0.7, laserType: "780nm IR", platform: "Karaoke Decks", deprecationStatus: "2010 (Legacy)", sourceSupport: "Image Only", bookOrFileSystem: "Raw 96-Byte R-W Subchannel", sfSymbol: "mic.fill", filterGroup: .legacy, isMediaPlaylist: true, isDataDisc: false)
     ]
 
-    // 4. Disc Image Depot Storefront Catalog & Subscribed Channels
     @Published public var depotChannels: [DepotChannelSubscription] = [
         DepotChannelSubscription(id: "rescue", name: "System Rescue, Partitioning & Hardware Diagnostics", description: "SystemRescue, GParted Live, Rescuezilla, Memtest86+, FreeDOS 1.4 BIOS Room", itemCount: 14, isEnabled: true, sfSymbol: "cross.case.fill"),
         DepotChannelSubscription(id: "linux", name: "Live Linux & BSD Official Optical Releases", description: "Ubuntu LTS, Fedora Workstation, Debian Live, Arch, FreeBSD Boot-Only & DVD", itemCount: 28, isEnabled: true, sfSymbol: "terminal.fill"),
@@ -259,12 +563,9 @@ public final class KroutonStateStore: ObservableObject {
         DepotCatalogItem(id: "sysrescue-11", title: "SystemRescue 11.03 Live", subtitle: "Complete ZFS/Btrfs/APFS recovery, partitioning, ddrescue & network tools", channel: "Rescue & Diagnostics", version: "11.03 (2026)", sizeDisplay: "854 MB", architecture: "x86_64 / UEFI", bootStandard: "El Torito BIOS + UEFI", sha256Short: "8f4a...e91c", sfSymbol: "cross.case.fill", isDownloaded: true),
         DepotCatalogItem(id: "freedos-14", title: "FreeDOS 1.4 Live + BIOS Flasher Room", subtitle: "Classic DOS environment with 600 MB open space to inject motherboard/drive firmware", channel: "Rescue & Diagnostics", version: "1.4 Final", sizeDisplay: "412 MB", architecture: "x86 Real Mode", bootStandard: "El Torito Floppy/HD Emulation", sha256Short: "3c19...b04d", sfSymbol: "cpu.fill", isDownloaded: true),
         DepotCatalogItem(id: "macos922-uni", title: "Mac OS 9.2.2 Universal Boot CD (Classic APM)", subtitle: "Bootable HFS Standard + Apple Partition Map for PowerMac G3/G4 & iBook", channel: "Vintage Apple (archive.org)", version: "9.2.2 (2002)", sizeDisplay: "618 MB", architecture: "PowerPC", bootStandard: "Apple Partition Map + Blessed Folder", sha256Short: "a72e...441f", sfSymbol: "desktopcomputer", isDownloaded: false),
-        DepotCatalogItem(id: "ubuntu-2604", title: "Ubuntu Desktop 26.04 LTS Live DVD", subtitle: "Official Canonical Live Desktop & Installer (ARM64 Apple Silicon VM & x86_64)", channel: "Live Linux & BSD", version: "26.04 LTS", sizeDisplay: "4.48 GB", architecture: "ARM64 / x86_64", bootStandard: "UEFI ESP + El Torito", sha256Short: "e901...772a", sfSymbol: "terminal.fill", isDownloaded: false),
-        DepotCatalogItem(id: "rescuezilla-26", title: "Rescuezilla Bare-Metal Disk Imager", subtitle: "Graphical Clonezilla-compatible disk cloning and scratch recovery live disc", channel: "Rescue & Diagnostics", version: "2.6.1", sizeDisplay: "1.18 GB", architecture: "x86_64 / UEFI", bootStandard: "UEFI + BIOS Hybrid", sha256Short: "5d88...109e", sfSymbol: "externaldrive.badge.checkmark", isDownloaded: false),
-        DepotCatalogItem(id: "win11-26h2", title: "Windows 11 26H2 Official ISO (+ DVD-5 Fit)", subtitle: "Fetched directly via Microsoft API with optional TPM bypass & 4.7GB WIM splitter", channel: "Windows & DOS", version: "26H2", sizeDisplay: "5.12 GB", architecture: "x86_64 / ARM64", bootStandard: "UDF + EFI Boot", sha256Short: "c410...998b", sfSymbol: "window.ceiling", isDownloaded: false)
+        DepotCatalogItem(id: "ubuntu-2604", title: "Ubuntu Desktop 26.04 LTS Live DVD", subtitle: "Official Canonical Live Desktop & Installer (ARM64 Apple Silicon VM & x86_64)", channel: "Live Linux & BSD", version: "26.04 LTS", sizeDisplay: "4.48 GB", architecture: "ARM64 / x86_64", bootStandard: "UEFI ESP + El Torito", sha256Short: "e901...772a", sfSymbol: "terminal.fill", isDownloaded: false)
     ]
 
-    // 5. Audio, Video & Fit-to-Disc Settings
     @Published public var defaultCrossfadeSec: Double = 3.5
     @Published public var autoBeatmatchSoundAnalysis: Bool = true
     @Published public var carSafeMP3Mode: Bool = true
@@ -273,7 +574,6 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var fitToDiscStripForeignDubs: Bool = true
     @Published public var videoToolboxTwoPassVBR: Bool = true
 
-    // 6. Ripping, Transcoding & Interactive Token Tray
     @Published public var driveReadOffsetSamples: Int = 48
     @Published public var paranoiaErrorRetries: Int = 16
     @Published public var verifyAccurateRip: Bool = true
@@ -282,18 +582,12 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var passthroughAtmosTrueHD: Bool = true
     @Published public var namingTokens: [String] = ["[Track 01]", " - ", "[Artist]", " - ", "[Title]"]
 
-    // 7. Burners & Network Hardware Inventory
-    @Published public var discoveredBurners: [DiscoveredBurnerHardware] = [
-        DiscoveredBurnerHardware(id: "pioneer-net", name: "Pioneer BDR-S13U-X", firmware: "FW 1.05", connectionBus: "krouton-server.local (1.2 Gbps LAN)", capabilities: "BDXL 128GB • UHD • M-DISC • DVD±R DL • CD-TEXT", statusBadge: "Ready (Server Ring Buffer Armed)", isNetworkNode: true),
-        DiscoveredBurnerHardware(id: "lg-local", name: "LG WH16NS60 (UHD Official)", firmware: "FW 1.02", connectionBus: "Thunderbolt / USB 3.2 Local Bus", capabilities: "BDXL 100GB • UHD Read/Write • M-DISC • LightScribe", statusBadge: "Ready (Media: Blank BD-R 25GB)", isNetworkNode: false)
-    ]
     @Published public var enableNetworkServerSharing: Bool = true
     @Published public var serverRingBufferMB: Double = 256.0
     @Published public var preStageImageToServerSSD: Bool = true
     @Published public var forceDVDROMBookType: Bool = true
     @Published public var disableBDDefectManagementForVideo: Bool = true
 
-    // 8. Labels & Printers (Dedicated Category)
     @Published public var labelPresets: [LabelGeometryPreset] = [
         LabelGeometryPreset(name: "Epson ET-8550 Full Hub (120mm / 18mm)", outerDiameterMM: 120.0, innerDiameterMM: 18.0, offsetXMM: 0.0, offsetYMM: 0.0),
         LabelGeometryPreset(name: "Standard Inkjet Disc (118mm / 23mm)", outerDiameterMM: 118.0, innerDiameterMM: 23.0, offsetXMM: 0.0, offsetYMM: 0.0),
@@ -306,7 +600,6 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var customTMDBKey: String = ""
     @Published public var customFanartKey: String = ""
 
-    // 9. Notifications Matrix
     @Published public var notificationMatrix: [NotificationEventRow] = [
         NotificationEventRow(id: "start", eventTitle: "Burn, rip, or transcode started", eventSubtitle: "Triggered when laser calibration or extraction begins", bannerEnabled: true, iPhoneEnabled: true, watchEnabled: false, soundEnabled: false),
         NotificationEventRow(id: "done", eventTitle: "Task completed & verified", eventSubtitle: "Triggered when all queued destinations finish without error", bannerEnabled: true, iPhoneEnabled: true, watchEnabled: true, soundEnabled: true),
@@ -316,13 +609,13 @@ public final class KroutonStateStore: ObservableObject {
         NotificationEventRow(id: "depot", eventTitle: "Disc Image Depot download verified", eventSubtitle: "ISO / image downloaded and SHA-256 verified", bannerEnabled: true, iPhoneEnabled: false, watchEnabled: false, soundEnabled: true)
     ]
 
-    // 10. Right-Column Destination Queue
+    // Default to Physical Burner (MATSHITA DVD-R UJ-898)
     @Published public var destinationQueue: [DestinationQueueItem] = [
         DestinationQueueItem(
-            kind: .networkBurner,
-            hardwareOrPath: "Pioneer BDR-S13U-X (krouton-server.local)",
-            speedOrCodec: "8x CAV (Optimal)",
-            simulationMode: false,
+            kind: .physicalBurner,
+            hardwareOrPath: "MATSHITA DVD-R UJ-898 (Local USB)",
+            speedOrCodec: "Max Safe (Auto)",
+            simulationMode: true,
             verifyAfterBurn: true,
             compressAfterCreation: false
         )
@@ -330,6 +623,14 @@ public final class KroutonStateStore: ObservableObject {
 
     public var activeAccent: Color {
         AccentColorPreset.allPresets[selectedAccentIndex].primary
+    }
+
+    public var totalStagedBytes: Int64 {
+        stagedFiles.reduce(0) { $0 + $1.byteSize }
+    }
+
+    public var totalStagedSectorsLBA: Int64 {
+        stagedFiles.reduce(0) { $0 + $1.sectorsLBA }
     }
 
     public var namingPreviewString: String {
@@ -348,14 +649,35 @@ public final class KroutonStateStore: ObservableObject {
         }
     }
 
+    public func addStagedURLs(_ urls: [URL]) {
+        for url in urls {
+            if !stagedFiles.contains(where: { $0.url == url }) {
+                let entry = DriveManager.inspectFileOrFolder(url: url)
+                stagedFiles.append(entry)
+            }
+        }
+    }
+
+    public func removeStagedFile(id: UUID) {
+        stagedFiles.removeAll { $0.id == id }
+    }
+
+    public func clearStagedFiles() {
+        stagedFiles.removeAll()
+    }
+
     public init() {}
 }
 EOF_MODELS
-echo "[OK] Wrote Sources/KroutonApp/KroutonModels.swift"
+echo "[OK] Updated Sources/KroutonApp/KroutonModels.swift"
 
+# ------------------------------------------------------------------------------
+# 3. Update Sources/KroutonApp/KroutonSettingsWindow.swift (Live DriveManager Binding)
+# ------------------------------------------------------------------------------
 cat << 'EOF_SETTINGS' > Sources/KroutonApp/KroutonSettingsWindow.swift
 import SwiftUI
 import AppKit
+import OpticalDough
 
 public enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendable {
     case general = "General"
@@ -385,10 +707,10 @@ public enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendabl
 
 public struct KroutonSettingsWindowView: View {
     @ObservedObject var store: KroutonStateStore
+    @ObservedObject var driveManager: DriveManager
     @State private var selectedPane: KroutonSettingsCategory = .general
     @State private var searchText: String = ""
 
-    // Finder-Style Table Sort & Filter State for Format Chooser
     @State private var formatFilter: FormatFilterGroup = .all
     @State private var formatSortOrder: [KeyPathComparator<DiscFormatSpec>] = [
         .init(\.technicalName, order: .forward)
@@ -396,15 +718,15 @@ public struct KroutonSettingsWindowView: View {
     @State private var selectedFormatIDs: Set<DiscFormatSpec.ID> = []
     @AppStorage("KroutonFormatTableColumnCustomization") private var columnCustomization: TableColumnCustomization<DiscFormatSpec>
 
-    // Labels & Printers New Preset State
     @State private var newPresetName: String = "Custom Disc Tray Preset"
     @State private var newOuterMM: Double = 120.0
     @State private var newInnerMM: Double = 18.0
     @State private var newOffsetX: Double = 0.0
     @State private var newOffsetY: Double = 0.0
 
-    public init(store: KroutonStateStore) {
+    public init(store: KroutonStateStore, driveManager: DriveManager) {
         self.store = store
+        self.driveManager = driveManager
     }
 
     public var body: some View {
@@ -441,7 +763,6 @@ public struct KroutonSettingsWindowView: View {
         } detail: {
             Group {
                 if selectedPane == .formatChooser {
-                    // Full-height native Finder List View table for Format Chooser
                     formatChooserPane
                         .padding(24)
                 } else {
@@ -481,7 +802,6 @@ public struct KroutonSettingsWindowView: View {
         .tint(store.activeAccent)
     }
 
-    // MARK: - 1. GENERAL PANE (Rainbow Order Accent Dots, No Menu Bar Clutter, Choose Folder Button)
     private var generalPane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "Appearance & Accent Color") {
@@ -597,7 +917,6 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    // MARK: - 2. FORMAT CHOOSER PANE (True macOS Finder List View Table: Sort, Resize & Rearrange Columns)
     private var filteredAndSortedFormats: [DiscFormatSpec] {
         let filtered = store.discFormats.filter { fmt in
             switch formatFilter {
@@ -625,7 +944,6 @@ public struct KroutonSettingsWindowView: View {
                 }
             }
 
-            // Filter Pills Bar
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(FormatFilterGroup.allCases) { group in
@@ -640,7 +958,6 @@ public struct KroutonSettingsWindowView: View {
                 }
             }
 
-            // Native macOS Finder List View Table
             Table(of: DiscFormatSpec.self, selection: $selectedFormatIDs, sortOrder: $formatSortOrder, columnCustomization: $columnCustomization) {
                 TableColumn("Show", value: \.visibilitySortKey) { fmt in
                     Toggle("", isOn: Binding(
@@ -654,7 +971,6 @@ public struct KroutonSettingsWindowView: View {
                 .width(min: 46, ideal: 54, max: 64)
                 .customizationID("col-show")
 
-                // Two-line Format column: Line 1 = Official Technical Name, Line 2 = Colloquial Name underneath
                 TableColumn("Format", value: \.technicalName) { fmt in
                     HStack(spacing: 8) {
                         Image(systemName: fmt.sfSymbol)
@@ -733,7 +1049,6 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    // MARK: - 3. DISC IMAGE DEPOT PANE (Curated OS, Rescue & Archive.org Channels)
     private var discImageDepotPane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "Disc Image Depot — Subscribed Channels & Repositories") {
@@ -787,7 +1102,6 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    // MARK: - 4. AUDIO & VIDEO PANE (Includes Fit-to-Disc Defaults)
     private var audioVideoPane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "Red Book Audio CD & Jam Crossfade Defaults") {
@@ -817,14 +1131,13 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    // MARK: - 5. RIPPING & TRANSCODING PANE (With Interactive Active Token Tray)
     private var rippingTranscodingPane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "Optical Drive Read Offset & Error Recovery (CD / DVD / BD Ripping)") {
                 HStack {
                     VStack(alignment: .leading) {
                         Text("Drive Sample Read Offset Correction")
-                        Text("Compensates for physical laser lead-in/lead-out offset on Pioneer/LG drives")
+                        Text("Compensates for physical laser lead-in/lead-out offset on Matshita/Pioneer/LG drives")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -872,7 +1185,6 @@ public struct KroutonSettingsWindowView: View {
 
                 Divider()
 
-                // Active Token Sequence Tray
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         Text("Active Pattern:")
@@ -906,42 +1218,72 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    // MARK: - 6. BURNERS & NETWORK PANE (With Discovered Hardware Status Table)
+    // MARK: - 6. BURNERS & NETWORK PANE (Live Connected Hardware via DriveManager)
     private var burnersNetworkPane: some View {
         VStack(alignment: .leading, spacing: 18) {
-            settingsCard(title: "Discovered Local & Network Optical Burners") {
-                ForEach(Array(store.discoveredBurners.enumerated()), id: \.element.id) { idx, drive in
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Image(systemName: drive.isNetworkNode ? "server.rack" : "opticaldiscdrive.fill")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(store.activeAccent)
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack(spacing: 8) {
-                                    Text(drive.name)
-                                        .font(.system(size: 13, weight: .bold))
-                                    Text(drive.firmware)
-                                        .font(.system(size: 10, design: .monospaced))
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.secondary.opacity(0.15))
-                                        .clipShape(Capsule())
+            settingsCard(title: "Connected Optical Burners (Live IOKit / DiscRecording Bus)") {
+                HStack {
+                    Text(driveManager.hardwareStatusLog)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    pillToggleButton(title: "Rescan Bus", sfSymbol: "arrow.clockwise", isSelected: false) {
+                        driveManager.refreshDrives()
+                    }
+                }
+                Divider()
+
+                if driveManager.availableDrives.isEmpty {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text("No physical optical drives detected. Plug in your USB burner and click Rescan Bus.")
+                            .font(.caption)
+                    }
+                } else {
+                    ForEach(Array(driveManager.availableDrives.enumerated()), id: \.element.id) { idx, drive in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Image(systemName: drive.isNetworkNode ? "server.rack" : "opticaldiscdrive.fill")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(store.activeAccent)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack(spacing: 8) {
+                                        Text(drive.displayName)
+                                            .font(.system(size: 13, weight: .bold))
+                                        Text("FW \(drive.firmware)")
+                                            .font(.system(size: 10, design: .monospaced))
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(Color.secondary.opacity(0.15))
+                                            .clipShape(Capsule())
+                                        Text(drive.interconnect)
+                                            .font(.system(size: 10, design: .monospaced))
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(store.activeAccent.opacity(0.18))
+                                            .clipShape(Capsule())
+                                    }
+                                    Text("Write Capabilities: \(drive.capabilitiesSummary)")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.secondary)
                                 }
-                                Text("\(drive.connectionBus) • \(drive.capabilities)")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Text(drive.statusBadgeText)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(drive.isMediaPresent ? .green : .secondary)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background((drive.isMediaPresent ? Color.green : Color.secondary).opacity(0.12))
+                                    .clipShape(Capsule())
+
+                                pillToggleButton(title: "Eject", sfSymbol: "eject.fill", isSelected: false) {
+                                    driveManager.ejectDrive(id: drive.id)
+                                }
                             }
-                            Spacer()
-                            Text(drive.statusBadge)
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(.green)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.green.opacity(0.12))
-                                .clipShape(Capsule())
-                        }
-                        if idx < store.discoveredBurners.count - 1 {
-                            Divider()
+                            if idx < driveManager.availableDrives.count - 1 {
+                                Divider()
+                            }
                         }
                     }
                 }
@@ -968,7 +1310,6 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    // MARK: - 7. LABELS & PRINTERS PANE (Dedicated Category)
     private var labelsPrintersPane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "Saved Disc Label Geometry & Tray Offset Presets (Epson EcoTank ET-8550 & Standard Trays)") {
@@ -1049,7 +1390,6 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    // MARK: - 8. NOTIFICATIONS PANE (CCC 4-Icon Toggle Row)
     private var notificationsPane: some View {
         VStack(alignment: .leading, spacing: 16) {
             settingsCard(title: "Alerts, iPhone Live Activities & Apple Watch Notifications") {
@@ -1162,11 +1502,15 @@ public struct KroutonSettingsWindowView: View {
     }
 }
 EOF_SETTINGS
-echo "[OK] Wrote Sources/KroutonApp/KroutonSettingsWindow.swift"
+echo "[OK] Updated Sources/KroutonApp/KroutonSettingsWindow.swift"
 
+# ------------------------------------------------------------------------------
+# 4. Update Sources/KroutonApp/KroutonApp.swift (Live Drive UI, Eject & Finder Drop)
+# ------------------------------------------------------------------------------
 cat << 'EOF_APP' > Sources/KroutonApp/KroutonApp.swift
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 import OpticalDough
 
 @MainActor
@@ -1174,14 +1518,14 @@ final class KroutonWindowManager {
     static let shared = KroutonWindowManager()
     private var settingsWindow: NSWindow?
 
-    func openSettingsWindow(store: KroutonStateStore) {
+    func openSettingsWindow(store: KroutonStateStore, driveManager: DriveManager) {
         if let existing = settingsWindow {
             existing.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
         }
 
-        let hostingController = NSHostingController(rootView: KroutonSettingsWindowView(store: store))
+        let hostingController = NSHostingController(rootView: KroutonSettingsWindowView(store: store, driveManager: driveManager))
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1120, height: 720),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -1227,7 +1571,7 @@ struct KroutonApp: App {
         .commands {
             CommandGroup(replacing: .appSettings) {
                 Button("Settings...") {
-                    KroutonWindowManager.shared.openSettingsWindow(store: store)
+                    KroutonWindowManager.shared.openSettingsWindow(store: store, driveManager: driveManager)
                 }
                 .keyboardShortcut(",", modifiers: .command)
             }
@@ -1249,6 +1593,33 @@ struct KroutonMainWorkspaceView: View {
     @State private var labelSubtitle: String = "2026 MASTER EDITION"
     @State private var autoLabelSearchQuery: String = "Dark Side of the Moon"
     @State private var depotSearchQuery: String = ""
+    @State private var isDropTargeted: Bool = false
+
+    private var activeDiscCapacityBytes: Int64 {
+        if let drive = driveManager.selectedDrive, drive.isMediaPresent, drive.freeBytes > 0 {
+            return drive.freeBytes
+        }
+        let activeSpec = store.discFormats.first(where: { $0.id == store.selectedTaskID })
+        let gb = activeSpec?.capacityGB ?? 4.7
+        return Int64(gb * 1_000_000_000.0)
+    }
+
+    private var capacityStatusText: String {
+        let stagedB = store.totalStagedBytes
+        let capB = activeDiscCapacityBytes
+        if store.useBase10Units {
+            let stagedMB = Double(stagedB) / 1_000_000.0
+            let capGB = Double(capB) / 1_000_000_000.0
+            if stagedMB < 1000.0 {
+                return String(format: "%.1f MB of %.2f GB Staged (%lld Files)", stagedMB, capGB, Int64(store.stagedFiles.count))
+            }
+            return String(format: "%.2f GB of %.2f GB Staged (%lld Files)", stagedMB / 1000.0, capGB, Int64(store.stagedFiles.count))
+        } else {
+            let stagedMiB = Double(stagedB) / 1_048_576.0
+            let capGiB = Double(capB) / 1_073_741_824.0
+            return String(format: "%.1f MiB / %.2f GiB (%lld LBA)", stagedMiB, capGiB, store.totalStagedSectorsLBA)
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1263,7 +1634,7 @@ struct KroutonMainWorkspaceView: View {
                     .frame(minWidth: 580, maxWidth: .infinity, maxHeight: .infinity)
 
                 rightDestinationColumn
-                    .frame(minWidth: 320, idealWidth: 350, maxWidth: 390)
+                    .frame(minWidth: 325, idealWidth: 355, maxWidth: 400)
             }
         }
         .frame(minWidth: 1280, idealWidth: 1380, minHeight: 820, idealHeight: 880)
@@ -1279,23 +1650,28 @@ struct KroutonMainWorkspaceView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("KROUTON")
                         .font(.system(size: 13, weight: .heavy, design: .rounded))
-                    Text("Optical Mastering & Archival Suite")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
+                    Text(driveManager.hardwareStatusLog)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(driveManager.selectedDrive?.isMediaPresent == true ? .green : .secondary)
+                        .lineLimit(1)
                 }
             }
 
             Spacer()
 
+            // Live Capacity & Sector Gauge
             HStack(spacing: 10) {
                 Image(systemName: "chart.bar.fill")
                     .foregroundStyle(store.activeAccent)
                     .font(.system(size: 11))
-                Text(store.useBase10Units ? "3.42 GB of 4.7 GB Staged" : "3.18 GiB of 4.37 GiB (1,793,024 LBA)")
+                Text(capacityStatusText)
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                ProgressView(value: 3.42, total: 4.7)
-                    .tint(store.activeAccent)
-                    .frame(width: 120)
+                ProgressView(
+                    value: min(Double(store.totalStagedBytes), Double(max(1, activeDiscCapacityBytes))),
+                    total: Double(max(1, activeDiscCapacityBytes))
+                )
+                .tint(store.totalStagedBytes > activeDiscCapacityBytes ? .red : store.activeAccent)
+                .frame(width: 130)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 6)
@@ -1306,7 +1682,23 @@ struct KroutonMainWorkspaceView: View {
 
             HStack(spacing: 8) {
                 Button {
-                    KroutonWindowManager.shared.openSettingsWindow(store: store)
+                    driveManager.ejectDrive(id: driveManager.selectedDrive?.id)
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "eject.fill")
+                        Text("Eject")
+                    }
+                    .font(.system(size: 12, weight: .semibold))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .help("Eject disc from \(driveManager.selectedDrive?.displayName ?? "connected drive")")
+
+                Button {
+                    KroutonWindowManager.shared.openSettingsWindow(store: store, driveManager: driveManager)
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "gearshape.fill")
@@ -1327,7 +1719,6 @@ struct KroutonMainWorkspaceView: View {
         .background(.ultraThinMaterial)
     }
 
-    // MARK: - LEFT COLUMN: FORMAT CHOOSER (BURN / DISC IMAGE DEPOT / COPY / LABEL)
     private var leftFormatChooserColumn: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -1336,7 +1727,7 @@ struct KroutonMainWorkspaceView: View {
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button {
-                    KroutonWindowManager.shared.openSettingsWindow(store: store)
+                    KroutonWindowManager.shared.openSettingsWindow(store: store, driveManager: driveManager)
                 } label: {
                     Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 11))
@@ -1351,7 +1742,6 @@ struct KroutonMainWorkspaceView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    // 1. BURN CATEGORY
                     VStack(alignment: .leading, spacing: 4) {
                         Text("BURN")
                             .font(.system(size: 10, weight: .bold))
@@ -1370,7 +1760,6 @@ struct KroutonMainWorkspaceView: View {
                         }
                     }
 
-                    // 2. DISC IMAGE DEPOT CATEGORY (App Store for Bootable / Rescue / Archival ISOs)
                     VStack(alignment: .leading, spacing: 4) {
                         Text("DISC IMAGE DEPOT")
                             .font(.system(size: 10, weight: .bold))
@@ -1403,7 +1792,6 @@ struct KroutonMainWorkspaceView: View {
                         )
                     }
 
-                    // 3. COPY CATEGORY
                     VStack(alignment: .leading, spacing: 4) {
                         Text("COPY")
                             .font(.system(size: 10, weight: .bold))
@@ -1436,7 +1824,6 @@ struct KroutonMainWorkspaceView: View {
                         )
                     }
 
-                    // 4. LABEL CATEGORY
                     VStack(alignment: .leading, spacing: 4) {
                         Text("LABEL")
                             .font(.system(size: 10, weight: .bold))
@@ -1507,7 +1894,6 @@ struct KroutonMainWorkspaceView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - CENTER COLUMN: ADAPTABLE WORKSPACE
     private var centerAdaptableWorkspace: some View {
         VStack(alignment: .leading, spacing: 14) {
             switch store.selectedCategory {
@@ -1524,7 +1910,6 @@ struct KroutonMainWorkspaceView: View {
         .padding(18)
     }
 
-    // Storefront Workspace for Disc Image Depot
     private var depotWorkspaceView: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
@@ -1589,22 +1974,6 @@ struct KroutonMainWorkspaceView: View {
 
                             Spacer()
 
-                            if store.enableVMTestBootInDepot {
-                                Button {
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "play.desktopcomputer")
-                                        Text("Test in VM")
-                                    }
-                                    .font(.system(size: 11, weight: .medium))
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(Color(NSColor.windowBackgroundColor))
-                                    .clipShape(Capsule())
-                                }
-                                .buttonStyle(.plain)
-                            }
-
                             Button {
                             } label: {
                                 HStack(spacing: 5) {
@@ -1629,6 +1998,7 @@ struct KroutonMainWorkspaceView: View {
         }
     }
 
+    // MARK: - BURN WORKSPACE WITH REAL FILE STAGING & FINDER DRAG-AND-DROP
     private var burnWorkspaceView: some View {
         let activeSpec = store.discFormats.first(where: { $0.id == store.selectedTaskID }) ?? store.discFormats[0]
         return VStack(alignment: .leading, spacing: 14) {
@@ -1648,15 +2018,36 @@ struct KroutonMainWorkspaceView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+
+                if !store.stagedFiles.isEmpty {
+                    Button {
+                        store.clearStagedFiles()
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "trash")
+                            Text("Clear All")
+                        }
+                        .font(.system(size: 11, weight: .medium))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color(NSColor.controlBackgroundColor))
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+
                 Button {
+                    promptToAddFiles()
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "plus.rectangle.on.folder.fill")
                         Text(activeSpec.sourceSupport == "Image Only" ? "Select Disc Image / ROM..." : "Add Media or Files...")
                     }
+                    .font(.system(size: 12, weight: .semibold))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(Color(NSColor.controlBackgroundColor))
+                    .background(store.activeAccent)
+                    .foregroundStyle(.white)
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -1664,151 +2055,179 @@ struct KroutonMainWorkspaceView: View {
 
             Divider()
 
-            if activeSpec.isMediaPlaylist {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Label("Track Playlist & Subcode / Chapter Inspector", systemImage: "music.note.list")
-                            .font(.headline)
-                        Spacer()
-                        Label(String(format: "Auto-Crossfade: %.1fs (SoundAnalysis Active)", store.defaultCrossfadeSec), systemImage: "waveform.path.ecg")
-                            .font(.caption)
-                            .foregroundStyle(store.activeAccent)
-                    }
+            HStack(spacing: 14) {
+                HStack(spacing: 6) {
+                    Image(systemName: "opticaldisc")
+                        .foregroundStyle(store.activeAccent)
+                    Text("Disc Title:")
+                        .font(.caption.bold())
+                    TextField("KROUTON_DISC", text: $store.discVolumeTitle)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 190)
+                }
 
-                    VStack(spacing: 0) {
-                        playlistRow(num: "01", title: "Analogue Horizon (Master Take)", duration: "04:18:22", transition: "2.0s Pre-Gap", info: "ISRC: US-KR1-26-00001 • CD-TEXT")
-                        Divider()
-                        playlistRow(num: "02", title: "Oakland Midnight Transit", duration: "05:02:10", transition: String(format: "%.1fs Equal-Power Crossfade", store.defaultCrossfadeSec), info: "ISRC: US-KR1-26-00002 • 124 BPM")
-                        Divider()
-                        playlistRow(num: "03", title: "Pacific Fog & Neon", duration: "06:44:00", transition: "0.0s Gapless Lock", info: "ISRC: US-KR1-26-00003 • 124 BPM")
-                    }
-                    .background(Color(NSColor.controlBackgroundColor))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text("Transition Crossfade Envelope (Track 01 -> Track 02)")
-                                .font(.caption.bold())
-                            Spacer()
-                            Slider(value: $store.defaultCrossfadeSec, in: 0.0...8.0, step: 0.5)
-                                .frame(width: 180)
+                if activeSpec.isDataDisc {
+                    Toggle("Customize Finder & Explorer Window Layout", isOn: $enableCustomFinderLayoutTab)
+                        .toggleStyle(.checkbox)
+                        .font(.caption)
+                        .onChange(of: enableCustomFinderLayoutTab) { _, enabled in
+                            activeDataWorkspaceTab = enabled ? 1 : 0
                         }
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.black.opacity(0.75))
-                                .frame(height: 110)
-                            HStack(spacing: 0) {
-                                Text("Outgoing Track 01 Fade-Out")
-                                    .font(.caption2)
-                                    .foregroundStyle(.orange)
-                                    .padding(.leading, 14)
-                                Spacer()
-                                Image(systemName: "waveform.path")
-                                    .font(.system(size: 36))
-                                    .foregroundStyle(store.activeAccent)
-                                Spacer()
-                                Text("Incoming Track 02 Beat-Locked Fade-In")
-                                    .font(.caption2)
-                                    .foregroundStyle(.cyan)
-                                    .padding(.trailing, 14)
+
+                    if enableCustomFinderLayoutTab {
+                        Picker("", selection: $activeDataWorkspaceTab) {
+                            Text("Staged File List").tag(0)
+                            Text("Custom Finder Window Preview").tag(1)
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 240)
+                    }
+                }
+                Spacer()
+            }
+
+            if activeDataWorkspaceTab == 1 && enableCustomFinderLayoutTab && activeSpec.isDataDisc {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 20) {
+                        ColorPicker("Finder Window Background:", selection: $finderBgColor)
+                        HStack {
+                            Text("Icon Size: \(Int(finderIconSize)) px")
+                                .font(.caption)
+                            Slider(value: $finderIconSize, in: 64...512, step: 32)
+                                .frame(width: 160)
+                        }
+                    }
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(finderBgColor)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .overlay(
+                            ScrollView {
+                                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120))], spacing: 24) {
+                                    ForEach(store.stagedFiles) { item in
+                                        VStack(spacing: 6) {
+                                            Image(systemName: item.isDirectory ? "folder.fill" : "doc.fill")
+                                                .font(.system(size: min(finderIconSize * 0.25, 84)))
+                                                .foregroundStyle(item.isDirectory ? store.activeAccent : .white)
+                                            Text(item.name)
+                                                .font(.caption.bold())
+                                                .foregroundStyle(.white)
+                                                .lineLimit(1)
+                                        }
+                                    }
+                                }
+                                .padding(24)
+                            }
+                        )
+                }
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(NSColor.controlBackgroundColor))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .strokeBorder(
+                                    isDropTargeted ? store.activeAccent : Color.primary.opacity(0.08),
+                                    style: StrokeStyle(lineWidth: isDropTargeted ? 2.5 : 1.0, dash: store.stagedFiles.isEmpty ? [6, 4] : [])
+                                )
+                        )
+
+                    if store.stagedFiles.isEmpty {
+                        VStack(spacing: 10) {
+                            Image(systemName: "arrow.down.doc.fill")
+                                .font(.system(size: 36))
+                                .foregroundStyle(store.activeAccent.opacity(0.8))
+                            Text("Drag & Drop Files, Folders, or Disc Images Here from Finder")
+                                .font(.headline)
+                            Text("Or click 'Add Media or Files...' above to stage content for \(driveManager.selectedDrive?.displayName ?? "your optical burner").")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                ForEach(store.stagedFiles) { entry in
+                                    HStack(spacing: 12) {
+                                        Image(systemName: entry.isDirectory ? "folder.fill" : "doc.fill")
+                                            .foregroundStyle(store.activeAccent)
+                                            .font(.system(size: 15))
+                                            .frame(width: 24)
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(entry.name)
+                                                .font(.system(size: 12, weight: .semibold))
+                                            Text("\(entry.url.path) • Perms: \(entry.posixPermissions) • \(entry.isDirectory ? "\(entry.itemCount) files inside" : "Single file")")
+                                                .font(.system(size: 10))
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(1)
+                                        }
+
+                                        Spacer()
+
+                                        Text("\(entry.sectorsLBA) LBA")
+                                            .font(.system(size: 10, weight: .medium, design: .monospaced))
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 3)
+                                            .background(store.activeAccent.opacity(0.15))
+                                            .clipShape(Capsule())
+
+                                        Text(ByteCountFormatter.string(fromByteCount: entry.byteSize, countStyle: .file))
+                                            .font(.system(size: 11, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 80, alignment: .trailing)
+
+                                        Button {
+                                            store.removeStagedFile(id: entry.id)
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 9)
+                                    Divider()
+                                }
                             }
                         }
                     }
                 }
-                Spacer()
-            } else {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 12) {
-                        Button {
-                            activeDataWorkspaceTab = 0
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "list.bullet.indent")
-                                Text(activeSpec.filterGroup == .console ? "ROM Sector & Partition Inspector" : "File System Tree")
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(activeDataWorkspaceTab == 0 ? store.activeAccent.opacity(0.22) : Color.clear)
-                            .clipShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
+                .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+                    handleFinderDrop(providers: providers)
+                }
+            }
+        }
+    }
 
-                        if activeSpec.isDataDisc {
-                            Toggle("Customize Finder & Explorer Window Layout", isOn: $enableCustomFinderLayoutTab)
-                                .toggleStyle(.checkbox)
-                                .onChange(of: enableCustomFinderLayoutTab) { _, enabled in
-                                    activeDataWorkspaceTab = enabled ? 1 : 0
-                                }
+    private func promptToAddFiles() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.prompt = "Stage for Disc"
+        if panel.runModal() == .OK {
+            store.addStagedURLs(panel.urls)
+        }
+    }
 
-                            if enableCustomFinderLayoutTab {
-                                Button {
-                                    activeDataWorkspaceTab = 1
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "macwindow.badge.plus")
-                                        Text("Custom Window & Icons Tab")
-                                    }
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(activeDataWorkspaceTab == 1 ? store.activeAccent.opacity(0.22) : Color.clear)
-                                    .clipShape(Capsule())
-                                }
-                                .buttonStyle(.plain)
-                            }
+    private func handleFinderDrop(providers: [NSItemProvider]) -> Bool {
+        var didAccept = false
+        for provider in providers {
+            if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+                didAccept = true
+                provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+                    if let data = item as? Data, let url = URL(dataRepresentation: data, relativeTo: nil) {
+                        Task { @MainActor in
+                            store.addStagedURLs([url])
                         }
-                        Spacer()
-                    }
-
-                    if activeDataWorkspaceTab == 1 && enableCustomFinderLayoutTab && activeSpec.isDataDisc {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(spacing: 20) {
-                                ColorPicker("Finder Window Background:", selection: $finderBgColor)
-                                HStack {
-                                    Text("Icon Size: \(Int(finderIconSize)) px")
-                                        .font(.caption)
-                                    Slider(value: $finderIconSize, in: 64...512, step: 32)
-                                        .frame(width: 160)
-                                }
-                            }
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(finderBgColor)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .overlay(
-                                    HStack(spacing: 42) {
-                                        VStack {
-                                            Image(systemName: "app.gift.fill")
-                                                .font(.system(size: min(finderIconSize * 0.28, 96)))
-                                                .foregroundStyle(.white)
-                                            Text("Krouton_Archive.pkg")
-                                                .font(.caption.bold())
-                                                .foregroundStyle(.white)
-                                        }
-                                        VStack {
-                                            Image(systemName: "folder.fill")
-                                                .font(.system(size: min(finderIconSize * 0.28, 96)))
-                                                .foregroundStyle(store.activeAccent)
-                                            Text("Extras & Artwork")
-                                                .font(.caption.bold())
-                                                .foregroundStyle(.white)
-                                        }
-                                    }
-                                )
+                    } else if let url = item as? URL {
+                        Task { @MainActor in
+                            store.addStagedURLs([url])
                         }
-                    } else {
-                        VStack(spacing: 0) {
-                            playlistRow(num: "SEC", title: activeSpec.filterGroup == .console ? "Disc Header & Region Boot Sector" : "/Applications & Utilities", duration: "1.84 GB", transition: activeSpec.bookOrFileSystem, info: "Verified")
-                            Divider()
-                            playlistRow(num: "DAT", title: activeSpec.filterGroup == .console ? "Primary Game Partition Stream" : "/Project_Masters_2026", duration: "1.58 GB", transition: activeSpec.laserType, info: "SHA-256 Verified")
-                            Divider()
-                            playlistRow(num: "SYS", title: activeSpec.filterGroup == .console ? "EDC / ECC Subchannel Integrity" : ".DS_Store & autorun.inf", duration: "64 KB", transition: "Ready", info: "Auto-Generated")
-                        }
-                        .background(Color(NSColor.controlBackgroundColor))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        Spacer()
                     }
                 }
             }
         }
+        return didAccept
     }
 
     private var copyWorkspaceView: some View {
@@ -1820,7 +2239,7 @@ struct KroutonMainWorkspaceView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(store.selectedTaskID == "copy-duplicate" ? "Duplicate Disc & Fit-to-Disc Requantizer" : "Optical Media Extractor & Archival Ripper")
                         .font(.title3.bold())
-                    Text("Source Drive: Pioneer BDR-S13U-X — Disc Detected: Dual-Layer Movie DVD-9 (7.94 GB)")
+                    Text("Source Drive: \(driveManager.selectedDrive?.displayName ?? "MATSHITA DVD-R UJ-898") — Status: \(driveManager.selectedDrive?.statusBadgeText ?? "Ready")")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -1965,6 +2384,7 @@ struct KroutonMainWorkspaceView: View {
         .padding(.vertical, 9)
     }
 
+    // MARK: - RIGHT COLUMN: CONTEXT-AWARE DESTINATION QUEUE (Bound to Live DriveManager)
     private var rightDestinationColumn: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -2020,9 +2440,9 @@ struct KroutonMainWorkspaceView: View {
                 }
                 .buttonStyle(.plain)
 
-                Text("Server Ring Buffer: \(Int(store.serverRingBufferMB)) MB Ready • BookType: DVD-ROM")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+                Text(driveManager.selectedDrive?.statusBadgeText ?? "Insert Blank Media or Add Disc Image Output")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(driveManager.selectedDrive?.isMediaPresent == true ? .green : .secondary)
             }
             .padding(14)
         }
@@ -2041,6 +2461,16 @@ struct KroutonMainWorkspaceView: View {
                 }
                 .labelsHidden()
                 Spacer()
+                if item.kind == .physicalBurner {
+                    Button {
+                        driveManager.ejectDrive(id: driveManager.selectedDrive?.id)
+                    } label: {
+                        Image(systemName: "eject.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Eject Disc")
+                }
                 if store.destinationQueue.count > 1 {
                     Button {
                         store.destinationQueue.remove(at: index)
@@ -2052,17 +2482,46 @@ struct KroutonMainWorkspaceView: View {
                 }
             }
 
-            Text(item.hardwareOrPath)
-                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                .foregroundStyle(.primary)
+            if item.kind == .physicalBurner {
+                if driveManager.availableDrives.isEmpty {
+                    Text("No USB Optical Drive Connected")
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(.orange)
+                } else {
+                    Picker("Drive:", selection: $driveManager.selectedDrive) {
+                        ForEach(driveManager.availableDrives) { d in
+                            Text("\(d.displayName) — \(d.statusBadgeText)").tag(Optional(d))
+                        }
+                    }
+                    .labelsHidden()
+                }
 
-            HStack {
-                Text("Profile / Speed:")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(item.speedOrCodec)
-                    .font(.caption.bold())
+                HStack {
+                    Text("Write Speed:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Picker("", selection: $store.destinationQueue[index].speedOrCodec) {
+                        ForEach(driveManager.selectedDrive?.availableWriteSpeeds ?? ["Max Safe (Auto)", "8x CAV", "4x CLV"], id: \.self) { spd in
+                            Text(spd).tag(spd)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 145)
+                }
+            } else {
+                Text(item.hardwareOrPath)
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(.primary)
+
+                HStack {
+                    Text("Profile / Speed:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(item.speedOrCodec)
+                        .font(.caption.bold())
+                }
             }
 
             if item.kind == .physicalBurner || item.kind == .networkBurner {
@@ -2089,19 +2548,20 @@ struct KroutonMainWorkspaceView: View {
     private var allowedDestinationsForCurrentCategory: [DestinationOutputKind] {
         switch store.selectedCategory {
         case .burn, .depot:
-            return [.networkBurner, .physicalBurner, .discImage]
+            return [.physicalBurner, .networkBurner, .discImage]
         case .copy:
-            return [.networkBurner, .physicalBurner, .discImage, .audioRip, .videoExtract]
+            return [.physicalBurner, .networkBurner, .discImage, .audioRip, .videoExtract]
         case .label:
             return [.discPrinter, .pdfVector]
         }
     }
 
     private func syncDefaultDestinationForCategory(_ category: TaskMasterCategory, taskID: String) {
+        let currentDriveName = driveManager.selectedDrive?.displayName ?? "MATSHITA DVD-R UJ-898"
         switch category {
         case .burn, .depot:
             store.destinationQueue = [
-                DestinationQueueItem(kind: .networkBurner, hardwareOrPath: "Pioneer BDR-S13U-X (krouton-server.local)", speedOrCodec: "8x CAV (Optimal)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
+                DestinationQueueItem(kind: .physicalBurner, hardwareOrPath: currentDriveName, speedOrCodec: "Max Safe (Auto)", simulationMode: true, verifyAfterBurn: true, compressAfterCreation: false)
             ]
         case .copy:
             if taskID == "copy-rip-audio" {
@@ -2114,7 +2574,7 @@ struct KroutonMainWorkspaceView: View {
                 ]
             } else {
                 store.destinationQueue = [
-                    DestinationQueueItem(kind: .networkBurner, hardwareOrPath: "Pioneer BDR-S13U-X (krouton-server.local)", speedOrCodec: "Fit-to-Disc 4.7 GB DVD-5", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
+                    DestinationQueueItem(kind: .physicalBurner, hardwareOrPath: currentDriveName, speedOrCodec: "Fit-to-Disc 4.7 GB DVD-5", simulationMode: true, verifyAfterBurn: true, compressAfterCreation: false)
                 ]
             }
         case .label:
@@ -2128,7 +2588,7 @@ struct KroutonMainWorkspaceView: View {
         switch store.selectedCategory {
         case .burn, .depot:
             store.destinationQueue.append(
-                DestinationQueueItem(kind: .discImage, hardwareOrPath: "~/Desktop/Krouton_Master.dmg", speedOrCodec: "Hybrid UDF / HFS+ Image", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: true)
+                DestinationQueueItem(kind: .discImage, hardwareOrPath: "~/Desktop/\(store.discVolumeTitle).dmg", speedOrCodec: "Hybrid UDF / HFS+ Image", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: true)
             )
         case .copy:
             store.destinationQueue.append(
@@ -2160,12 +2620,12 @@ struct KroutonMainWorkspaceView: View {
     }
 }
 EOF_APP
-echo "[OK] Wrote Sources/KroutonApp/KroutonApp.swift"
+echo "[OK] Updated Sources/KroutonApp/KroutonApp.swift"
 
 swift build
 git add -A
-git commit -m "feat(ui): implement v0.1.0-alpha.6 Finder Table Format Chooser, Disc Image Depot, and 8-pane Settings" || true
+git commit -m "feat(hardware): implement v0.2.0-alpha.1 live DRDevice polling, slot eject, and real Finder file staging" || true
 echo "===================================================="
-echo " [SUCCESS] Krouton v0.1.0-alpha.6 built & committed!"
-echo " Switch to Xcode and press Command + R to launch."
+echo " [SUCCESS] Sprint 1 (v0.2.0-alpha.1) built & committed!"
+echo " Switch to Xcode and press Command + R to test!"
 echo "===================================================="
