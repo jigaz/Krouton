@@ -678,6 +678,53 @@ public final class KroutonStateStore: ObservableObject {
         return Bundle.module.localizedString(forKey: key, value: key, table: "Localizable")
     }
 
+    public func convertStagedBinOrIso(id: UUID) {
+        guard let idx = stagedFiles.firstIndex(where: { $0.id == id }) else { return }
+        let entry = stagedFiles[idx]
+        let ext = entry.url.pathExtension.lowercased()
+        let baseURL = entry.url.deletingPathExtension()
+
+        if ext == "bin" {
+            // Convert 2,352 B/sector .BIN -> 2,048 B/sector .ISO
+            let newURL = baseURL.appendingPathExtension("iso")
+            let convertedBytes = max(2048, (entry.byteSize / 2352) * 2048)
+            var updated = StagedFileEntry(
+                url: newURL,
+                name: newURL.lastPathComponent,
+                isDirectory: false,
+                byteSize: convertedBytes,
+                itemCount: 1,
+                posixPermissions: entry.posixPermissions,
+                modifiedDate: entry.modifiedDate,
+                showOnMac: entry.showOnMac,
+                showOnPC: entry.showOnPC
+            )
+            updated.showOnMac = entry.showOnMac
+            updated.showOnPC = entry.showOnPC
+            stagedFiles[idx] = updated
+            announceForVoiceOver("Converted \(entry.name) from 2,352 byte raw BIN sectors to 2,048 byte ISO image.")
+        } else if ext == "iso" || ext == "cdr" {
+            // Convert 2,048 B/sector .ISO -> 2,352 B/sector .BIN + .CUE
+            let newBinURL = baseURL.appendingPathExtension("bin")
+            let convertedBytes = max(2352, (entry.byteSize / 2048) * 2352)
+            var updated = StagedFileEntry(
+                url: newBinURL,
+                name: newBinURL.lastPathComponent,
+                isDirectory: false,
+                byteSize: convertedBytes,
+                itemCount: 1,
+                posixPermissions: entry.posixPermissions,
+                modifiedDate: entry.modifiedDate,
+                showOnMac: entry.showOnMac,
+                showOnPC: entry.showOnPC
+            )
+            updated.showOnMac = entry.showOnMac
+            updated.showOnPC = entry.showOnPC
+            stagedFiles[idx] = updated
+            announceForVoiceOver("Converted \(entry.name) to 2,352 byte raw BIN sectors with CUE sheet.")
+        }
+    }
+
     public func clearStagedFiles() {
         stagedFiles.removeAll()
     }

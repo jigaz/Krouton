@@ -2613,3 +2613,16 @@ public enum UniversalMediaDecoderEngine {
         }
     }
 }
+
+
+// MARK: - StagedFileEntry Bootability & .BIN/.CUE <-> .ISO Conversion UI Helpers
+extension StagedFileEntry {
+    public var conversionTargetLabel: String {
+        let ext = url.pathExtension.lowercased()
+        if ext == "bin" {
+            return "Convert .BIN -> .ISO (2,048 B/sec)"
+        } else {
+            return "Convert .ISO -> .BIN/.CUE (2,352 B/sec)"
+        }
+    }
+}

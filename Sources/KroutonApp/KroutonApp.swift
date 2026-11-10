@@ -1420,9 +1420,43 @@ struct KroutonMainWorkspaceView: View {
                                             .foregroundStyle(store.activeAccent)
                                             .font(.system(size: 15))
                                             .frame(width: 24)
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(entry.name)
-                                                .font(.system(size: 12, weight: .semibold))
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            HStack(spacing: 8) {
+                                                Text(entry.name)
+                                                    .font(.system(size: 12, weight: .semibold))
+                                                if let bootBadge = entry.bootabilityBadge {
+                                                    HStack(spacing: 3) {
+                                                        Image(systemName: "checkmark.seal.fill")
+                                                            .font(.system(size: 8))
+                                                        Text(bootBadge)
+                                                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                                    }
+                                                    .padding(.horizontal, 6)
+                                                    .padding(.vertical, 2)
+                                                    .background(Color.green.opacity(0.16))
+                                                    .foregroundStyle(.green)
+                                                    .clipShape(Capsule())
+                                                }
+                                                if entry.isConvertibleBinOrIso {
+                                                    Button {
+                                                        store.convertStagedBinOrIso(id: entry.id)
+                                                    } label: {
+                                                        HStack(spacing: 3) {
+                                                            Image(systemName: "arrow.left.arrow.right.circle.fill")
+                                                                .font(.system(size: 9))
+                                                            Text(entry.conversionTargetLabel)
+                                                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                                        }
+                                                        .padding(.horizontal, 7)
+                                                        .padding(.vertical, 2)
+                                                        .background(store.activeAccent.opacity(0.20))
+                                                        .foregroundStyle(store.activeAccent)
+                                                        .clipShape(Capsule())
+                                                    }
+                                                    .buttonStyle(.plain)
+                                                    .help("1-Click Sector Conversion between Raw 2,352-byte .BIN/.CUE and 2,048-byte .ISO")
+                                                }
+                                            }
                                             Text("\(entry.url.path) • Redump / Boot Sector Ready")
                                                 .font(.system(size: 10))
                                                 .foregroundStyle(.secondary)
@@ -1618,9 +1652,43 @@ struct KroutonMainWorkspaceView: View {
                                                 .font(.system(size: 15))
                                                 .frame(width: 24)
 
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text(entry.name)
-                                                    .font(.system(size: 12, weight: .semibold))
+                                            VStack(alignment: .leading, spacing: 3) {
+                                                HStack(spacing: 8) {
+                                                    Text(entry.name)
+                                                        .font(.system(size: 12, weight: .semibold))
+                                                    if let bootBadge = entry.bootabilityBadge {
+                                                        HStack(spacing: 3) {
+                                                            Image(systemName: "checkmark.seal.fill")
+                                                                .font(.system(size: 8))
+                                                            Text(bootBadge)
+                                                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                                        }
+                                                        .padding(.horizontal, 6)
+                                                        .padding(.vertical, 2)
+                                                        .background(Color.green.opacity(0.16))
+                                                        .foregroundStyle(.green)
+                                                        .clipShape(Capsule())
+                                                    }
+                                                    if entry.isConvertibleBinOrIso {
+                                                        Button {
+                                                            store.convertStagedBinOrIso(id: entry.id)
+                                                        } label: {
+                                                            HStack(spacing: 3) {
+                                                                Image(systemName: "arrow.left.arrow.right.circle.fill")
+                                                                    .font(.system(size: 9))
+                                                                Text(entry.conversionTargetLabel)
+                                                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                                            }
+                                                            .padding(.horizontal, 7)
+                                                            .padding(.vertical, 2)
+                                                            .background(store.activeAccent.opacity(0.20))
+                                                            .foregroundStyle(store.activeAccent)
+                                                            .clipShape(Capsule())
+                                                        }
+                                                        .buttonStyle(.plain)
+                                                        .help("1-Click Sector Conversion between Raw 2,352-byte .BIN/.CUE and 2,048-byte .ISO")
+                                                    }
+                                                }
                                                 Text("\(entry.url.path) • Perms: \(entry.posixPermissions) • \(entry.isDirectory ? "\(entry.itemCount) files inside" : "Single file")")
                                                     .font(.system(size: 10))
                                                     .foregroundStyle(.secondary)
