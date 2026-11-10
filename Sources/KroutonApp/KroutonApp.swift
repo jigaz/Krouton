@@ -168,7 +168,7 @@ struct KroutonApp: App {
                         driveManager: KroutonWindowManager.shared.driveManager
                     )
                 } label: {
-                    Label("Settings...", systemImage: "gearshape")
+                    Label(KroutonL10n.tr("Settings..."), systemImage: "gearshape")
                 }
                 .keyboardShortcut(",", modifiers: .command)
             }
@@ -286,7 +286,7 @@ struct KroutonMainWorkspaceView: View {
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(store.activeAccent)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("KROUTON")
+                    Text(KroutonL10n.tr("KROUTON"))
                         .font(.system(size: 13, weight: .heavy, design: .rounded))
                     Text("\(driveManager.availableDrives.count) Optical Drive(s) Online • \(driveManager.hardwareStatusLog)")
                         .font(.system(size: 10, design: .monospaced))
@@ -303,7 +303,7 @@ struct KroutonMainWorkspaceView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "gearshape.fill")
-                        Text("Settings...")
+                        Text(KroutonL10n.tr("Settings..."))
                     }
                     .font(.system(size: 12, weight: .semibold))
                     .padding(.horizontal, 12)
@@ -323,7 +323,7 @@ struct KroutonMainWorkspaceView: View {
     private var leftFormatChooserColumn: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Label("FORMAT CHOOSER", systemImage: "list.bullet.rectangle")
+                Label(KroutonL10n.tr("FORMAT CHOOSER"), systemImage: "list.bullet.rectangle")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -344,7 +344,7 @@ struct KroutonMainWorkspaceView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(store.tr("BURN"))
+                        Text(KroutonL10n.tr("BURN"))
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 10)
@@ -362,7 +362,7 @@ struct KroutonMainWorkspaceView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(store.tr("DISC IMAGE DEPOT"))
+                        Text(KroutonL10n.tr("DISC IMAGE DEPOT"))
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 10)
@@ -394,7 +394,7 @@ struct KroutonMainWorkspaceView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(store.tr("COPY"))
+                        Text(KroutonL10n.tr("COPY"))
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 10)
@@ -426,7 +426,7 @@ struct KroutonMainWorkspaceView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(store.tr("LABEL"))
+                        Text(KroutonL10n.tr("LABEL"))
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 10)
@@ -475,11 +475,11 @@ struct KroutonMainWorkspaceView: View {
                 )
 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(title)
+                    Text(KroutonL10n.tr(title))
                         .font(.system(size: store.sidebarIconSize.titleFontSize, weight: .semibold))
                         .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
                         .lineLimit(1)
-                    Text(colloquial)
+                    Text(KroutonL10n.tr(colloquial))
                         .font(.system(size: max(9.5, store.sidebarIconSize.titleFontSize - 2.0)))
                         .foregroundStyle(isSelected ? store.activeOnAccentText.opacity(0.82) : .secondary)
                         .lineLimit(1)
@@ -541,12 +541,12 @@ struct KroutonMainWorkspaceView: View {
                 Text("Used: \(ByteCountFormatter.string(fromByteCount: usedB, countStyle: .file)) (\(store.totalStagedSectorsLBA) LBA)")
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .foregroundStyle(isOverburn ? .red : .primary)
-                Text("•")
+                Text(KroutonL10n.tr("•"))
                     .foregroundStyle(.secondary)
                 Text("Available: \(ByteCountFormatter.string(fromByteCount: freeB, countStyle: .file)) (\(max(0, activeDiscTotalSectorsLBA - store.totalStagedSectorsLBA)) LBA)")
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.secondary)
-                Text("•")
+                Text(KroutonL10n.tr("•"))
                     .foregroundStyle(.secondary)
                 Text(String(format: "%.1f%% Full", ratio * 100.0))
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
@@ -590,9 +590,9 @@ struct KroutonMainWorkspaceView: View {
                     .font(.title2)
                     .foregroundStyle(store.activeAccent)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Disc Image Depot — Verified Bootable & Archival Storefront")
+                    Text(KroutonL10n.tr("Disc Image Depot — Verified Bootable & Archival Storefront"))
                         .font(.title3.bold())
-                    Text("One-click download, SHA-256 verification, Virtualization.framework VM test-boot, and direct hardware burning.")
+                    Text(KroutonL10n.tr("One-click download, SHA-256 verification, Virtualization.framework VM test-boot, and direct hardware burning."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -701,7 +701,7 @@ struct KroutonMainWorkspaceView: View {
                     } label: {
                         HStack(spacing: 5) {
                             Image(systemName: "trash")
-                            Text(store.tr("Clear All"))
+                            Text(KroutonL10n.tr("Clear All"))
                         }
                         .font(.system(size: 11, weight: .medium))
                         .padding(.horizontal, 10)
@@ -717,7 +717,7 @@ struct KroutonMainWorkspaceView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: addButtonSymbol(for: activeSpec))
-                        Text(store.tr(addButtonTitle(for: activeSpec)))
+                        Text(KroutonL10n.tr(addButtonTitle(for: activeSpec)))
                     }
                     .font(.system(size: 12, weight: .semibold))
                     .padding(.horizontal, 12)
@@ -799,32 +799,32 @@ struct KroutonMainWorkspaceView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "waveform.path.ecg.rectangle.fill")
                         .foregroundStyle(store.activeAccent)
-                    Text("RED BOOK CD-DA & CD-TEXT MASTERING DECK (44.1 kHz / 16-BIT PCM • 2,352 B/SECTOR)")
+                    Text(KroutonL10n.tr("RED BOOK CD-DA & CD-TEXT MASTERING DECK (44.1 kHz / 16-BIT PCM • 2,352 B/SECTOR)"))
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text("CD-TEXT: 7-Bit ASCII Hardware Safe")
+                    Text(KroutonL10n.tr("CD-TEXT: 7-Bit ASCII Hardware Safe"))
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .foregroundStyle(.green)
                 }
 
                 HStack(spacing: 14) {
                     HStack(spacing: 5) {
-                        Text(store.tr("Album Title:"))
+                        Text(KroutonL10n.tr("Album Title:"))
                             .font(.caption.bold())
                         TextField("ALBUM TITLE", text: $cdTextAlbumTitle)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 175)
                     }
                     HStack(spacing: 5) {
-                        Text(store.tr("Performer:"))
+                        Text(KroutonL10n.tr("Performer:"))
                             .font(.caption.bold())
                         TextField("ARTIST / PERFORMER", text: $cdTextAlbumPerformer)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 165)
                     }
                     HStack(spacing: 5) {
-                        Text("UPC / MCN:")
+                        Text(KroutonL10n.tr("UPC / MCN:"))
                             .font(.caption.bold())
                         TextField("012345678905", text: $cdTextUPCBarcode)
                             .textFieldStyle(.roundedBorder)
@@ -836,19 +836,19 @@ struct KroutonMainWorkspaceView: View {
 
                 HStack(spacing: 16) {
                     Picker("Default Track Splice:", selection: $defaultAudioTransition) {
-                        Text("2.0s Standard Pre-Gap (INDEX 00)").tag("2.0s Standard Pre-Gap (INDEX 00)")
-                        Text("0.0s Gapless Live Album (DAO)").tag("0.0s Gapless Live Album (DAO)")
-                        Text("2.5s Equal-Power Crossfade").tag("2.5s Equal-Power Crossfade")
+                        Text(KroutonL10n.tr("2.0s Standard Pre-Gap (INDEX 00)")).tag("2.0s Standard Pre-Gap (INDEX 00)")
+                        Text(KroutonL10n.tr("0.0s Gapless Live Album (DAO)")).tag("0.0s Gapless Live Album (DAO)")
+                        Text(KroutonL10n.tr("2.5s Equal-Power Crossfade")).tag("2.5s Equal-Power Crossfade")
                     }
                     .frame(width: 295)
                     .font(.caption)
 
-                    Toggle("Hidden Track One Audio (HTOA in INDEX 00)", isOn: $enableHiddenTrackOneHTOA)
+                    Toggle(KroutonL10n.tr("Hidden Track One Audio (HTOA in INDEX 00)"), isOn: $enableHiddenTrackOneHTOA)
                         .toggleStyle(.checkbox)
                         .font(.caption.bold())
 
                     if spec.id.contains("extra") || spec.technicalName.contains("Extra") {
-                        Text("• Session 1: Audio Tracks | Session 2: Multisession Data Track (XA)")
+                        Text(KroutonL10n.tr("• Session 1: Audio Tracks | Session 2: Multisession Data Track (XA)"))
                             .font(.system(size: 10, weight: .semibold, design: .monospaced))
                             .foregroundStyle(.cyan)
                     }
@@ -877,36 +877,36 @@ struct KroutonMainWorkspaceView: View {
                         Image(systemName: "waveform.circle.fill")
                             .font(.system(size: 36))
                             .foregroundStyle(store.activeAccent.opacity(0.85))
-                        Text("Drop Any Audio Format (WAV, AIFF, FLAC, ALAC, APE, WavPack, DSD .DSF/.DFF, Opus, Ogg, AC-3, DTS, MP3, M4A)")
+                        Text(KroutonL10n.tr("Drop Any Audio Format (WAV, AIFF, FLAC, ALAC, APE, WavPack, DSD .DSF/.DFF, Opus, Ogg, AC-3, DTS, MP3, M4A)"))
                             .font(.headline)
-                        Text("Krouton decodes all audio to 44.1 kHz / 16-bit Stereo PCM on disk before burning (Zero Underrun Guarantee).")
+                        Text(KroutonL10n.tr("Krouton decodes all audio to 44.1 kHz / 16-bit Stereo PCM on disk before burning (Zero Underrun Guarantee)."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 } else {
                     VStack(spacing: 0) {
                         HStack(spacing: 10) {
-                            Text("TRK")
+                            Text(KroutonL10n.tr("TRK"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 34, alignment: .leading)
-                            Text("TRACK TITLE & CD-TEXT PERFORMER")
+                            Text(KroutonL10n.tr("TRACK TITLE & CD-TEXT PERFORMER"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                             Spacer()
-                            Text("ISRC CODE")
+                            Text(KroutonL10n.tr("ISRC CODE"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 104, alignment: .center)
-                            Text("INDEX 00 / SPLICE")
+                            Text(KroutonL10n.tr("INDEX 00 / SPLICE"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 145, alignment: .center)
-                            Text("MM:SS:FF (75 FPS)")
+                            Text(KroutonL10n.tr("MM:SS:FF (75 FPS)"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 98, alignment: .trailing)
-                            Text("AUDITION")
+                            Text(KroutonL10n.tr("AUDITION"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 72, alignment: .center)
@@ -1019,27 +1019,27 @@ struct KroutonMainWorkspaceView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "car.rear.waves.up.fill")
                         .foregroundStyle(store.activeAccent)
-                    Text("CAR-SAFE ISO9660 + JOLIET AUDIO ENGINE (PIONEER / ALPINE / SONY / OEM HEAD-UNIT SAFE)")
+                    Text(KroutonL10n.tr("CAR-SAFE ISO9660 + JOLIET AUDIO ENGINE (PIONEER / ALPINE / SONY / OEM HEAD-UNIT SAFE)"))
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text("AppleDouble ._* & .DS_Store Purged")
+                    Text(KroutonL10n.tr("AppleDouble ._* & .DS_Store Purged"))
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .foregroundStyle(.green)
                 }
 
                 HStack(spacing: 14) {
                     HStack(spacing: 6) {
-                        Text("Disc Volume Title:")
+                        Text(KroutonL10n.tr("Disc Volume Title:"))
                             .font(.caption.bold())
                         TextField("CAR_MP3_DISC", text: $store.discVolumeTitle)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 160)
                     }
                     Picker("Audio Output Profile:", selection: $carSafeTranscodeTarget) {
-                        Text("320 kbps CBR MP3 (Universal Car Deck)").tag("320 kbps CBR MP3 (Universal Car Deck)")
-                        Text("192 kbps CBR MP3 (Extended 12-Hour Roadtrip)").tag("192 kbps CBR MP3 (Extended 12-Hour Roadtrip)")
-                        Text("16-Bit FLAC / WAV Passthrough (Modern Head Units)").tag("16-Bit FLAC / WAV Passthrough (Modern Head Units)")
+                        Text(KroutonL10n.tr("320 kbps CBR MP3 (Universal Car Deck)")).tag("320 kbps CBR MP3 (Universal Car Deck)")
+                        Text(KroutonL10n.tr("192 kbps CBR MP3 (Extended 12-Hour Roadtrip)")).tag("192 kbps CBR MP3 (Extended 12-Hour Roadtrip)")
+                        Text(KroutonL10n.tr("16-Bit FLAC / WAV Passthrough (Modern Head Units)")).tag("16-Bit FLAC / WAV Passthrough (Modern Head Units)")
                     }
                     .frame(width: 340)
                     .font(.caption)
@@ -1047,16 +1047,16 @@ struct KroutonMainWorkspaceView: View {
                 }
 
                 HStack(spacing: 16) {
-                    Toggle("Zero-Pad Track Prefixes (001 - Title.mp3)", isOn: $carSafeZeroPadNumbers)
+                    Toggle(KroutonL10n.tr("Zero-Pad Track Prefixes (001 - Title.mp3)"), isOn: $carSafeZeroPadNumbers)
                         .toggleStyle(.checkbox)
                         .font(.caption.bold())
-                    Toggle("Strip macOS .DS_Store & ._* Forks", isOn: $carSafeStripAppleDouble)
+                    Toggle(KroutonL10n.tr("Strip macOS .DS_Store & ._* Forks"), isOn: $carSafeStripAppleDouble)
                         .toggleStyle(.checkbox)
                         .font(.caption.bold())
-                    Toggle("Enforce ID3v2.3 ISO-8859-1 Tags", isOn: $carSafeEnforceID3v23)
+                    Toggle(KroutonL10n.tr("Enforce ID3v2.3 ISO-8859-1 Tags"), isOn: $carSafeEnforceID3v23)
                         .toggleStyle(.checkbox)
                         .font(.caption)
-                    Toggle("Write Root .M3U Playlist", isOn: $carSafeGenerateM3U)
+                    Toggle(KroutonL10n.tr("Write Root .M3U Playlist"), isOn: $carSafeGenerateM3U)
                         .toggleStyle(.checkbox)
                         .font(.caption)
                     Spacer()
@@ -1083,32 +1083,32 @@ struct KroutonMainWorkspaceView: View {
                         Image(systemName: "music.note.list")
                             .font(.system(size: 36))
                             .foregroundStyle(store.activeAccent.opacity(0.85))
-                        Text("Drop MP3, FLAC, M4A, or Album Folders to Build a Car-Safe Audio Disc")
+                        Text(KroutonL10n.tr("Drop MP3, FLAC, M4A, or Album Folders to Build a Car-Safe Audio Disc"))
                             .font(.headline)
-                        Text("Automatically numbers files in raw FAT/ISO directory order and strips hidden macOS resource forks so car stereos never freeze.")
+                        Text(KroutonL10n.tr("Automatically numbers files in raw FAT/ISO directory order and strips hidden macOS resource forks so car stereos never freeze."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 } else {
                     VStack(spacing: 0) {
                         HStack(spacing: 10) {
-                            Text("ORDER")
+                            Text(KroutonL10n.tr("ORDER"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 44, alignment: .leading)
-                            Text("CAR-SAFE JOLIET / ISO9660 FILENAME")
+                            Text(KroutonL10n.tr("CAR-SAFE JOLIET / ISO9660 FILENAME"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                             Spacer()
-                            Text("TAG & CODEC PROFILE")
+                            Text(KroutonL10n.tr("TAG & CODEC PROFILE"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 185, alignment: .center)
-                            Text("SECTORS")
+                            Text(KroutonL10n.tr("SECTORS"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 86, alignment: .trailing)
-                            Text("SIZE")
+                            Text(KroutonL10n.tr("SIZE"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 72, alignment: .trailing)
@@ -1200,24 +1200,24 @@ struct KroutonMainWorkspaceView: View {
 
                 HStack(spacing: 14) {
                     HStack(spacing: 5) {
-                        Text(store.tr("Disc Title:"))
+                        Text(KroutonL10n.tr("Disc Title:"))
                             .font(.caption.bold())
                         TextField("KROUTON_VIDEO", text: $store.discVolumeTitle)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 155)
                     }
                     Picker("Menu Style:", selection: $videoMenuTemplate) {
-                        Text("Dark Studio Chapter Grid").tag("Dark Studio Chapter Grid")
-                        Text("No Menu (Auto-Play Title 1 on Insert)").tag("No Menu (Auto-Play Title 1 on Insert)")
-                        Text("Minimalist Studio Track List").tag("Minimalist Studio Track List")
+                        Text(KroutonL10n.tr("Dark Studio Chapter Grid")).tag("Dark Studio Chapter Grid")
+                        Text(KroutonL10n.tr("No Menu (Auto-Play Title 1 on Insert)")).tag("No Menu (Auto-Play Title 1 on Insert)")
+                        Text(KroutonL10n.tr("Minimalist Studio Track List")).tag("Minimalist Studio Track List")
                     }
                     .frame(width: 245)
                     .font(.caption)
 
                     Picker("System:", selection: $videoSystemStandard) {
-                        Text("NTSC 16:9 (29.97 / 23.976p)").tag("NTSC 16:9 (29.97 / 23.976p)")
-                        Text("PAL 16:9 (25 fps)").tag("PAL 16:9 (25 fps)")
-                        Text("UHD 2160p HDR10 (HEVC 10-Bit)").tag("UHD 2160p HDR10 (HEVC 10-Bit)")
+                        Text(KroutonL10n.tr("NTSC 16:9 (29.97 / 23.976p)")).tag("NTSC 16:9 (29.97 / 23.976p)")
+                        Text(KroutonL10n.tr("PAL 16:9 (25 fps)")).tag("PAL 16:9 (25 fps)")
+                        Text(KroutonL10n.tr("UHD 2160p HDR10 (HEVC 10-Bit)")).tag("UHD 2160p HDR10 (HEVC 10-Bit)")
                     }
                     .frame(width: 225)
                     .font(.caption)
@@ -1225,15 +1225,15 @@ struct KroutonMainWorkspaceView: View {
                 }
 
                 HStack(spacing: 16) {
-                    Toggle("Fit-to-Disc Smart Requantizer (DVD-9 -> DVD-5 / BD-50 -> BD-25)", isOn: $fitToDiscDVD9Shrink)
+                    Toggle(KroutonL10n.tr("Fit-to-Disc Smart Requantizer (DVD-9 -> DVD-5 / BD-50 -> BD-25)"), isOn: $fitToDiscDVD9Shrink)
                         .toggleStyle(.checkbox)
                         .font(.caption.bold())
 
                     if isDualLayer {
                         Picker("Layer 0 -> Layer 1 Break:", selection: $videoDualLayerBreakSector) {
-                            Text("Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)").tag("Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)")
-                            Text("50/50 Balanced Split (Layer 0 >= Layer 1 Rule)").tag("50/50 Balanced Split (Layer 0 >= Layer 1 Rule)")
-                            Text("Seamless Layer Break (SPLB Flag Set)").tag("Seamless Layer Break (SPLB Flag Set)")
+                            Text(KroutonL10n.tr("Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)")).tag("Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)")
+                            Text(KroutonL10n.tr("50/50 Balanced Split (Layer 0 >= Layer 1 Rule)")).tag("50/50 Balanced Split (Layer 0 >= Layer 1 Rule)")
+                            Text(KroutonL10n.tr("Seamless Layer Break (SPLB Flag Set)")).tag("Seamless Layer Break (SPLB Flag Set)")
                         }
                         .frame(width: 340)
                         .font(.caption)
@@ -1262,32 +1262,32 @@ struct KroutonMainWorkspaceView: View {
                         Image(systemName: "film.circle.fill")
                             .font(.system(size: 36))
                             .foregroundStyle(store.activeAccent.opacity(0.85))
-                        Text("Drop Any Video or Container (MKV, M2TS, MP4, MOV ProRes, AV1, HEVC 10-Bit, WebM, AVI, VOB, WMV, VC-1, VIDEO_TS, BDMV)")
+                        Text(KroutonL10n.tr("Drop Any Video or Container (MKV, M2TS, MP4, MOV ProRes, AV1, HEVC 10-Bit, WebM, AVI, VOB, WMV, VC-1, VIDEO_TS, BDMV)"))
                             .font(.headline)
-                        Text("Author standalone set-top player discs with AC-3 / DTS audio, chapter markers, and 32 KB IFO/BUP ECC sector padding.")
+                        Text(KroutonL10n.tr("Author standalone set-top player discs with AC-3 / DTS audio, chapter markers, and 32 KB IFO/BUP ECC sector padding."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 } else {
                     VStack(spacing: 0) {
                         HStack(spacing: 10) {
-                            Text("TITLE")
+                            Text(KroutonL10n.tr("TITLE"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 44, alignment: .leading)
-                            Text("VIDEO STREAM & CHAPTER TOPOLOGY")
+                            Text(KroutonL10n.tr("VIDEO STREAM & CHAPTER TOPOLOGY"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                             Spacer()
-                            Text("VIDEO / AUDIO PIPELINE")
+                            Text(KroutonL10n.tr("VIDEO / AUDIO PIPELINE"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 195, alignment: .center)
-                            Text("SECTORS")
+                            Text(KroutonL10n.tr("SECTORS"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 86, alignment: .trailing)
-                            Text("SIZE")
+                            Text(KroutonL10n.tr("SIZE"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 72, alignment: .trailing)
@@ -1377,29 +1377,29 @@ struct KroutonMainWorkspaceView: View {
                         Image(systemName: "gamecontroller.fill")
                             .font(.system(size: 36))
                             .foregroundStyle(store.activeAccent.opacity(0.85))
-                        Text("Drop Console Disc Image (.CUE + .BIN, .ISO, .GCM, .RVZ, .WBFS, or .DVD)")
+                        Text(KroutonL10n.tr("Drop Console Disc Image (.CUE + .BIN, .ISO, .GCM, .RVZ, .WBFS, or .DVD)"))
                             .font(.headline)
-                        Text("Krouton verifies 2,352-byte Mode 2 XA sector headers, System Area boot licenses, and Dual-Layer XGD break offsets.")
+                        Text(KroutonL10n.tr("Krouton verifies 2,352-byte Mode 2 XA sector headers, System Area boot licenses, and Dual-Layer XGD break offsets."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 } else {
                     VStack(spacing: 0) {
                         HStack(spacing: 10) {
-                            Text("ROM IMAGE & SECTOR TOPOLOGY")
+                            Text(KroutonL10n.tr("ROM IMAGE & SECTOR TOPOLOGY"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .padding(.leading, 36)
                             Spacer()
-                            Text("CONSOLE BOOT / SECTOR MODE")
+                            Text(KroutonL10n.tr("CONSOLE BOOT / SECTOR MODE"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 210, alignment: .center)
-                            Text("SECTORS")
+                            Text(KroutonL10n.tr("SECTORS"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 86, alignment: .trailing)
-                            Text("SIZE")
+                            Text(KroutonL10n.tr("SIZE"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 72, alignment: .trailing)
@@ -1474,7 +1474,7 @@ struct KroutonMainWorkspaceView: View {
                 HStack(spacing: 14) {
                     Image(systemName: "lock.shield.fill")
                         .foregroundStyle(store.activeAccent)
-                    Text("M-DISC INORGANIC ROCK-LAYER VAULT + PAR2 SURFACE PARITY:")
+                    Text(KroutonL10n.tr("M-DISC INORGANIC ROCK-LAYER VAULT + PAR2 SURFACE PARITY:"))
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .foregroundStyle(.secondary)
                     Text("PAR2 Redundancy: \(Int(mdiscPar2RedundancyPct))%")
@@ -1482,7 +1482,7 @@ struct KroutonMainWorkspaceView: View {
                         .foregroundStyle(store.activeAccent)
                     Slider(value: $mdiscPar2RedundancyPct, in: 5...30, step: 5)
                         .frame(width: 150)
-                    Text("• Generates .par2 Reed-Solomon recovery blocks + SHA-256 manifest")
+                    Text(KroutonL10n.tr("• Generates .par2 Reed-Solomon recovery blocks + SHA-256 manifest"))
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -1497,14 +1497,14 @@ struct KroutonMainWorkspaceView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "opticaldisc")
                         .foregroundStyle(store.activeAccent)
-                    Text(store.tr("Disc Title:"))
+                    Text(KroutonL10n.tr("Disc Title:"))
                         .font(.caption.bold())
                     TextField("KROUTON_DISC", text: $store.discVolumeTitle)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 190)
                 }
 
-                Toggle("Customize Finder & Explorer Window Layout", isOn: $enableCustomFinderLayoutTab)
+                Toggle(KroutonL10n.tr("Customize Finder & Explorer Window Layout"), isOn: $enableCustomFinderLayoutTab)
                     .toggleStyle(.checkbox)
                     .font(.caption)
                     .onChange(of: enableCustomFinderLayoutTab) { _, enabled in
@@ -1513,13 +1513,13 @@ struct KroutonMainWorkspaceView: View {
 
                 if enableCustomFinderLayoutTab {
                     Picker("", selection: $activeDataWorkspaceTab) {
-                        Text("File List").tag(0)
-                        Text("Custom Finder Window Preview").tag(1)
+                        Text(KroutonL10n.tr("File List")).tag(0)
+                        Text(KroutonL10n.tr("Custom Finder Window Preview")).tag(1)
                     }
                     .pickerStyle(.segmented)
                     .frame(width: 240)
                 } else {
-                    Label("Hybrid File Tree (Per-File Mac / PC Visibility)", systemImage: "list.bullet.indent")
+                    Label(KroutonL10n.tr("Hybrid File Tree (Per-File Mac / PC Visibility)"), systemImage: "list.bullet.indent")
                         .font(.caption.bold())
                         .foregroundStyle(.secondary)
                 }
@@ -1576,29 +1576,29 @@ struct KroutonMainWorkspaceView: View {
                             Image(systemName: "arrow.down.doc.fill")
                                 .font(.system(size: 34))
                                 .foregroundStyle(store.activeAccent.opacity(0.8))
-                            Text("Drag & Drop Files, Folders, or Archives Here from Finder")
+                            Text(KroutonL10n.tr("Drag & Drop Files, Folders, or Archives Here from Finder"))
                                 .font(.headline)
-                            Text("Use the [Mac] and [PC] pills on each row to control which OS sees each file on hybrid discs.")
+                            Text(KroutonL10n.tr("Use the [Mac] and [PC] pills on each row to control which OS sees each file on hybrid discs."))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                     } else {
                         VStack(spacing: 0) {
                             HStack(spacing: 12) {
-                                Text("ITEM NAME & PATH")
+                                Text(KroutonL10n.tr("ITEM NAME & PATH"))
                                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                     .padding(.leading, 36)
                                 Spacer()
-                                Text("OS VISIBILITY")
+                                Text(KroutonL10n.tr("OS VISIBILITY"))
                                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                     .frame(width: 112, alignment: .center)
-                                Text("SECTORS")
+                                Text(KroutonL10n.tr("SECTORS"))
                                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                     .frame(width: 86, alignment: .trailing)
-                                Text("SIZE")
+                                Text(KroutonL10n.tr("SIZE"))
                                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                     .frame(width: 72, alignment: .trailing)
@@ -1636,7 +1636,7 @@ struct KroutonMainWorkspaceView: View {
                                                     HStack(spacing: 3) {
                                                         Image(systemName: "apple.logo")
                                                             .font(.system(size: 9))
-                                                        Text("Mac")
+                                                        Text(KroutonL10n.tr("Mac"))
                                                             .font(.system(size: 9, weight: .bold))
                                                     }
                                                     .padding(.horizontal, 7)
@@ -1655,7 +1655,7 @@ struct KroutonMainWorkspaceView: View {
                                                     HStack(spacing: 3) {
                                                         Image(systemName: "pc")
                                                             .font(.system(size: 9))
-                                                        Text("PC")
+                                                        Text(KroutonL10n.tr("PC"))
                                                             .font(.system(size: 9, weight: .bold))
                                                     }
                                                     .padding(.horizontal, 7)
@@ -1711,32 +1711,32 @@ struct KroutonMainWorkspaceView: View {
             HStack(spacing: 10) {
                 Image(systemName: "gamecontroller.fill")
                     .foregroundStyle(store.activeAccent)
-                Text("RETRO CONSOLE HARDWARE MASTERING PROFILE")
+                Text(KroutonL10n.tr("RETRO CONSOLE HARDWARE MASTERING PROFILE"))
                     .font(.system(size: 10, weight: .heavy, design: .monospaced))
                     .foregroundStyle(.secondary)
                 Spacer()
-                Toggle("Perform OPC Before Write", isOn: $romPerformOPCBeforeWrite)
+                Toggle(KroutonL10n.tr("Perform OPC Before Write"), isOn: $romPerformOPCBeforeWrite)
                     .toggleStyle(.checkbox)
                     .font(.caption)
             }
 
             HStack(spacing: 16) {
                 if spec.id == "game-ps1" {
-                    Toggle("DAO/96 Raw Mode 2 Form 1/2 (2,352 B/sector + SubQ)", isOn: $romWriteModeDAO96SubQ)
+                    Toggle(KroutonL10n.tr("DAO/96 Raw Mode 2 Form 1/2 (2,352 B/sector + SubQ)"), isOn: $romWriteModeDAO96SubQ)
                         .toggleStyle(.checkbox)
                         .font(.caption.bold())
-                    Text("• Recommended Speed: 4x–8x CLV (High-Reflectivity CD-R Only — Never CD-RW)")
+                    Text(KroutonL10n.tr("• Recommended Speed: 4x–8x CLV (High-Reflectivity CD-R Only — Never CD-RW)"))
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundStyle(.secondary)
                 } else if spec.id == "game-ps2" {
-                    Toggle("Stamp Book Type as DVD-ROM (Bitsetting for PS2 Mechacon)", isOn: $romBitsetDVDROM)
+                    Toggle(KroutonL10n.tr("Stamp Book Type as DVD-ROM (Bitsetting for PS2 Mechacon)"), isOn: $romBitsetDVDROM)
                         .toggleStyle(.checkbox)
                         .font(.caption.bold())
-                    Text("• Enforces UDF 1.02 + ISO9660 Bridge (FreeDVDBoot / ESR Compatible)")
+                    Text(KroutonL10n.tr("• Enforces UDF 1.02 + ISO9660 Bridge (FreeDVDBoot / ESR Compatible)"))
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundStyle(.secondary)
                 } else if spec.id == "game-gc" || spec.id == "game-wii" {
-                    Toggle("Stamp Book Type as DVD-ROM + 32 KB ECC Boundary Alignment", isOn: $romBitsetDVDROM)
+                    Toggle(KroutonL10n.tr("Stamp Book Type as DVD-ROM + 32 KB ECC Boundary Alignment"), isOn: $romBitsetDVDROM)
                         .toggleStyle(.checkbox)
                         .font(.caption.bold())
                     Text(spec.id == "game-gc" ? "• Exact 80mm Mini-DVD Target: 1,459,978,240 Bytes (712,880 LBA)" : "• Exact Wii Single-Layer Target: 4,699,979,776 Bytes (2,294,912 LBA)")
@@ -1744,13 +1744,13 @@ struct KroutonMainWorkspaceView: View {
                         .foregroundStyle(.secondary)
                 } else if spec.id == "game-xbox" {
                     Picker("Layer Break:", selection: $xboxLayerBreakPreset) {
-                        Text("Auto (.dvd Descriptor)").tag("Auto (.dvd / Calculate Optimal)")
-                        Text("XGD2 Lock (LBA 1913760)").tag("XGD2 (1913760)")
-                        Text("XGD3 Lock (LBA 2133520)").tag("XGD3 (2133520)")
+                        Text(KroutonL10n.tr("Auto (.dvd Descriptor)")).tag("Auto (.dvd / Calculate Optimal)")
+                        Text(KroutonL10n.tr("XGD2 Lock (LBA 1913760)")).tag("XGD2 (1913760)")
+                        Text(KroutonL10n.tr("XGD3 Lock (LBA 2133520)")).tag("XGD3 (2133520)")
                     }
                     .frame(width: 265)
                     .font(.caption)
-                    Toggle("DVD+R DL -> DVD-ROM Bitsetting", isOn: $romBitsetDVDROM)
+                    Toggle(KroutonL10n.tr("DVD+R DL -> DVD-ROM Bitsetting"), isOn: $romBitsetDVDROM)
                         .toggleStyle(.checkbox)
                         .font(.caption.bold())
                 }
@@ -1833,9 +1833,9 @@ struct KroutonMainWorkspaceView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 12) {
-                Toggle("Fit to Disc — Automatically shrink DVD-9 (8.5 GB) to standard 4.7 GB DVD-5", isOn: $fitToDiscDVD9Shrink)
+                Toggle(KroutonL10n.tr("Fit to Disc — Automatically shrink DVD-9 (8.5 GB) to standard 4.7 GB DVD-5"), isOn: $fitToDiscDVD9Shrink)
                     .font(.headline)
-                Toggle("Preserve Interactive Menus, Chapter Tables & Bonus Extras", isOn: $preserveMenusAndExtras)
+                Toggle(KroutonL10n.tr("Preserve Interactive Menus, Chapter Tables & Bonus Extras"), isOn: $preserveMenusAndExtras)
                 Divider()
                 playlistRow(num: "VTS_01", title: "Main Feature Movie (1080p / 480p MPEG-2)", duration: "01:58:14", transition: fitToDiscDVD9Shrink ? "Requantized -> 3.62 GB" : "Original 6.40 GB", info: "AC-3 5.1 + Subtitles")
                 playlistRow(num: "VMGM", title: "Interactive Motion Menus & Chapter Selector", duration: "00:04:12", transition: "100% Intact (340 MB)", info: "Zero Menu Loss")
@@ -1876,7 +1876,7 @@ struct KroutonMainWorkspaceView: View {
             HStack(spacing: 24) {
                 VStack(alignment: .leading, spacing: 12) {
                     if store.selectedTaskID == "label-auto" {
-                        Text("Automatic Album / Movie / Game Cover Lookup")
+                        Text(KroutonL10n.tr("Automatic Album / Movie / Game Cover Lookup"))
                             .font(.headline)
                         HStack {
                             TextField("Search Album, Movie, TV Show, or Game...", text: $autoLabelSearchQuery)
@@ -1888,7 +1888,7 @@ struct KroutonMainWorkspaceView: View {
                             .foregroundStyle(.secondary)
                         Divider()
                     }
-                    Text("Disc Face Typography")
+                    Text(KroutonL10n.tr("Disc Face Typography"))
                         .font(.headline)
                     TextField("Primary Arc Title", text: $labelDiscTitle)
                         .textFieldStyle(.roundedBorder)
@@ -1979,7 +1979,7 @@ struct KroutonMainWorkspaceView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
-                        Text("Add Output")
+                        Text(KroutonL10n.tr("Add Output"))
                     }
                     .font(.system(size: 11, weight: .semibold))
                     .padding(.horizontal, 9)
@@ -2124,7 +2124,7 @@ struct KroutonMainWorkspaceView: View {
                     }
                 )) {
                     ForEach(allowedDestinationsForCurrentCategory) { kind in
-                        Text(kind.rawValue).tag(kind)
+                        Text(KroutonL10n.tr(kind.rawValue)).tag(kind)
                     }
                 }
                 .labelsHidden()
@@ -2182,7 +2182,7 @@ struct KroutonMainWorkspaceView: View {
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "eject.fill")
-                                Text("Eject")
+                                Text(KroutonL10n.tr("Eject"))
                                     .lineLimit(1)
                             }
                             .font(.system(size: 10, weight: .semibold))
@@ -2215,7 +2215,7 @@ struct KroutonMainWorkspaceView: View {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
-                        Text("No USB Optical Drive Connected")
+                        Text(KroutonL10n.tr("No USB Optical Drive Connected"))
                             .font(.system(size: 11, weight: .semibold))
                     }
                 } else {
@@ -2301,7 +2301,7 @@ struct KroutonMainWorkspaceView: View {
                                 } label: {
                                     HStack(spacing: 4) {
                                         Image(systemName: "eraser.fill")
-                                        Text("Erase RW")
+                                        Text(KroutonL10n.tr("Erase RW"))
                                             .lineLimit(1)
                                     }
                                     .font(.system(size: 10, weight: .semibold))
@@ -2321,7 +2321,7 @@ struct KroutonMainWorkspaceView: View {
                 }
 
                 HStack {
-                    Text(store.tr("Write Speed:"))
+                    Text(KroutonL10n.tr("Write Speed:"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -2363,7 +2363,7 @@ struct KroutonMainWorkspaceView: View {
                         HStack(spacing: 3) {
                             Image(systemName: "seal.fill")
                                 .font(.system(size: 8))
-                            Text("DVD-ROM Bitset")
+                            Text(KroutonL10n.tr("DVD-ROM Bitset"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                         }
                         .padding(.horizontal, 6)
@@ -2425,7 +2425,7 @@ struct KroutonMainWorkspaceView: View {
                             Button {
                                 driveManager.cancelBatchDuplication(for: activeCardDriveID)
                             } label: {
-                                Text("Cancel Batch")
+                                Text(KroutonL10n.tr("Cancel Batch"))
                                     .font(.system(size: 9, weight: .semibold))
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 3)
@@ -2447,7 +2447,7 @@ struct KroutonMainWorkspaceView: View {
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                 HStack(spacing: 5) {
                     Circle().fill(Color.green).frame(width: 7, height: 7)
-                    Text("LAN Node Online • 256 MB Ring Buffer")
+                    Text(KroutonL10n.tr("LAN Node Online • 256 MB Ring Buffer"))
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
                         .foregroundStyle(.green)
                     Spacer()
@@ -2479,19 +2479,19 @@ struct KroutonMainWorkspaceView: View {
             HStack(spacing: 10) {
                 if item.kind == .physicalBurner || item.kind == .networkBurner {
                     HStack(spacing: 10) {
-                        Toggle("Simulate", isOn: Binding(
+                        Toggle(KroutonL10n.tr("Simulate"), isOn: Binding(
                             get: { item.simulationMode },
                             set: { val in updateQueueItem(cardID) { $0.simulationMode = val } }
                         ))
                         .font(.caption)
-                        Toggle("Verify", isOn: Binding(
+                        Toggle(KroutonL10n.tr("Verify"), isOn: Binding(
                             get: { item.verifyAfterBurn },
                             set: { val in updateQueueItem(cardID) { $0.verifyAfterBurn = val } }
                         ))
                         .font(.caption)
                     }
                 } else if item.kind == .discImage {
-                    Toggle("Compress Image", isOn: Binding(
+                    Toggle(KroutonL10n.tr("Compress Image"), isOn: Binding(
                         get: { item.compressAfterCreation },
                         set: { val in updateQueueItem(cardID) { $0.compressAfterCreation = val } }
                     ))
@@ -2506,7 +2506,7 @@ struct KroutonMainWorkspaceView: View {
                     HStack(spacing: 5) {
                         Image(systemName: cardActionSymbol(for: item.kind))
                             .font(.system(size: 10, weight: .bold))
-                        Text(cardActionTitle(for: item.kind))
+                        Text(KroutonL10n.tr(cardActionTitle(for: item.kind)))
                             .font(.system(size: 11, weight: .bold, design: .rounded))
                             .lineLimit(1)
                     }
@@ -2998,7 +2998,7 @@ struct DiscMediaInspectorPopover: View {
             Image(systemName: "opticaldisc")
                 .font(.title2)
                 .foregroundStyle(.secondary)
-            Text("No optical media is loaded in this drive. Insert a CD, DVD, Blu-ray, or M-DISC to inspect mounted volumes, file/track counts, ATIP/ADIP manufacturer codes, and dye chemistry.")
+            Text(KroutonL10n.tr("No optical media is loaded in this drive. Insert a CD, DVD, Blu-ray, or M-DISC to inspect mounted volumes, file/track counts, ATIP/ADIP manufacturer codes, and dye chemistry."))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -3077,7 +3077,7 @@ struct DiscMediaInspectorPopover: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.up.forward.square")
-                    Text("Open in Finder")
+                    Text(KroutonL10n.tr("Open in Finder"))
                 }
                 .font(.system(size: 10, weight: .semibold))
                 .padding(.horizontal, 9)
@@ -3100,7 +3100,7 @@ struct DiscMediaInspectorPopover: View {
 
         return VStack(alignment: .leading, spacing: 7) {
             HStack {
-                Label("RADIAL SECTOR & CAPACITY TOPOLOGY", systemImage: "chart.pie.fill")
+                Label(KroutonL10n.tr("RADIAL SECTOR & CAPACITY TOPOLOGY"), systemImage: "chart.pie.fill")
                     .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -3181,11 +3181,11 @@ struct DiscMediaInspectorPopover: View {
                 Image(systemName: "gauge.with.dots.needle.67percent")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(accent)
-                Text("NEGOTIATED WRITE SPEEDS")
+                Text(KroutonL10n.tr("NEGOTIATED WRITE SPEEDS"))
                     .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text("Auto OPC Active")
+                Text(KroutonL10n.tr("Auto OPC Active"))
                     .font(.system(size: 9, weight: .semibold, design: .monospaced))
                     .foregroundStyle(accent)
             }
@@ -3292,7 +3292,7 @@ struct KroutonMasteringReportSheet: View {
                 Button {
                     onDismiss()
                 } label: {
-                    Text("Done")
+                    Text(KroutonL10n.tr("Done"))
                         .font(.system(size: 13, weight: .bold))
                         .padding(.horizontal, 28)
                         .padding(.vertical, 8)
@@ -3338,14 +3338,14 @@ struct InlineMiniPhaseScopeView: View {
                     Circle()
                         .fill(Color.green)
                         .frame(width: 6, height: 6)
-                    Text("PHASE SCOPE")
+                    Text(KroutonL10n.tr("PHASE SCOPE"))
                         .font(.system(size: 9, weight: .heavy, design: .monospaced))
                         .foregroundStyle(.green)
                     Spacer()
                     Text(String(format: "%.1fx (%.0f KB/s)", telemetry.currentSpeedX, telemetry.currentSpeedKBs))
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
                         .foregroundStyle(.green)
-                    Text("•")
+                    Text(KroutonL10n.tr("•"))
                         .foregroundStyle(.secondary)
                     Text("\(telemetry.currentSpindleRPM) RPM")
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
@@ -3504,7 +3504,7 @@ struct FloatingPhaseScopeWindowView: View {
                 } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "waveform.path.ecg")
-                        Text("Run Calibration Sweep")
+                        Text(KroutonL10n.tr("Run Calibration Sweep"))
                     }
                     .font(.system(size: 11, weight: .semibold))
                     .padding(.horizontal, 12)
@@ -3520,7 +3520,7 @@ struct FloatingPhaseScopeWindowView: View {
                 } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "arrow.down.right.and.arrow.up.left")
-                        Text("Dock Inline")
+                        Text(KroutonL10n.tr("Dock Inline"))
                     }
                     .font(.system(size: 11, weight: .semibold))
                     .padding(.horizontal, 12)
@@ -3687,17 +3687,17 @@ struct FloatingPhaseScopeWindowView: View {
 
                 VStack {
                     HStack {
-                        Text("24.0x (Max Scale)")
+                        Text(KroutonL10n.tr("24.0x (Max Scale)"))
                             .font(.system(size: 10, weight: .semibold, design: .monospaced))
                             .foregroundStyle(.green.opacity(0.85))
                         Spacer()
-                        Text("6,000 RPM")
+                        Text(KroutonL10n.tr("6,000 RPM"))
                             .font(.system(size: 10, weight: .semibold, design: .monospaced))
                             .foregroundStyle(.yellow.opacity(0.85))
                     }
                     Spacer()
                     HStack {
-                        Text("Inner Hub (r = 24.0 mm • LBA 0)")
+                        Text(KroutonL10n.tr("Inner Hub (r = 24.0 mm • LBA 0)"))
                             .font(.system(size: 10, design: .monospaced))
                             .foregroundStyle(.secondary)
                         Spacer()
@@ -3705,7 +3705,7 @@ struct FloatingPhaseScopeWindowView: View {
                             .font(.system(size: 10, weight: .semibold, design: .monospaced))
                             .foregroundStyle(.purple)
                         Spacer()
-                        Text("Outer Rim (r = 58.0 mm • Lead-Out)")
+                        Text(KroutonL10n.tr("Outer Rim (r = 58.0 mm • Lead-Out)"))
                             .font(.system(size: 10, design: .monospaced))
                             .foregroundStyle(.secondary)
                     }

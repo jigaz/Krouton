@@ -60,7 +60,7 @@ public struct KroutonSettingsWindowView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(.secondary)
-                    TextField("Search settings", text: $searchText)
+                    TextField(KroutonL10n.tr("Search settings"), text: $searchText)
                         .textFieldStyle(.plain)
                 }
                 .padding(.horizontal, 10)
@@ -81,7 +81,7 @@ public struct KroutonSettingsWindowView: View {
                             size: 22,
                             symbolSize: 12
                         )
-                        Text(store.tr(pane.rawValue))
+                        Text(KroutonL10n.tr(pane.rawValue))
                             .font(.system(size: 13, weight: .medium))
                     }
                     .padding(.vertical, 4)
@@ -98,7 +98,7 @@ public struct KroutonSettingsWindowView: View {
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 20) {
-                            Text(store.tr(store.selectedSettingsPane.rawValue))
+                            Text(KroutonL10n.tr(store.selectedSettingsPane.rawValue))
                                 .font(.title2.bold())
 
                             switch store.selectedSettingsPane {
@@ -139,9 +139,9 @@ public struct KroutonSettingsWindowView: View {
             settingsCard(title: "Theme, Appearance & Accent Color") {
                 HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(store.tr("Color"))
+                        Text(KroutonL10n.tr("Color"))
                             .fontWeight(.medium)
-                        Text(store.selectedAccentIndex == -1 ? "Multicolor (Adapts per workspace)" : "Krouton Pro Studio Accent Swatch")
+                        Text(KroutonL10n.tr(store.selectedAccentIndex == -1 ? "Multicolor (Adapts per workspace)" : "Krouton Pro Studio Accent Swatch"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -192,9 +192,9 @@ public struct KroutonSettingsWindowView: View {
                 Divider()
                 HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(store.tr("Icon & widget style"))
+                        Text(KroutonL10n.tr("Icon & widget style"))
                             .fontWeight(.medium)
-                        Text("Controls how format badges, drive icons, and telemetry tiles render")
+                        Text(KroutonL10n.tr("Controls how format badges, drive icons, and telemetry tiles render"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -222,7 +222,7 @@ public struct KroutonSettingsWindowView: View {
                                             .font(.system(size: 18, weight: .semibold))
                                             .foregroundStyle(style == .tinted ? store.activeAccent : .white)
                                     }
-                                    Text(style.rawValue)
+                                    Text(KroutonL10n.tr(style.rawValue))
                                         .font(.system(size: 10, weight: store.iconWidgetStyle == style ? .bold : .regular))
                                         .foregroundStyle(store.iconWidgetStyle == style ? .primary : .secondary)
                                 }
@@ -233,7 +233,7 @@ public struct KroutonSettingsWindowView: View {
                 }
                 Divider()
                 HStack {
-                    Text(store.tr("Appearance Mode"))
+                    Text(KroutonL10n.tr("Appearance Mode"))
                         .fontWeight(.medium)
                     Spacer()
                     HStack(spacing: 8) {
@@ -250,7 +250,7 @@ public struct KroutonSettingsWindowView: View {
                 }
                 Divider()
                 HStack {
-                    Text(store.tr("Folder color"))
+                    Text(KroutonL10n.tr("Folder color"))
                         .fontWeight(.medium)
                     Spacer()
                     HStack(spacing: 6) {
@@ -258,7 +258,7 @@ public struct KroutonSettingsWindowView: View {
                             .foregroundStyle(store.resolvedFolderIconColor)
                         Picker("", selection: $store.folderColorMode) {
                             ForEach(FolderColorMode.allCases) { fMode in
-                                Text(fMode.rawValue).tag(fMode)
+                                Text(KroutonL10n.tr(fMode.rawValue)).tag(fMode)
                             }
                         }
                         .labelsHidden()
@@ -269,25 +269,25 @@ public struct KroutonSettingsWindowView: View {
 
             settingsCard(title: "Windows, Sidebar & Language") {
                 HStack {
-                    Text(store.tr("Sidebar icon size"))
+                    Text(KroutonL10n.tr("Sidebar icon size"))
                         .fontWeight(.medium)
                     Spacer()
                     Picker("", selection: $store.sidebarIconSize) {
                         ForEach(SidebarIconSizeMode.allCases) { sz in
-                            Text(sz.rawValue).tag(sz)
+                            Text(KroutonL10n.tr(sz.rawValue)).tag(sz)
                         }
                     }
                     .labelsHidden()
                     .frame(width: 140)
                 }
                 Divider()
-                Toggle("Tint window background with wallpaper / active accent color", isOn: $store.tintWindowWithWallpaper)
+                Toggle(KroutonL10n.tr("Tint window background with wallpaper / active accent color"), isOn: $store.tintWindowWithWallpaper)
                 Divider()
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(store.tr("Application Language (Live UI Localization)"))
+                        Text(KroutonL10n.tr("Application Language (Live UI Localization)"))
                             .fontWeight(.medium)
-                        Text("Switches workspace headers, buttons & VoiceOver labels immediately without restarting")
+                        Text(KroutonL10n.tr("Switches workspace headers, buttons & VoiceOver labels immediately without restarting"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -303,10 +303,10 @@ public struct KroutonSettingsWindowView: View {
             }
 
             settingsCard(title: "Startup & Units") {
-                Toggle("Remember Last Used Task on Launch", isOn: $store.rememberLastTaskOnLaunch)
+                Toggle(KroutonL10n.tr("Remember Last Used Task on Launch"), isOn: $store.rememberLastTaskOnLaunch)
                 Divider()
                 HStack {
-                    Text("Capacity & Addressing Units")
+                    Text(KroutonL10n.tr("Capacity & Addressing Units"))
                     Spacer()
                     HStack(spacing: 8) {
                         pillToggleButton(title: "Base-10 (4.7 GB / 25 GB)", sfSymbol: "opticaldisc", isSelected: store.useBase10Units) {
@@ -322,8 +322,8 @@ public struct KroutonSettingsWindowView: View {
             settingsCard(title: "Scratch Disk & System Permissions") {
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Temporary Mastering Cache")
-                        Text("Available Free Space: 412.8 GB on Macintosh HD (APFS)")
+                        Text(KroutonL10n.tr("Temporary Mastering Cache"))
+                        Text(KroutonL10n.tr("Available Free Space: 412.8 GB on Macintosh HD (APFS)"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -342,16 +342,16 @@ public struct KroutonSettingsWindowView: View {
                     }
                 }
                 Divider()
-                Toggle("Automatically purge temporary muxing files after verified burn", isOn: $store.autoPurgeScratch)
+                Toggle(KroutonL10n.tr("Automatically purge temporary muxing files after verified burn"), isOn: $store.autoPurgeScratch)
                 Divider()
                 HStack(spacing: 18) {
-                    Label("Optical MMC Access: Granted", systemImage: "checkmark.circle.fill")
+                    Label(KroutonL10n.tr("Optical MMC Access: Granted"), systemImage: "checkmark.circle.fill")
                         .foregroundStyle(.green)
                         .font(.caption)
-                    Label("Local Network Discovery: Active", systemImage: "checkmark.circle.fill")
+                    Label(KroutonL10n.tr("Local Network Discovery: Active"), systemImage: "checkmark.circle.fill")
                         .foregroundStyle(.green)
                         .font(.caption)
-                    Label("FSKit Mount Extension: Registered", systemImage: "checkmark.circle.fill")
+                    Label(KroutonL10n.tr("FSKit Mount Extension: Registered"), systemImage: "checkmark.circle.fill")
                         .foregroundStyle(.green)
                         .font(.caption)
                 }
@@ -374,9 +374,9 @@ public struct KroutonSettingsWindowView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Format Chooser")
+                    Text(KroutonL10n.tr("Format Chooser"))
                         .font(.title2.bold())
-                    Text("Click any column header to sort, drag column dividers to resize width, or drag headers to rearrange columns (just like Finder List View).")
+                    Text(KroutonL10n.tr("Click any column header to sort, drag column dividers to resize width, or drag headers to rearrange columns (just like Finder List View)."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -406,7 +406,7 @@ public struct KroutonSettingsWindowView: View {
             }
 
             Table(of: DiscFormatSpec.self, selection: $selectedFormatIDs, sortOrder: $formatSortOrder, columnCustomization: $columnCustomization) {
-                TableColumn("Show", value: \.visibilitySortKey) { fmt in
+                TableColumn(KroutonL10n.tr("Show"), value: \.visibilitySortKey) { fmt in
                     Toggle("", isOn: Binding(
                         get: { fmt.showInTaskChooser },
                         set: { _ in store.toggleFormatVisibility(id: fmt.id) }
@@ -418,7 +418,7 @@ public struct KroutonSettingsWindowView: View {
                 .width(min: 46, ideal: 54, max: 64)
                 .customizationID("col-show")
 
-                TableColumn("Format", value: \.technicalName) { fmt in
+                TableColumn(KroutonL10n.tr("Format"), value: \.technicalName) { fmt in
                     HStack(spacing: 8) {
                         Image(systemName: fmt.sfSymbol)
                             .foregroundStyle(store.activeAccent)
@@ -438,28 +438,28 @@ public struct KroutonSettingsWindowView: View {
                 .width(min: 200, ideal: 265, max: 420)
                 .customizationID("col-format")
 
-                TableColumn("Year", value: \.launchYear) { fmt in
+                TableColumn(KroutonL10n.tr("Year"), value: \.launchYear) { fmt in
                     Text(fmt.launchYear)
                         .font(.system(size: 11, design: .monospaced))
                 }
                 .width(min: 50, ideal: 58, max: 80)
                 .customizationID("col-year")
 
-                TableColumn("Capacity", value: \.capacityGB) { fmt in
+                TableColumn(KroutonL10n.tr("Capacity"), value: \.capacityGB) { fmt in
                     Text(fmt.capacity)
                         .font(.system(size: 11, design: .monospaced))
                 }
                 .width(min: 95, ideal: 115, max: 160)
                 .customizationID("col-capacity")
 
-                TableColumn("Laser", value: \.laserType) { fmt in
+                TableColumn(KroutonL10n.tr("Laser"), value: \.laserType) { fmt in
                     Text(fmt.laserType)
                         .font(.system(size: 11, design: .monospaced))
                 }
                 .width(min: 80, ideal: 95, max: 140)
                 .customizationID("col-laser")
 
-                TableColumn("Platform / Plays On", value: \.platform) { fmt in
+                TableColumn(KroutonL10n.tr("Platform / Plays On"), value: \.platform) { fmt in
                     Text(fmt.platform)
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
@@ -467,15 +467,15 @@ public struct KroutonSettingsWindowView: View {
                 .width(min: 140, ideal: 185, max: 300)
                 .customizationID("col-platform")
 
-                TableColumn("Status", value: \.deprecationStatus) { fmt in
-                    Text(fmt.deprecationStatus)
+                TableColumn(KroutonL10n.tr("Status"), value: \.deprecationStatus) { fmt in
+                    Text(KroutonL10n.tr(fmt.deprecationStatus))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(fmt.deprecationStatus == "Current" ? .green : .secondary)
                 }
                 .width(min: 85, ideal: 105, max: 150)
                 .customizationID("col-status")
 
-                TableColumn("Standard / Mode", value: \.bookOrFileSystem) { fmt in
+                TableColumn(KroutonL10n.tr("Standard / Mode"), value: \.bookOrFileSystem) { fmt in
                     Text("\(fmt.sourceSupport) • \(fmt.bookOrFileSystem)")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
@@ -531,12 +531,12 @@ public struct KroutonSettingsWindowView: View {
             }
 
             settingsCard(title: "Verification, Virtualization Test-Boot & Custom Feeds") {
-                Toggle("Automatically verify SHA-256 / PGP signatures on downloaded Depot images before burning", isOn: $store.autoVerifyDepotSHA256)
+                Toggle(KroutonL10n.tr("Automatically verify SHA-256 / PGP signatures on downloaded Depot images before burning"), isOn: $store.autoVerifyDepotSHA256)
                 Divider()
-                Toggle("Enable Apple Virtualization.framework 'Test-Boot in VM' button for El Torito / UEFI images", isOn: $store.enableVMTestBootInDepot)
+                Toggle(KroutonL10n.tr("Enable Apple Virtualization.framework 'Test-Boot in VM' button for El Torito / UEFI images"), isOn: $store.enableVMTestBootInDepot)
                 Divider()
                 HStack {
-                    Text("Custom Community Depot Manifest URL")
+                    Text(KroutonL10n.tr("Custom Community Depot Manifest URL"))
                     Spacer()
                     TextField("https://...", text: $store.customDepotFeedURL)
                         .textFieldStyle(.roundedBorder)
@@ -549,7 +549,7 @@ public struct KroutonSettingsWindowView: View {
     private var audioVideoPane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "Red Book Audio CD & Crossfade Defaults") {
-                Toggle("Analyze BPM & Beat Grid automatically via Apple SoundAnalysis on import", isOn: $store.autoBeatmatchSoundAnalysis)
+                Toggle(KroutonL10n.tr("Analyze BPM & Beat Grid automatically via Apple SoundAnalysis on import"), isOn: $store.autoBeatmatchSoundAnalysis)
                 Divider()
                 HStack {
                     Text(String(format: "Default Equal-Power Crossfade Overlap: %.1f seconds", store.defaultCrossfadeSec))
@@ -558,28 +558,28 @@ public struct KroutonSettingsWindowView: View {
                         .frame(width: 220)
                 }
                 Divider()
-                Toggle("Car-Stereo Safe MP3 Mode (Enforce ID3v2.3 & strip hidden macOS ._* files)", isOn: $store.carSafeMP3Mode)
+                Toggle(KroutonL10n.tr("Car-Stereo Safe MP3 Mode (Enforce ID3v2.3 & strip hidden macOS ._* files)"), isOn: $store.carSafeMP3Mode)
             }
 
             settingsCard(title: "Video Authoring & Menu Defaults") {
-                Toggle("Single Video Track: Play immediately on disc insert (skip menu)", isOn: $store.singleVideoFirstPlay)
+                Toggle(KroutonL10n.tr("Single Video Track: Play immediately on disc insert (skip menu)"), isOn: $store.singleVideoFirstPlay)
                 Divider()
-                Toggle("Use Apple Silicon VideoToolbox 2-Pass Hardware VBR for Blu-ray & DVD encoding", isOn: $store.videoToolboxTwoPassVBR)
+                Toggle(KroutonL10n.tr("Use Apple Silicon VideoToolbox 2-Pass Hardware VBR for Blu-ray & DVD encoding"), isOn: $store.videoToolboxTwoPassVBR)
             }
 
             settingsCard(title: "Fit-to-Disc Compression Defaults (DVD-9 to 4.7 GB DVD-5 & BD-50 to BD-25)") {
-                Toggle("Always preserve interactive Menus, Chapter Tables & Bonus Featurettes when shrinking", isOn: $store.fitToDiscPreserveMenus)
+                Toggle(KroutonL10n.tr("Always preserve interactive Menus, Chapter Tables & Bonus Featurettes when shrinking"), isOn: $store.fitToDiscPreserveMenus)
                 Divider()
-                Toggle("Automatically strip foreign audio dubs (retain Original Language + English) to maximize video bitrate", isOn: $store.fitToDiscStripForeignDubs)
+                Toggle(KroutonL10n.tr("Automatically strip foreign audio dubs (retain Original Language + English) to maximize video bitrate"), isOn: $store.fitToDiscStripForeignDubs)
             }
 
             settingsCard(title: "Universal Hardware & Software Decoder Matrix") {
                 HStack {
-                    Label("Apple Silicon VideoToolbox ASIC + Accelerate vDSP + libavformat/libavcodec Active", systemImage: "cpu.fill")
+                    Label(KroutonL10n.tr("Apple Silicon VideoToolbox ASIC + Accelerate vDSP + libavformat/libavcodec Active"), systemImage: "cpu.fill")
                         .font(.system(size: 11, weight: .bold, design: .monospaced))
                         .foregroundStyle(.green)
                     Spacer()
-                    Text("Zero-Copy GPU & SIMD Pipeline")
+                    Text(KroutonL10n.tr("Zero-Copy GPU & SIMD Pipeline"))
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
@@ -623,8 +623,8 @@ public struct KroutonSettingsWindowView: View {
             settingsCard(title: "Optical Drive Read Offset & Error Recovery (CD / DVD / BD Ripping)") {
                 HStack {
                     VStack(alignment: .leading) {
-                        Text("Drive Sample Read Offset Correction")
-                        Text("Compensates for physical laser lead-in/lead-out offset on Matshita/Pioneer/LG drives")
+                        Text(KroutonL10n.tr("Drive Sample Read Offset Correction"))
+                        Text(KroutonL10n.tr("Compensates for physical laser lead-in/lead-out offset on Matshita/Pioneer/LG drives"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -632,29 +632,29 @@ public struct KroutonSettingsWindowView: View {
                     TextField("Offset", value: $store.driveReadOffsetSamples, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 80)
-                    Text("samples")
+                    Text(KroutonL10n.tr("samples"))
                         .font(.caption)
                 }
                 Divider()
                 HStack {
-                    Text("Paranoia Scratched Sector Re-Read Retries")
+                    Text(KroutonL10n.tr("Paranoia Scratched Sector Re-Read Retries"))
                     Spacer()
                     Stepper("\(store.paranoiaErrorRetries) passes", value: $store.paranoiaErrorRetries, in: 1...64)
                 }
                 Divider()
-                Toggle("Verify ripped audio tracks against AccurateRip & MusicBrainz database", isOn: $store.verifyAccurateRip)
+                Toggle(KroutonL10n.tr("Verify ripped audio tracks against AccurateRip & MusicBrainz database"), isOn: $store.verifyAccurateRip)
                 Divider()
-                Toggle("Generate archival .cue sheet and extraction .log alongside ALAC / FLAC rips", isOn: $store.writeCueSheetLog)
+                Toggle(KroutonL10n.tr("Generate archival .cue sheet and extraction .log alongside ALAC / FLAC rips"), isOn: $store.writeCueSheetLog)
             }
 
             settingsCard(title: "Video Disc Extraction & Hardware VideoToolbox") {
-                Toggle("Hardware Motion-Compensated Deinterlacing (480i / 1080i -> Progressive H.265)", isOn: $store.hardwareDeinterlaceVideo)
+                Toggle(KroutonL10n.tr("Hardware Motion-Compensated Deinterlacing (480i / 1080i -> Progressive H.265)"), isOn: $store.hardwareDeinterlaceVideo)
                 Divider()
-                Toggle("Passthrough lossless Dolby Atmos / TrueHD / DTS-HD Master Audio bitstreams", isOn: $store.passthroughAtmosTrueHD)
+                Toggle(KroutonL10n.tr("Passthrough lossless Dolby Atmos / TrueHD / DTS-HD Master Audio bitstreams"), isOn: $store.passthroughAtmosTrueHD)
             }
 
             settingsCard(title: "Smart File & Track Naming Pattern (Zero-Script Token Builder)") {
-                Text("Click tokens below to append to your active naming pattern, or click any active token pill to remove it:")
+                Text(KroutonL10n.tr("Click tokens below to append to your active naming pattern, or click any active token pill to remove it:"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -674,7 +674,7 @@ public struct KroutonSettingsWindowView: View {
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
-                        Text("Active Pattern:")
+                        Text(KroutonL10n.tr("Active Pattern:"))
                             .font(.caption.bold())
                             .foregroundStyle(.secondary)
                         ForEach(Array(store.namingTokens.enumerated()), id: \.offset) { idx, tok in
@@ -724,7 +724,7 @@ public struct KroutonSettingsWindowView: View {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
-                        Text("No physical optical drives detected. Plug in your USB burner and click Rescan Bus.")
+                        Text(KroutonL10n.tr("No physical optical drives detected. Plug in your USB burner and click Rescan Bus."))
                             .font(.caption)
                     }
                 } else {
@@ -770,7 +770,7 @@ public struct KroutonSettingsWindowView: View {
             }
 
             settingsCard(title: "Network Optical Server (krouton-node) & Buffer Protection") {
-                Toggle("Share this Mac's connected optical drives on the local network", isOn: $store.enableNetworkServerSharing)
+                Toggle(KroutonL10n.tr("Share this Mac's connected optical drives on the local network"), isOn: $store.enableNetworkServerSharing)
                 Divider()
                 HStack {
                     Text("Server RAM Ring Buffer Allocation: \(Int(store.serverRingBufferMB)) MB")
@@ -779,25 +779,25 @@ public struct KroutonSettingsWindowView: View {
                         .frame(width: 220)
                 }
                 Divider()
-                Toggle("Pre-stage full compiled disc image to remote server SSD before igniting laser", isOn: $store.preStageImageToServerSSD)
+                Toggle(KroutonL10n.tr("Pre-stage full compiled disc image to remote server SSD before igniting laser"), isOn: $store.preStageImageToServerSSD)
             }
 
             settingsCard(title: "Optical Drive Hardware & MMC Bitsetting (Retro Console & Set-Top DVD Compatibility)") {
-                Toggle("Stamp Book Type as DVD-ROM (0x00) on DVD+R & DVD+R DL Media (Required by vintage DVD players, early PS2 & Xbox)", isOn: $store.forceDVDROMBookType)
+                Toggle(KroutonL10n.tr("Stamp Book Type as DVD-ROM (0x00) on DVD+R & DVD+R DL Media (Required by vintage DVD players, early PS2 & Xbox)"), isOn: $store.forceDVDROMBookType)
                     .fontWeight(.semibold)
-                Text("When enabled, Krouton sends the vendor MMC Mode Select / Set Compatibility bitsetting command before lead-in write so DVD+R and DVD+R DL discs identify as pressed factory DVD-ROMs.")
+                Text(KroutonL10n.tr("When enabled, Krouton sends the vendor MMC Mode Select / Set Compatibility bitsetting command before lead-in write so DVD+R and DVD+R DL discs identify as pressed factory DVD-ROMs."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Divider()
                 HStack {
-                    Text("MMC Bitsetting Command Profile")
+                    Text(KroutonL10n.tr("MMC Bitsetting Command Profile"))
                     Spacer()
                     Picker("", selection: $store.bitsetVendorProfile) {
-                        Text("Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)").tag("Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)")
-                        Text("Pioneer DVR / BDR Extended (0x3B Mode Select)").tag("Pioneer DVR / BDR Extended (0x3B Mode Select)")
-                        Text("Lite-On / MediaTek SmartBurn (0xF9 / 0xFF)").tag("Lite-On / MediaTek SmartBurn (0xF9 / 0xFF)")
-                        Text("LG / HL-DT-ST / Renesas Super-Multi (0xFA)").tag("LG / HL-DT-ST / Renesas Super-Multi (0xFA)")
-                        Text("NEC / Optiarc / Sony (0xFF BookType)").tag("NEC / Optiarc / Sony (0xFF BookType)")
+                        Text(KroutonL10n.tr("Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)")).tag("Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)")
+                        Text(KroutonL10n.tr("Pioneer DVR / BDR Extended (0x3B Mode Select)")).tag("Pioneer DVR / BDR Extended (0x3B Mode Select)")
+                        Text(KroutonL10n.tr("Lite-On / MediaTek SmartBurn (0xF9 / 0xFF)")).tag("Lite-On / MediaTek SmartBurn (0xF9 / 0xFF)")
+                        Text(KroutonL10n.tr("LG / HL-DT-ST / Renesas Super-Multi (0xFA)")).tag("LG / HL-DT-ST / Renesas Super-Multi (0xFA)")
+                        Text(KroutonL10n.tr("NEC / Optiarc / Sony (0xFF BookType)")).tag("NEC / Optiarc / Sony (0xFF BookType)")
                     }
                     .labelsHidden()
                     .frame(width: 340)
@@ -821,20 +821,20 @@ public struct KroutonSettingsWindowView: View {
                     }
                 }
                 Divider()
-                Toggle("Disable BD-R Defect Management Spare Area on Video Blu-rays (Enables full rated write speed)", isOn: $store.disableBDDefectManagementForVideo)
+                Toggle(KroutonL10n.tr("Disable BD-R Defect Management Spare Area on Video Blu-rays (Enables full rated write speed)"), isOn: $store.disableBDDefectManagementForVideo)
             }
 
             settingsCard(title: "Hands-Free Multi-Copy Duplication & Spanned Disc Auto-Loader") {
-                Toggle("Auto-Load Next Disc: Eject finished disc & automatically start next burn after fresh blank disc insertion", isOn: $store.autoLoadNextDiscBatchMode)
+                Toggle(KroutonL10n.tr("Auto-Load Next Disc: Eject finished disc & automatically start next burn after fresh blank disc insertion"), isOn: $store.autoLoadNextDiscBatchMode)
                     .fontWeight(.semibold)
-                Text("Turns your Mac into a hands-free duplication station when burning multiple copies or multi-disc spanned archives.")
+                Text(KroutonL10n.tr("Turns your Mac into a hands-free duplication station when burning multiple copies or multi-disc spanned archives."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Divider()
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Post-Insertion Spin-Up & Auto-Fire Delay")
-                        Text("Waits for macOS DiskArbitration and optical spindle lock before firing the laser")
+                        Text(KroutonL10n.tr("Post-Insertion Spin-Up & Auto-Fire Delay"))
+                        Text(KroutonL10n.tr("Waits for macOS DiskArbitration and optical spindle lock before firing the laser"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -875,17 +875,17 @@ public struct KroutonSettingsWindowView: View {
                     TextField("Preset Name", text: $newPresetName)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 210)
-                    Text("Outer:")
+                    Text(KroutonL10n.tr("Outer:"))
                         .font(.caption)
                     TextField("120", value: $newOuterMM, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 55)
-                    Text("Inner:")
+                    Text(KroutonL10n.tr("Inner:"))
                         .font(.caption)
                     TextField("18", value: $newInnerMM, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 50)
-                    Text("X/Y Offset:")
+                    Text(KroutonL10n.tr("X/Y Offset:"))
                         .font(.caption)
                     TextField("0.0", value: $newOffsetX, format: .number)
                         .textFieldStyle(.roundedBorder)
@@ -905,15 +905,15 @@ public struct KroutonSettingsWindowView: View {
                             )
                         )
                     } label: {
-                        Label("Save Preset", systemImage: "plus.circle.fill")
+                        Label(KroutonL10n.tr("Save Preset"), systemImage: "plus.circle.fill")
                     }
                 }
             }
 
             settingsCard(title: "Automatic Label Artwork Lookup & Vision Hole-Avoidance") {
-                Toggle("Use Apple Vision Subject Detection to keep faces/logos out of the 18mm center hole", isOn: $store.visionHoleAvoidance)
+                Toggle(KroutonL10n.tr("Use Apple Vision Subject Detection to keep faces/logos out of the 18mm center hole"), isOn: $store.visionHoleAvoidance)
                 Divider()
-                Text("Zero-Key Databases Enabled: MusicBrainz / Cover Art Archive, Apple iTunes, TVMaze, GameTDB")
+                Text(KroutonL10n.tr("Zero-Key Databases Enabled: MusicBrainz / Cover Art Archive, Apple iTunes, TVMaze, GameTDB"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 HStack(spacing: 12) {
@@ -933,9 +933,9 @@ public struct KroutonSettingsWindowView: View {
                     VStack(spacing: 8) {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(row.eventTitle)
+                                Text(KroutonL10n.tr(row.eventTitle))
                                     .font(.system(size: 13, weight: .medium))
-                                Text(row.eventSubtitle)
+                                Text(KroutonL10n.tr(row.eventSubtitle))
                                     .font(.system(size: 11))
                                     .foregroundStyle(.secondary)
                             }
@@ -971,10 +971,10 @@ public struct KroutonSettingsWindowView: View {
             }
 
             HStack(spacing: 20) {
-                Label("macOS Notification Center", systemImage: "bell.fill")
-                Label("iPhone Live Activity", systemImage: "iphone")
-                Label("Apple Watch Alert", systemImage: "applewatch")
-                Label("Sound Effect", systemImage: "speaker.wave.2.fill")
+                Label(KroutonL10n.tr("macOS Notification Center"), systemImage: "bell.fill")
+                Label(KroutonL10n.tr("iPhone Live Activity"), systemImage: "iphone")
+                Label(KroutonL10n.tr("Apple Watch Alert"), systemImage: "applewatch")
+                Label(KroutonL10n.tr("Sound Effect"), systemImage: "speaker.wave.2.fill")
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -985,14 +985,14 @@ public struct KroutonSettingsWindowView: View {
     private var accessibilityLanguagePane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "VoiceOver & Spoken Hardware Telemetry") {
-                Toggle("Announce optical drive events, disc insertions, and burn phase changes via macOS VoiceOver", isOn: $store.voiceOverSpokenTelemetry)
+                Toggle(KroutonL10n.tr("Announce optical drive events, disc insertions, and burn phase changes via macOS VoiceOver"), isOn: $store.voiceOverSpokenTelemetry)
                     .fontWeight(.semibold)
-                Text("Posts priority NSAccessibility announcements when blank media is locked, when the 5-second Auto-Load timer counts down, and when verification completes.")
+                Text(KroutonL10n.tr("Posts priority NSAccessibility announcements when blank media is locked, when the 5-second Auto-Load timer counts down, and when verification completes."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Divider()
                 HStack {
-                    Text("Test VoiceOver Telemetry Speech")
+                    Text(KroutonL10n.tr("Test VoiceOver Telemetry Speech"))
                     Spacer()
                     pillToggleButton(title: "Speak Status Now", sfSymbol: "speaker.wave.3.fill", isSelected: false) {
                         let drv = driveManager.selectedDrive?.displayName ?? "Optical Burner"
@@ -1003,17 +1003,17 @@ public struct KroutonSettingsWindowView: View {
             }
 
             settingsCard(title: "Display, Contrast & Motion Accessibility") {
-                Toggle("Increase Contrast (High-contrast borders on Format Chooser, Tracklists & Phase Scope)", isOn: $store.a11yIncreaseContrast)
+                Toggle(KroutonL10n.tr("Increase Contrast (High-contrast borders on Format Chooser, Tracklists & Phase Scope)"), isOn: $store.a11yIncreaseContrast)
                 Divider()
-                Toggle("Differentiate Without Color (Show explicit status symbols alongside green/amber/red LEDs)", isOn: $store.a11yDifferentiateWithoutColor)
+                Toggle(KroutonL10n.tr("Differentiate Without Color (Show explicit status symbols alongside green/amber/red LEDs)"), isOn: $store.a11yDifferentiateWithoutColor)
                 Divider()
-                Toggle("Reduce Motion (Disable continuous disc rotation & smooth Phase Scope sweeps)", isOn: $store.a11yReduceMotion)
+                Toggle(KroutonL10n.tr("Reduce Motion (Disable continuous disc rotation & smooth Phase Scope sweeps)"), isOn: $store.a11yReduceMotion)
 
             }
 
             settingsCard(title: "Internationalization & Foreign Languages") {
                 HStack {
-                    Text(store.tr("Active Interface Language"))
+                    Text(KroutonL10n.tr("Active Interface Language"))
                         .fontWeight(.semibold)
                     Spacer()
                     Picker("", selection: $store.appLanguage) {
@@ -1025,7 +1025,7 @@ public struct KroutonSettingsWindowView: View {
                     .frame(width: 230)
                 }
                 Divider()
-                Text("Supported Locales: English (US) • 日本語 (Japanese) • Deutsch (German) • Français (French) • Español (Spanish) • 简体中文 (Simplified Chinese) • 한국어 (Korean). All CD-TEXT & Joliet/UDF descriptors remain hardware-sanitized per regional optical standards.")
+                Text(KroutonL10n.tr("Supported Locales: English (US) • 日本語 (Japanese) • Deutsch (German) • Français (French) • Español (Spanish) • 简体中文 (Simplified Chinese) • 한국어 (Korean). All CD-TEXT & Joliet/UDF descriptors remain hardware-sanitized per regional optical standards."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -1034,7 +1034,7 @@ public struct KroutonSettingsWindowView: View {
 
     private func settingsCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(store.tr(title))
+            Text(KroutonL10n.tr(title))
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 12) {
@@ -1055,7 +1055,7 @@ public struct KroutonSettingsWindowView: View {
             HStack(spacing: 6) {
                 Image(systemName: sfSymbol)
                     .font(.system(size: 11, weight: .semibold))
-                Text(store.tr(title))
+                Text(KroutonL10n.tr(title))
                     .font(.system(size: 12, weight: .medium))
             }
             .padding(.horizontal, 12)

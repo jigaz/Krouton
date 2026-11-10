@@ -310,7 +310,9 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var sidebarIconSize: SidebarIconSizeMode = .medium
     @Published public var tintWindowWithWallpaper: Bool = false
     // Accessibility & VoiceOver Support
-    @Published public var appLanguage: KroutonLanguage = .english
+    @Published public var appLanguage: KroutonLanguage = .english {
+        didSet { KroutonL10n.activeISOCode = appLanguage.isoCode }
+    }
     @Published public var voiceOverSpokenTelemetry: Bool = true
     @Published public var a11yIncreaseContrast: Bool = false
     @Published public var a11yDifferentiateWithoutColor: Bool = true
@@ -636,6 +638,7 @@ public final class KroutonStateStore: ObservableObject {
 
     /// Real Apple Bundle.module .lproj localization lookup (Sources/KroutonApp/Resources/<lang>.lproj/Localizable.strings)
     public func tr(_ key: String) -> String {
+        KroutonL10n.activeISOCode = appLanguage.isoCode
         let code = appLanguage.isoCode
         if let lprojPath = Bundle.module.path(forResource: code, ofType: "lproj"),
            let langBundle = Bundle(path: lprojPath) {
@@ -742,5 +745,27 @@ public struct KroutonStyledIconBadge: View {
             }
         }
         .frame(width: size, height: size)
+    }
+}
+
+
+// MARK: - Global Bundle.module .lproj Localization Resolver (Accessible from any View or Struct)
+public enum KroutonL10n {
+    nonisolated(unsafe) public static var activeISOCode: String = "en"
+
+    public static func tr(_ key: String) -> String {
+        let code = activeISOCode
+        if let lprojPath = Bundle.module.path(forResource: code, ofType: "lproj"),
+           let langBundle = Bundle(path: lprojPath) {
+            let localized = langBundle.localizedString(forKey: key, value: key, table: "Localizable")
+            if localized != key {
+                return localized
+            }
+        }
+        if let fallbackPath = Bundle.module.path(forResource: String(code.prefix(2)), ofType: "lproj"),
+           let langBundle = Bundle(path: fallbackPath) {
+            return langBundle.localizedString(forKey: key, value: key, table: "Localizable")
+        }
+        return Bundle.module.localizedString(forKey: key, value: key, table: "Localizable")
     }
 }
