@@ -255,7 +255,14 @@ struct KroutonMainWorkspaceView: View {
             }
         }
         .frame(minWidth: 1320, idealWidth: 1420, minHeight: 840, idealHeight: 900)
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(
+            ZStack {
+                Color(NSColor.windowBackgroundColor)
+                if store.tintWindowWithWallpaper {
+                    store.activeAccent.opacity(0.06).ignoresSafeArea()
+                }
+            }
+        )
         .preferredColorScheme(store.appearanceMode.colorScheme)
         .tint(store.activeAccent)
         .onAppear {
@@ -560,7 +567,10 @@ struct KroutonMainWorkspaceView: View {
         .padding(10)
         .background(Color(NSColor.controlBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(store.a11yIncreaseContrast ? Color.primary.opacity(0.45) : Color.primary.opacity(0.08), lineWidth: store.a11yIncreaseContrast ? 1.5 : 1.0))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Disc Space Allocation for \(mediaLabel)")
+        .accessibilityValue(String(format: "%.1f percent full, \(store.totalStagedSectorsLBA) sectors staged", ratio * 100.0))
     }
 
     private var depotWorkspaceView: some View {
@@ -676,7 +686,7 @@ struct KroutonMainWorkspaceView: View {
                     } label: {
                         HStack(spacing: 5) {
                             Image(systemName: "trash")
-                            Text("Clear All")
+                            Text(store.tr("Clear All"))
                         }
                         .font(.system(size: 11, weight: .medium))
                         .padding(.horizontal, 10)
@@ -1589,7 +1599,7 @@ struct KroutonMainWorkspaceView: View {
                                     ForEach(store.stagedFiles) { entry in
                                         HStack(spacing: 12) {
                                             Image(systemName: entry.isDirectory ? "folder.fill" : "doc.fill")
-                                                .foregroundStyle(store.activeAccent)
+                                                .foregroundStyle(entry.isDirectory ? store.resolvedFolderIconColor : store.activeAccent)
                                                 .font(.system(size: 15))
                                                 .frame(width: 24)
 
@@ -2296,7 +2306,7 @@ struct KroutonMainWorkspaceView: View {
                 }
 
                 HStack {
-                    Text("Write Speed:")
+                    Text(store.tr("Write Speed:"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()

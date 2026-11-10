@@ -20,6 +20,8 @@ public struct AccentColorPreset: Identifiable, Hashable, Sendable {
     }
 
     public static let allPresets: [AccentColorPreset] = [
+        // -1: Multicolor (macOS System Settings Rainbow Wheel)
+        AccentColorPreset(id: -1, swatchColor: Color.blue, darkAccent: Color(red: 0.32, green: 0.62, blue: 0.98), lightAccent: Color(red: 0.0, green: 0.44, blue: 0.92), darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
         // 0: Red
         AccentColorPreset(id: 0, swatchColor: Color(red: 0.90, green: 0.23, blue: 0.23), darkAccent: Color(red: 0.92, green: 0.26, blue: 0.26), lightAccent: Color(red: 0.82, green: 0.16, blue: 0.16), darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
         // 1: Orange
@@ -87,6 +89,115 @@ public struct PreFlightSanityDiagnostic: Identifiable, Hashable, Sendable {
         self.title = title
         self.detail = detail
         self.actionButtonTitle = actionButtonTitle
+    }
+}
+
+public enum IconWidgetStyleMode: String, CaseIterable, Identifiable, Sendable {
+    case defaultStyle = "Default"
+    case dark = "Dark"
+    case clear = "Clear"
+    case tinted = "Tinted"
+    public var id: String { rawValue }
+}
+
+public enum SidebarIconSizeMode: String, CaseIterable, Identifiable, Sendable {
+    case small = "Small"
+    case medium = "Medium"
+    case large = "Large"
+    public var id: String { rawValue }
+
+    public var iconFontSize: CGFloat {
+        switch self {
+        case .small: return 12
+        case .medium: return 15
+        case .large: return 18
+        }
+    }
+
+    public var titleFontSize: CGFloat {
+        switch self {
+        case .small: return 11.5
+        case .medium: return 12.5
+        case .large: return 14.0
+        }
+    }
+
+    public var rowVerticalPadding: CGFloat {
+        switch self {
+        case .small: return 4
+        case .medium: return 6
+        case .large: return 9
+        }
+    }
+}
+
+public enum TextHighlightColorMode: String, CaseIterable, Identifiable, Sendable {
+    case automatic = "Automatic"
+    case blue = "Blue"
+    case purple = "Purple"
+    case pink = "Pink"
+    case red = "Red"
+    case orange = "Orange"
+    case yellow = "Yellow"
+    case green = "Green"
+    case graphite = "Graphite"
+    public var id: String { rawValue }
+
+    public func resolvedColor(fallback: Color) -> Color {
+        switch self {
+        case .automatic: return fallback
+        case .blue: return .blue
+        case .purple: return .purple
+        case .pink: return .pink
+        case .red: return .red
+        case .orange: return .orange
+        case .yellow: return .yellow
+        case .green: return .green
+        case .graphite: return .gray
+        }
+    }
+}
+
+public enum FolderColorMode: String, CaseIterable, Identifiable, Sendable {
+    case automatic = "Automatic"
+    case classicAqua = "Classic Aqua Blue"
+    case accentTinted = "Theme Accent"
+    case amberGold = "Amber Gold"
+    case graphite = "Space Gray"
+    public var id: String { rawValue }
+
+    public func resolvedFolderColor(accent: Color) -> Color {
+        switch self {
+        case .automatic, .accentTinted: return accent
+        case .classicAqua: return Color(red: 0.22, green: 0.64, blue: 0.96)
+        case .amberGold: return Color.orange
+        case .graphite: return Color.secondary
+        }
+    }
+}
+
+public enum KroutonLanguage: String, CaseIterable, Identifiable, Sendable {
+    case system = "System Default (Auto)"
+    case english = "English (US)"
+    case japanese = "日本語 (Japanese)"
+    case german = "Deutsch (German)"
+    case french = "Français (French)"
+    case spanish = "Español (Spanish)"
+    case chineseSimplified = "简体中文 (Chinese)"
+    case korean = "한국어 (Korean)"
+    public var id: String { rawValue }
+
+    public var isoCode: String {
+        switch self {
+        case .system: return Locale.preferredLanguages.first?.prefix(2).lowercased() ?? "en"
+        case .english: return "en"
+        case .japanese: return "ja"
+        case .german: return "de"
+        case .french: return "fr"
+        case .spanish: return "es"
+        case .chineseSimplified: return "zh"
+        case .korean: return "ko"
+        }
     }
 }
 
@@ -214,6 +325,19 @@ public struct DestinationQueueItem: Identifiable, Hashable, Sendable {
 public final class KroutonStateStore: ObservableObject {
     @Published public var appearanceMode: AppAppearanceMode = .dark
     @Published public var selectedAccentIndex: Int = 6
+    // macOS System Settings Theme & Window Extensions
+    @Published public var textHighlightMode: TextHighlightColorMode = .automatic
+    @Published public var iconWidgetStyle: IconWidgetStyleMode = .defaultStyle
+    @Published public var folderColorMode: FolderColorMode = .automatic
+    @Published public var sidebarIconSize: SidebarIconSizeMode = .medium
+    @Published public var tintWindowWithWallpaper: Bool = false
+    // Accessibility & VoiceOver Support
+    @Published public var appLanguage: KroutonLanguage = .english
+    @Published public var voiceOverSpokenTelemetry: Bool = true
+    @Published public var a11yIncreaseContrast: Bool = false
+    @Published public var a11yDifferentiateWithoutColor: Bool = true
+    @Published public var a11yReduceMotion: Bool = false
+    @Published public var a11yTextScale: Double = 1.0
     @Published public var rememberLastTaskOnLaunch: Bool = true
     @Published public var useBase10Units: Bool = true
     @Published public var scratchDiskPath: String = "~/Library/Caches/app.krouton.staging"
@@ -471,6 +595,73 @@ public final class KroutonStateStore: ObservableObject {
         if let idx = discFormats.firstIndex(where: { $0.id == selectedTaskID }) {
             discFormats[idx].showInTaskChooser = true
         }
+    }
+
+    public var resolvedFolderIconColor: Color {
+        folderColorMode.resolvedFolderColor(accent: activeAccent)
+    }
+
+    public func announceForVoiceOver(_ message: String) {
+        guard voiceOverSpokenTelemetry else { return }
+        if let mainWin = NSApp.mainWindow {
+            NSAccessibility.post(
+                element: mainWin,
+                notification: .announcementRequested,
+                userInfo: [
+                    .announcement: message,
+                    .priority: NSAccessibilityPriorityLevel.high.rawValue
+                ]
+            )
+        }
+    }
+
+    /// Lightweight built-in localization engine for instant live UI translation across 7 languages
+    public func tr(_ key: String) -> String {
+        let lang = appLanguage.isoCode
+        guard lang != "en" else { return key }
+        let table: [String: [String: String]] = [
+            "FORMAT CHOOSER": [
+                "ja": "フォーマット選択", "de": "FORMAT-AUSWAHL", "fr": "CHOIX DU FORMAT",
+                "es": "SELECTOR DE FORMATO", "zh": "光盘格式选择", "ko": "포맷 선택기"
+            ],
+            "DESTINATIONS": [
+                "ja": "出力先・ドライブ", "de": "ZIELLAUFWERKE", "fr": "DESTINATIONS",
+                "es": "DESTINOS DE GRABACIÓN", "zh": "目标刻录机与输出", "ko": "대상 드라이브"
+            ],
+            "BURN": [
+                "ja": "ディスク作成", "de": "BRENNEN", "fr": "GRAVER",
+                "es": "GRABAR", "zh": "刻录", "ko": "굽기"
+            ],
+            "DISC IMAGE DEPOT": [
+                "ja": "イメージ保管庫", "de": "IMAGE-DEPOT", "fr": "DÉPÔT D’IMAGES",
+                "es": "DEPÓSITO ISO", "zh": "镜像仓库", "ko": "디스크 이미지 보관소"
+            ],
+            "COPY": [
+                "ja": "複製・リッピング", "de": "KOPIEREN", "fr": "COPIER",
+                "es": "COPIAR", "zh": "复制与抓轨", "ko": "복사 및 추출"
+            ],
+            "LABEL": [
+                "ja": "レーベル印刷", "de": "LABELDRUCK", "fr": "ÉTIQUETTE",
+                "es": "ETIQUETA", "zh": "盘面打印", "ko": "라벨 인쇄"
+            ],
+            "Clear All": [
+                "ja": "すべて消去", "de": "Alle löschen", "fr": "Tout effacer",
+                "es": "Borrar todo", "zh": "全部清空", "ko": "모두 지우기"
+            ],
+            "Write Speed:": [
+                "ja": "書込速度:", "de": "Schreibtempo:", "fr": "Vitesse d’écriture :",
+                "es": "Velocidad:", "zh": "刻录速度:", "ko": "쓰기 속도:"
+            ],
+            "Simulate": [
+                "ja": "テスト書込", "de": "Simulieren", "fr": "Simuler",
+                "es": "Simular", "zh": "模拟刻录", "ko": "시뮬레이션"
+            ],
+            "Verify": [
+                "ja": "ベリファイ検証", "de": "Prüfen", "fr": "Vérifier",
+                "es": "Verificar", "zh": "刻录后校验", "ko": "검증"
+            ]
+        ]
+        return table[key]?[lang] ?? key
     }
 
     public func clearStagedFiles() {

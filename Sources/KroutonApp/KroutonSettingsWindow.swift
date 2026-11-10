@@ -11,6 +11,7 @@ public enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendabl
     case burnersNetwork = "Burners & Network"
     case labelsPrinters = "Labels & Printers"
     case notifications = "Notifications"
+    case accessibilityLanguage = "Accessibility & Language"
 
     public var id: String { rawValue }
 
@@ -24,6 +25,7 @@ public enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendabl
         case .burnersNetwork: return "externaldrive.connected.to.line.below"
         case .labelsPrinters: return "printer.dotmatrix"
         case .notifications: return "bell"
+        case .accessibilityLanguage: return "accessibility"
         }
     }
 }
@@ -111,6 +113,8 @@ public struct KroutonSettingsWindowView: View {
                                 labelsPrintersPane
                             case .notifications:
                                 notificationsPane
+                            case .accessibilityLanguage:
+                                accessibilityLanguagePane
                             }
                         }
                         .padding(24)
@@ -127,35 +131,32 @@ public struct KroutonSettingsWindowView: View {
 
     private var generalPane: some View {
         VStack(alignment: .leading, spacing: 18) {
-            settingsCard(title: "Appearance & Accent Color") {
-                HStack {
-                    Text("Appearance")
-                        .fontWeight(.medium)
-                    Spacer()
-                    HStack(spacing: 8) {
-                        ForEach(AppAppearanceMode.allCases) { mode in
-                            pillToggleButton(
-                                title: mode.rawValue,
-                                sfSymbol: mode.sfSymbol,
-                                isSelected: store.appearanceMode == mode
-                            ) {
-                                store.appearanceMode = mode
-                            }
-                        }
+            settingsCard(title: "Theme, Appearance & Accent Color (macOS System Settings + Krouton Studio Palette)") {
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Color")
+                            .fontWeight(.medium)
+                        Text(store.selectedAccentIndex == -1 ? "Multicolor (Adapts per workspace)" : "Krouton Pro Studio Accent Swatch")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                }
-                Divider()
-                HStack {
-                    Text("Accent Color")
-                        .fontWeight(.medium)
                     Spacer()
-                    HStack(spacing: 10) {
+                    HStack(spacing: 9) {
                         ForEach(AccentColorPreset.allPresets) { preset in
                             Button {
                                 store.selectedAccentIndex = preset.id
                             } label: {
                                 ZStack {
-                                    if preset.isMonochrome {
+                                    if preset.id == -1 {
+                                        Circle()
+                                            .fill(
+                                                AngularGradient(
+                                                    colors: [.red, .orange, .yellow, .green, .cyan, .blue, .purple, .pink, .red],
+                                                    center: .center
+                                                )
+                                            )
+                                            .frame(width: 22, height: 22)
+                                    } else if preset.isMonochrome {
                                         Circle()
                                             .fill(
                                                 AngularGradient(
@@ -174,12 +175,142 @@ public struct KroutonSettingsWindowView: View {
                                             store.selectedAccentIndex == preset.id ? Color.primary : Color.secondary.opacity(0.35),
                                             lineWidth: store.selectedAccentIndex == preset.id ? 2.5 : 1.0
                                         )
-                                        .frame(width: 26, height: 26)
+                                        .frame(width: 27, height: 27)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(preset.id == -1 ? "Multicolor Accent" : (preset.isMonochrome ? "Monochrome High Contrast" : "Accent Swatch \(preset.id)"))
+                        }
+                    }
+                }
+                Divider()
+                HStack {
+                    Text("Text highlight color")
+                        .fontWeight(.medium)
+                    Spacer()
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(store.textHighlightMode.resolvedColor(fallback: store.activeAccent))
+                            .frame(width: 12, height: 12)
+                        Picker("", selection: $store.textHighlightMode) {
+                            ForEach(TextHighlightColorMode.allCases) { mode in
+                                Text(mode.rawValue).tag(mode)
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(width: 150)
+                    }
+                }
+                Divider()
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Icon & widget style")
+                            .fontWeight(.medium)
+                        Text("Controls how format badges, drive icons, and telemetry tiles render")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    HStack(spacing: 12) {
+                        ForEach(IconWidgetStyleMode.allCases) { style in
+                            Button {
+                                store.iconWidgetStyle = style
+                            } label: {
+                                VStack(spacing: 4) {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 9)
+                                            .fill(
+                                                style == .defaultStyle ? LinearGradient(colors: [store.activeAccent, store.activeAccent.opacity(0.65)], startPoint: .topLeading, endPoint: .bottomTrailing) :
+                                                (style == .dark ? LinearGradient(colors: [Color(white: 0.16), Color(white: 0.08)], startPoint: .top, endPoint: .bottom) :
+                                                (style == .clear ? LinearGradient(colors: [Color.white.opacity(0.18), Color.white.opacity(0.05)], startPoint: .top, endPoint: .bottom) :
+                                                LinearGradient(colors: [Color(white: 0.14), Color(white: 0.08)], startPoint: .top, endPoint: .bottom)))
+                                            )
+                                            .frame(width: 44, height: 38)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 9)
+                                                    .stroke(store.iconWidgetStyle == style ? store.activeAccent : Color.secondary.opacity(0.3), lineWidth: store.iconWidgetStyle == style ? 2.5 : 1.0)
+                                            )
+                                        Image(systemName: "opticaldisc.fill")
+                                            .font(.system(size: 18, weight: .semibold))
+                                            .foregroundStyle(style == .tinted ? store.activeAccent : .white)
+                                    }
+                                    Text(style.rawValue)
+                                        .font(.system(size: 10, weight: store.iconWidgetStyle == style ? .bold : .regular))
+                                        .foregroundStyle(store.iconWidgetStyle == style ? .primary : .secondary)
                                 }
                             }
                             .buttonStyle(.plain)
                         }
                     }
+                }
+                Divider()
+                HStack {
+                    Text("Appearance Mode")
+                        .fontWeight(.medium)
+                    Spacer()
+                    HStack(spacing: 8) {
+                        ForEach(AppAppearanceMode.allCases) { mode in
+                            pillToggleButton(
+                                title: mode.rawValue,
+                                sfSymbol: mode.sfSymbol,
+                                isSelected: store.appearanceMode == mode
+                            ) {
+                                store.appearanceMode = mode
+                            }
+                        }
+                    }
+                }
+                Divider()
+                HStack {
+                    Text("Folder color")
+                        .fontWeight(.medium)
+                    Spacer()
+                    HStack(spacing: 6) {
+                        Image(systemName: "folder.fill")
+                            .foregroundStyle(store.resolvedFolderIconColor)
+                        Picker("", selection: $store.folderColorMode) {
+                            ForEach(FolderColorMode.allCases) { fMode in
+                                Text(fMode.rawValue).tag(fMode)
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(width: 175)
+                    }
+                }
+            }
+
+            settingsCard(title: "Windows, Sidebar & Language") {
+                HStack {
+                    Text("Sidebar icon size")
+                        .fontWeight(.medium)
+                    Spacer()
+                    Picker("", selection: $store.sidebarIconSize) {
+                        ForEach(SidebarIconSizeMode.allCases) { sz in
+                            Text(sz.rawValue).tag(sz)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 140)
+                }
+                Divider()
+                Toggle("Tint window background with wallpaper / active accent color", isOn: $store.tintWindowWithWallpaper)
+                Divider()
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Application Language (Live UI Localization)")
+                            .fontWeight(.medium)
+                        Text("Switches workspace headers, buttons & VoiceOver labels immediately without restarting")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Picker("", selection: $store.appLanguage) {
+                        ForEach(KroutonLanguage.allCases) { lang in
+                            Text(lang.rawValue).tag(lang)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 210)
                 }
             }
 
@@ -860,6 +991,62 @@ public struct KroutonSettingsWindowView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
             .padding(.horizontal, 6)
+        }
+    }
+
+    private var accessibilityLanguagePane: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            settingsCard(title: "VoiceOver & Spoken Hardware Telemetry") {
+                Toggle("Announce optical drive events, disc insertions, and burn phase changes via macOS VoiceOver", isOn: $store.voiceOverSpokenTelemetry)
+                    .fontWeight(.semibold)
+                Text("Posts priority NSAccessibility announcements when blank media is locked, when the 5-second Auto-Load timer counts down, and when verification completes.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Divider()
+                HStack {
+                    Text("Test VoiceOver Telemetry Speech")
+                    Spacer()
+                    pillToggleButton(title: "Speak Status Now", sfSymbol: "speaker.wave.3.fill", isSelected: false) {
+                        let drv = driveManager.selectedDrive?.displayName ?? "Optical Burner"
+                        store.announceForVoiceOver("Krouton Accessibility Ready. Active burner: \(drv).")
+                        NSSound.beep()
+                    }
+                }
+            }
+
+            settingsCard(title: "Display, Contrast & Motion Accessibility") {
+                Toggle("Increase Contrast (High-contrast borders on Format Chooser, Tracklists & Phase Scope)", isOn: $store.a11yIncreaseContrast)
+                Divider()
+                Toggle("Differentiate Without Color (Show explicit status symbols alongside green/amber/red LEDs)", isOn: $store.a11yDifferentiateWithoutColor)
+                Divider()
+                Toggle("Reduce Motion (Disable continuous disc rotation & smooth Phase Scope sweeps)", isOn: $store.a11yReduceMotion)
+                Divider()
+                HStack {
+                    Text(String(format: "Workspace & Telemetry Text Scale: %.0f%%", store.a11yTextScale * 100))
+                    Spacer()
+                    Slider(value: $store.a11yTextScale, in: 0.90...1.35, step: 0.05)
+                        .frame(width: 220)
+                }
+            }
+
+            settingsCard(title: "Internationalization & Foreign Languages (7 Built-In Locales)") {
+                HStack {
+                    Text("Active Interface Language")
+                        .fontWeight(.semibold)
+                    Spacer()
+                    Picker("", selection: $store.appLanguage) {
+                        ForEach(KroutonLanguage.allCases) { lang in
+                            Text(lang.rawValue).tag(lang)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 230)
+                }
+                Divider()
+                Text("Supported Locales: English (US) • 日本語 (Japanese) • Deutsch (German) • Français (French) • Español (Spanish) • 简体中文 (Simplified Chinese) • 한국어 (Korean). All CD-TEXT & Joliet/UDF descriptors remain hardware-sanitized per regional optical standards.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
