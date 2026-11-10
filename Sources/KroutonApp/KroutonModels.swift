@@ -4,21 +4,42 @@ import OpticalDough
 
 public struct AccentColorPreset: Identifiable, Hashable, Sendable {
     public let id: Int
-    public let primary: Color
-    public let secondary: Color
+    public let swatchColor: Color
+    public let darkAccent: Color
+    public let lightAccent: Color
+    public let darkOnAccentText: Color
+    public let lightOnAccentText: Color
     public let isMonochrome: Bool
 
+    public func effectiveAccent(for scheme: ColorScheme?) -> Color {
+        scheme == .light ? lightAccent : darkAccent
+    }
+
+    public func effectiveOnAccentText(for scheme: ColorScheme?) -> Color {
+        scheme == .light ? lightOnAccentText : darkOnAccentText
+    }
+
     public static let allPresets: [AccentColorPreset] = [
-        AccentColorPreset(id: 0, primary: Color(red: 0.92, green: 0.24, blue: 0.24), secondary: Color.red, isMonochrome: false),
-        AccentColorPreset(id: 1, primary: Color.orange, secondary: Color.orange, isMonochrome: false),
-        AccentColorPreset(id: 2, primary: Color.yellow, secondary: Color.orange, isMonochrome: false),
-        AccentColorPreset(id: 3, primary: Color.green, secondary: Color.mint, isMonochrome: false),
-        AccentColorPreset(id: 4, primary: Color.cyan, secondary: Color.teal, isMonochrome: false),
-        AccentColorPreset(id: 5, primary: Color.blue, secondary: Color.cyan, isMonochrome: false),
-        AccentColorPreset(id: 6, primary: Color(red: 0.35, green: 0.52, blue: 0.78), secondary: Color.blue, isMonochrome: false),
-        AccentColorPreset(id: 7, primary: Color.indigo, secondary: Color.purple, isMonochrome: false),
-        AccentColorPreset(id: 8, primary: Color.pink, secondary: Color.pink, isMonochrome: false),
-        AccentColorPreset(id: 9, primary: Color.primary, secondary: Color.secondary, isMonochrome: true)
+        // 0: Red
+        AccentColorPreset(id: 0, swatchColor: Color(red: 0.90, green: 0.23, blue: 0.23), darkAccent: Color(red: 0.92, green: 0.26, blue: 0.26), lightAccent: Color(red: 0.82, green: 0.16, blue: 0.16), darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
+        // 1: Orange
+        AccentColorPreset(id: 1, swatchColor: Color.orange, darkAccent: Color.orange, lightAccent: Color(red: 0.88, green: 0.44, blue: 0.04), darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
+        // 2: High-Contrast Gold / Yellow (Dark text on bright amber-gold in Dark mode; deep warm gold in Light mode)
+        AccentColorPreset(id: 2, swatchColor: Color(red: 0.96, green: 0.78, blue: 0.12), darkAccent: Color(red: 0.95, green: 0.76, blue: 0.14), lightAccent: Color(red: 0.76, green: 0.53, blue: 0.02), darkOnAccentText: Color.black.opacity(0.88), lightOnAccentText: .white, isMonochrome: false),
+        // 3: Green
+        AccentColorPreset(id: 3, swatchColor: Color.green, darkAccent: Color(red: 0.18, green: 0.78, blue: 0.36), lightAccent: Color(red: 0.12, green: 0.62, blue: 0.26), darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
+        // 4: Cyan / Teal
+        AccentColorPreset(id: 4, swatchColor: Color.cyan, darkAccent: Color(red: 0.16, green: 0.74, blue: 0.88), lightAccent: Color(red: 0.04, green: 0.54, blue: 0.68), darkOnAccentText: Color.black.opacity(0.88), lightOnAccentText: .white, isMonochrome: false),
+        // 5: 405nm Laser Blue
+        AccentColorPreset(id: 5, swatchColor: Color.blue, darkAccent: Color.blue, lightAccent: Color(red: 0.0, green: 0.40, blue: 0.88), darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
+        // 6: CCC Slate Blue (Default)
+        AccentColorPreset(id: 6, swatchColor: Color(red: 0.35, green: 0.52, blue: 0.78), darkAccent: Color(red: 0.38, green: 0.56, blue: 0.84), lightAccent: Color(red: 0.24, green: 0.42, blue: 0.68), darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
+        // 7: Indigo / Violet
+        AccentColorPreset(id: 7, swatchColor: Color.indigo, darkAccent: Color(red: 0.46, green: 0.42, blue: 0.92), lightAccent: Color.indigo, darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
+        // 8: Toasted Krouton Brown (Replaces Mauve/Pink!)
+        AccentColorPreset(id: 8, swatchColor: Color(red: 0.64, green: 0.42, blue: 0.24), darkAccent: Color(red: 0.72, green: 0.49, blue: 0.30), lightAccent: Color(red: 0.52, green: 0.32, blue: 0.16), darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
+        // 9: High-Contrast Black & White Monochrome (Silver-White w/ Black text in Dark mode; Graphite-Black w/ White text in Light mode)
+        AccentColorPreset(id: 9, swatchColor: Color.primary, darkAccent: Color(white: 0.86), lightAccent: Color(white: 0.18), darkOnAccentText: Color.black.opacity(0.92), lightOnAccentText: .white, isMonochrome: true)
     ]
 }
 
@@ -287,7 +308,15 @@ public final class KroutonStateStore: ObservableObject {
     ]
 
     public var activeAccent: Color {
-        AccentColorPreset.allPresets[selectedAccentIndex].primary
+        let preset = AccentColorPreset.allPresets[min(max(0, selectedAccentIndex), AccentColorPreset.allPresets.count - 1)]
+        let resolvedScheme: ColorScheme = (appearanceMode == .light) ? .light : .dark
+        return preset.effectiveAccent(for: resolvedScheme)
+    }
+
+    public var activeOnAccentText: Color {
+        let preset = AccentColorPreset.allPresets[min(max(0, selectedAccentIndex), AccentColorPreset.allPresets.count - 1)]
+        let resolvedScheme: ColorScheme = (appearanceMode == .light) ? .light : .dark
+        return preset.effectiveOnAccentText(for: resolvedScheme)
     }
 
     public var totalStagedBytes: Int64 {

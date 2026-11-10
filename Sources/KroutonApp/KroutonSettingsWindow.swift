@@ -166,7 +166,7 @@ public struct KroutonSettingsWindowView: View {
                                             .frame(width: 22, height: 22)
                                     } else {
                                         Circle()
-                                            .fill(preset.primary)
+                                            .fill(preset.swatchColor)
                                             .frame(width: 22, height: 22)
                                     }
                                     Circle()

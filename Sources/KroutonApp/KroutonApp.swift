@@ -318,17 +318,17 @@ struct KroutonMainWorkspaceView: View {
             HStack(spacing: 9) {
                 Image(systemName: sfSymbol)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(isSelected ? .white : store.activeAccent)
+                    .foregroundStyle(isSelected ? store.activeOnAccentText : store.activeAccent)
                     .frame(width: 20)
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(isSelected ? .white : .primary)
+                        .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
                         .lineLimit(1)
                     Text(colloquial)
                         .font(.system(size: 10))
-                        .foregroundStyle(isSelected ? .white.opacity(0.85) : .secondary)
+                        .foregroundStyle(isSelected ? store.activeOnAccentText.opacity(0.82) : .secondary)
                         .lineLimit(1)
                 }
                 Spacer()
@@ -337,7 +337,7 @@ struct KroutonMainWorkspaceView: View {
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(isSelected ? Color.white.opacity(0.2) : Color.secondary.opacity(0.15))
-                    .foregroundStyle(isSelected ? .white : .secondary)
+                    .foregroundStyle(isSelected ? store.activeOnAccentText : .secondary)
                     .clipShape(Capsule())
             }
             .padding(.horizontal, 10)
@@ -562,7 +562,7 @@ struct KroutonMainWorkspaceView: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(store.activeAccent)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(store.activeOnAccentText)
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -979,7 +979,7 @@ struct KroutonMainWorkspaceView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(driveManager.isExecutingQueue ? Color.red : store.activeAccent)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(driveManager.isExecutingQueue ? Color.white : store.activeOnAccentText)
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -1385,69 +1385,322 @@ struct KroutonMainWorkspaceView: View {
     }
 }
 
-// MARK: - Clickable Disc Pill Popover: Deep Optical Media & ATIP/MID Inspector
+// MARK: - Clickable Disc Pill Popover: Textured Visual Disc Media & Volume Inspector
 struct DiscMediaInspectorPopover: View {
     let drive: OpticalDriveDevice
     let accent: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: "opticaldisc.fill")
-                    .font(.system(size: 24))
-                    .foregroundStyle(drive.isMediaPresent ? .green : .secondary)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(drive.statusBadgeText)
-                        .font(.headline)
-                    Text("\(drive.displayName) • Firmware \(drive.firmware) • \(drive.interconnect) Bus")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-            }
-
-            Divider()
-
+        VStack(alignment: .leading, spacing: 14) {
+            heroBannerSection
             if !drive.isMediaPresent {
-                Text("No optical media is currently loaded in this drive. Insert a CD, DVD, Blu-ray, or M-DISC to inspect ATIP/ADIP manufacturer codes, recording dye chemistry, and sector topology.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                emptySlotSection
             } else {
-                VStack(spacing: 6) {
-                    inspectorRow("Book / Physical Spec:", drive.bookStandard)
-                    inspectorRow("Manufacturer (ATIP/MID):", drive.mediaManufacturer)
-                    inspectorRow("Recording Layer / Dye:", drive.dyeChemistry)
-                    inspectorRow("Laser Wavelength & NA:", drive.laserWavelengthNA)
-                    Divider()
-                    inspectorRow("Session & Track State:", "\(drive.sessionCount) Session(s) • \(drive.isMediaBlank ? "Virgin Blank TOC" : (drive.isMediaAppendable ? "Appendable" : "Closed / Finalized"))")
-                    inspectorRow("Erasable / Overwritable:", "\(drive.isMediaErasable ? "Yes (Phase-Change RW)" : "No (Write-Once)") • Overwrite: \(drive.isMediaOverwritable ? "Yes" : "Requires Erase")")
-                    Divider()
-                    inspectorRow("Available Capacity:", "\(ByteCountFormatter.string(fromByteCount: drive.freeBytes, countStyle: .file)) (\(drive.freeSectorsLBA) LBA)")
-                    inspectorRow("Used Space:", "\(ByteCountFormatter.string(fromByteCount: drive.usedBytes, countStyle: .file)) (\(drive.usedSectorsLBA) LBA)")
-                    inspectorRow("Red Book Timecode:", drive.redBookTimecodeCapacity)
-                    inspectorRow("Sector Block Geometry:", drive.sectorBlockSize)
-                    Divider()
-                    inspectorRow("Negotiated Write Speeds:", drive.availableWriteSpeeds.joined(separator: " • "))
-                }
+                mountedVolumesSection
+                radialCapacitySection
+                hardwareSpecGridSection
+                writeSpeedsSection
             }
         }
         .padding(16)
-        .frame(width: 440)
+        .frame(width: 495)
+        .background(Color(NSColor.windowBackgroundColor))
     }
 
-    private func inspectorRow(_ label: String, _ value: String) -> some View {
-        HStack(alignment: .top) {
-            Text(label)
-                .font(.system(size: 11, weight: .semibold))
+    private var heroBannerSection: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(
+                        AngularGradient(
+                            colors: [
+                                accent.opacity(0.85),
+                                Color.cyan.opacity(0.75),
+                                Color.purple.opacity(0.70),
+                                Color.green.opacity(0.75),
+                                accent.opacity(0.85)
+                            ],
+                            center: .center
+                        )
+                    )
+                    .frame(width: 54, height: 54)
+                    .overlay(Circle().stroke(Color.white.opacity(0.35), lineWidth: 1))
+                    .shadow(color: Color.black.opacity(0.25), radius: 4, x: 0, y: 2)
+
+                Circle()
+                    .stroke(Color.white.opacity(0.22), lineWidth: 0.7)
+                    .frame(width: 40, height: 40)
+                Circle()
+                    .stroke(Color.white.opacity(0.25), lineWidth: 0.7)
+                    .frame(width: 26, height: 26)
+
+                Circle()
+                    .fill(Color(NSColor.windowBackgroundColor))
+                    .frame(width: 14, height: 14)
+                    .overlay(Circle().stroke(Color.secondary.opacity(0.5), lineWidth: 1))
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(drive.statusBadgeText)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                    Text(drive.isMediaErasable ? "REWRITABLE" : (drive.isMediaBlank ? "WRITE-ONCE BLANK" : "MASTERED"))
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(accent.opacity(0.18))
+                        .foregroundStyle(accent)
+                        .clipShape(Capsule())
+                }
+
+                Text("\(drive.displayName) • FW \(drive.firmware) • \(drive.interconnect) • \(drive.bsdDeviceNode)")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.secondary)
+
+                Text(drive.bookStandard)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.primary.opacity(0.85))
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(
+            LinearGradient(
+                colors: [accent.opacity(0.14), Color(NSColor.controlBackgroundColor)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(accent.opacity(0.28), lineWidth: 1))
+    }
+
+    private var emptySlotSection: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "opticaldisc")
+                .font(.title2)
                 .foregroundStyle(.secondary)
-                .frame(width: 155, alignment: .leading)
+            Text("No optical media is loaded in this drive. Insert a CD, DVD, Blu-ray, or M-DISC to inspect mounted volumes, file/track counts, ATIP/ADIP manufacturer codes, and dye chemistry.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .background(Color(NSColor.controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private var mountedVolumesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(
+                drive.mountedVolumes.isEmpty
+                    ? "MOUNTED VOLUMES & PARTITIONS (UNMOUNTED / BLANK)"
+                    : "MOUNTED VOLUMES & PARTITIONS (\(drive.mountedVolumes.count))",
+                systemImage: "externaldrive.fill.badge.checkmark"
+            )
+            .font(.system(size: 10, weight: .bold))
+            .foregroundStyle(.secondary)
+
+            if drive.mountedVolumes.isEmpty {
+                HStack(spacing: 10) {
+                    Image(systemName: drive.isMediaBlank ? "sparkles" : "opticaldisc")
+                        .foregroundStyle(accent)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(drive.isMediaBlank ? "Virgin Unformatted Optical Media" : "Unmounted Optical Session (\(drive.sessionCount) Session, \(drive.trackCount) Track)")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(drive.isMediaBlank ? "No filesystem tracks written yet — 100% capacity available for mastering." : "Raw sector layout detected on \(drive.bsdDeviceNode).")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                .padding(10)
+                .background(Color(NSColor.controlBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 9))
+                .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.primary.opacity(0.07), lineWidth: 1))
+            } else {
+                ForEach(drive.mountedVolumes) { vol in
+                    volumeRowCard(vol)
+                }
+            }
+        }
+    }
+
+    private func volumeRowCard(_ vol: MountedVolumePartition) -> some View {
+        let countLabel = vol.itemCount >= 2500 ? "2,500+" : "\(vol.itemCount)"
+        let unitLabel = vol.isAudioCD ? "Audio Tracks" : "Files"
+        let sizeStr = ByteCountFormatter.string(fromByteCount: vol.usedBytes, countStyle: .file)
+
+        return HStack(spacing: 10) {
+            Image(systemName: vol.isAudioCD ? "waveform.circle.fill" : "folder.fill.badge.gearshape")
+                .font(.system(size: 18))
+                .foregroundStyle(accent)
+                .frame(width: 28, height: 28)
+                .background(accent.opacity(0.14))
+                .clipShape(RoundedRectangle(cornerRadius: 7))
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(vol.volumeName)
+                        .font(.system(size: 12, weight: .bold))
+                    Text(vol.filesystemFormat)
+                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.secondary.opacity(0.16))
+                        .clipShape(Capsule())
+                }
+                Text("\(countLabel) \(unitLabel) • \(sizeStr) • \(vol.creationDateText)")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Button {
+                NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: vol.mountPath)
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.up.forward.square")
+                    Text("Finder")
+                }
+                .font(.system(size: 10, weight: .semibold))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(accent.opacity(0.16))
+                .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .help("Reveal \(vol.mountPath) in macOS Finder")
+        }
+        .padding(10)
+        .background(Color(NSColor.controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 9))
+        .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.primary.opacity(0.07), lineWidth: 1))
+    }
+
+    private var radialCapacitySection: some View {
+        let usedStr = ByteCountFormatter.string(fromByteCount: drive.usedBytes, countStyle: .file)
+        let freeStr = ByteCountFormatter.string(fromByteCount: drive.freeBytes, countStyle: .file)
+
+        return VStack(alignment: .leading, spacing: 7) {
+            HStack {
+                Label("RADIAL SECTOR & CAPACITY TOPOLOGY", systemImage: "chart.pie.fill")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("Timecode: \(drive.redBookTimecodeCapacity)")
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(accent)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(Color.black.opacity(0.30))
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(
+                            LinearGradient(
+                                colors: [accent, Color.green],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: max(4, geo.size.width * CGFloat(drive.usedFraction)))
+                }
+            }
+            .frame(height: 10)
+
+            HStack {
+                HStack(spacing: 5) {
+                    Circle().fill(accent).frame(width: 7, height: 7)
+                    Text("Used: \(usedStr) (\(drive.usedSectorsLBA) LBA)")
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                }
+                Spacer()
+                HStack(spacing: 5) {
+                    Circle().fill(Color.secondary.opacity(0.5)).frame(width: 7, height: 7)
+                    Text("Free: \(freeStr) (\(drive.freeSectorsLBA) LBA)")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(10)
+        .background(Color(NSColor.controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 9))
+        .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.primary.opacity(0.07), lineWidth: 1))
+    }
+
+    private var hardwareSpecGridSection: some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+            specTile(
+                icon: "building.2.crop.circle.fill",
+                title: "ATIP / MID MANUFACTURER",
+                value: drive.mediaManufacturer
+            )
+            specTile(
+                icon: "drop.halffull",
+                title: "RECORDING LAYER / DYE",
+                value: drive.dyeChemistry
+            )
+            specTile(
+                icon: "laser.burst",
+                title: "OPTICAL LASER & BLOCK",
+                value: "\(drive.laserWavelengthNA) • \(drive.sectorBlockSize)"
+            )
+            specTile(
+                icon: "lock.shield.fill",
+                title: "SESSIONS & PROTECTION",
+                value: "\(drive.sessionCount) Session(s) • \(drive.trackCount) Track(s) • \(drive.copyProtectionStatus)"
+            )
+        }
+    }
+
+    private var writeSpeedsSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("NEGOTIATED HARDWARE WRITE SPEEDS", systemImage: "gauge.with.dots.needle.67percent")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.secondary)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(drive.availableWriteSpeeds, id: \.self) { spd in
+                        Text(spd)
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color(NSColor.controlBackgroundColor))
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(accent.opacity(0.35), lineWidth: 1))
+                    }
+                }
+            }
+        }
+    }
+
+    private func specTile(icon: String, title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(accent)
+                Text(title)
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
             Text(value)
-                .font(.system(size: 11, design: .monospaced))
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
                 .foregroundStyle(.primary)
                 .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
+                .lineLimit(3)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(9)
+        .background(Color(NSColor.controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 9))
+        .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.primary.opacity(0.07), lineWidth: 1))
     }
 }
 

@@ -2,12 +2,47 @@ import Foundation
 import AppKit
 @preconcurrency import DiscRecording
 
+public struct MountedVolumePartition: Identifiable, Hashable, Sendable {
+    public let id: String
+    public let volumeName: String
+    public let filesystemFormat: String
+    public let mountPath: String
+    public let itemCount: Int
+    public let isAudioCD: Bool
+    public let usedBytes: Int64
+    public let totalBytes: Int64
+    public let creationDateText: String
+
+    public init(
+        id: String,
+        volumeName: String,
+        filesystemFormat: String,
+        mountPath: String,
+        itemCount: Int,
+        isAudioCD: Bool,
+        usedBytes: Int64,
+        totalBytes: Int64,
+        creationDateText: String
+    ) {
+        self.id = id
+        self.volumeName = volumeName
+        self.filesystemFormat = filesystemFormat
+        self.mountPath = mountPath
+        self.itemCount = itemCount
+        self.isAudioCD = isAudioCD
+        self.usedBytes = usedBytes
+        self.totalBytes = totalBytes
+        self.creationDateText = creationDateText
+    }
+}
+
 public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
     public let id: String
     public let vendor: String
     public let product: String
     public let firmware: String
     public let interconnect: String
+    public let bsdDeviceNode: String
     public let capabilitiesSummary: String
     public let isNetworkNode: Bool
     public let hostName: String
@@ -19,6 +54,7 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
     public let isMediaOverwritable: Bool
     public let isMediaAppendable: Bool
     public let sessionCount: Int
+    public let trackCount: Int
     public let freeSectorsLBA: Int64
     public let freeBytes: Int64
     public let usedSectorsLBA: Int64
@@ -28,6 +64,8 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
     public let dyeChemistry: String
     public let laserWavelengthNA: String
     public let sectorBlockSize: String
+    public let copyProtectionStatus: String
+    public let mountedVolumes: [MountedVolumePartition]
     public let availableWriteSpeeds: [String]
 
     public init(
@@ -36,6 +74,7 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
         product: String,
         firmware: String,
         interconnect: String = "USB",
+        bsdDeviceNode: String = "/dev/rdisk",
         capabilitiesSummary: String = "DVD±R DL • CD-R/RW • CD-TEXT",
         isNetworkNode: Bool = false,
         hostName: String = "Local Mac",
@@ -47,6 +86,7 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
         isMediaOverwritable: Bool = false,
         isMediaAppendable: Bool = false,
         sessionCount: Int = 0,
+        trackCount: Int = 0,
         freeSectorsLBA: Int64 = 0,
         freeBytes: Int64 = 0,
         usedSectorsLBA: Int64 = 0,
@@ -56,6 +96,8 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
         dyeChemistry: String = "Phase-Change / Organic",
         laserWavelengthNA: String = "780 nm IR (0.45 NA)",
         sectorBlockSize: String = "2,048 Bytes (Mode 1)",
+        copyProtectionStatus: String = "Unencrypted ( CSS / AACS Clear )",
+        mountedVolumes: [MountedVolumePartition] = [],
         availableWriteSpeeds: [String] = ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
     ) {
         self.id = id
@@ -63,6 +105,7 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
         self.product = product
         self.firmware = firmware
         self.interconnect = interconnect
+        self.bsdDeviceNode = bsdDeviceNode
         self.capabilitiesSummary = capabilitiesSummary
         self.isNetworkNode = isNetworkNode
         self.hostName = hostName
@@ -74,6 +117,7 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
         self.isMediaOverwritable = isMediaOverwritable
         self.isMediaAppendable = isMediaAppendable
         self.sessionCount = sessionCount
+        self.trackCount = trackCount
         self.freeSectorsLBA = freeSectorsLBA
         self.freeBytes = freeBytes
         self.usedSectorsLBA = usedSectorsLBA
@@ -83,6 +127,8 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
         self.dyeChemistry = dyeChemistry
         self.laserWavelengthNA = laserWavelengthNA
         self.sectorBlockSize = sectorBlockSize
+        self.copyProtectionStatus = copyProtectionStatus
+        self.mountedVolumes = mountedVolumes
         self.availableWriteSpeeds = availableWriteSpeeds
     }
 
@@ -120,6 +166,16 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
         let secs = totalSeconds % 60
         let frames = Int(totalSectors % 75)
         return String(format: "%02d:%02d:%02d (75 fps)", mins, secs, frames)
+    }
+
+    public var totalCapacityBytes: Int64 {
+        max(1, freeBytes + usedBytes)
+    }
+
+    public var usedFraction: Double {
+        if isMediaBlank { return 0.0 }
+        let total = Double(max(1, freeBytes + usedBytes))
+        return min(1.0, max(0.0, Double(usedBytes) / total))
     }
 }
 
@@ -313,6 +369,84 @@ public final class DriveManager: ObservableObject {
         }
     }
 
+    // Scans macOS mounted optical volumes to extract Volume Names, File/Track counts, and Filesystem types
+    public static func scanMountedOpticalVolumes(bsdName: String?, isMediaPresent: Bool, isMediaBlank: Bool, usedBytes: Int64) -> [MountedVolumePartition] {
+        guard isMediaPresent && !isMediaBlank else { return [] }
+        let fm = FileManager.default
+        let keys: [URLResourceKey] = [
+            .volumeNameKey,
+            .volumeLocalizedFormatDescriptionKey,
+            .volumeIsRemovableKey,
+            .volumeIsEjectableKey,
+            .volumeIsReadOnlyKey,
+            .volumeTotalCapacityKey,
+            .volumeAvailableCapacityKey,
+            .volumeCreationDateKey
+        ]
+
+        guard let urls = fm.mountedVolumeURLs(includingResourceValuesForKeys: keys, options: [.skipHiddenVolumes]) else {
+            return []
+        }
+
+        var results: [MountedVolumePartition] = []
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .none
+
+        for url in urls {
+            guard url.path != "/",
+                  let vals = try? url.resourceValues(forKeys: Set(keys)) else { continue }
+
+            let isRemovable = vals.volumeIsRemovable ?? false
+            let isEjectable = vals.volumeIsEjectable ?? false
+            let isReadOnly = vals.volumeIsReadOnly ?? false
+            let formatDesc = vals.volumeLocalizedFormatDescription ?? "ISO 9660 / HFS+"
+            let lowerFormat = formatDesc.lowercased()
+
+            // Identify optical volumes (CD-DA, ISO9660, UDF, Joliet, or read-only ejectable discs)
+            let looksLikeOptical = isRemovable || isEjectable || lowerFormat.contains("cd") || lowerFormat.contains("udf") || lowerFormat.contains("iso") || (isReadOnly && url.path.hasPrefix("/Volumes/"))
+            guard looksLikeOptical, url.path.hasPrefix("/Volumes/") else { continue }
+
+            let volName = vals.volumeName ?? url.lastPathComponent
+            let isAudio = lowerFormat.contains("audio") || lowerFormat.contains("cd-da") || lowerFormat.contains("cdda")
+
+            // Count visible files or audio tracks on this mounted volume (bounded to 2,500 items for instant UI response)
+            var count = 0
+            if isAudio {
+                let topItems = (try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
+                count = topItems.count
+            } else {
+                if let enumerator = fm.enumerator(at: url, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles, .skipsPackageDescendants]) {
+                    for case let childURL as URL in enumerator {
+                        if let cVals = try? childURL.resourceValues(forKeys: [.isDirectoryKey]), cVals.isDirectory != true {
+                            count += 1
+                            if count >= 2500 { break }
+                        }
+                    }
+                }
+            }
+
+            let totalCap = Int64(vals.volumeTotalCapacity ?? Int(max(usedBytes, 0)))
+            let availCap = Int64(vals.volumeAvailableCapacity ?? 0)
+            let usedCap = max(0, totalCap - availCap)
+            let createdStr = vals.volumeCreationDate.map { dateFormatter.string(from: $0) } ?? "Mastered Session"
+
+            results.append(MountedVolumePartition(
+                id: url.path,
+                volumeName: volName,
+                filesystemFormat: formatDesc,
+                mountPath: url.path,
+                itemCount: count,
+                isAudioCD: isAudio,
+                usedBytes: usedCap > 0 ? usedCap : usedBytes,
+                totalBytes: totalCap > 0 ? totalCap : usedBytes,
+                creationDateText: createdStr
+            ))
+        }
+
+        return results
+    }
+
     public static func formatHumanBurnState(_ rawState: String, isErase: Bool = false) -> String {
         switch rawState {
         case DRStatusStatePreparing:
@@ -377,11 +511,13 @@ public final class DriveManager: ObservableObject {
 
                 var humanState = "Slot Empty"
                 var mType = "No Disc"
+                var bsdNode = "Unmounted"
                 var isBlank = false
                 var isErasable = false
                 var isOverwritable = false
                 var isAppendable = false
                 var sessions = 0
+                var tracks = 0
                 var freeBlocks: Int64 = 0
                 var freeByteCount: Int64 = 0
                 var usedBlocks: Int64 = 0
@@ -391,6 +527,8 @@ public final class DriveManager: ObservableObject {
                 var dyeSpec = "—"
                 var laserSpec = "—"
                 var blockSpec = "—"
+                var drmStatus = "Unencrypted (Clear Sectors)"
+                var mountedVols: [MountedVolumePartition] = []
                 var speeds: [String] = ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
 
                 if isTransition {
@@ -399,11 +537,15 @@ public final class DriveManager: ObservableObject {
                     let mediaInfo = status[DRDeviceMediaInfoKey] as? [String: Any] ?? [:]
                     let rawMediaType = mediaInfo[DRDeviceMediaTypeKey] as? String ?? "Optical Media"
                     mType = Self.formatHumanMediaType(rawMediaType)
+                    if let rawBSD = mediaInfo[DRDeviceMediaBSDNameKey] as? String, !rawBSD.isEmpty {
+                        bsdNode = "/dev/\(rawBSD)"
+                    }
                     isBlank = (mediaInfo[DRDeviceMediaIsBlankKey] as? Bool) ?? false
                     isErasable = (mediaInfo[DRDeviceMediaIsErasableKey] as? Bool) ?? false
                     isOverwritable = (mediaInfo[DRDeviceMediaIsOverwritableKey] as? Bool) ?? false
                     isAppendable = (mediaInfo[DRDeviceMediaIsAppendableKey] as? Bool) ?? false
                     sessions = (mediaInfo[DRDeviceMediaSessionCountKey] as? NSNumber)?.intValue ?? (isBlank ? 0 : 1)
+                    tracks = (mediaInfo["DRDeviceMediaTrackCountKey"] as? NSNumber)?.intValue ?? (isBlank ? 0 : max(1, sessions))
 
                     if let blocks = mediaInfo[DRDeviceMediaFreeSpaceKey] as? NSNumber, blocks.int64Value > 0 {
                         freeBlocks = blocks.int64Value
@@ -430,7 +572,7 @@ public final class DriveManager: ObservableObject {
                         manufacturer = mfg
                     } else {
                         manufacturer = isErasable
-                            ? "Mitsubishi Chemical / Verbatim (SERL Phase-Change ATIP)"
+                            ? "Mitsubishi Chemical / Verbatim (SERL Phase-Change)"
                             : "Taiyo Yuden / CMC Magnetics (ATIP / ADIP Verified)"
                     }
 
@@ -439,6 +581,17 @@ public final class DriveManager: ObservableObject {
                     dyeSpec = physics.dye
                     laserSpec = physics.laser
                     blockSpec = physics.block
+                    drmStatus = mType.contains("ROM") ? "Read-Only Mastered (Check CSS/AACS)" : "Unencrypted Recordable Media"
+
+                    mountedVols = Self.scanMountedOpticalVolumes(
+                        bsdName: bsdNode,
+                        isMediaPresent: isPresent,
+                        isMediaBlank: isBlank,
+                        usedBytes: usedByteCount
+                    )
+                    if tracks == 0 && !mountedVols.isEmpty {
+                        tracks = mountedVols.count
+                    }
 
                     if let rawSpeeds = mediaInfo[DRDeviceBurnSpeedsKey] as? [NSNumber], !rawSpeeds.isEmpty {
                         let divisor: Double = mType.contains("DVD") ? 1385.0 : 176.4
@@ -471,6 +624,7 @@ public final class DriveManager: ObservableObject {
                     product: product,
                     firmware: revision,
                     interconnect: interconnect,
+                    bsdDeviceNode: bsdNode,
                     capabilitiesSummary: capSummary,
                     isNetworkNode: false,
                     hostName: "Local \(interconnect)",
@@ -482,6 +636,7 @@ public final class DriveManager: ObservableObject {
                     isMediaOverwritable: isOverwritable,
                     isMediaAppendable: isAppendable,
                     sessionCount: sessions,
+                    trackCount: tracks,
                     freeSectorsLBA: freeBlocks,
                     freeBytes: freeByteCount,
                     usedSectorsLBA: usedBlocks,
@@ -491,6 +646,8 @@ public final class DriveManager: ObservableObject {
                     dyeChemistry: dyeSpec,
                     laserWavelengthNA: laserSpec,
                     sectorBlockSize: blockSpec,
+                    copyProtectionStatus: drmStatus,
+                    mountedVolumes: mountedVols,
                     availableWriteSpeeds: speeds
                 ))
             }
