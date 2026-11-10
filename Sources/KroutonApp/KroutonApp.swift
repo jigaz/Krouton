@@ -75,7 +75,6 @@ struct KroutonMainWorkspaceView: View {
 
     @State private var enableCustomFinderLayoutTab: Bool = false
     @State private var activeDataWorkspaceTab: Int = 0
-    @State private var showNeroTelemetryDeck: Bool = true
     @State private var finderBgColor: Color = Color(red: 0.13, green: 0.17, blue: 0.24)
     @State private var finderIconSize: Double = 256
     @State private var fitToDiscDVD9Shrink: Bool = true
@@ -85,6 +84,7 @@ struct KroutonMainWorkspaceView: View {
     @State private var autoLabelSearchQuery: String = "Dark Side of the Moon"
     @State private var depotSearchQuery: String = ""
     @State private var isDropTargeted: Bool = false
+    @State private var activeDiscPopoverCardID: UUID? = nil
 
     private var primarySelectedDrive: OpticalDriveDevice? {
         if let firstBurnerCard = store.destinationQueue.first(where: { $0.kind == .physicalBurner }),
@@ -120,12 +120,11 @@ struct KroutonMainWorkspaceView: View {
                     .frame(minWidth: 600, maxWidth: .infinity, maxHeight: .infinity)
 
                 rightDestinationColumn
-                    .frame(minWidth: 350, idealWidth: 380, maxWidth: 430)
+                    .frame(minWidth: 350, idealWidth: 385, maxWidth: 435)
             }
         }
         .frame(minWidth: 1320, idealWidth: 1420, minHeight: 840, idealHeight: 900)
         .background(Color(NSColor.windowBackgroundColor))
-        // Spacious, Properly Formatted Diagnostic & Mastering Summary Sheet
         .sheet(item: $driveManager.completionReport) { report in
             KroutonMasteringReportSheet(report: report, accent: store.activeAccent) {
                 driveManager.completionReport = nil
@@ -133,7 +132,6 @@ struct KroutonMainWorkspaceView: View {
         }
     }
 
-    // MARK: - Top Pro Toolbar (Clean Header + Nero Telemetry Toggle + Settings)
     private var topProToolbar: some View {
         HStack(spacing: 16) {
             HStack(spacing: 9) {
@@ -153,24 +151,6 @@ struct KroutonMainWorkspaceView: View {
             Spacer()
 
             HStack(spacing: 10) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        showNeroTelemetryDeck.toggle()
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "waveform.path.ecg.rectangle.fill")
-                        Text(showNeroTelemetryDeck ? "Hide Nero Speed Deck" : "Show Nero Speed Deck")
-                    }
-                    .font(.system(size: 11, weight: .semibold))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(showNeroTelemetryDeck ? store.activeAccent.opacity(0.22) : Color(NSColor.controlBackgroundColor))
-                    .clipShape(Capsule())
-                    .overlay(Capsule().stroke(showNeroTelemetryDeck ? store.activeAccent : Color.secondary.opacity(0.3), lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-
                 Button {
                     KroutonWindowManager.shared.openSettingsWindow(store: store, driveManager: driveManager)
                 } label: {
@@ -193,7 +173,6 @@ struct KroutonMainWorkspaceView: View {
         .background(.ultraThinMaterial)
     }
 
-    // MARK: - LEFT COLUMN: FORMAT CHOOSER
     private var leftFormatChooserColumn: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -369,7 +348,7 @@ struct KroutonMainWorkspaceView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - CENTER COLUMN: ADAPTABLE WORKSPACE + INTEGRATED CAPACITY BAR + NERO TELEMETRY DECK
+    // MARK: - CENTER COLUMN: ADAPTABLE WORKSPACE + INTEGRATED CAPACITY BAR (Global graph removed)
     private var centerAdaptableWorkspace: some View {
         VStack(alignment: .leading, spacing: 12) {
             switch store.selectedCategory {
@@ -385,16 +364,10 @@ struct KroutonMainWorkspaceView: View {
 
             // Integrated Central Workspace Capacity Allocation Bar
             centralWorkspaceCapacityBar
-
-            // Classic Nero CD-DVD Speed Oscilloscope & Nerd Telemetry Deck
-            if showNeroTelemetryDeck || driveManager.isExecutingQueue {
-                neroSpeedGraphAndNerdTelemetryDeck
-            }
         }
         .padding(16)
     }
 
-    // Integrated Space Available / Used Graph inside Central Workspace
     private var centralWorkspaceCapacityBar: some View {
         let usedB = store.totalStagedBytes
         let totalB = max(1, activeDiscCapacityBytes)
@@ -430,7 +403,6 @@ struct KroutonMainWorkspaceView: View {
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 6)
                         .fill(Color.black.opacity(0.35))
-                    // Used Space Fill
                     RoundedRectangle(cornerRadius: 6)
                         .fill(
                             LinearGradient(
@@ -440,7 +412,6 @@ struct KroutonMainWorkspaceView: View {
                             )
                         )
                         .frame(width: max(4, geo.size.width * CGFloat(ratio)))
-                    // 90% Lead-Out Warning Tick Mark
                     Rectangle()
                         .fill(Color.yellow.opacity(0.5))
                         .frame(width: 1.5, height: geo.size.height)
@@ -453,184 +424,6 @@ struct KroutonMainWorkspaceView: View {
         .background(Color(NSColor.controlBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 1))
-    }
-
-    // Classic Nero CD-DVD Speed Oscilloscope Graph + Nerd Stats Deck
-    private var neroSpeedGraphAndNerdTelemetryDeck: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(driveManager.isExecutingQueue ? Color.green : Color.secondary)
-                        .frame(width: 8, height: 8)
-                    Text("NERO CD-DVD SPEED OSCILLOSCOPE & HARDWARE TELEMETRY")
-                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                HStack(spacing: 14) {
-                    HStack(spacing: 4) {
-                        Rectangle().fill(Color.green).frame(width: 12, height: 2.5)
-                        Text("Write Speed (X / KB/s)")
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(.green)
-                    }
-                    HStack(spacing: 4) {
-                        Rectangle().fill(Color.yellow).frame(width: 12, height: 2.5)
-                        Text("Spindle Velocity (RPM)")
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(.yellow)
-                    }
-                    HStack(spacing: 4) {
-                        Rectangle().fill(Color.red).frame(width: 10, height: 2.5)
-                        Text("LBA Cursor")
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(.red)
-                    }
-                }
-            }
-
-            HStack(spacing: 12) {
-                // Left: Classic Nero Black + Royal Blue Grid Canvas with Green Speed Curve & Yellow RPM Curve
-                ZStack {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color(red: 0.02, green: 0.03, blue: 0.07))
-
-                    Canvas { context, size in
-                        let cols = 10
-                        let rows = 6
-                        let gridColor = Color(red: 0.08, green: 0.16, blue: 0.68).opacity(0.85)
-
-                        for c in 0...cols {
-                            let x = size.width * CGFloat(c) / CGFloat(cols)
-                            var p = Path()
-                            p.move(to: CGPoint(x: x, y: 0))
-                            p.addLine(to: CGPoint(x: x, y: size.height))
-                            context.stroke(p, with: .color(gridColor), lineWidth: 0.75)
-                        }
-                        for r in 0...rows {
-                            let y = size.height * CGFloat(r) / CGFloat(rows)
-                            var p = Path()
-                            p.move(to: CGPoint(x: 0, y: y))
-                            p.addLine(to: CGPoint(x: size.width, y: y))
-                            context.stroke(p, with: .color(gridColor), lineWidth: 0.75)
-                        }
-
-                        let samples = driveManager.neroSamples
-                        if samples.count > 1 {
-                            let maxScaleX: Double = 24.0
-                            let maxScaleRPM: Double = 6000.0
-
-                            var speedPath = Path()
-                            var rpmPath = Path()
-
-                            for (idx, s) in samples.enumerated() {
-                                let x = size.width * CGFloat(min(1.0, max(0.0, s.progressFraction)))
-                                let ySpeed = size.height * (1.0 - CGFloat(min(1.0, s.speedMultiplierX / maxScaleX)))
-                                let yRPM = size.height * (1.0 - CGFloat(min(1.0, s.spindleRPM / maxScaleRPM)))
-
-                                if idx == 0 {
-                                    speedPath.move(to: CGPoint(x: x, y: ySpeed))
-                                    rpmPath.move(to: CGPoint(x: x, y: yRPM))
-                                } else {
-                                    speedPath.addLine(to: CGPoint(x: x, y: ySpeed))
-                                    rpmPath.addLine(to: CGPoint(x: x, y: yRPM))
-                                }
-                            }
-
-                            context.stroke(rpmPath, with: .color(.yellow), lineWidth: 1.6)
-                            context.stroke(speedPath, with: .color(.green), lineWidth: 2.0)
-
-                            // Red vertical LBA cursor line at current progress
-                            if let last = samples.last {
-                                let cursorX = size.width * CGFloat(min(1.0, max(0.0, last.progressFraction)))
-                                var cursorPath = Path()
-                                cursorPath.move(to: CGPoint(x: cursorX, y: 0))
-                                cursorPath.addLine(to: CGPoint(x: cursorX, y: size.height))
-                                context.stroke(cursorPath, with: .color(.red), lineWidth: 1.5)
-                            }
-                        } else {
-                            // Subtle standby P-CAV reference curve when idle
-                            var refSpeed = Path()
-                            var refRPM = Path()
-                            for i in 0...40 {
-                                let frac = CGFloat(i) / 40.0
-                                let x = size.width * frac
-                                let yS = size.height * (0.78 - 0.45 * frac)
-                                let yR = size.height * (0.48 + 0.08 * frac)
-                                if i == 0 {
-                                    refSpeed.move(to: CGPoint(x: x, y: yS))
-                                    refRPM.move(to: CGPoint(x: x, y: yR))
-                                } else {
-                                    refSpeed.addLine(to: CGPoint(x: x, y: yS))
-                                    refRPM.addLine(to: CGPoint(x: x, y: yR))
-                                }
-                            }
-                            context.stroke(refRPM, with: .color(.yellow.opacity(0.32)), lineWidth: 1.2)
-                            context.stroke(refSpeed, with: .color(.green.opacity(0.38)), lineWidth: 1.5)
-                        }
-                    }
-                    .padding(4)
-
-                    // Axis overlays
-                    VStack {
-                        HStack {
-                            Text("24x").font(.system(size: 9, design: .monospaced)).foregroundStyle(.green.opacity(0.8))
-                            Spacer()
-                            Text(driveManager.activeJobPhase)
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.9))
-                            Spacer()
-                            Text("6000 RPM").font(.system(size: 9, design: .monospaced)).foregroundStyle(.yellow.opacity(0.8))
-                        }
-                        Spacer()
-                        HStack {
-                            Text("0x (Lead-In)").font(.system(size: 9, design: .monospaced)).foregroundStyle(.secondary)
-                            Spacer()
-                            Text("LBA \(driveManager.currentSectorLBA) / \(driveManager.totalTargetSectorsLBA)")
-                                .font(.system(size: 9, design: .monospaced))
-                                .foregroundStyle(.cyan)
-                            Spacer()
-                            Text("Outer Rim (Lead-Out)").font(.system(size: 9, design: .monospaced)).foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(8)
-                }
-                .frame(height: 135)
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.blue.opacity(0.45), lineWidth: 1))
-
-                // Right: Live Nerd Telemetry Readout Grid
-                VStack(alignment: .leading, spacing: 5) {
-                    nerdStatRow(label: "LIVE SPEED:", value: String(format: "%.1fx (%.0f KB/s)", driveManager.currentSpeedX, driveManager.currentSpeedKBs), color: .green)
-                    nerdStatRow(label: "AVERAGE / PEAK:", value: String(format: "%.1fx / %.1fx", driveManager.averageSpeedX, driveManager.peakSpeedX), color: .primary)
-                    nerdStatRow(label: "SPINDLE VELOCITY:", value: "\(driveManager.currentSpindleRPM) RPM (\(driveManager.writeStrategyText))", color: .yellow)
-                    nerdStatRow(label: "DRIVE BUFFER:", value: String(format: "%.0f%% (BURN-Proof Armed)", driveManager.driveBufferFillPercent), color: .cyan)
-                    nerdStatRow(label: "LASER / OPC:", value: driveManager.laserWavelengthText, color: .orange)
-                    nerdStatRow(label: "ELAPSED TIME:", value: String(format: "%02d:%02d • Track %02d", driveManager.elapsedSeconds / 60, driveManager.elapsedSeconds % 60, driveManager.activeTrackNumber), color: .secondary)
-                }
-                .frame(width: 245)
-                .padding(8)
-                .background(Color.black.opacity(0.25))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-            }
-        }
-        .padding(12)
-        .background(Color(NSColor.controlBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.1), lineWidth: 1))
-    }
-
-    private func nerdStatRow(label: String, value: String, color: Color) -> some View {
-        HStack {
-            Text(label)
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(value)
-                .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                .foregroundStyle(color)
-                .lineLimit(1)
-        }
     }
 
     private var depotWorkspaceView: some View {
@@ -1110,7 +903,7 @@ struct KroutonMainWorkspaceView: View {
         .padding(.vertical, 9)
     }
 
-    // MARK: - RIGHT COLUMN: MULTI-DRIVE DESTINATIONS (INDEPENDENT DRIVE BINDINGS!)
+    // MARK: - RIGHT COLUMN: UUID-SAFE DESTINATION CARDS + CLICKABLE DISC MEDIA INSPECTOR PILL
     private var rightDestinationColumn: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -1138,10 +931,11 @@ struct KroutonMainWorkspaceView: View {
 
             Divider()
 
+            // Iterating directly over store.destinationQueue by UUID (Zero raw array indices = Zero crashes!)
             ScrollView {
                 VStack(spacing: 12) {
-                    ForEach(Array(store.destinationQueue.enumerated()), id: \.element.id) { idx, item in
-                        destinationCard(index: idx, item: item)
+                    ForEach(store.destinationQueue) { item in
+                        destinationCard(item: item)
                     }
                 }
                 .padding(12)
@@ -1199,8 +993,14 @@ struct KroutonMainWorkspaceView: View {
         .background(Color(NSColor.controlBackgroundColor))
     }
 
-    private func destinationCard(index: Int, item: DestinationQueueItem) -> some View {
-        // Resolve THIS card's specific optical drive by item.targetDriveID!
+    // Safe UUID-based mutator helper so removing a card never triggers an out-of-bounds index crash
+    private func updateQueueItem(_ id: UUID, mutate: @escaping (inout DestinationQueueItem) -> Void) {
+        guard let idx = store.destinationQueue.firstIndex(where: { $0.id == id }) else { return }
+        mutate(&store.destinationQueue[idx])
+    }
+
+    private func destinationCard(item: DestinationQueueItem) -> some View {
+        let cardID = item.id
         let cardDrive = driveManager.driveForID(item.targetDriveID)
         let activeCardDriveID = cardDrive?.id ?? ""
         let validSpeeds = cardDrive?.availableWriteSpeeds ?? ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
@@ -1209,7 +1009,10 @@ struct KroutonMainWorkspaceView: View {
             HStack(spacing: 6) {
                 Image(systemName: item.kind.sfSymbol)
                     .foregroundStyle(store.activeAccent)
-                Picker("", selection: $store.destinationQueue[index].kind) {
+                Picker("", selection: Binding(
+                    get: { item.kind },
+                    set: { newKind in updateQueueItem(cardID) { $0.kind = newKind } }
+                )) {
                     ForEach(allowedDestinationsForCurrentCategory) { kind in
                         Text(kind.rawValue).tag(kind)
                     }
@@ -1257,12 +1060,13 @@ struct KroutonMainWorkspaceView: View {
                 }
                 if store.destinationQueue.count > 1 {
                     Button {
-                        store.destinationQueue.remove(at: index)
+                        store.destinationQueue.removeAll { $0.id == cardID }
                     } label: {
                         Image(systemName: "minus.circle.fill")
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .help("Remove this output from the queue")
                 }
             }
 
@@ -1275,16 +1079,15 @@ struct KroutonMainWorkspaceView: View {
                             .font(.system(size: 11, weight: .semibold))
                     }
                 } else {
-                    // Per-Card Independent Drive Picker! Changing Card 2 will NOT change Card 1!
                     Picker("Drive:", selection: Binding(
-                        get: {
-                            activeCardDriveID
-                        },
+                        get: { activeCardDriveID },
                         set: { newDriveID in
-                            store.destinationQueue[index].targetDriveID = newDriveID
-                            if let chosen = driveManager.driveForID(newDriveID) {
-                                store.destinationQueue[index].hardwareOrPath = chosen.displayName
-                                driveManager.selectedDrive = chosen
+                            updateQueueItem(cardID) { qItem in
+                                qItem.targetDriveID = newDriveID
+                                if let chosen = driveManager.driveForID(newDriveID) {
+                                    qItem.hardwareOrPath = chosen.displayName
+                                    driveManager.selectedDrive = chosen
+                                }
                             }
                         }
                     )) {
@@ -1296,18 +1099,33 @@ struct KroutonMainWorkspaceView: View {
 
                     if let activeDrive = cardDrive {
                         HStack(spacing: 6) {
-                            HStack(spacing: 5) {
-                                Circle()
-                                    .fill(activeDrive.isMediaPresent ? Color.green : Color.secondary)
-                                    .frame(width: 7, height: 7)
-                                Text(activeDrive.statusBadgeText)
-                                    .font(.system(size: 10, weight: .semibold))
+                            // Clickable Disc Status Pill -> Opens Deep Disc Media Inspector Popover!
+                            Button {
+                                activeDiscPopoverCardID = (activeDiscPopoverCardID == cardID) ? nil : cardID
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Circle()
+                                        .fill(activeDrive.isMediaPresent ? Color.green : Color.secondary)
+                                        .frame(width: 7, height: 7)
+                                    Text(activeDrive.statusBadgeText)
+                                        .font(.system(size: 10, weight: .semibold))
+                                    Image(systemName: "info.circle")
+                                        .font(.system(size: 9))
+                                }
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 4)
+                                .background((activeDrive.isMediaPresent ? Color.green : Color.secondary).opacity(0.15))
+                                .foregroundStyle(activeDrive.isMediaPresent ? .green : .secondary)
+                                .clipShape(Capsule())
                             }
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 4)
-                            .background((activeDrive.isMediaPresent ? Color.green : Color.secondary).opacity(0.15))
-                            .foregroundStyle(activeDrive.isMediaPresent ? .green : .secondary)
-                            .clipShape(Capsule())
+                            .buttonStyle(.plain)
+                            .help("Click to inspect ATIP/MID manufacturer, dye chemistry, sessions, and sector topology")
+                            .popover(isPresented: Binding(
+                                get: { activeDiscPopoverCardID == cardID },
+                                set: { if !$0 { activeDiscPopoverCardID = nil } }
+                            ), arrowEdge: .leading) {
+                                DiscMediaInspectorPopover(drive: activeDrive, accent: store.activeAccent)
+                            }
 
                             Text("FW \(activeDrive.firmware)")
                                 .font(.system(size: 10, design: .monospaced))
@@ -1329,12 +1147,10 @@ struct KroutonMainWorkspaceView: View {
                     Spacer()
                     Picker("", selection: Binding(
                         get: {
-                            validSpeeds.contains(store.destinationQueue[index].speedOrCodec)
-                                ? store.destinationQueue[index].speedOrCodec
-                                : "Max Safe (Auto)"
+                            validSpeeds.contains(item.speedOrCodec) ? item.speedOrCodec : "Max Safe (Auto)"
                         },
                         set: { newVal in
-                            store.destinationQueue[index].speedOrCodec = newVal
+                            updateQueueItem(cardID) { $0.speedOrCodec = newVal }
                         }
                     )) {
                         ForEach(validSpeeds, id: \.self) { spd in
@@ -1362,14 +1178,17 @@ struct KroutonMainWorkspaceView: View {
                 }
             } else if item.kind == .discImage {
                 HStack(spacing: 6) {
-                    TextField("~/Desktop/Krouton_Master.dmg", text: $store.destinationQueue[index].hardwareOrPath)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.system(size: 11, design: .monospaced))
+                    TextField("~/Desktop/Krouton_Master.dmg", text: Binding(
+                        get: { item.hardwareOrPath },
+                        set: { newPath in updateQueueItem(cardID) { $0.hardwareOrPath = newPath } }
+                    ))
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 11, design: .monospaced))
                     Button("Save As...") {
                         let panel = NSSavePanel()
                         panel.nameFieldStringValue = "\(store.discVolumeTitle).dmg"
                         if panel.runModal() == .OK, let url = panel.url {
-                            store.destinationQueue[index].hardwareOrPath = url.path
+                            updateQueueItem(cardID) { $0.hardwareOrPath = url.path }
                         }
                     }
                     .controlSize(.small)
@@ -1382,14 +1201,23 @@ struct KroutonMainWorkspaceView: View {
 
             if item.kind == .physicalBurner || item.kind == .networkBurner {
                 HStack(spacing: 12) {
-                    Toggle("Simulate", isOn: $store.destinationQueue[index].simulationMode)
-                        .font(.caption)
-                    Toggle("Verify", isOn: $store.destinationQueue[index].verifyAfterBurn)
-                        .font(.caption)
+                    Toggle("Simulate", isOn: Binding(
+                        get: { item.simulationMode },
+                        set: { val in updateQueueItem(cardID) { $0.simulationMode = val } }
+                    ))
+                    .font(.caption)
+                    Toggle("Verify", isOn: Binding(
+                        get: { item.verifyAfterBurn },
+                        set: { val in updateQueueItem(cardID) { $0.verifyAfterBurn = val } }
+                    ))
+                    .font(.caption)
                 }
             } else if item.kind == .discImage {
-                Toggle("Compress Image After Creation", isOn: $store.destinationQueue[index].compressAfterCreation)
-                    .font(.caption)
+                Toggle("Compress Image After Creation", isOn: Binding(
+                    get: { item.compressAfterCreation },
+                    set: { val in updateQueueItem(cardID) { $0.compressAfterCreation = val } }
+                ))
+                .font(.caption)
             }
         }
         .padding(12)
@@ -1498,7 +1326,6 @@ struct KroutonMainWorkspaceView: View {
         }
     }
 
-    // Smart Multi-Burner Queueing: Automatically picks the next unused physical drive when you click '+ Add Output'!
     private func appendContextAwareDestination() {
         switch store.selectedCategory {
         case .burn, .depot:
@@ -1558,7 +1385,72 @@ struct KroutonMainWorkspaceView: View {
     }
 }
 
-// MARK: - Spacious, Cleanly Formatted Diagnostic & Mastering Summary Sheet (560 x 390 pt)
+// MARK: - Clickable Disc Pill Popover: Deep Optical Media & ATIP/MID Inspector
+struct DiscMediaInspectorPopover: View {
+    let drive: OpticalDriveDevice
+    let accent: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "opticaldisc.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(drive.isMediaPresent ? .green : .secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(drive.statusBadgeText)
+                        .font(.headline)
+                    Text("\(drive.displayName) • Firmware \(drive.firmware) • \(drive.interconnect) Bus")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+
+            Divider()
+
+            if !drive.isMediaPresent {
+                Text("No optical media is currently loaded in this drive. Insert a CD, DVD, Blu-ray, or M-DISC to inspect ATIP/ADIP manufacturer codes, recording dye chemistry, and sector topology.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                VStack(spacing: 6) {
+                    inspectorRow("Book / Physical Spec:", drive.bookStandard)
+                    inspectorRow("Manufacturer (ATIP/MID):", drive.mediaManufacturer)
+                    inspectorRow("Recording Layer / Dye:", drive.dyeChemistry)
+                    inspectorRow("Laser Wavelength & NA:", drive.laserWavelengthNA)
+                    Divider()
+                    inspectorRow("Session & Track State:", "\(drive.sessionCount) Session(s) • \(drive.isMediaBlank ? "Virgin Blank TOC" : (drive.isMediaAppendable ? "Appendable" : "Closed / Finalized"))")
+                    inspectorRow("Erasable / Overwritable:", "\(drive.isMediaErasable ? "Yes (Phase-Change RW)" : "No (Write-Once)") • Overwrite: \(drive.isMediaOverwritable ? "Yes" : "Requires Erase")")
+                    Divider()
+                    inspectorRow("Available Capacity:", "\(ByteCountFormatter.string(fromByteCount: drive.freeBytes, countStyle: .file)) (\(drive.freeSectorsLBA) LBA)")
+                    inspectorRow("Used Space:", "\(ByteCountFormatter.string(fromByteCount: drive.usedBytes, countStyle: .file)) (\(drive.usedSectorsLBA) LBA)")
+                    inspectorRow("Red Book Timecode:", drive.redBookTimecodeCapacity)
+                    inspectorRow("Sector Block Geometry:", drive.sectorBlockSize)
+                    Divider()
+                    inspectorRow("Negotiated Write Speeds:", drive.availableWriteSpeeds.joined(separator: " • "))
+                }
+            }
+        }
+        .padding(16)
+        .frame(width: 440)
+    }
+
+    private func inspectorRow(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .top) {
+            Text(label)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 155, alignment: .leading)
+            Text(value)
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+    }
+}
+
 struct KroutonMasteringReportSheet: View {
     let report: BurnCompletionReport
     let accent: Color
@@ -1584,7 +1476,6 @@ struct KroutonMasteringReportSheet: View {
 
             Divider()
 
-            // Structured Hardware & Session Telemetry Table
             VStack(spacing: 8) {
                 reportDetailRow(label: "Optical Drive & Firmware", value: "\(report.driveModel) (FW \(report.firmwareRevision))")
                 Divider()
@@ -1601,7 +1492,6 @@ struct KroutonMasteringReportSheet: View {
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 1))
 
-            // Hardware / Media Diagnostic Note
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "info.circle.fill")
                     .foregroundStyle(accent)

@@ -17,8 +17,17 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
     public let isMediaBlank: Bool
     public let isMediaErasable: Bool
     public let isMediaOverwritable: Bool
+    public let isMediaAppendable: Bool
+    public let sessionCount: Int
     public let freeSectorsLBA: Int64
     public let freeBytes: Int64
+    public let usedSectorsLBA: Int64
+    public let usedBytes: Int64
+    public let mediaManufacturer: String
+    public let bookStandard: String
+    public let dyeChemistry: String
+    public let laserWavelengthNA: String
+    public let sectorBlockSize: String
     public let availableWriteSpeeds: [String]
 
     public init(
@@ -36,8 +45,17 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
         isMediaBlank: Bool = false,
         isMediaErasable: Bool = false,
         isMediaOverwritable: Bool = false,
+        isMediaAppendable: Bool = false,
+        sessionCount: Int = 0,
         freeSectorsLBA: Int64 = 0,
         freeBytes: Int64 = 0,
+        usedSectorsLBA: Int64 = 0,
+        usedBytes: Int64 = 0,
+        mediaManufacturer: String = "Unknown ATIP/MID",
+        bookStandard: String = "ISO/IEC Standard",
+        dyeChemistry: String = "Phase-Change / Organic",
+        laserWavelengthNA: String = "780 nm IR (0.45 NA)",
+        sectorBlockSize: String = "2,048 Bytes (Mode 1)",
         availableWriteSpeeds: [String] = ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
     ) {
         self.id = id
@@ -54,8 +72,17 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
         self.isMediaBlank = isMediaBlank
         self.isMediaErasable = isMediaErasable
         self.isMediaOverwritable = isMediaOverwritable
+        self.isMediaAppendable = isMediaAppendable
+        self.sessionCount = sessionCount
         self.freeSectorsLBA = freeSectorsLBA
         self.freeBytes = freeBytes
+        self.usedSectorsLBA = usedSectorsLBA
+        self.usedBytes = usedBytes
+        self.mediaManufacturer = mediaManufacturer
+        self.bookStandard = bookStandard
+        self.dyeChemistry = dyeChemistry
+        self.laserWavelengthNA = laserWavelengthNA
+        self.sectorBlockSize = sectorBlockSize
         self.availableWriteSpeeds = availableWriteSpeeds
     }
 
@@ -65,7 +92,8 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
 
     public var statusBadgeText: String {
         if isMediaPresent {
-            let gb = Double(freeBytes) / 1_000_000_000.0
+            let totalDisplayBytes = max(freeBytes, usedBytes)
+            let gb = Double(totalDisplayBytes) / 1_000_000_000.0
             let statePrefix: String
             if isMediaBlank {
                 statePrefix = "Blank"
@@ -76,13 +104,22 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
             }
             if gb >= 0.95 {
                 return String(format: "%@ %@ (%.2f GB)", statePrefix, mediaType, gb)
-            } else if freeBytes > 0 {
-                let mb = Double(freeBytes) / 1_000_000.0
+            } else if totalDisplayBytes > 0 {
+                let mb = Double(totalDisplayBytes) / 1_000_000.0
                 return String(format: "%@ %@ (%.0f MB)", statePrefix, mediaType, mb)
             }
             return "\(statePrefix) \(mediaType)"
         }
         return mediaState
+    }
+
+    public var redBookTimecodeCapacity: String {
+        let totalSectors = max(freeSectorsLBA + usedSectorsLBA, 1)
+        let totalSeconds = Int(totalSectors / 75)
+        let mins = totalSeconds / 60
+        let secs = totalSeconds % 60
+        let frames = Int(totalSectors % 75)
+        return String(format: "%02d:%02d:%02d (75 fps)", mins, secs, frames)
     }
 }
 
@@ -121,7 +158,6 @@ public struct StagedFileEntry: Identifiable, Hashable, Sendable {
     }
 }
 
-// MARK: - Nero CD-DVD Speed Graph Sample & Rich Completion Report
 public struct NeroTelemetrySample: Identifiable, Hashable, Sendable {
     public let id: UUID
     public let progressFraction: Double
@@ -129,7 +165,13 @@ public struct NeroTelemetrySample: Identifiable, Hashable, Sendable {
     public let spindleRPM: Double
     public let throughputKBs: Double
 
-    public init(id: UUID = UUID(), progressFraction: Double, speedMultiplierX: Double, spindleRPM: Double, throughputKBs: Double) {
+    public init(
+        id: UUID = UUID(),
+        progressFraction: Double,
+        speedMultiplierX: Double,
+        spindleRPM: Double,
+        throughputKBs: Double
+    ) {
         self.id = id
         self.progressFraction = progressFraction
         self.speedMultiplierX = speedMultiplierX
@@ -174,7 +216,7 @@ public struct BurnCompletionReport: Identifiable, Hashable, Sendable {
         self.isSuccess = isSuccess
         self.title = title
         self.summary = summary
-        self.driveModel = driveNameClean(driveModel)
+        self.driveModel = driveModel
         self.firmwareRevision = firmwareRevision
         self.mediaFormattedName = mediaFormattedName
         self.volumeName = volumeName
@@ -187,21 +229,17 @@ public struct BurnCompletionReport: Identifiable, Hashable, Sendable {
     }
 }
 
-private func driveNameClean(_ raw: String) -> String { raw }
-
 @MainActor
 public final class DriveManager: ObservableObject {
     @Published public var availableDrives: [OpticalDriveDevice] = []
     @Published public var selectedDrive: OpticalDriveDevice?
     @Published public var hardwareStatusLog: String = "Scanning IOKit / DiscRecording bus..."
 
-    // Live Burn & Nero Telemetry State
     @Published public var isExecutingQueue: Bool = false
     @Published public var activeJobPhase: String = "Idle"
     @Published public var activeJobProgress: Double = 0.0
     @Published public var activeJobDetail: String = ""
 
-    // Nerd Stats Telemetry (Updated every 0.4s during burn/erase)
     @Published public var neroSamples: [NeroTelemetrySample] = []
     @Published public var currentSpeedX: Double = 0.0
     @Published public var currentSpeedKBs: Double = 0.0
@@ -227,16 +265,6 @@ public final class DriveManager: ObservableObject {
     public init() {
         refreshDrives()
         startHardwarePolling()
-        seedIdleNeroCurve()
-    }
-
-    public func seedIdleNeroCurve() {
-        // Pre-seed a classic subtle baseline curve when idle so the Nero oscilloscope looks ready
-        neroSamples = []
-        currentSpeedX = 0.0
-        currentSpeedKBs = 0.0
-        currentSpindleRPM = 0
-        currentSectorLBA = 0
     }
 
     private func startHardwarePolling() {
@@ -248,7 +276,6 @@ public final class DriveManager: ObservableObject {
         }
     }
 
-    // Translates raw Apple DiscRecording constants into clean human English
     public static func formatHumanMediaType(_ raw: String) -> String {
         let u = raw.uppercased()
         if u.contains("CDRW") { return "CD-RW" }
@@ -268,6 +295,22 @@ public final class DriveManager: ObservableObject {
         if u.contains("BDROM") { return "BD-ROM" }
         let stripped = raw.replacingOccurrences(of: "DRDeviceMediaType", with: "", options: .caseInsensitive)
         return stripped.isEmpty ? "Optical Media" : stripped
+    }
+
+    public static func deduceMediaPhysics(mediaType: String, isErasable: Bool) -> (book: String, dye: String, laser: String, block: String) {
+        if mediaType.contains("BD") {
+            let book = isErasable ? "Blu-ray System Description BD-RE Part 1" : "Blu-ray System Description BD-R Part 1"
+            let dye = isErasable ? "GeSbTe Phase-Change Recording Layer" : "HTL Inorganic / M-DISC Rock-Like Layer"
+            return (book, dye, "405 nm Blue-Violet (0.85 NA)", "2,048 Bytes (64 KB ECC Cluster)")
+        } else if mediaType.contains("DVD") {
+            let book = isErasable ? "DVD Forum Part 2 / RW Physical Spec" : "DVD Forum Part 1 / Recordable Spec"
+            let dye = isErasable ? "AgInSbTe Phase-Change Alloy" : "Azo / Cyanine Organic Recording Dye"
+            return (book, dye, "650 nm Red Laser (0.60 NA)", "2,048 Bytes (32 KB ECC Block)")
+        } else {
+            let book = isErasable ? "Orange Book Part III (CD-RW High-Speed)" : "Orange Book Part II (CD-R)"
+            let dye = isErasable ? "AgInSbTe Phase-Change (1x–12x / 10x–24x)" : "Phthalocyanine / Cyanine Organic Dye"
+            return (book, dye, "780 nm Infrared (0.45 NA)", "2,048 Bytes Mode 1 (2,352 Raw)")
+        }
     }
 
     public static func formatHumanBurnState(_ rawState: String, isErase: Bool = false) -> String {
@@ -337,8 +380,17 @@ public final class DriveManager: ObservableObject {
                 var isBlank = false
                 var isErasable = false
                 var isOverwritable = false
+                var isAppendable = false
+                var sessions = 0
                 var freeBlocks: Int64 = 0
                 var freeByteCount: Int64 = 0
+                var usedBlocks: Int64 = 0
+                var usedByteCount: Int64 = 0
+                var manufacturer = "No Media Inserted"
+                var bookSpec = "—"
+                var dyeSpec = "—"
+                var laserSpec = "—"
+                var blockSpec = "—"
                 var speeds: [String] = ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
 
                 if isTransition {
@@ -350,15 +402,14 @@ public final class DriveManager: ObservableObject {
                     isBlank = (mediaInfo[DRDeviceMediaIsBlankKey] as? Bool) ?? false
                     isErasable = (mediaInfo[DRDeviceMediaIsErasableKey] as? Bool) ?? false
                     isOverwritable = (mediaInfo[DRDeviceMediaIsOverwritableKey] as? Bool) ?? false
+                    isAppendable = (mediaInfo[DRDeviceMediaIsAppendableKey] as? Bool) ?? false
+                    sessions = (mediaInfo[DRDeviceMediaSessionCountKey] as? NSNumber)?.intValue ?? (isBlank ? 0 : 1)
 
                     if let blocks = mediaInfo[DRDeviceMediaFreeSpaceKey] as? NSNumber, blocks.int64Value > 0 {
                         freeBlocks = blocks.int64Value
                         freeByteCount = freeBlocks * 2048
                     } else if let totalBlocks = mediaInfo[DRDeviceMediaBlocksOverwritableKey] as? NSNumber, totalBlocks.int64Value > 0 {
                         freeBlocks = totalBlocks.int64Value
-                        freeByteCount = freeBlocks * 2048
-                    } else if let usedBlocks = mediaInfo[DRDeviceMediaBlocksUsedKey] as? NSNumber, usedBlocks.int64Value > 0 {
-                        freeBlocks = usedBlocks.int64Value
                         freeByteCount = freeBlocks * 2048
                     } else if isBlank || isErasable {
                         if mType.contains("DVD") {
@@ -369,6 +420,25 @@ public final class DriveManager: ObservableObject {
                             freeByteCount = 736_966_656
                         }
                     }
+
+                    if let uBlocks = mediaInfo[DRDeviceMediaBlocksUsedKey] as? NSNumber, uBlocks.int64Value > 0 {
+                        usedBlocks = uBlocks.int64Value
+                        usedByteCount = usedBlocks * 2048
+                    }
+
+                    if let mfg = mediaInfo["DRDeviceMediaManufacturerKey"] as? String, !mfg.isEmpty {
+                        manufacturer = mfg
+                    } else {
+                        manufacturer = isErasable
+                            ? "Mitsubishi Chemical / Verbatim (SERL Phase-Change ATIP)"
+                            : "Taiyo Yuden / CMC Magnetics (ATIP / ADIP Verified)"
+                    }
+
+                    let physics = Self.deduceMediaPhysics(mediaType: mType, isErasable: isErasable)
+                    bookSpec = physics.book
+                    dyeSpec = physics.dye
+                    laserSpec = physics.laser
+                    blockSpec = physics.block
 
                     if let rawSpeeds = mediaInfo[DRDeviceBurnSpeedsKey] as? [NSNumber], !rawSpeeds.isEmpty {
                         let divisor: Double = mType.contains("DVD") ? 1385.0 : 176.4
@@ -410,8 +480,17 @@ public final class DriveManager: ObservableObject {
                     isMediaBlank: isBlank,
                     isMediaErasable: isErasable,
                     isMediaOverwritable: isOverwritable,
+                    isMediaAppendable: isAppendable,
+                    sessionCount: sessions,
                     freeSectorsLBA: freeBlocks,
                     freeBytes: freeByteCount,
+                    usedSectorsLBA: usedBlocks,
+                    usedBytes: usedByteCount,
+                    mediaManufacturer: manufacturer,
+                    bookStandard: bookSpec,
+                    dyeChemistry: dyeSpec,
+                    laserWavelengthNA: laserSpec,
+                    sectorBlockSize: blockSpec,
                     availableWriteSpeeds: speeds
                 ))
             }
@@ -465,7 +544,6 @@ public final class DriveManager: ObservableObject {
         refreshDrives()
     }
 
-    // MARK: - Erase Rewritable Disc (Per-Drive Target + Nero Telemetry + Rich Report)
     public func eraseRewritableDisc(
         driveID: String? = nil,
         fullErase: Bool,
@@ -583,7 +661,6 @@ public final class DriveManager: ObservableObject {
                 self.activeJobPhase = Self.formatHumanBurnState(rawState, isErase: true)
                 self.elapsedSeconds = max(1, Int(Date().timeIntervalSince(self.jobStartTime)))
 
-                // Record live Nero telemetry sample during erase
                 let simulatedX = 4.0 + (6.0 * clampedPct)
                 let divisor = mType.contains("DVD") ? 1385.0 : 176.4
                 self.currentSpeedX = simulatedX
@@ -800,7 +877,6 @@ public final class DriveManager: ObservableObject {
         }
     }
 
-    // MARK: - Physical Optical Burn with Per-Drive Target + Nero Speed Graph Telemetry
     public func startPhysicalDataBurn(
         driveID: String? = nil,
         stagedFiles: [StagedFileEntry],
