@@ -216,6 +216,13 @@ struct KroutonMainWorkspaceView: View {
     @State private var videoDualLayerBreakSector: String = "Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)"
     // M-DISC Archival PAR2 State
     @State private var mdiscPar2RedundancyPct: Double = 15.0
+    // New Data Disc File System Bridge State
+    @State private var selectedDataFileSystemBridge: String = "Universal 4-Way Bridge (UDF 1.02 + HFS+ + Joliet + Rock Ridge)"
+    @State private var preserveMacExtendedAttributes: Bool = true
+    @State private var enforce8Dot3RetroCompatibility: Bool = false
+    // Dedicated Disc Image Burner State
+    @State private var discImageWriteMethod: String = "DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)"
+    @State private var verifyImageSHA256BeforeBurn: Bool = true
 
     private var primarySelectedDrive: OpticalDriveDevice? {
         if let firstBurnerCard = store.destinationQueue.first(where: { $0.kind == .physicalBurner }),
@@ -755,6 +762,8 @@ struct KroutonMainWorkspaceView: View {
                 carSafeAudioMasteringWorkspace(for: activeSpec)
             } else if activeSpec.isVideoAuthoringFormat {
                 videoDiscAuthoringWorkspace(for: activeSpec)
+            } else if activeSpec.isDiscImageBurnFormat {
+                discImageInspectorWorkspace(for: activeSpec)
             } else if activeSpec.id.hasPrefix("game-") {
                 retroConsoleROMWorkspace(for: activeSpec)
             } else {
@@ -770,6 +779,8 @@ struct KroutonMainWorkspaceView: View {
             return "Add Audio Files or Album Folders..."
         } else if spec.isVideoAuthoringFormat {
             return "Add Video Titles (MKV / MP4 / MOV / VIDEO_TS)..."
+        } else if spec.isDiscImageBurnFormat {
+            return "Select Disc Image (.ISO / .DMG / .BIN / .CUE / .CDR / .TOAST)..."
         } else if spec.id.hasPrefix("game-") {
             return "Select Console Disc Image (.CUE / .BIN / .ISO / .RVZ)..."
         } else {
@@ -782,6 +793,8 @@ struct KroutonMainWorkspaceView: View {
             return "waveform.badge.plus"
         } else if spec.isVideoAuthoringFormat {
             return "film.stack.fill"
+        } else if spec.isDiscImageBurnFormat {
+            return "opticaldisc.fill"
         } else if spec.id.hasPrefix("game-") {
             return "gamecontroller.fill"
         } else {
@@ -1500,70 +1513,271 @@ struct KroutonMainWorkspaceView: View {
     }
 
     // ==========================================================================
-    // 5. DATA & ARCHIVAL MASTERING WORKSPACE (UDF / HFS+ / ISO & M-DISC + PAR2)
+    // 5A. DEDICATED DISC IMAGE (.ISO / .BIN / .DMG / .CDR) INSPECTOR & BURNER
+    //     (Bootability, Sector Geometry, SHA-256 & .BIN/.CUE <-> .ISO Converter)
     // ==========================================================================
-    private func dataAndArchivalMasteringWorkspace(for activeSpec: DiscFormatSpec) -> some View {
+    private func discImageInspectorWorkspace(for spec: DiscFormatSpec) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            if activeSpec.isMDiscParityFormat {
-                HStack(spacing: 14) {
-                    Image(systemName: "lock.shield.fill")
+            // Sector & Boot Catalog Mastering Header
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 10) {
+                    Image(systemName: "opticaldisc.fill")
                         .foregroundStyle(store.activeAccent)
-                    Text(KroutonL10n.tr("M-DISC INORGANIC ROCK-LAYER VAULT + PAR2 SURFACE PARITY:"))
+                    Text(KroutonL10n.tr("SECTOR-EXACT DISC IMAGE INSPECTOR & BOOTABLE OS BURNER"))
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .foregroundStyle(.secondary)
-                    Text("PAR2 Redundancy: \(Int(mdiscPar2RedundancyPct))%")
+                    Spacer()
+                    Text(KroutonL10n.tr("Supports .ISO • .DMG • .CDR • .BIN/.CUE • .IMG • .TOAST • .NRG • .MDS"))
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.green)
+                }
+
+                HStack(spacing: 16) {
+                    Picker(KroutonL10n.tr("Laser Write Topology:"), selection: $discImageWriteMethod) {
+                        Text("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)").tag("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)")
+                        Text("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)").tag("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)")
+                        Text("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)").tag("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)")
+                    }
+                    .frame(width: 460)
+                    .font(.caption)
+
+                    Toggle(KroutonL10n.tr("Compute & Verify SHA-256 Digest Before Write"), isOn: $verifyImageSHA256BeforeBurn)
+                        .toggleStyle(.checkbox)
                         .font(.caption.bold())
-                        .foregroundStyle(store.activeAccent)
-                    Slider(value: $mdiscPar2RedundancyPct, in: 5...30, step: 5)
-                        .frame(width: 150)
-                    Text(KroutonL10n.tr("• Generates .par2 Reed-Solomon recovery blocks + SHA-256 manifest"))
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.secondary)
                     Spacer()
                 }
-                .padding(10)
-                .background(Color(NSColor.controlBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 9))
-                .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
             }
+            .padding(10)
+            .background(Color(NSColor.controlBackgroundColor))
+            .clipShape(RoundedRectangle(cornerRadius: 9))
+            .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
 
-            HStack(spacing: 14) {
-                HStack(spacing: 6) {
-                    Image(systemName: "opticaldisc")
-                        .foregroundStyle(store.activeAccent)
-                    Text(KroutonL10n.tr("Disc Title:"))
-                        .font(.caption.bold())
-                    TextField("KROUTON_DISC", text: $store.discVolumeTitle)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 190)
-                }
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(NSColor.controlBackgroundColor))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(
+                                isDropTargeted ? store.activeAccent : Color.primary.opacity(0.08),
+                                style: StrokeStyle(lineWidth: isDropTargeted ? 2.5 : 1.0, dash: store.stagedFiles.isEmpty ? [6, 4] : [])
+                            )
+                    )
 
-                Toggle(KroutonL10n.tr("Customize Finder & Explorer Window Layout"), isOn: $enableCustomFinderLayoutTab)
-                    .toggleStyle(.checkbox)
-                    .font(.caption)
-                    .onChange(of: enableCustomFinderLayoutTab) { _, enabled in
-                        activeDataWorkspaceTab = enabled ? 1 : 0
+                if store.stagedFiles.isEmpty {
+                    VStack(spacing: 10) {
+                        Image(systemName: "opticaldisc.fill")
+                            .font(.system(size: 38))
+                            .foregroundStyle(store.activeAccent.opacity(0.85))
+                        Text(KroutonL10n.tr("Drop a Disc Image (.ISO, .DMG, .BIN/.CUE, .CDR, .IMG, or .TOAST) to Inspect & Burn"))
+                            .font(.headline)
+                        Text(KroutonL10n.tr("Automatically inspects Sector 17 El Torito BIOS/UEFI boot catalogs, Apple Partition Maps (APM), and 2,048B / 2,352B sector framing."))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-
-                if enableCustomFinderLayoutTab {
-                    Picker("", selection: $activeDataWorkspaceTab) {
-                        Text(KroutonL10n.tr("File List")).tag(0)
-                        Text(KroutonL10n.tr("Custom Finder Window Preview")).tag(1)
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 240)
                 } else {
-                    Label(KroutonL10n.tr("Hybrid File Tree (Per-File Mac / PC Visibility)"), systemImage: "list.bullet.indent")
-                        .font(.caption.bold())
-                        .foregroundStyle(.secondary)
+                    VStack(spacing: 0) {
+                        HStack(spacing: 12) {
+                            Text(KroutonL10n.tr("DISC IMAGE & VOLUME TOPOLOGY"))
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .padding(.leading, 36)
+                            Spacer()
+                            Text(KroutonL10n.tr("BOOT CATALOG & SECTOR GEOMETRY"))
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 260, alignment: .center)
+                            Text(KroutonL10n.tr("SECTORS"))
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 86, alignment: .trailing)
+                            Text(KroutonL10n.tr("SIZE"))
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 72, alignment: .trailing)
+                            Spacer().frame(width: 22)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(Color.black.opacity(0.18))
+                        Divider()
+
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                ForEach(store.stagedFiles) { entry in
+                                    let ext = entry.url.pathExtension.lowercased()
+                                    let sectorGeometry = (ext == "bin" || ext == "cue")
+                                        ? "2,352 B/sec (Mode 1 / Mode 2 XA Raw)"
+                                        : (ext == "dmg" ? "UDIF / HFS+ / APFS Block Image" : "2,048 B/sec (ISO9660 / UDF Block)")
+                                    let bootStatus = entry.bootabilityBadge ?? "Non-Bootable Data Volume (Sectors 0..15 Empty)"
+
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "opticaldisc.fill")
+                                            .foregroundStyle(store.activeAccent)
+                                            .font(.system(size: 16))
+                                            .frame(width: 24)
+
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            HStack(spacing: 8) {
+                                                Text(entry.name)
+                                                    .font(.system(size: 12, weight: .semibold))
+                                                if entry.isConvertibleBinOrIso {
+                                                    Button {
+                                                        store.convertStagedBinOrIso(id: entry.id)
+                                                    } label: {
+                                                        HStack(spacing: 3) {
+                                                            Image(systemName: "arrow.left.arrow.right.circle.fill")
+                                                                .font(.system(size: 9))
+                                                            Text(entry.conversionTargetLabel)
+                                                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                                        }
+                                                        .padding(.horizontal, 7)
+                                                        .padding(.vertical, 2)
+                                                        .background(store.activeAccent.opacity(0.20))
+                                                        .foregroundStyle(store.activeAccent)
+                                                        .clipShape(Capsule())
+                                                    }
+                                                    .buttonStyle(.plain)
+                                                    .help("1-Click Sector Conversion between Raw 2,352-byte .BIN/.CUE and 2,048-byte .ISO")
+                                                }
+                                            }
+                                            Text("\(entry.url.path) • \(sectorGeometry)")
+                                                .font(.system(size: 10))
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(1)
+                                        }
+
+                                        Spacer()
+
+                                        HStack(spacing: 4) {
+                                            Image(systemName: entry.bootabilityBadge != nil ? "checkmark.seal.fill" : "internaldrive")
+                                                .font(.system(size: 9))
+                                            Text(bootStatus)
+                                                .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                                                .lineLimit(1)
+                                        }
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 3)
+                                        .background(entry.bootabilityBadge != nil ? Color.green.opacity(0.16) : Color.secondary.opacity(0.12))
+                                        .foregroundStyle(entry.bootabilityBadge != nil ? .green : .secondary)
+                                        .clipShape(Capsule())
+                                        .frame(width: 260, alignment: .center)
+
+                                        Text("\(entry.sectorsLBA) LBA")
+                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                            .foregroundStyle(store.activeAccent)
+                                            .frame(width: 86, alignment: .trailing)
+
+                                        Text(ByteCountFormatter.string(fromByteCount: entry.byteSize, countStyle: .file))
+                                            .font(.system(size: 11, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 72, alignment: .trailing)
+
+                                        Button {
+                                            store.removeStagedFile(id: entry.id)
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .frame(width: 18, alignment: .center)
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 9)
+                                    Divider()
+                                }
+                            }
+                        }
+                    }
                 }
-                Spacer()
             }
+            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+                handleFinderDrop(providers: providers)
+            }
+        }
+    }
+
+    // ==========================================================================
+    // 5B. NEW DATA & ARCHIVAL DISC AUTHORING WORKSPACE
+    //     (Author File/Folder Trees with Universal Bridge & Per-File OS Visibility)
+    // ==========================================================================
+    private func dataAndArchivalMasteringWorkspace(for activeSpec: DiscFormatSpec) -> some View {
+        let isUniversalHybrid = (activeSpec.id == "data-hybrid" || activeSpec.id == "mdisc-vault")
+        let isAppleOnly = (activeSpec.id == "data-apple-apfs")
+        let isRetro83 = (activeSpec.id == "data-retro-iso")
+
+        return VStack(alignment: .leading, spacing: 10) {
+            // File System Topology & Universal Compatibility Deck
+            VStack(alignment: .leading, spacing: 8) {
+                if activeSpec.isMDiscParityFormat {
+                    HStack(spacing: 14) {
+                        Image(systemName: "lock.shield.fill")
+                            .foregroundStyle(store.activeAccent)
+                        Text(KroutonL10n.tr("M-DISC INORGANIC ROCK-LAYER VAULT + PAR2 SURFACE PARITY:"))
+                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                        Text("PAR2 Redundancy: \(Int(mdiscPar2RedundancyPct))%")
+                            .font(.caption.bold())
+                            .foregroundStyle(store.activeAccent)
+                        Slider(value: $mdiscPar2RedundancyPct, in: 5...30, step: 5)
+                            .frame(width: 150)
+                        Text(KroutonL10n.tr("• Generates .par2 Reed-Solomon recovery blocks + SHA-256 manifest"))
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                    Divider()
+                }
+
+                HStack(spacing: 14) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "opticaldisc")
+                            .foregroundStyle(store.activeAccent)
+                        Text(KroutonL10n.tr("Disc Title:"))
+                            .font(.caption.bold())
+                        TextField("KROUTON_DISC", text: $store.discVolumeTitle)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 165)
+                    }
+
+                    if activeSpec.id == "data-udf-modern" {
+                        Label("Pure UDF 2.60 (Files >4 GiB up to 128 GB • Modern macOS, Windows & Linux)", systemImage: "checkmark.seal.fill")
+                            .font(.caption.bold())
+                            .foregroundStyle(.green)
+                    } else if isAppleOnly {
+                        Toggle(KroutonL10n.tr("Preserve macOS Extended Attributes (xattr), Resource Forks & Finder Tags"), isOn: $preserveMacExtendedAttributes)
+                            .toggleStyle(.checkbox)
+                            .font(.caption.bold())
+                    } else if isRetro83 {
+                        Toggle(KroutonL10n.tr("Enforce Strict 8.3 Uppercase Filenames (DOS 6.22 / Win 3.1 / Win95 / System 7 Safe)"), isOn: $enforce8Dot3RetroCompatibility)
+                            .toggleStyle(.checkbox)
+                            .font(.caption.bold())
+                    } else {
+                        Label("4-Way Universal Bridge: Mounts on macOS (HFS+), Windows (Joliet/UDF) & Linux (Rock Ridge)", systemImage: "globe")
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    if !isRetro83 {
+                        Toggle(KroutonL10n.tr("Customize Finder Layout"), isOn: $enableCustomFinderLayoutTab)
+                            .toggleStyle(.checkbox)
+                            .font(.caption)
+                            .onChange(of: enableCustomFinderLayoutTab) { _, enabled in
+                                activeDataWorkspaceTab = enabled ? 1 : 0
+                            }
+                    }
+                }
+            }
+            .padding(10)
+            .background(Color(NSColor.controlBackgroundColor))
+            .clipShape(RoundedRectangle(cornerRadius: 9))
+            .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
 
             if activeDataWorkspaceTab == 1 && enableCustomFinderLayoutTab {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 20) {
-                        ColorPicker("Finder Window Background:", selection: $finderBgColor)
+                        ColorPicker(KroutonL10n.tr("Finder Window Background:"), selection: $finderBgColor)
                         HStack {
                             Text("Icon Size: \(Int(finderIconSize)) px")
                                 .font(.caption)
@@ -1581,7 +1795,7 @@ struct KroutonMainWorkspaceView: View {
                                         VStack(spacing: 6) {
                                             Image(systemName: item.isDirectory ? "folder.fill" : "doc.fill")
                                                 .font(.system(size: min(finderIconSize * 0.25, 84)))
-                                                .foregroundStyle(item.isDirectory ? store.activeAccent : .white)
+                                                .foregroundStyle(item.isDirectory ? store.resolvedFolderIconColor : .white)
                                             Text(item.name)
                                                 .font(.caption.bold())
                                                 .foregroundStyle(.white)
@@ -1607,12 +1821,14 @@ struct KroutonMainWorkspaceView: View {
 
                     if store.stagedFiles.isEmpty {
                         VStack(spacing: 10) {
-                            Image(systemName: "arrow.down.doc.fill")
+                            Image(systemName: "folder.badge.plus")
                                 .font(.system(size: 34))
-                                .foregroundStyle(store.activeAccent.opacity(0.8))
-                            Text(KroutonL10n.tr("Drag & Drop Files, Folders, or Archives Here from Finder"))
+                                .foregroundStyle(store.activeAccent.opacity(0.85))
+                            Text(KroutonL10n.tr("Drag & Drop Files or Folders Here to Author a New Data Disc"))
                                 .font(.headline)
-                            Text(KroutonL10n.tr("Use the [Mac] and [PC] pills on each row to control which OS sees each file on hybrid discs."))
+                            Text(isUniversalHybrid
+                                 ? KroutonL10n.tr("Shared data extents are linked into HFS+ (Mac), Joliet/UDF (Windows), and Rock Ridge (Linux) simultaneously. Toggle [Mac] / [PC] to hide platform-specific installers.")
+                                 : KroutonL10n.tr("Add files and directories from Finder to build the optical volume directory tree."))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -1624,10 +1840,12 @@ struct KroutonMainWorkspaceView: View {
                                     .foregroundStyle(.secondary)
                                     .padding(.leading, 36)
                                 Spacer()
-                                Text(KroutonL10n.tr("OS VISIBILITY"))
-                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 112, alignment: .center)
+                                if isUniversalHybrid {
+                                    Text(KroutonL10n.tr("OS VISIBILITY"))
+                                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 112, alignment: .center)
+                                }
                                 Text(KroutonL10n.tr("SECTORS"))
                                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                                     .foregroundStyle(.secondary)
@@ -1652,44 +1870,10 @@ struct KroutonMainWorkspaceView: View {
                                                 .font(.system(size: 15))
                                                 .frame(width: 24)
 
-                                            VStack(alignment: .leading, spacing: 3) {
-                                                HStack(spacing: 8) {
-                                                    Text(entry.name)
-                                                        .font(.system(size: 12, weight: .semibold))
-                                                    if let bootBadge = entry.bootabilityBadge {
-                                                        HStack(spacing: 3) {
-                                                            Image(systemName: "checkmark.seal.fill")
-                                                                .font(.system(size: 8))
-                                                            Text(bootBadge)
-                                                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                                        }
-                                                        .padding(.horizontal, 6)
-                                                        .padding(.vertical, 2)
-                                                        .background(Color.green.opacity(0.16))
-                                                        .foregroundStyle(.green)
-                                                        .clipShape(Capsule())
-                                                    }
-                                                    if entry.isConvertibleBinOrIso {
-                                                        Button {
-                                                            store.convertStagedBinOrIso(id: entry.id)
-                                                        } label: {
-                                                            HStack(spacing: 3) {
-                                                                Image(systemName: "arrow.left.arrow.right.circle.fill")
-                                                                    .font(.system(size: 9))
-                                                                Text(entry.conversionTargetLabel)
-                                                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                                            }
-                                                            .padding(.horizontal, 7)
-                                                            .padding(.vertical, 2)
-                                                            .background(store.activeAccent.opacity(0.20))
-                                                            .foregroundStyle(store.activeAccent)
-                                                            .clipShape(Capsule())
-                                                        }
-                                                        .buttonStyle(.plain)
-                                                        .help("1-Click Sector Conversion between Raw 2,352-byte .BIN/.CUE and 2,048-byte .ISO")
-                                                    }
-                                                }
-                                                Text("\(entry.url.path) • Perms: \(entry.posixPermissions) • \(entry.isDirectory ? "\(entry.itemCount) files inside" : "Single file")")
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(isRetro83 ? entry.iso9660Level1Name : entry.name)
+                                                    .font(.system(size: 12, weight: .semibold, design: isRetro83 ? .monospaced : .default))
+                                                Text("\(entry.url.path) • Perms: \(entry.posixPermissions) • \(entry.isDirectory ? "\(entry.itemCount) items inside" : "Single file")")
                                                     .font(.system(size: 10))
                                                     .foregroundStyle(.secondary)
                                                     .lineLimit(1)
@@ -1697,46 +1881,48 @@ struct KroutonMainWorkspaceView: View {
 
                                             Spacer()
 
-                                            HStack(spacing: 5) {
-                                                Button {
-                                                    store.toggleMacVisibility(id: entry.id)
-                                                } label: {
-                                                    HStack(spacing: 3) {
-                                                        Image(systemName: "apple.logo")
-                                                            .font(.system(size: 9))
-                                                        Text(KroutonL10n.tr("Mac"))
-                                                            .font(.system(size: 9, weight: .bold))
+                                            if isUniversalHybrid {
+                                                HStack(spacing: 5) {
+                                                    Button {
+                                                        store.toggleMacVisibility(id: entry.id)
+                                                    } label: {
+                                                        HStack(spacing: 3) {
+                                                            Image(systemName: "apple.logo")
+                                                                .font(.system(size: 9))
+                                                            Text(KroutonL10n.tr("Mac"))
+                                                                .font(.system(size: 9, weight: .bold))
+                                                        }
+                                                        .padding(.horizontal, 7)
+                                                        .padding(.vertical, 3)
+                                                        .background(entry.showOnMac ? store.activeAccent.opacity(0.22) : Color.secondary.opacity(0.10))
+                                                        .foregroundStyle(entry.showOnMac ? store.activeAccent : .secondary.opacity(0.55))
+                                                        .clipShape(Capsule())
+                                                        .overlay(Capsule().stroke(entry.showOnMac ? store.activeAccent.opacity(0.5) : Color.clear, lineWidth: 1))
                                                     }
-                                                    .padding(.horizontal, 7)
-                                                    .padding(.vertical, 3)
-                                                    .background(entry.showOnMac ? store.activeAccent.opacity(0.22) : Color.secondary.opacity(0.10))
-                                                    .foregroundStyle(entry.showOnMac ? store.activeAccent : .secondary.opacity(0.55))
-                                                    .clipShape(Capsule())
-                                                    .overlay(Capsule().stroke(entry.showOnMac ? store.activeAccent.opacity(0.5) : Color.clear, lineWidth: 1))
-                                                }
-                                                .buttonStyle(.plain)
-                                                .help(entry.showOnMac ? "Visible on macOS Finder (HFS+ Tree) — Click to hide from Mac" : "Hidden on macOS Finder — Click to show on Mac")
+                                                    .buttonStyle(.plain)
+                                                    .help(entry.showOnMac ? "Visible on macOS Finder (HFS+ Tree) — Click to hide from Mac" : "Hidden on macOS Finder — Click to show on Mac")
 
-                                                Button {
-                                                    store.togglePCVisibility(id: entry.id)
-                                                } label: {
-                                                    HStack(spacing: 3) {
-                                                        Image(systemName: "pc")
-                                                            .font(.system(size: 9))
-                                                        Text(KroutonL10n.tr("PC"))
-                                                            .font(.system(size: 9, weight: .bold))
+                                                    Button {
+                                                        store.togglePCVisibility(id: entry.id)
+                                                    } label: {
+                                                        HStack(spacing: 3) {
+                                                            Image(systemName: "pc")
+                                                                .font(.system(size: 9))
+                                                            Text(KroutonL10n.tr("PC"))
+                                                                .font(.system(size: 9, weight: .bold))
+                                                        }
+                                                        .padding(.horizontal, 7)
+                                                        .padding(.vertical, 3)
+                                                        .background(entry.showOnPC ? Color.cyan.opacity(0.20) : Color.secondary.opacity(0.10))
+                                                        .foregroundStyle(entry.showOnPC ? Color.cyan : .secondary.opacity(0.55))
+                                                        .clipShape(Capsule())
+                                                        .overlay(Capsule().stroke(entry.showOnPC ? Color.cyan.opacity(0.5) : Color.clear, lineWidth: 1))
                                                     }
-                                                    .padding(.horizontal, 7)
-                                                    .padding(.vertical, 3)
-                                                    .background(entry.showOnPC ? Color.cyan.opacity(0.20) : Color.secondary.opacity(0.10))
-                                                    .foregroundStyle(entry.showOnPC ? Color.cyan : .secondary.opacity(0.55))
-                                                    .clipShape(Capsule())
-                                                    .overlay(Capsule().stroke(entry.showOnPC ? Color.cyan.opacity(0.5) : Color.clear, lineWidth: 1))
+                                                    .buttonStyle(.plain)
+                                                    .help(entry.showOnPC ? "Visible on Windows Explorer (ISO9660 / Joliet / UDF Tree) — Click to hide from PC" : "Hidden on Windows PC — Click to show on PC")
                                                 }
-                                                .buttonStyle(.plain)
-                                                .help(entry.showOnPC ? "Visible on Windows Explorer (ISO9660 / Joliet / UDF Tree) — Click to hide from PC" : "Hidden on Windows PC — Click to show on PC")
+                                                .frame(width: 112, alignment: .center)
                                             }
-                                            .frame(width: 112, alignment: .center)
 
                                             Text("\(entry.sectorsLBA) LBA")
                                                 .font(.system(size: 10, weight: .semibold, design: .monospaced))
@@ -3875,6 +4061,9 @@ struct FloatingPhaseScopeWindowView: View {
 
 // MARK: - Format Classification Extension for Adaptive Central Workspaces
 extension DiscFormatSpec {
+    var isDiscImageBurnFormat: Bool {
+        id == "image-burn" || sourceSupport == "Disc Image"
+    }
     var isRedBookAudioFormat: Bool {
         let lower = id.lowercased() + " " + technicalName.lowercased() + " " + bookOrFileSystem.lowercased()
         return lower.contains("cd-da") || lower.contains("red book") || lower.contains("cd-extra") || lower.contains("blue book") || id == "audio-cdda" || id == "audio-cdextra"
@@ -3893,5 +4082,17 @@ extension DiscFormatSpec {
     var isMDiscParityFormat: Bool {
         let lower = id.lowercased() + " " + technicalName.lowercased()
         return lower.contains("m-disc") || lower.contains("par2")
+    }
+}
+
+extension StagedFileEntry {
+    var iso9660Level1Name: String {
+        let ext = url.pathExtension.uppercased().prefix(3)
+        let base = url.deletingPathExtension().lastPathComponent
+            .uppercased()
+            .replacingOccurrences(of: " ", with: "_")
+            .filter { $0.isLetter || $0.isNumber || $0 == "_" }
+            .prefix(8)
+        return ext.isEmpty ? String(base) : "\(base).\(ext)"
     }
 }
