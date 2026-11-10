@@ -66,6 +66,30 @@ public enum AppAppearanceMode: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+
+public enum SanitySeverity: String, Sendable {
+    case criticalOverburn
+    case warning4GBNoUDF
+    case warningFilenameLength
+    case warningConsoleMedia
+}
+
+public struct PreFlightSanityDiagnostic: Identifiable, Hashable, Sendable {
+    public let id: String
+    public let severity: SanitySeverity
+    public let title: String
+    public let detail: String
+    public let actionButtonTitle: String?
+
+    public init(id: String, severity: SanitySeverity, title: String, detail: String, actionButtonTitle: String? = nil) {
+        self.id = id
+        self.severity = severity
+        self.title = title
+        self.detail = detail
+        self.actionButtonTitle = actionButtonTitle
+    }
+}
+
 public enum TaskMasterCategory: String, CaseIterable, Identifiable, Sendable {
     case burn = "BURN"
     case depot = "DISC IMAGE DEPOT"
@@ -198,6 +222,24 @@ public final class KroutonStateStore: ObservableObject {
 
     // Real Staged Files from Finder (Sprint 1)
     @Published public var stagedFiles: [StagedFileEntry] = []
+    @Published public var redBookTracks: [RedBookAudioTrack] = [
+        RedBookAudioTrack(url: URL(fileURLWithPath: "/System/Library/Sounds/Glass.aiff"), title: "01 - Analogue Warmth (Intro)", performer: "The Kroutons", isrcCode: "USKRO2600001", durationSeconds: 222.24, preGapSeconds: 2.0, transitionStyle: .standard2s),
+        RedBookAudioTrack(url: URL(fileURLWithPath: "/System/Library/Sounds/Ping.aiff"), title: "02 - Optical Servo Lock", performer: "The Kroutons", isrcCode: "USKRO2600002", durationSeconds: 258.00, preGapSeconds: 0.0, transitionStyle: .gapless0s),
+        RedBookAudioTrack(url: URL(fileURLWithPath: "/System/Library/Sounds/Hero.aiff"), title: "03 - Phthalocyanine Groove", performer: "The Kroutons", isrcCode: "USKRO2600003", durationSeconds: 311.53, preGapSeconds: 0.0, crossfadeSeconds: 2.0, transitionStyle: .jamCrossfade),
+        RedBookAudioTrack(url: URL(fileURLWithPath: "/System/Library/Sounds/Purr.aiff"), title: "04 - Lead-Out Horizon", performer: "The Kroutons", isrcCode: "USKRO2600004", durationSeconds: 295.13, preGapSeconds: 2.0, transitionStyle: .standard2s)
+    ]
+    @Published public var discPerformer: String = "The Kroutons"
+    @Published public var discMCNBarcode: String = "0123456789012"
+    @Published public var enableHTOA: Bool = false
+    @Published public var htoaTitle: String = "Hidden Track Zero (INDEX 00 Pre-Gap Secret Audio)"
+    @Published public var htoaDurationSeconds: Double = 48.0
+    @Published public var carSafeZeroPadPrefix: Bool = true
+    @Published public var carSafeStripAppleDouble: Bool = true
+    @Published public var carSafeGenerateM3U: Bool = true
+    @Published public var includeUDFBridge: Bool = true
+    @Published public var includeJolietNames: Bool = true
+    @Published public var allowATIPOverburn: Bool = false
+    @Published public var dualLayerBreakSectorLBA: Int64 = 2_086_912
     @Published public var discVolumeTitle: String = "KROUTON_DISC"
 
     @Published public var discFormats: [DiscFormatSpec] = [
@@ -348,6 +390,53 @@ public final class KroutonStateStore: ObservableObject {
             if !stagedFiles.contains(where: { $0.url == url }) {
                 let entry = DriveManager.inspectFileOrFolder(url: url)
                 stagedFiles.append(entry)
+            }
+        }
+    }
+
+    public func addAudioTrackURLs(_ urls: [URL]) {
+        for url in urls {
+            let nextIndex = redBookTracks.count + 1
+            let track = DriveManager.inspectAudioTrack(url: url, index: nextIndex)
+            redBookTracks.append(track)
+        }
+    }
+
+    public func removeAudioTrack(id: UUID) {
+        redBookTracks.removeAll { $0.id == id }
+    }
+
+    public var totalRedBookFramesLBA: Int64 {
+        let tracksFrames = redBookTracks.reduce(Int64(0)) { $0 + $1.totalRedBookFrames }
+        let htoaFrames = enableHTOA ? Int64(round(htoaDurationSeconds * 75.0)) : 0
+        return tracksFrames + htoaFrames
+    }
+
+    public var totalRedBookBytes: Int64 {
+        totalRedBookFramesLBA * 2352
+    }
+
+    public func autoSanitizeLongFilenames() {
+        for idx in stagedFiles.indices {
+            let name = stagedFiles[idx].name
+            if name.count > 31 {
+                let ext = stagedFiles[idx].url.pathExtension
+                let stem = stagedFiles[idx].url.deletingPathExtension().lastPathComponent
+                let maxStem = max(8, 30 - (ext.isEmpty ? 0 : ext.count + 1))
+                let trimmedStem = String(stem.prefix(maxStem))
+                let newName = ext.isEmpty ? trimmedStem : "\(trimmedStem).\(ext)"
+                stagedFiles[idx] = StagedFileEntry(
+                    id: stagedFiles[idx].id,
+                    url: stagedFiles[idx].url,
+                    name: newName,
+                    isDirectory: stagedFiles[idx].isDirectory,
+                    byteSize: stagedFiles[idx].byteSize,
+                    itemCount: stagedFiles[idx].itemCount,
+                    posixPermissions: stagedFiles[idx].posixPermissions,
+                    modifiedDate: stagedFiles[idx].modifiedDate,
+                    showOnMac: stagedFiles[idx].showOnMac,
+                    showOnPC: stagedFiles[idx].showOnPC
+                )
             }
         }
     }

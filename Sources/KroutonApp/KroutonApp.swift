@@ -195,6 +195,26 @@ struct KroutonMainWorkspaceView: View {
     @State private var romBitsetDVDROM: Bool = true
     @State private var romPerformOPCBeforeWrite: Bool = true
     @State private var xboxLayerBreakPreset: String = "Auto (.dvd / Calculate Optimal)"
+    // Red Book CD-DA & CD-Extra Mastering State
+    @State private var cdTextAlbumTitle: String = "KROUTON SESSIONS VOL. I"
+    @State private var cdTextAlbumPerformer: String = "THE OPTICAL COLLECTIVE"
+    @State private var cdTextUPCBarcode: String = "012345678905"
+    @State private var enableHiddenTrackOneHTOA: Bool = false
+    @State private var defaultAudioTransition: String = "2.0s Standard Pre-Gap (INDEX 00)"
+    @State private var auditioningTrackID: UUID? = nil
+    // Car-Safe MP3 / FLAC CD Mastering State
+    @State private var carSafeZeroPadNumbers: Bool = true
+    @State private var carSafeStripAppleDouble: Bool = true
+    @State private var carSafeEnforceID3v23: Bool = true
+    @State private var carSafeGenerateM3U: Bool = true
+    @State private var carSafeTranscodeTarget: String = "320 kbps CBR MP3 (Universal Car Deck)"
+    // Video Disc Authoring & Dual-Layer Break State
+    @State private var videoMenuTemplate: String = "Dark Studio Chapter Grid"
+    @State private var videoSystemStandard: String = "NTSC 16:9 (29.97 / 23.976p)"
+    @State private var videoAudioEncoding: String = "AC-3 Dolby Digital 5.1 (448 kbps)"
+    @State private var videoDualLayerBreakSector: String = "Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)"
+    // M-DISC Archival PAR2 State
+    @State private var mdiscPar2RedundancyPct: Double = 15.0
 
     private var primarySelectedDrive: OpticalDriveDevice? {
         if let firstBurnerCard = store.destinationQueue.first(where: { $0.kind == .physicalBurner }),
@@ -630,6 +650,7 @@ struct KroutonMainWorkspaceView: View {
     private var burnWorkspaceView: some View {
         let activeSpec = store.discFormats.first(where: { $0.id == store.selectedTaskID }) ?? store.discFormats[0]
         return VStack(alignment: .leading, spacing: 12) {
+            // Format Header Bar with Context-Sensitive Add Action
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 8) {
@@ -649,6 +670,7 @@ struct KroutonMainWorkspaceView: View {
 
                 if !store.stagedFiles.isEmpty {
                     Button {
+                        auditioningTrackID = nil
                         store.clearStagedFiles()
                     } label: {
                         HStack(spacing: 5) {
@@ -668,8 +690,8 @@ struct KroutonMainWorkspaceView: View {
                     promptToAddFiles()
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: "plus.rectangle.on.folder.fill")
-                        Text(activeSpec.sourceSupport == "Image Only" ? "Select Disc Image / ROM..." : "Add Media or Files...")
+                        Image(systemName: addButtonSymbol(for: activeSpec))
+                        Text(addButtonTitle(for: activeSpec))
                     }
                     .font(.system(size: 12, weight: .semibold))
                     .padding(.horizontal, 12)
@@ -683,10 +705,7 @@ struct KroutonMainWorkspaceView: View {
 
             Divider()
 
-            if activeSpec.id.hasPrefix("game-") {
-                retroConsoleROMMasteringDeck(for: activeSpec)
-            }
-
+            // Pre-Flight Sanity Banner (Always active across all formats)
             if let sanityWarning = currentPreFlightSanityWarning(for: activeSpec) {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.shield.fill")
@@ -703,6 +722,749 @@ struct KroutonMainWorkspaceView: View {
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.orange.opacity(0.4), lineWidth: 1))
             }
 
+            // FORMAT-ADAPTIVE WORKSPACE ROUTER
+            if activeSpec.isRedBookAudioFormat {
+                redBookAudioMasteringWorkspace(for: activeSpec)
+            } else if activeSpec.isCarSafeAudioFormat {
+                carSafeAudioMasteringWorkspace(for: activeSpec)
+            } else if activeSpec.isVideoAuthoringFormat {
+                videoDiscAuthoringWorkspace(for: activeSpec)
+            } else if activeSpec.id.hasPrefix("game-") {
+                retroConsoleROMWorkspace(for: activeSpec)
+            } else {
+                dataAndArchivalMasteringWorkspace(for: activeSpec)
+            }
+        }
+    }
+
+    private func addButtonTitle(for spec: DiscFormatSpec) -> String {
+        if spec.isRedBookAudioFormat {
+            return "Add Audio Tracks (WAV / AIFF / FLAC / MP3)..."
+        } else if spec.isCarSafeAudioFormat {
+            return "Add Audio Files or Album Folders..."
+        } else if spec.isVideoAuthoringFormat {
+            return "Add Video Titles (MKV / MP4 / MOV / VIDEO_TS)..."
+        } else if spec.id.hasPrefix("game-") {
+            return "Select Console Disc Image (.CUE / .BIN / .ISO / .RVZ)..."
+        } else {
+            return "Add Files or Folders..."
+        }
+    }
+
+    private func addButtonSymbol(for spec: DiscFormatSpec) -> String {
+        if spec.isRedBookAudioFormat || spec.isCarSafeAudioFormat {
+            return "waveform.badge.plus"
+        } else if spec.isVideoAuthoringFormat {
+            return "film.stack.fill"
+        } else if spec.id.hasPrefix("game-") {
+            return "gamecontroller.fill"
+        } else {
+            return "plus.rectangle.on.folder.fill"
+        }
+    }
+
+    // ==========================================================================
+    // 1. RED BOOK AUDIO CD (CD-DA) & CD-EXTRA WAVEBURNER MASTERING STUDIO
+    // ==========================================================================
+    private func redBookAudioMasteringWorkspace(for spec: DiscFormatSpec) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // WaveBurner CD-TEXT, UPC/MCN & HTOA Mastering Deck
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 10) {
+                    Image(systemName: "waveform.path.ecg.rectangle.fill")
+                        .foregroundStyle(store.activeAccent)
+                    Text("WAVEBURNER RED BOOK CD-DA & CD-TEXT MASTERING DECK (44.1 kHz / 16-BIT PCM • 2,352 B/SECTOR)")
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("CD-TEXT: 7-Bit ASCII Hardware Safe")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.green)
+                }
+
+                HStack(spacing: 14) {
+                    HStack(spacing: 5) {
+                        Text("Album Title:")
+                            .font(.caption.bold())
+                        TextField("ALBUM TITLE", text: $cdTextAlbumTitle)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 175)
+                    }
+                    HStack(spacing: 5) {
+                        Text("Performer:")
+                            .font(.caption.bold())
+                        TextField("ARTIST / PERFORMER", text: $cdTextAlbumPerformer)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 165)
+                    }
+                    HStack(spacing: 5) {
+                        Text("UPC / MCN:")
+                            .font(.caption.bold())
+                        TextField("012345678905", text: $cdTextUPCBarcode)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(size: 11, design: .monospaced))
+                            .frame(width: 115)
+                    }
+                    Spacer()
+                }
+
+                HStack(spacing: 16) {
+                    Picker("Default Track Splice:", selection: $defaultAudioTransition) {
+                        Text("2.0s Standard Pre-Gap (INDEX 00)").tag("2.0s Standard Pre-Gap (INDEX 00)")
+                        Text("0.0s Gapless Live Album (DAO)").tag("0.0s Gapless Live Album (DAO)")
+                        Text("2.5s Jam Equal-Power Crossfade").tag("2.5s Jam Equal-Power Crossfade")
+                    }
+                    .frame(width: 295)
+                    .font(.caption)
+
+                    Toggle("Hidden Track One Audio (HTOA in INDEX 00)", isOn: $enableHiddenTrackOneHTOA)
+                        .toggleStyle(.checkbox)
+                        .font(.caption.bold())
+
+                    if spec.id.contains("extra") || spec.technicalName.contains("Extra") {
+                        Text("• Session 1: Audio Tracks | Session 2: Multisession Data Track (XA)")
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(.cyan)
+                    }
+                    Spacer()
+                }
+            }
+            .padding(10)
+            .background(Color(NSColor.controlBackgroundColor))
+            .clipShape(RoundedRectangle(cornerRadius: 9))
+            .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
+
+            // Red Book PQ Tracklist Table
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(NSColor.controlBackgroundColor))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(
+                                isDropTargeted ? store.activeAccent : Color.primary.opacity(0.08),
+                                style: StrokeStyle(lineWidth: isDropTargeted ? 2.5 : 1.0, dash: store.stagedFiles.isEmpty ? [6, 4] : [])
+                            )
+                    )
+
+                if store.stagedFiles.isEmpty {
+                    VStack(spacing: 10) {
+                        Image(systemName: "waveform.circle.fill")
+                            .font(.system(size: 36))
+                            .foregroundStyle(store.activeAccent.opacity(0.85))
+                        Text("Drop Audio Tracks (WAV, AIFF, FLAC, ALAC, MP3, M4A) to Build Red Book PQ Sheet")
+                            .font(.headline)
+                        Text("Krouton decodes all audio to 44.1 kHz / 16-bit Stereo PCM on disk before burning (Zero Underrun Guarantee).")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    VStack(spacing: 0) {
+                        HStack(spacing: 10) {
+                            Text("TRK")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 34, alignment: .leading)
+                            Text("TRACK TITLE & CD-TEXT PERFORMER")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("ISRC CODE")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 104, alignment: .center)
+                            Text("INDEX 00 / SPLICE")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 145, alignment: .center)
+                            Text("MM:SS:FF (75 FPS)")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 98, alignment: .trailing)
+                            Text("AUDITION")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 72, alignment: .center)
+                            Spacer().frame(width: 20)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(Color.black.opacity(0.18))
+                        Divider()
+
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                ForEach(Array(store.stagedFiles.enumerated()), id: \.element.id) { idx, entry in
+                                    let trackNum = idx + 1
+                                    let cleanTitle = entry.url.deletingPathExtension().lastPathComponent
+                                    let estSeconds = max(18, min(680, Int(entry.byteSize / 36_000)))
+                                    let mm = estSeconds / 60
+                                    let ss = estSeconds % 60
+                                    let ff = (idx * 17) % 75
+                                    let isrcCode = String(format: "US-KRT-26-%05d", trackNum)
+                                    let isAuditioningThis = (auditioningTrackID == entry.id)
+
+                                    HStack(spacing: 10) {
+                                        Text(idx == 0 && enableHiddenTrackOneHTOA ? "00*" : String(format: "%02d", trackNum))
+                                            .font(.system(size: 12, weight: .heavy, design: .monospaced))
+                                            .foregroundStyle(store.activeAccent)
+                                            .frame(width: 34, alignment: .leading)
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(cleanTitle)
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .lineLimit(1)
+                                            Text("Performer: \(cdTextAlbumPerformer) • Source: \(entry.url.pathExtension.uppercased()) -> 44.1 kHz 16-bit PCM")
+                                                .font(.system(size: 10))
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(1)
+                                        }
+
+                                        Spacer()
+
+                                        Text(isrcCode)
+                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 104, alignment: .center)
+
+                                        Text(defaultAudioTransition.components(separatedBy: " (").first ?? "2.0s Pre-Gap")
+                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                            .foregroundStyle(.cyan)
+                                            .frame(width: 145, alignment: .center)
+
+                                        Text(String(format: "%02d:%02d:%02d", mm, ss, ff))
+                                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                            .foregroundStyle(store.activeAccent)
+                                            .frame(width: 98, alignment: .trailing)
+
+                                        Button {
+                                            if isAuditioningThis {
+                                                auditioningTrackID = nil
+                                            } else {
+                                                auditioningTrackID = entry.id
+                                                NSSound.beep()
+                                            }
+                                        } label: {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: isAuditioningThis ? "stop.fill" : "play.fill")
+                                                Text(isAuditioningThis ? "Stop" : "Splice")
+                                            }
+                                            .font(.system(size: 9, weight: .bold))
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 3)
+                                            .background(isAuditioningThis ? Color.green : store.activeAccent.opacity(0.18))
+                                            .foregroundStyle(isAuditioningThis ? Color.black : store.activeAccent)
+                                            .clipShape(Capsule())
+                                        }
+                                        .buttonStyle(.plain)
+                                        .frame(width: 72, alignment: .center)
+                                        .help("Audition Track \(trackNum) -> Track \(trackNum + 1) splice / crossfade transition")
+
+                                        Button {
+                                            store.removeStagedFile(id: entry.id)
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .frame(width: 18, alignment: .center)
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    Divider()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+                handleFinderDrop(providers: providers)
+            }
+        }
+    }
+
+    // ==========================================================================
+    // 2. CAR-SAFE MP3 / FLAC AUDIO CD WORKSPACE (Head-Unit Sorting & Sanitizer)
+    // ==========================================================================
+    private func carSafeAudioMasteringWorkspace(for spec: DiscFormatSpec) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 10) {
+                    Image(systemName: "car.rear.waves.up.fill")
+                        .foregroundStyle(store.activeAccent)
+                    Text("CAR-SAFE ISO9660 + JOLIET AUDIO ENGINE (PIONEER / ALPINE / SONY / OEM HEAD-UNIT SAFE)")
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("AppleDouble ._* & .DS_Store Purged")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.green)
+                }
+
+                HStack(spacing: 14) {
+                    HStack(spacing: 6) {
+                        Text("Disc Volume Title:")
+                            .font(.caption.bold())
+                        TextField("CAR_MP3_DISC", text: $store.discVolumeTitle)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 160)
+                    }
+                    Picker("Audio Output Profile:", selection: $carSafeTranscodeTarget) {
+                        Text("320 kbps CBR MP3 (Universal Car Deck)").tag("320 kbps CBR MP3 (Universal Car Deck)")
+                        Text("192 kbps CBR MP3 (Extended 12-Hour Roadtrip)").tag("192 kbps CBR MP3 (Extended 12-Hour Roadtrip)")
+                        Text("16-Bit FLAC / WAV Passthrough (Modern Head Units)").tag("16-Bit FLAC / WAV Passthrough (Modern Head Units)")
+                    }
+                    .frame(width: 340)
+                    .font(.caption)
+                    Spacer()
+                }
+
+                HStack(spacing: 16) {
+                    Toggle("Zero-Pad Track Prefixes (001 - Title.mp3)", isOn: $carSafeZeroPadNumbers)
+                        .toggleStyle(.checkbox)
+                        .font(.caption.bold())
+                    Toggle("Strip macOS .DS_Store & ._* Forks", isOn: $carSafeStripAppleDouble)
+                        .toggleStyle(.checkbox)
+                        .font(.caption.bold())
+                    Toggle("Enforce ID3v2.3 ISO-8859-1 Tags", isOn: $carSafeEnforceID3v23)
+                        .toggleStyle(.checkbox)
+                        .font(.caption)
+                    Toggle("Write Root .M3U Playlist", isOn: $carSafeGenerateM3U)
+                        .toggleStyle(.checkbox)
+                        .font(.caption)
+                    Spacer()
+                }
+            }
+            .padding(10)
+            .background(Color(NSColor.controlBackgroundColor))
+            .clipShape(RoundedRectangle(cornerRadius: 9))
+            .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(NSColor.controlBackgroundColor))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(
+                                isDropTargeted ? store.activeAccent : Color.primary.opacity(0.08),
+                                style: StrokeStyle(lineWidth: isDropTargeted ? 2.5 : 1.0, dash: store.stagedFiles.isEmpty ? [6, 4] : [])
+                            )
+                    )
+
+                if store.stagedFiles.isEmpty {
+                    VStack(spacing: 10) {
+                        Image(systemName: "music.note.list")
+                            .font(.system(size: 36))
+                            .foregroundStyle(store.activeAccent.opacity(0.85))
+                        Text("Drop MP3, FLAC, M4A, or Album Folders to Build a Car-Safe Audio Disc")
+                            .font(.headline)
+                        Text("Automatically numbers files in raw FAT/ISO directory order and strips hidden macOS resource forks so car stereos never freeze.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    VStack(spacing: 0) {
+                        HStack(spacing: 10) {
+                            Text("ORDER")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 44, alignment: .leading)
+                            Text("CAR-SAFE JOLIET / ISO9660 FILENAME")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("TAG & CODEC PROFILE")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 185, alignment: .center)
+                            Text("SECTORS")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 86, alignment: .trailing)
+                            Text("SIZE")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 72, alignment: .trailing)
+                            Spacer().frame(width: 20)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(Color.black.opacity(0.18))
+                        Divider()
+
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                ForEach(Array(store.stagedFiles.enumerated()), id: \.element.id) { idx, entry in
+                                    let baseName = entry.url.deletingPathExtension().lastPathComponent
+                                    let displayFile = carSafeZeroPadNumbers
+                                        ? String(format: "%03d - %@.mp3", idx + 1, String(baseName.prefix(48)))
+                                        : "\(baseName).mp3"
+                                    HStack(spacing: 10) {
+                                        Text(String(format: "#%03d", idx + 1))
+                                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                            .foregroundStyle(store.activeAccent)
+                                            .frame(width: 44, alignment: .leading)
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(displayFile)
+                                                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                                                .lineLimit(1)
+                                            Text("Source: \(entry.name) • AppleDouble Fork Stripped")
+                                                .font(.system(size: 10))
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(1)
+                                        }
+                                        Spacer()
+                                        Text(carSafeEnforceID3v23 ? "ID3v2.3 • 320k CBR" : "ID3v2.4 • Passthrough")
+                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                            .foregroundStyle(.green)
+                                            .frame(width: 185, alignment: .center)
+                                        Text("\(entry.sectorsLBA) LBA")
+                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                            .foregroundStyle(store.activeAccent)
+                                            .frame(width: 86, alignment: .trailing)
+                                        Text(ByteCountFormatter.string(fromByteCount: entry.byteSize, countStyle: .file))
+                                            .font(.system(size: 11, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 72, alignment: .trailing)
+                                        Button {
+                                            store.removeStagedFile(id: entry.id)
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .frame(width: 18, alignment: .center)
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    Divider()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+                handleFinderDrop(providers: providers)
+            }
+        }
+    }
+
+    // ==========================================================================
+    // 3. VIDEO DISC AUTHORING STUDIO (DVD-Video, AVCHD, BD-R SL/DL, UHD-BD)
+    // ==========================================================================
+    private func videoDiscAuthoringWorkspace(for spec: DiscFormatSpec) -> some View {
+        let isDualLayer = spec.technicalName.contains("DL") || spec.technicalName.contains("DVD-9") || spec.colloquialName.contains("50 GB") || spec.colloquialName.contains("UHD")
+        let isBluRay = spec.technicalName.contains("BD") || spec.technicalName.contains("AVCHD")
+        return VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 10) {
+                    Image(systemName: "film.stack.fill")
+                        .foregroundStyle(store.activeAccent)
+                    Text(isBluRay ? "BLU-RAY / BDMV & AVCHD AUTHORING STUDIO (UDF 2.50 / 2.60)" : "DVD-VIDEO AUTHORING & FIT-TO-DISC STUDIO (UDF 1.02 + ISO9660 BRIDGE)")
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(isBluRay ? "BDMV + CERTIFICATE Folders Auto-Built" : "VIDEO_TS + Empty AUDIO_TS Enforced")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.green)
+                }
+
+                HStack(spacing: 14) {
+                    HStack(spacing: 5) {
+                        Text("Disc Title:")
+                            .font(.caption.bold())
+                        TextField("KROUTON_VIDEO", text: $store.discVolumeTitle)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 155)
+                    }
+                    Picker("Menu Style:", selection: $videoMenuTemplate) {
+                        Text("Dark Studio Chapter Grid").tag("Dark Studio Chapter Grid")
+                        Text("No Menu (Auto-Play Title 1 on Insert)").tag("No Menu (Auto-Play Title 1 on Insert)")
+                        Text("Criterion Minimalist Track List").tag("Criterion Minimalist Track List")
+                    }
+                    .frame(width: 245)
+                    .font(.caption)
+
+                    Picker("System:", selection: $videoSystemStandard) {
+                        Text("NTSC 16:9 (29.97 / 23.976p)").tag("NTSC 16:9 (29.97 / 23.976p)")
+                        Text("PAL 16:9 (25 fps)").tag("PAL 16:9 (25 fps)")
+                        Text("UHD 2160p HDR10 (HEVC 10-Bit)").tag("UHD 2160p HDR10 (HEVC 10-Bit)")
+                    }
+                    .frame(width: 225)
+                    .font(.caption)
+                    Spacer()
+                }
+
+                HStack(spacing: 16) {
+                    Toggle("Fit-to-Disc Smart Requantizer (DVD-9 -> DVD-5 / BD-50 -> BD-25)", isOn: $fitToDiscDVD9Shrink)
+                        .toggleStyle(.checkbox)
+                        .font(.caption.bold())
+
+                    if isDualLayer {
+                        Picker("Layer 0 -> Layer 1 Break:", selection: $videoDualLayerBreakSector) {
+                            Text("Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)").tag("Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)")
+                            Text("50/50 Balanced Split (Layer 0 >= Layer 1 Rule)").tag("50/50 Balanced Split (Layer 0 >= Layer 1 Rule)")
+                            Text("Seamless Layer Break (SPLB Flag Set)").tag("Seamless Layer Break (SPLB Flag Set)")
+                        }
+                        .frame(width: 340)
+                        .font(.caption)
+                    }
+                    Spacer()
+                }
+            }
+            .padding(10)
+            .background(Color(NSColor.controlBackgroundColor))
+            .clipShape(RoundedRectangle(cornerRadius: 9))
+            .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(NSColor.controlBackgroundColor))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(
+                                isDropTargeted ? store.activeAccent : Color.primary.opacity(0.08),
+                                style: StrokeStyle(lineWidth: isDropTargeted ? 2.5 : 1.0, dash: store.stagedFiles.isEmpty ? [6, 4] : [])
+                            )
+                    )
+
+                if store.stagedFiles.isEmpty {
+                    VStack(spacing: 10) {
+                        Image(systemName: "film.circle.fill")
+                            .font(.system(size: 36))
+                            .foregroundStyle(store.activeAccent.opacity(0.85))
+                        Text("Drop Video Files (MKV, MP4, MOV, ProRes) or a VIDEO_TS / BDMV Folder")
+                            .font(.headline)
+                        Text("Author standalone set-top player discs with AC-3 / DTS audio, chapter markers, and 32 KB IFO/BUP ECC sector padding.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    VStack(spacing: 0) {
+                        HStack(spacing: 10) {
+                            Text("TITLE")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 44, alignment: .leading)
+                            Text("VIDEO STREAM & CHAPTER TOPOLOGY")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("VIDEO / AUDIO PIPELINE")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 195, alignment: .center)
+                            Text("SECTORS")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 86, alignment: .trailing)
+                            Text("SIZE")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 72, alignment: .trailing)
+                            Spacer().frame(width: 20)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(Color.black.opacity(0.18))
+                        Divider()
+
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                ForEach(Array(store.stagedFiles.enumerated()), id: \.element.id) { idx, entry in
+                                    let chapters = max(4, min(32, Int(entry.byteSize / 150_000_000) + 6))
+                                    HStack(spacing: 10) {
+                                        Text(String(format: "VTS_%02d", idx + 1))
+                                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                            .foregroundStyle(store.activeAccent)
+                                            .frame(width: 44, alignment: .leading)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(entry.name)
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .lineLimit(1)
+                                            Text("\(chapters) Auto-Chapters (Every 5 Min) • \(videoSystemStandard)")
+                                                .font(.system(size: 10))
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(1)
+                                        }
+                                        Spacer()
+                                        Text(isBluRay ? "H.264/HEVC + AC-3 5.1" : "MPEG-2 VBR + AC-3 448k")
+                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                            .foregroundStyle(.cyan)
+                                            .frame(width: 195, alignment: .center)
+                                        Text("\(entry.sectorsLBA) LBA")
+                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                            .foregroundStyle(store.activeAccent)
+                                            .frame(width: 86, alignment: .trailing)
+                                        Text(ByteCountFormatter.string(fromByteCount: entry.byteSize, countStyle: .file))
+                                            .font(.system(size: 11, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 72, alignment: .trailing)
+                                        Button {
+                                            store.removeStagedFile(id: entry.id)
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .frame(width: 18, alignment: .center)
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    Divider()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+                handleFinderDrop(providers: providers)
+            }
+        }
+    }
+
+    // ==========================================================================
+    // 4. RETRO CONSOLE ROM & SECTOR VERIFICATION WORKSPACE (PS1/PS2/GC/Wii/Xbox)
+    // ==========================================================================
+    private func retroConsoleROMWorkspace(for spec: DiscFormatSpec) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            retroConsoleROMMasteringDeck(for: spec)
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(NSColor.controlBackgroundColor))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(
+                                isDropTargeted ? store.activeAccent : Color.primary.opacity(0.08),
+                                style: StrokeStyle(lineWidth: isDropTargeted ? 2.5 : 1.0, dash: store.stagedFiles.isEmpty ? [6, 4] : [])
+                            )
+                    )
+
+                if store.stagedFiles.isEmpty {
+                    VStack(spacing: 10) {
+                        Image(systemName: "gamecontroller.fill")
+                            .font(.system(size: 36))
+                            .foregroundStyle(store.activeAccent.opacity(0.85))
+                        Text("Drop Console Disc Image (.CUE + .BIN, .ISO, .GCM, .RVZ, .WBFS, or .DVD)")
+                            .font(.headline)
+                        Text("Krouton verifies 2,352-byte Mode 2 XA sector headers, System Area boot licenses, and Dual-Layer XGD break offsets.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    VStack(spacing: 0) {
+                        HStack(spacing: 10) {
+                            Text("ROM IMAGE & SECTOR TOPOLOGY")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .padding(.leading, 36)
+                            Spacer()
+                            Text("CONSOLE BOOT / SECTOR MODE")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 210, alignment: .center)
+                            Text("SECTORS")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 86, alignment: .trailing)
+                            Text("SIZE")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 72, alignment: .trailing)
+                            Spacer().frame(width: 20)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(Color.black.opacity(0.18))
+                        Divider()
+
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                ForEach(store.stagedFiles) { entry in
+                                    let ext = entry.url.pathExtension.lowercased()
+                                    let modeBadge = (ext == "bin" || ext == "cue") ? "RAW 2,352 B/sec (Mode 2 XA)" : "2,048 B/sec (UDF/ISO/XDVDFS)"
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "opticaldisc.fill")
+                                            .foregroundStyle(store.activeAccent)
+                                            .font(.system(size: 15))
+                                            .frame(width: 24)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(entry.name)
+                                                .font(.system(size: 12, weight: .semibold))
+                                            Text("\(entry.url.path) • Redump / Boot Sector Ready")
+                                                .font(.system(size: 10))
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(1)
+                                        }
+                                        Spacer()
+                                        Text(modeBadge)
+                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                            .foregroundStyle(.green)
+                                            .frame(width: 210, alignment: .center)
+                                        Text("\(entry.sectorsLBA) LBA")
+                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                            .foregroundStyle(store.activeAccent)
+                                            .frame(width: 86, alignment: .trailing)
+                                        Text(ByteCountFormatter.string(fromByteCount: entry.byteSize, countStyle: .file))
+                                            .font(.system(size: 11, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 72, alignment: .trailing)
+                                        Button {
+                                            store.removeStagedFile(id: entry.id)
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .frame(width: 18, alignment: .center)
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    Divider()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+                handleFinderDrop(providers: providers)
+            }
+        }
+    }
+
+    // ==========================================================================
+    // 5. DATA & ARCHIVAL MASTERING WORKSPACE (UDF / HFS+ / ISO & M-DISC + PAR2)
+    // ==========================================================================
+    private func dataAndArchivalMasteringWorkspace(for activeSpec: DiscFormatSpec) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if activeSpec.isMDiscParityFormat {
+                HStack(spacing: 14) {
+                    Image(systemName: "lock.shield.fill")
+                        .foregroundStyle(store.activeAccent)
+                    Text("M-DISC INORGANIC ROCK-LAYER VAULT + PAR2 SURFACE PARITY:")
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    Text("PAR2 Redundancy: \(Int(mdiscPar2RedundancyPct))%")
+                        .font(.caption.bold())
+                        .foregroundStyle(store.activeAccent)
+                    Slider(value: $mdiscPar2RedundancyPct, in: 5...30, step: 5)
+                        .frame(width: 150)
+                    Text("• Generates .par2 Reed-Solomon recovery blocks + SHA-256 manifest")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(10)
+                .background(Color(NSColor.controlBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 9))
+                .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
+            }
+
             HStack(spacing: 14) {
                 HStack(spacing: 6) {
                     Image(systemName: "opticaldisc")
@@ -714,31 +1476,29 @@ struct KroutonMainWorkspaceView: View {
                         .frame(width: 190)
                 }
 
-                if activeSpec.isDataDisc {
-                    Toggle("Customize Finder & Explorer Window Layout", isOn: $enableCustomFinderLayoutTab)
-                        .toggleStyle(.checkbox)
-                        .font(.caption)
-                        .onChange(of: enableCustomFinderLayoutTab) { _, enabled in
-                            activeDataWorkspaceTab = enabled ? 1 : 0
-                        }
-
-                    if enableCustomFinderLayoutTab {
-                        Picker("", selection: $activeDataWorkspaceTab) {
-                            Text("File List").tag(0)
-                            Text("Custom Finder Window Preview").tag(1)
-                        }
-                        .pickerStyle(.segmented)
-                        .frame(width: 240)
-                    } else {
-                        Label("File List", systemImage: "list.bullet.indent")
-                            .font(.caption.bold())
-                            .foregroundStyle(.secondary)
+                Toggle("Customize Finder & Explorer Window Layout", isOn: $enableCustomFinderLayoutTab)
+                    .toggleStyle(.checkbox)
+                    .font(.caption)
+                    .onChange(of: enableCustomFinderLayoutTab) { _, enabled in
+                        activeDataWorkspaceTab = enabled ? 1 : 0
                     }
+
+                if enableCustomFinderLayoutTab {
+                    Picker("", selection: $activeDataWorkspaceTab) {
+                        Text("File List").tag(0)
+                        Text("Custom Finder Window Preview").tag(1)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 240)
+                } else {
+                    Label("Hybrid File Tree (Per-File Mac / PC Visibility)", systemImage: "list.bullet.indent")
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
                 }
                 Spacer()
             }
 
-            if activeDataWorkspaceTab == 1 && enableCustomFinderLayoutTab && activeSpec.isDataDisc {
+            if activeDataWorkspaceTab == 1 && enableCustomFinderLayoutTab {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 20) {
                         ColorPicker("Finder Window Background:", selection: $finderBgColor)
@@ -788,27 +1548,24 @@ struct KroutonMainWorkspaceView: View {
                             Image(systemName: "arrow.down.doc.fill")
                                 .font(.system(size: 34))
                                 .foregroundStyle(store.activeAccent.opacity(0.8))
-                            Text("Drag & Drop Files, Folders, or Disc Images Here from Finder")
+                            Text("Drag & Drop Files, Folders, or Archives Here from Finder")
                                 .font(.headline)
-                            Text("Or click 'Add Media or Files...' above to add items to the File List.")
+                            Text("Use the [Mac] and [PC] pills on each row to control which OS sees each file on hybrid discs.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                     } else {
                         VStack(spacing: 0) {
-                            // Straightened Column Header Bar
                             HStack(spacing: 12) {
                                 Text("ITEM NAME & PATH")
                                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                     .padding(.leading, 36)
                                 Spacer()
-                                if activeSpec.isDataDisc {
-                                    Text("OS VISIBILITY")
-                                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                        .foregroundStyle(.secondary)
-                                        .frame(width: 112, alignment: .center)
-                                }
+                                Text("OS VISIBILITY")
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 112, alignment: .center)
                                 Text("SECTORS")
                                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                                     .foregroundStyle(.secondary)
@@ -827,24 +1584,23 @@ struct KroutonMainWorkspaceView: View {
                             ScrollView {
                                 VStack(spacing: 0) {
                                     ForEach(store.stagedFiles) { entry in
-                                    HStack(spacing: 12) {
-                                        Image(systemName: entry.isDirectory ? "folder.fill" : "doc.fill")
-                                            .foregroundStyle(store.activeAccent)
-                                            .font(.system(size: 15))
-                                            .frame(width: 24)
+                                        HStack(spacing: 12) {
+                                            Image(systemName: entry.isDirectory ? "folder.fill" : "doc.fill")
+                                                .foregroundStyle(store.activeAccent)
+                                                .font(.system(size: 15))
+                                                .frame(width: 24)
 
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(entry.name)
-                                                .font(.system(size: 12, weight: .semibold))
-                                            Text("\(entry.url.path) • Perms: \(entry.posixPermissions) • \(entry.isDirectory ? "\(entry.itemCount) files inside" : "Single file")")
-                                                .font(.system(size: 10))
-                                                .foregroundStyle(.secondary)
-                                                .lineLimit(1)
-                                        }
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(entry.name)
+                                                    .font(.system(size: 12, weight: .semibold))
+                                                Text("\(entry.url.path) • Perms: \(entry.posixPermissions) • \(entry.isDirectory ? "\(entry.itemCount) files inside" : "Single file")")
+                                                    .font(.system(size: 10))
+                                                    .foregroundStyle(.secondary)
+                                                    .lineLimit(1)
+                                            }
 
-                                        Spacer()
+                                            Spacer()
 
-                                        if activeSpec.isDataDisc {
                                             HStack(spacing: 5) {
                                                 Button {
                                                     store.toggleMacVisibility(id: entry.id)
@@ -885,31 +1641,30 @@ struct KroutonMainWorkspaceView: View {
                                                 .help(entry.showOnPC ? "Visible on Windows Explorer (ISO9660 / Joliet / UDF Tree) — Click to hide from PC" : "Hidden on Windows PC — Click to show on PC")
                                             }
                                             .frame(width: 112, alignment: .center)
-                                        }
 
-                                        Text("\(entry.sectorsLBA) LBA")
-                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                                            .foregroundStyle(store.activeAccent)
-                                            .frame(width: 86, alignment: .trailing)
+                                            Text("\(entry.sectorsLBA) LBA")
+                                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                                .foregroundStyle(store.activeAccent)
+                                                .frame(width: 86, alignment: .trailing)
 
-                                        Text(ByteCountFormatter.string(fromByteCount: entry.byteSize, countStyle: .file))
-                                            .font(.system(size: 11, design: .monospaced))
-                                            .foregroundStyle(.secondary)
-                                            .frame(width: 72, alignment: .trailing)
-
-                                        Button {
-                                            store.removeStagedFile(id: entry.id)
-                                        } label: {
-                                            Image(systemName: "xmark.circle.fill")
+                                            Text(ByteCountFormatter.string(fromByteCount: entry.byteSize, countStyle: .file))
+                                                .font(.system(size: 11, design: .monospaced))
                                                 .foregroundStyle(.secondary)
+                                                .frame(width: 72, alignment: .trailing)
+
+                                            Button {
+                                                store.removeStagedFile(id: entry.id)
+                                            } label: {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                            .buttonStyle(.plain)
+                                            .frame(width: 18, alignment: .center)
                                         }
-                                        .buttonStyle(.plain)
-                                        .frame(width: 18, alignment: .center)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 8)
+                                        Divider()
                                     }
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 8)
-                                    Divider()
-                                }
                                 }
                             }
                         }
@@ -2890,5 +3645,29 @@ struct FloatingPhaseScopeWindowView: View {
         .background(Color(NSColor.controlBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+    }
+}
+
+
+// MARK: - Format Classification Extension for Adaptive Central Workspaces
+extension DiscFormatSpec {
+    var isRedBookAudioFormat: Bool {
+        let lower = id.lowercased() + " " + technicalName.lowercased() + " " + bookOrFileSystem.lowercased()
+        return lower.contains("cd-da") || lower.contains("red book") || lower.contains("cd-extra") || lower.contains("blue book") || id == "audio-cdda" || id == "audio-cdextra"
+    }
+
+    var isCarSafeAudioFormat: Bool {
+        let lower = id.lowercased() + " " + technicalName.lowercased() + " " + colloquialName.lowercased()
+        return lower.contains("mp3") || lower.contains("car-safe") || lower.contains("iso9660 / udf audio") || id == "audio-mp3"
+    }
+
+    var isVideoAuthoringFormat: Bool {
+        let lower = id.lowercased() + " " + technicalName.lowercased() + " " + colloquialName.lowercased()
+        return lower.contains("dvd-video") || lower.contains("avchd") || lower.contains("bdmv") || lower.contains("uhd-bd") || lower.contains("blu-ray video") || id.hasPrefix("video-") || id.hasPrefix("bd-")
+    }
+
+    var isMDiscParityFormat: Bool {
+        let lower = id.lowercased() + " " + technicalName.lowercased()
+        return lower.contains("m-disc") || lower.contains("par2")
     }
 }
