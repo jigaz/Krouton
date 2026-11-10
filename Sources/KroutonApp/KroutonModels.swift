@@ -402,6 +402,7 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var enableVMTestBootInDepot: Bool = true
 
     @Published public var stagedDepotItemID: String? = nil
+    @Published public var rejectedDropNotice: String? = nil
     @Published public var selectedDepotHeroItemID: String? = "sysrescue-11"
     @Published public var depotDownloadProgress: [String: Double] = [:]
     @Published public var isSearchingInternetArchive: Bool = false
@@ -650,7 +651,68 @@ public final class KroutonStateStore: ObservableObject {
         }
     }
 
+    public func activeFormatSpec() -> DiscFormatSpec {
+        discFormats.first(where: { $0.id == selectedTaskID }) ?? discFormats[0]
+    }
+
+    public func isURLCompatible(_ url: URL, for spec: DiscFormatSpec) -> Bool {
+        var isDir: ObjCBool = false
+        let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
+        let ext = url.pathExtension.lowercased()
+        let allowed = spec.allowedFileExtensions
+        if allowed.isEmpty {
+            return true // Data & Archival discs accept any file or folder
+        }
+        if isDir.boolValue && exists {
+            if !spec.allowsDirectorySelection { return false }
+            // For Video or Audio formats, only accept a directory if it is VIDEO_TS/BDMV or contains matching media files
+            let dirName = url.lastPathComponent.uppercased()
+            if spec.filterGroup == .video && (dirName == "VIDEO_TS" || dirName == "BDMV") {
+                return true
+            }
+            if let children = try? FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) {
+                return children.contains { allowed.contains($0.pathExtension.lowercased()) }
+            }
+            return false
+        }
+        return allowed.contains(ext)
+    }
+
+    public func purgeIncompatibleStagedFilesForCurrentTask() {
+        guard selectedCategory == .burn else { return }
+        let spec = activeFormatSpec()
+        guard !spec.allowedFileExtensions.isEmpty else { return }
+        let beforeCount = stagedFiles.count
+        stagedFiles.removeAll { !isURLCompatible($0.url, for: spec) }
+        if stagedFiles.count < beforeCount {
+            stagedDepotItemID = nil
+        }
+    }
+
     public func addStagedURLs(_ urls: [URL]) {
+        let spec = activeFormatSpec()
+        var compatibleURLs: [URL] = []
+        var rejectedNames: [String] = []
+        for u in urls {
+            if selectedCategory == .burn && !isURLCompatible(u, for: spec) {
+                rejectedNames.append(u.lastPathComponent)
+            } else {
+                compatibleURLs.append(u)
+            }
+        }
+        if !rejectedNames.isEmpty {
+            let joined = rejectedNames.prefix(2).joined(separator: ", ")
+            rejectedDropNotice = "Rejected \(joined): \(spec.technicalName) only accepts \(spec.expectedMediaDescription)."
+            NSSound.beep()
+            announceForVoiceOver(rejectedDropNotice ?? "Incompatible file rejected")
+        } else {
+            rejectedDropNotice = nil
+        }
+        guard !compatibleURLs.isEmpty else { return }
+        let urls = compatibleURLs
+        if spec.id == "image-burn" || spec.filterGroup == .console {
+            stagedFiles.removeAll() // Single image formats replace the previous image
+        }
         for url in urls {
             if !stagedFiles.contains(where: { $0.url == url }) {
                 let entry = DriveManager.inspectFileOrFolder(url: url)
@@ -886,6 +948,8 @@ public final class KroutonStateStore: ObservableObject {
 
         if jumpToInspector {
             selectedCategory = .burn
+            selectedTaskID = "image-burn"
+        } else if selectedCategory == .burn && activeFormatSpec().id != "image-burn" {
             selectedTaskID = "image-burn"
         }
     }
@@ -1142,5 +1206,52 @@ extension DepotCatalogItem {
                 "/BOOT/CATALOG.BIN"
             ]
         }
+    }
+}
+
+
+// MARK: - Strict Per-Format File Type Compatibility & OpenPanel UTType Rules
+extension DiscFormatSpec {
+    /// Returns the exact lowercase file extensions allowed for this optical format.
+    /// Empty array means any file/folder is permitted (New Data & Archival Discs).
+    public var allowedFileExtensions: [String] {
+        if id == "audio-cdda" || id == "audio-cdextra" || id == "audio-dtscd" || id == "audio-dvda" {
+            return ["wav", "aiff", "aif", "flac", "alac", "m4a", "mp3", "ogg", "opus", "wv", "ape", "dsf", "dff", "caf", "ac3", "dts"]
+        } else if id == "audio-mp3" {
+            return ["mp3", "flac", "m4a", "wav", "ogg", "aac", "wma", "opus"]
+        } else if filterGroup == .video || id.hasPrefix("video-") || id.hasPrefix("bd-") || id == "avchd-dvd" {
+            // Video authoring formats NEVER allow .iso/.dmg/.bin disc images!
+            return ["mkv", "mp4", "m4v", "mov", "m2ts", "mts", "ts", "vob", "IFO", "ifo", "avi", "webm", "mpg", "mpeg", "wmv", "hevc", "h264", "bdmv"]
+        } else if id == "image-burn" || sourceSupport == "Disc Image" {
+            return ["iso", "dmg", "cdr", "bin", "cue", "img", "toast", "nrg", "mds", "mdf", "ccd"]
+        } else if id == "game-wii" {
+            return ["rvz", "wbfs", "iso", "gcm", "wia", "ciso"]
+        } else if id == "game-gc" {
+            return ["rvz", "gcm", "iso", "ciso"]
+        } else if id == "game-ps2" {
+            return ["iso", "bin", "cue", "mdf", "mds", "chd"]
+        } else if id == "game-ps1" {
+            return ["cue", "bin", "chd", "ccd", "img", "sub", "iso"]
+        } else if id == "game-xbox" {
+            return ["iso", "xiso", "dvd"]
+        } else if filterGroup == .console {
+            return ["cue", "bin", "iso", "chd", "cdi", "gdi", "rvz", "gcm"]
+        }
+        return [] // Data & M-DISC formats accept any file or directory
+    }
+
+    public var allowsDirectorySelection: Bool {
+        if id == "image-burn" || filterGroup == .console {
+            return false // Single disc image or ROM file only
+        }
+        return true // Audio/Video folders (e.g. Album folders, VIDEO_TS, BDMV) and Data folders are allowed
+    }
+
+    public var expectedMediaDescription: String {
+        if filterGroup == .audio { return "Audio tracks (.wav, .flac, .aiff, .m4a, .mp3)" }
+        if filterGroup == .video { return "Video streams (.mkv, .mp4, .mov, .m2ts, VIDEO_TS, BDMV)" }
+        if id == "image-burn" { return "Disc images (.iso, .dmg, .bin/.cue, .cdr, .img, .toast)" }
+        if filterGroup == .console { return "Console ROM disc images (.cue/.bin, .iso, .rvz, .gcm, .wbfs)" }
+        return "Files and folders"
     }
 }

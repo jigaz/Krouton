@@ -190,8 +190,11 @@ struct KroutonMainWorkspaceView: View {
     @State private var labelSubtitle: String = "2026 MASTER EDITION"
     @State private var autoLabelSearchQuery: String = "Dark Side of the Moon"
     @State private var depotSearchQuery: String = ""
-    @State private var leftColumnLiveWidth: CGFloat = 265
-    @State private var rightColumnLiveWidth: CGFloat = 360
+    @State private var leftColumnLiveWidth: CGFloat = 255
+    @State private var rightColumnLiveWidth: CGFloat = 345
+    @State private var leftSidebarDragStartWidth: CGFloat? = nil
+    @State private var rightSidebarDragStartWidth: CGFloat? = nil
+    @State private var dropRejectShakePhase: CGFloat = 0
     @State private var isDropTargeted: Bool = false
     @State private var activeDiscPopoverCardID: UUID? = nil
     @State private var romWriteModeDAO96SubQ: Bool = true
@@ -255,18 +258,87 @@ struct KroutonMainWorkspaceView: View {
             topProToolbar
             Divider()
 
-            HSplitView {
-                leftFormatChooserColumn
-                    .frame(minWidth: 168, idealWidth: 255, maxWidth: 360, maxHeight: .infinity)
+            GeometryReader { windowGeo in
+                let totalW = windowGeo.size.width
+                let minCenterW: CGFloat = 380
+                let maxAllowedLeft = max(165, min(360, totalW - rightColumnLiveWidth - minCenterW))
+                let clampedLeft = min(max(165, leftColumnLiveWidth), maxAllowedLeft)
+                let maxAllowedRight = max(225, min(460, totalW - clampedLeft - minCenterW))
+                let clampedRight = min(max(225, rightColumnLiveWidth), maxAllowedRight)
 
-                centerAdaptableWorkspace
-                    .frame(minWidth: 410, idealWidth: 740, maxWidth: .infinity, maxHeight: .infinity)
+                HStack(spacing: 0) {
+                    leftFormatChooserColumn
+                        .frame(width: clampedLeft)
+                        .frame(maxHeight: .infinity)
 
-                rightDestinationColumn
-                    .frame(minWidth: 235, idealWidth: 350, maxWidth: 460, maxHeight: .infinity)
+                    // Left Interactive Column Resize Handle
+                    ZStack {
+                        Rectangle()
+                            .fill(Color.primary.opacity(0.10))
+                            .frame(width: 1)
+                        Capsule()
+                            .fill(Color.secondary.opacity(0.45))
+                            .frame(width: 3, height: 28)
+                    }
+                    .frame(width: 7)
+                    .frame(maxHeight: .infinity)
+                    .contentShape(Rectangle())
+                    .onHover { inside in
+                        if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+                    }
+                    .gesture(
+                        DragGesture(minimumDistance: 1)
+                            .onChanged { val in
+                                if leftSidebarDragStartWidth == nil {
+                                    leftSidebarDragStartWidth = clampedLeft
+                                }
+                                let proposed = (leftSidebarDragStartWidth ?? clampedLeft) + val.translation.width
+                                leftColumnLiveWidth = min(max(165, proposed), min(360, totalW - clampedRight - minCenterW))
+                            }
+                            .onEnded { _ in
+                                leftSidebarDragStartWidth = nil
+                            }
+                    )
+
+                    centerAdaptableWorkspace
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                    // Right Interactive Column Resize Handle
+                    ZStack {
+                        Rectangle()
+                            .fill(Color.primary.opacity(0.10))
+                            .frame(width: 1)
+                        Capsule()
+                            .fill(Color.secondary.opacity(0.45))
+                            .frame(width: 3, height: 28)
+                    }
+                    .frame(width: 7)
+                    .frame(maxHeight: .infinity)
+                    .contentShape(Rectangle())
+                    .onHover { inside in
+                        if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+                    }
+                    .gesture(
+                        DragGesture(minimumDistance: 1)
+                            .onChanged { val in
+                                if rightSidebarDragStartWidth == nil {
+                                    rightSidebarDragStartWidth = clampedRight
+                                }
+                                let proposed = (rightSidebarDragStartWidth ?? clampedRight) - val.translation.width
+                                rightColumnLiveWidth = min(max(225, proposed), min(460, totalW - clampedLeft - minCenterW))
+                            }
+                            .onEnded { _ in
+                                rightSidebarDragStartWidth = nil
+                            }
+                    )
+
+                    rightDestinationColumn
+                        .frame(width: clampedRight)
+                        .frame(maxHeight: .infinity)
+                }
             }
         }
-        .frame(minWidth: 880, idealWidth: 1380, minHeight: 680, idealHeight: 880)
+        .frame(minWidth: 820, idealWidth: 1360, minHeight: 640, idealHeight: 860)
         .background(
             ZStack {
                 Color(NSColor.windowBackgroundColor)
@@ -492,13 +564,7 @@ struct KroutonMainWorkspaceView: View {
                 .padding(10)
             }
         }
-        .background(
-            GeometryReader { proxy in
-                Color(NSColor.controlBackgroundColor)
-                    .onAppear { leftColumnLiveWidth = proxy.size.width }
-                    .onChange(of: proxy.size.width) { _, newW in leftColumnLiveWidth = newW }
-            }
-        )
+        .background(Color(NSColor.controlBackgroundColor))
     }
 
     private func taskRowButton(id: String, category: TaskMasterCategory, title: String, colloquial: String, badge: String = "", sfSymbol: String) -> some View {
@@ -506,6 +572,8 @@ struct KroutonMainWorkspaceView: View {
         return Button {
             store.selectedCategory = category
             store.selectedTaskID = id
+            store.rejectedDropNotice = nil
+            store.purgeIncompatibleStagedFilesForCurrentTask()
             syncDefaultDestinationForCategory(category, taskID: id)
         } label: {
             HStack(spacing: 9) {
@@ -556,6 +624,7 @@ struct KroutonMainWorkspaceView: View {
             switch store.selectedCategory {
             case .burn:
                 burnWorkspaceView
+                    .offset(x: sin(dropRejectShakePhase * .pi * 4) * 8)
             case .depot:
                 depotWorkspaceView
             case .copy:
@@ -908,124 +977,214 @@ struct KroutonMainWorkspaceView: View {
     private func depotInteractiveHeroBanner(for item: DepotCatalogItem, isNarrow: Bool) -> some View {
         let isStaged = (store.stagedDepotItemID == item.id && !store.stagedFiles.isEmpty)
         let activeProgress = store.depotDownloadProgress[item.id]
-        let showBlueprintPanel = !isNarrow
+        let showRightArtPanel = !isNarrow
         let segments = item.blueprintSectorSegments
         let treeFiles = item.blueprintRootFiles
 
         return ZStack(alignment: .leading) {
-            // 1. Adaptive Gradient + CAD Blueprint Grid & Schematic Background
-            RoundedRectangle(cornerRadius: 12)
+            // 1. Rich Blueprint Gradient Background (Adapts to all 11 Krouton Accent Swatches & Dark/Light Modes)
+            RoundedRectangle(cornerRadius: 13)
                 .fill(
                     LinearGradient(
                         colors: [
-                            store.activeAccent.opacity(0.38),
-                            Color(red: 0.08, green: 0.11, blue: 0.17),
-                            Color(red: 0.04, green: 0.06, blue: 0.10)
+                            store.activeAccent.opacity(0.44),
+                            Color(red: 0.06, green: 0.11, blue: 0.20),
+                            Color(red: 0.03, green: 0.05, blue: 0.11)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
 
-            // CAD Engineering Blueprint Mesh + Radial Platter Wireframe (SwiftUI Canvas)
+            // 2. Custom CAD / Blueprint Content Sketch Canvas (Draws thematic wireframe art for the disc's content!)
             Canvas { context, size in
-                let step: CGFloat = 18
-                var gridPath = Path()
-                var x: CGFloat = 0
-                while x <= size.width {
-                    gridPath.move(to: CGPoint(x: x, y: 0))
-                    gridPath.addLine(to: CGPoint(x: x, y: size.height))
-                    x += step
+                let gridStep: CGFloat = 16
+                var grid = Path()
+                var gx: CGFloat = 0
+                while gx <= size.width {
+                    grid.move(to: CGPoint(x: gx, y: 0))
+                    grid.addLine(to: CGPoint(x: gx, y: size.height))
+                    gx += gridStep
                 }
-                var y: CGFloat = 0
-                while y <= size.height {
-                    gridPath.move(to: CGPoint(x: 0, y: y))
-                    gridPath.addLine(to: CGPoint(x: size.width, y: y))
-                    y += step
+                var gy: CGFloat = 0
+                while gy <= size.height {
+                    grid.move(to: CGPoint(x: 0, y: gy))
+                    grid.addLine(to: CGPoint(x: size.width, y: gy))
+                    gy += gridStep
                 }
-                context.stroke(gridPath, with: .color(Color.white.opacity(0.055)), lineWidth: 0.6)
+                context.stroke(grid, with: .color(Color.cyan.opacity(0.06)), lineWidth: 0.5)
 
-                var majorPath = Path()
-                majorPath.move(to: CGPoint(x: size.width * 0.54, y: 0))
-                majorPath.addLine(to: CGPoint(x: size.width * 0.54, y: size.height))
-                majorPath.move(to: CGPoint(x: 0, y: size.height * 0.5))
-                majorPath.addLine(to: CGPoint(x: size.width, y: size.height * 0.5))
-                context.stroke(majorPath, with: .color(store.activeAccent.opacity(0.18)), style: StrokeStyle(lineWidth: 0.8, dash: [4, 3]))
+                // Blueprint Dimension Ticks & Crosshairs
+                var axes = Path()
+                axes.move(to: CGPoint(x: size.width * 0.48, y: 0))
+                axes.addLine(to: CGPoint(x: size.width * 0.48, y: size.height))
+                axes.move(to: CGPoint(x: 0, y: size.height * 0.52))
+                axes.addLine(to: CGPoint(x: size.width, y: size.height * 0.52))
+                context.stroke(axes, with: .color(Color.cyan.opacity(0.14)), style: StrokeStyle(lineWidth: 0.7, dash: [5, 4]))
 
-                let center = CGPoint(x: size.width - 115, y: size.height * 0.52)
-                for radius in [28.0, 52.0, 76.0, 98.0] {
-                    let rect = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
-                    context.stroke(
-                        Path(ellipseIn: rect),
-                        with: .color(store.activeAccent.opacity(radius == 52.0 ? 0.30 : 0.15)),
-                        style: StrokeStyle(lineWidth: radius == 52.0 ? 1.5 : 0.8, dash: radius == 76.0 ? [5, 3] : [])
-                    )
+                // Thematic CAD Wireframe Sketch in the right-center background zone
+                let artCenter = CGPoint(x: showRightArtPanel ? size.width - 335 : size.width - 110, y: size.height * 0.50)
+                let sketchColor = Color.cyan.opacity(0.26)
+                let accentSketch = store.activeAccent.opacity(0.34)
+
+                if item.channel.contains("Vintage Apple") || item.id.contains("mac") {
+                    // Sketch 1: Classic Compact Macintosh CRT + Happy Mac Face + System 7 Finder Window
+                    let macBody = CGRect(x: artCenter.x - 44, y: artCenter.y - 56, width: 88, height: 108)
+                    let crtScreen = CGRect(x: artCenter.x - 32, y: artCenter.y - 44, width: 64, height: 48)
+                    let floppySlot = CGRect(x: artCenter.x + 4, y: artCenter.y + 18, width: 24, height: 4)
+                    var macPath = Path()
+                    macPath.addRoundedRect(in: macBody, cornerSize: CGSize(width: 6, height: 6))
+                    macPath.addRoundedRect(in: crtScreen, cornerSize: CGSize(width: 4, height: 4))
+                    macPath.addRect(floppySlot)
+                    // Happy Mac eyes & smile inside CRT
+                    macPath.move(to: CGPoint(x: artCenter.x - 12, y: artCenter.y - 28))
+                    macPath.addLine(to: CGPoint(x: artCenter.x - 12, y: artCenter.y - 22))
+                    macPath.move(to: CGPoint(x: artCenter.x + 12, y: artCenter.y - 28))
+                    macPath.addLine(to: CGPoint(x: artCenter.x + 12, y: artCenter.y - 22))
+                    macPath.move(to: CGPoint(x: artCenter.x - 2, y: artCenter.y - 24))
+                    macPath.addLine(to: CGPoint(x: artCenter.x - 2, y: artCenter.y - 16))
+                    macPath.addLine(to: CGPoint(x: artCenter.x + 3, y: artCenter.y - 16))
+                    macPath.move(to: CGPoint(x: artCenter.x - 14, y: artCenter.y - 10))
+                    macPath.addQuadCurve(to: CGPoint(x: artCenter.x + 14, y: artCenter.y - 10), control: CGPoint(x: artCenter.x, y: artCenter.y - 2))
+                    context.stroke(macPath, with: .color(sketchColor), lineWidth: 1.4)
+
+                    // Floating Classic Finder Window Blueprint
+                    let winRect = CGRect(x: artCenter.x + 54, y: artCenter.y - 38, width: 84, height: 62)
+                    var winPath = Path()
+                    winPath.addRect(winRect)
+                    winPath.move(to: CGPoint(x: winRect.minX, y: winRect.minY + 12))
+                    winPath.addLine(to: CGPoint(x: winRect.maxX, y: winRect.minY + 12))
+                    context.stroke(winPath, with: .color(accentSketch), lineWidth: 1.1)
+                } else if item.channel.contains("Cover Discs") || item.id.contains("kolibri") || item.id.contains("pcgamer") {
+                    // Sketch 2: 3D Raycast / Doom / Demoscene Perspective Corridor + Reticle + Waveform
+                    let outer = CGRect(x: artCenter.x - 75, y: artCenter.y - 52, width: 150, height: 104)
+                    let mid = CGRect(x: artCenter.x - 44, y: artCenter.y - 30, width: 88, height: 60)
+                    let inner = CGRect(x: artCenter.x - 18, y: artCenter.y - 12, width: 36, height: 24)
+                    var doomPath = Path()
+                    doomPath.addRect(outer)
+                    doomPath.addRect(mid)
+                    doomPath.addRect(inner)
+                    doomPath.move(to: CGPoint(x: outer.minX, y: outer.minY)); doomPath.addLine(to: CGPoint(x: inner.minX, y: inner.minY))
+                    doomPath.move(to: CGPoint(x: outer.maxX, y: outer.minY)); doomPath.addLine(to: CGPoint(x: inner.maxX, y: inner.minY))
+                    doomPath.move(to: CGPoint(x: outer.minX, y: outer.maxY)); doomPath.addLine(to: CGPoint(x: inner.minX, y: inner.maxY))
+                    doomPath.move(to: CGPoint(x: outer.maxX, y: outer.maxY)); doomPath.addLine(to: CGPoint(x: inner.maxX, y: inner.maxY))
+                    context.stroke(doomPath, with: .color(sketchColor), lineWidth: 1.3)
+
+                    // Target Reticle in center of 3D corridor
+                    let ret = CGRect(x: artCenter.x - 10, y: artCenter.y - 10, width: 20, height: 20)
+                    context.stroke(Path(ellipseIn: ret), with: .color(accentSketch), lineWidth: 1.4)
+                } else if item.channel.contains("Console") {
+                    // Sketch 3: Console Optical Pickup Laser Assembly + D-Pad / Controller Blueprint
+                    for r in [22.0, 44.0, 64.0] {
+                        let cRect = CGRect(x: artCenter.x - r, y: artCenter.y - r, width: r * 2, height: r * 2)
+                        context.stroke(Path(ellipseIn: cRect), with: .color(sketchColor), lineWidth: 1.2)
+                    }
+                    // D-Pad Crosshair & Action Buttons
+                    var pad = Path()
+                    pad.addRect(CGRect(x: artCenter.x + 56, y: artCenter.y - 8, width: 36, height: 12))
+                    pad.addRect(CGRect(x: artCenter.x + 68, y: artCenter.y - 20, width: 12, height: 36))
+                    context.stroke(pad, with: .color(accentSketch), lineWidth: 1.3)
+                } else if item.channel.contains("Retro PC") || item.id.contains("freedos") {
+                    // Sketch 4: MS-DOS Monitor Terminal + 3.5-inch Floppy Disk & DIP Chip Schematic
+                    let dosBox = CGRect(x: artCenter.x - 68, y: artCenter.y - 48, width: 112, height: 82)
+                    var dosPath = Path()
+                    dosPath.addRoundedRect(in: dosBox, cornerSize: CGSize(width: 5, height: 5))
+                    for lineY in [-28.0, -14.0, 0.0, 14.0] {
+                        dosPath.move(to: CGPoint(x: dosBox.minX + 12, y: artCenter.y + lineY))
+                        dosPath.addLine(to: CGPoint(x: dosBox.maxX - 18, y: artCenter.y + lineY))
+                    }
+                    context.stroke(dosPath, with: .color(sketchColor), lineWidth: 1.3)
+
+                    let floppy = CGRect(x: artCenter.x + 54, y: artCenter.y - 34, width: 64, height: 68)
+                    var flopPath = Path()
+                    flopPath.addRect(floppy)
+                    flopPath.addRect(CGRect(x: floppy.minX + 14, y: floppy.minY, width: 36, height: 22))
+                    flopPath.addRect(CGRect(x: floppy.minX + 10, y: floppy.minY + 34, width: 44, height: 28))
+                    context.stroke(flopPath, with: .color(accentSketch), lineWidth: 1.2)
+                } else {
+                    // Sketch 5: Partition Cylinder/Sector Radar + Kernel Node Topology + ECG Telemetry Sine Wave
+                    for r in [24.0, 48.0, 72.0] {
+                        let cRect = CGRect(x: artCenter.x - r, y: artCenter.y - r, width: r * 2, height: r * 2)
+                        context.stroke(Path(ellipseIn: cRect), with: .color(sketchColor), style: StrokeStyle(lineWidth: 1.1, dash: r == 48.0 ? [5, 3] : []))
+                    }
+                    var wave = Path()
+                    let startX = artCenter.x - 85
+                    wave.move(to: CGPoint(x: startX, y: artCenter.y + 36))
+                    for step in 0...34 {
+                        let wx = startX + CGFloat(step) * 5.0
+                        let wy = artCenter.y + 36 + sin(CGFloat(step) * 0.55) * 14.0
+                        wave.addLine(to: CGPoint(x: wx, y: wy))
+                    }
+                    context.stroke(wave, with: .color(accentSketch), lineWidth: 1.4)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .clipShape(RoundedRectangle(cornerRadius: 13))
 
-            // 2. Foreground Content: Left Title/Specs/Actions + Right Live Disc Content Blueprint Schematic
-            HStack(alignment: .center, spacing: 14) {
-                VStack(alignment: .leading, spacing: 5) {
+            // 3. Foreground Content: Left Title/Specs/Actions + Right Visual Blueprint Schematic Card
+            HStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .leading, spacing: 7) {
+                    // Top Micro Telemetry Header
                     HStack(spacing: 6) {
                         Image(systemName: item.sfSymbol)
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.system(size: 10.5, weight: .bold))
                             .foregroundStyle(store.activeAccent)
-                        Text("BLUEPRINT INSPECTOR • \(item.channel.uppercased())")
-                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        Text("CAD BLUEPRINT INSPECTOR • \(item.channel.uppercased())")
+                            .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
                             .foregroundStyle(store.activeAccent)
                             .lineLimit(1)
                         Text("•")
                             .foregroundStyle(.white.opacity(0.35))
                         Text("\(item.architecture) • \(item.bootStandard) • SHA: \(item.sha256Short)")
-                            .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.78))
+                            .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.82))
                             .lineLimit(1)
                     }
 
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    // Selected Title + Version Badge
+                    HStack(alignment: .firstTextBaseline, spacing: 9) {
                         Text(item.title)
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.system(size: 19, weight: .bold))
                             .foregroundStyle(.white)
                             .lineLimit(1)
                         Text("v\(item.version)")
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                            .foregroundStyle(store.activeAccent)
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.cyan)
                             .lineLimit(1)
                         Spacer(minLength: 0)
                     }
 
                     Text(item.subtitle)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.white.opacity(0.82))
-                        .lineLimit(1)
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.white.opacity(0.86))
+                        .lineLimit(2)
+                        .frame(maxWidth: 560, alignment: .leading)
 
+                    // Bottom Row: 3-Segment CAD Sector Map + Stage & Hex Action Buttons
                     HStack(spacing: 8) {
-                        // Mini CAD Sector Partition Map of the Disc Image
                         HStack(spacing: 2) {
                             ForEach(Array(segments.enumerated()), id: \.offset) { idx, seg in
-                                VStack(alignment: .leading, spacing: 0) {
+                                VStack(alignment: .leading, spacing: 1) {
                                     Text(seg.label)
-                                        .font(.system(size: 7.5, weight: .bold, design: .monospaced))
+                                        .font(.system(size: 8, weight: .bold, design: .monospaced))
                                         .foregroundStyle(.white)
                                         .lineLimit(1)
                                     Text(seg.lbaRange)
-                                        .font(.system(size: 7, design: .monospaced))
-                                        .foregroundStyle(.white.opacity(0.70))
+                                        .font(.system(size: 7.5, design: .monospaced))
+                                        .foregroundStyle(.cyan.opacity(0.9))
                                         .lineLimit(1)
                                 }
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 3)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3.5)
                                 .background(
-                                    idx == 0 ? Color.cyan.opacity(0.28) : (idx == 1 ? Color.green.opacity(0.28) : store.activeAccent.opacity(0.34))
+                                    idx == 0 ? Color.cyan.opacity(0.28) : (idx == 1 ? Color.green.opacity(0.26) : store.activeAccent.opacity(0.36))
                                 )
                                 .overlay(
                                     Rectangle()
-                                        .stroke(Color.white.opacity(0.22), lineWidth: 0.6)
+                                        .stroke(Color.cyan.opacity(0.32), lineWidth: 0.6)
                                 )
                             }
                         }
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .clipShape(RoundedRectangle(cornerRadius: 5))
 
                         Spacer(minLength: 4)
 
@@ -1035,12 +1194,12 @@ struct KroutonMainWorkspaceView: View {
                                     .progressViewStyle(.circular)
                                     .controlSize(.small)
                                 Text("\(Int(prog * 100))%")
-                                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                    .font(.system(size: 10.5, weight: .heavy, design: .monospaced))
                                     .foregroundStyle(.white)
                                     .lineLimit(1)
                             }
                             .padding(.horizontal, 12)
-                            .padding(.vertical, 5)
+                            .padding(.vertical, 6)
                             .background(store.activeAccent.opacity(0.35))
                             .clipShape(Capsule())
                             .fixedSize(horizontal: true, vertical: false)
@@ -1053,9 +1212,9 @@ struct KroutonMainWorkspaceView: View {
                                     Text(isStaged ? "STAGED" : (item.isDownloaded ? "STAGE (\(item.sizeDisplay))" : "GET (\(item.sizeDisplay))"))
                                         .lineLimit(1)
                                 }
-                                .font(.system(size: 10.5, weight: .heavy))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 5)
+                                .font(.system(size: 11, weight: .heavy))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 6)
                                 .background(isStaged ? Color.green : store.activeAccent)
                                 .foregroundStyle(isStaged ? Color.black : store.activeOnAccentText)
                                 .clipShape(Capsule())
@@ -1071,9 +1230,9 @@ struct KroutonMainWorkspaceView: View {
                                     Text("Inspect Hex")
                                         .lineLimit(1)
                                 }
-                                .font(.system(size: 10, weight: .bold))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
+                                .font(.system(size: 10.5, weight: .bold))
+                                .padding(.horizontal, 11)
+                                .padding(.vertical, 6)
                                 .background(Color.white.opacity(0.14))
                                 .foregroundStyle(.white)
                                 .clipShape(Capsule())
@@ -1086,53 +1245,53 @@ struct KroutonMainWorkspaceView: View {
                     .padding(.top, 2)
                 }
 
-                // RIGHT SIDE: Live CAD Blueprint of the Actual On-Disc File Tree (Auto-hides when narrow!)
-                if showBlueprintPanel {
-                    VStack(alignment: .leading, spacing: 2.5) {
-                        HStack {
-                            Image(systemName: "cpu")
-                                .font(.system(size: 8.5, weight: .bold))
+                // RIGHT SIDE: Thematic Visual Content Schematic + On-Disc File Tree
+                if showRightArtPanel {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 6) {
+                            Image(systemName: item.sfSymbol)
+                                .font(.system(size: 11, weight: .bold))
                                 .foregroundStyle(.cyan)
-                            Text("ON-DISC VOLUME BLUEPRINT")
-                                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                            Text("DISC CONTENT SCHEMATIC")
+                                .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
                                 .foregroundStyle(.cyan)
                                 .lineLimit(1)
                             Spacer()
                             Text(item.sizeDisplay)
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.65))
+                                .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.white.opacity(0.75))
                                 .lineLimit(1)
                         }
-                        Divider().overlay(Color.cyan.opacity(0.3))
+                        Divider().overlay(Color.cyan.opacity(0.35))
 
                         ForEach(treeFiles, id: \.self) { pathLine in
-                            HStack(spacing: 4) {
+                            HStack(spacing: 5) {
                                 Text("├─")
-                                    .foregroundStyle(.cyan.opacity(0.65))
+                                    .foregroundStyle(.cyan.opacity(0.75))
                                 Text(pathLine)
-                                    .foregroundStyle(.white.opacity(0.88))
+                                    .foregroundStyle(.white.opacity(0.92))
                                     .lineLimit(1)
                             }
-                            .font(.system(size: 8.5, weight: .medium, design: .monospaced))
+                            .font(.system(size: 9, weight: .medium, design: .monospaced))
                         }
                     }
-                    .padding(8)
-                    .frame(width: 240, alignment: .leading)
-                    .background(Color.black.opacity(0.42))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .padding(10)
+                    .frame(width: 255, alignment: .leading)
+                    .background(Color.black.opacity(0.46))
+                    .clipShape(RoundedRectangle(cornerRadius: 9))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.cyan.opacity(0.32), style: StrokeStyle(lineWidth: 0.9, dash: [4, 2]))
+                        RoundedRectangle(cornerRadius: 9)
+                            .stroke(Color.cyan.opacity(0.38), style: StrokeStyle(lineWidth: 1.0, dash: [4, 2]))
                     )
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
-        .frame(height: 120)
+        .frame(height: 158)
         .fixedSize(horizontal: false, vertical: true)
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 13)
                 .stroke(isStaged ? Color.green.opacity(0.75) : store.activeAccent.opacity(0.55), lineWidth: 1.5)
         )
     }
@@ -2938,37 +3097,69 @@ struct KroutonMainWorkspaceView: View {
     }
 
     private func promptToAddFiles() {
+        let spec = store.activeFormatSpec()
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
-        panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = true
-        panel.prompt = "Add..."
+        panel.canChooseDirectories = spec.allowsDirectorySelection
+        panel.allowsMultipleSelection = (spec.id != "image-burn" && spec.filterGroup != .console)
+        panel.prompt = "Stage for \(spec.technicalName)"
+        panel.message = "Allowed for \(spec.technicalName): \(spec.expectedMediaDescription)"
+
+        // Grey out all incompatible files in the macOS Open Dialogue!
+        let exts = spec.allowedFileExtensions
+        if !exts.isEmpty {
+            var types: [UTType] = exts.compactMap { UTType(filenameExtension: $0) }
+            if spec.allowsDirectorySelection {
+                types.append(.folder)
+            }
+            if !types.isEmpty {
+                panel.allowedContentTypes = types
+            }
+        }
+
         if panel.runModal() == .OK {
             store.addStagedURLs(panel.urls)
         }
     }
 
+    private func triggerDropRejectShake() {
+        dropRejectShakePhase = 1.0
+        withAnimation(.easeOut(duration: 0.42)) {
+            dropRejectShakePhase = 0.0
+        }
+    }
+
     private func handleFinderDrop(providers: [NSItemProvider]) -> Bool {
-        var didAccept = false
+        let spec = store.activeFormatSpec()
+        var acceptedAny = false
+
         for provider in providers {
             if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-                didAccept = true
+                acceptedAny = true
                 provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-                    if let data = item as? Data, let url = URL(dataRepresentation: data, relativeTo: nil) {
-                        Task { @MainActor in
-                            store.addStagedURLs([url])
+                    let resolvedURL: URL? = {
+                        if let data = item as? Data {
+                            return URL(dataRepresentation: data, relativeTo: nil)
+                        } else if let url = item as? URL {
+                            return url
                         }
-                    } else if let url = item as? URL {
-                        Task { @MainActor in
+                        return nil
+                    }()
+                    guard let url = resolvedURL else { return }
+                    Task { @MainActor in
+                        if store.selectedCategory == .burn && !store.isURLCompatible(url, for: spec) {
+                            store.rejectedDropNotice = "Rejected '\(url.lastPathComponent)': \(spec.technicalName) only accepts \(spec.expectedMediaDescription)."
+                            NSSound.beep()
+                            triggerDropRejectShake()
+                        } else {
                             store.addStagedURLs([url])
                         }
                     }
                 }
             }
         }
-        return didAccept
+        return acceptedAny
     }
-
     private var copyWorkspaceView: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
@@ -3158,12 +3349,6 @@ struct KroutonMainWorkspaceView: View {
 
             // Iterating directly over store.destinationQueue by UUID (Zero raw array indices = Zero crashes!)
             ScrollView {
-                GeometryReader { proxy in
-                    Color.clear
-                        .onAppear { rightColumnLiveWidth = proxy.size.width }
-                        .onChange(of: proxy.size.width) { _, newW in rightColumnLiveWidth = newW }
-                }
-                .frame(height: 0)
                 VStack(spacing: 12) {
                     ForEach(store.destinationQueue) { item in
                         destinationCard(item: item)
