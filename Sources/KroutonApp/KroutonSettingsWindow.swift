@@ -31,7 +31,7 @@ public enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendabl
 public struct KroutonSettingsWindowView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var driveManager: DriveManager
-    @State private var selectedPane: KroutonSettingsCategory = .general
+    // Bound to store.selectedSettingsPane for direct Format Chooser deep-linking
     @State private var searchText: String = ""
 
     @State private var formatFilter: FormatFilterGroup = .all
@@ -68,11 +68,11 @@ public struct KroutonSettingsWindowView: View {
                 .padding(.horizontal, 10)
                 .padding(.top, 8)
 
-                List(KroutonSettingsCategory.allCases, selection: $selectedPane) { pane in
+                List(KroutonSettingsCategory.allCases, selection: $store.selectedSettingsPane) { pane in
                     HStack(spacing: 10) {
                         Image(systemName: pane.sfSymbol)
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(selectedPane == pane ? store.activeAccent : .secondary)
+                            .foregroundStyle(store.selectedSettingsPane == pane ? store.activeAccent : .secondary)
                             .frame(width: 20)
                         Text(pane.rawValue)
                             .font(.system(size: 13, weight: .medium))
@@ -85,16 +85,16 @@ public struct KroutonSettingsWindowView: View {
             .navigationSplitViewColumnWidth(min: 210, ideal: 225, max: 250)
         } detail: {
             Group {
-                if selectedPane == .formatChooser {
+                if store.selectedSettingsPane == .formatChooser {
                     formatChooserPane
                         .padding(24)
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 20) {
-                            Text(selectedPane.rawValue)
+                            Text(store.selectedSettingsPane.rawValue)
                                 .font(.title2.bold())
 
-                            switch selectedPane {
+                            switch store.selectedSettingsPane {
                             case .general:
                                 generalPane
                             case .formatChooser:
@@ -262,8 +262,13 @@ public struct KroutonSettingsWindowView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                pillToggleButton(title: "Enable All", sfSymbol: "checkmark.circle", isSelected: false) {
-                    for i in store.discFormats.indices { store.discFormats[i].showInTaskChooser = true }
+                HStack(spacing: 8) {
+                    pillToggleButton(title: "Enable Current", sfSymbol: "checkmark.circle.badge.plus", isSelected: false) {
+                        store.enableCurrentTaskChooserFormat()
+                    }
+                    pillToggleButton(title: "Enable All", sfSymbol: "checkmark.circle", isSelected: false) {
+                        for i in store.discFormats.indices { store.discFormats[i].showInTaskChooser = true }
+                    }
                 }
             }
 
@@ -615,10 +620,66 @@ public struct KroutonSettingsWindowView: View {
                 Toggle("Pre-stage full compiled disc image to remote server SSD before igniting laser", isOn: $store.preStageImageToServerSSD)
             }
 
-            settingsCard(title: "Optical Drive Hardware & MMC Bitsetting") {
-                Toggle("Force DVD+R / DVD+R DL BookType to DVD-ROM (Maximizes standalone player compatibility)", isOn: $store.forceDVDROMBookType)
+            settingsCard(title: "Optical Drive Hardware & MMC Bitsetting (Retro Console & Set-Top DVD Compatibility)") {
+                Toggle("Stamp Book Type as DVD-ROM (0x00) on DVD+R & DVD+R DL Media (Required by vintage DVD players, early PS2 & Xbox)", isOn: $store.forceDVDROMBookType)
+                    .fontWeight(.semibold)
+                Text("When enabled, Krouton sends the vendor MMC Mode Select / Set Compatibility bitsetting command before lead-in write so DVD+R and DVD+R DL discs identify as pressed factory DVD-ROMs.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Divider()
+                HStack {
+                    Text("MMC Bitsetting Command Profile")
+                    Spacer()
+                    Picker("", selection: $store.bitsetVendorProfile) {
+                        Text("Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)").tag("Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)")
+                        Text("Pioneer DVR / BDR Extended (0x3B Mode Select)").tag("Pioneer DVR / BDR Extended (0x3B Mode Select)")
+                        Text("Lite-On / MediaTek SmartBurn (0xF9 / 0xFF)").tag("Lite-On / MediaTek SmartBurn (0xF9 / 0xFF)")
+                        Text("LG / HL-DT-ST / Renesas Super-Multi (0xFA)").tag("LG / HL-DT-ST / Renesas Super-Multi (0xFA)")
+                        Text("NEC / Optiarc / Sony (0xFF BookType)").tag("NEC / Optiarc / Sony (0xFF BookType)")
+                    }
+                    .labelsHidden()
+                    .frame(width: 340)
+                }
+                if !driveManager.availableDrives.isEmpty {
+                    Divider()
+                    ForEach(driveManager.availableDrives) { drive in
+                        HStack {
+                            Image(systemName: "opticaldisc.fill")
+                                .foregroundStyle(store.activeAccent)
+                            Text(drive.displayName)
+                                .font(.system(size: 12, weight: .semibold))
+                            Spacer()
+                            Text(driveManager.bookTypeStatus(for: drive, forceDVDROM: store.forceDVDROMBookType))
+                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(store.forceDVDROMBookType ? .green : .secondary)
+                            pillToggleButton(title: "Stamp DVD-ROM Now", sfSymbol: "seal.fill", isSelected: false) {
+                                driveManager.stampDVDROMBookType(for: drive.id, vendorProfile: store.bitsetVendorProfile)
+                            }
+                        }
+                    }
+                }
                 Divider()
                 Toggle("Disable BD-R Defect Management Spare Area on Video Blu-rays (Enables full rated write speed)", isOn: $store.disableBDDefectManagementForVideo)
+            }
+
+            settingsCard(title: "Hands-Free Multi-Copy Duplication & Spanned Disc Auto-Loader") {
+                Toggle("Auto-Load Next Disc: Eject finished disc & automatically start next burn after fresh blank disc insertion", isOn: $store.autoLoadNextDiscBatchMode)
+                    .fontWeight(.semibold)
+                Text("Turns your Mac into a hands-free duplication station when burning multiple copies or multi-disc spanned archives.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Divider()
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Post-Insertion Spin-Up & Auto-Fire Delay")
+                        Text("Waits for macOS DiskArbitration and optical spindle lock before firing the laser")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Stepper("\(store.autoLoadCountdownSeconds) seconds after insert", value: $store.autoLoadCountdownSeconds, in: 3...15)
+                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                }
             }
         }
     }

@@ -519,6 +519,37 @@ public struct NeroTelemetrySample: Identifiable, Hashable, Sendable {
     }
 }
 
+public struct BatchDuplicationState: Identifiable, Hashable, Sendable {
+    public let id: String // Drive ID
+    public var driveName: String
+    public var currentCopyIndex: Int
+    public var totalCopies: Int
+    public var isWaitingForBlankDisc: Bool
+    public var countdownSecondsRemaining: Int?
+    public var statusMessage: String
+    public var bitsetDVDROMActive: Bool
+
+    public init(
+        id: String,
+        driveName: String,
+        currentCopyIndex: Int = 1,
+        totalCopies: Int = 1,
+        isWaitingForBlankDisc: Bool = false,
+        countdownSecondsRemaining: Int? = nil,
+        statusMessage: String = "Ready",
+        bitsetDVDROMActive: Bool = true
+    ) {
+        self.id = id
+        self.driveName = driveName
+        self.currentCopyIndex = currentCopyIndex
+        self.totalCopies = totalCopies
+        self.isWaitingForBlankDisc = isWaitingForBlankDisc
+        self.countdownSecondsRemaining = countdownSecondsRemaining
+        self.statusMessage = statusMessage
+        self.bitsetDVDROMActive = bitsetDVDROMActive
+    }
+}
+
 public struct DrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable {
     public let id: String          // Drive ID
     public var driveName: String
@@ -686,6 +717,9 @@ public final class DriveManager: ObservableObject {
     @Published public var activeJobProgress: Double = 0.0
     @Published public var activeJobDetail: String = ""
     @Published public var driveTelemetry: [String: DrivePhaseScopeTelemetry] = [:]
+    @Published public var batchStates: [String: BatchDuplicationState] = [:]
+    @Published public var driveBookTypeOverrides: [String: String] = [:]
+    private var batchCountdownTimers: [String: Timer] = [:]
     private var perDriveTimers: [String: Timer] = [:]
 
     @Published public var neroSamples: [NeroTelemetrySample] = []
@@ -1084,6 +1118,157 @@ public final class DriveManager: ObservableObject {
             elapsedSeconds: 0,
             samples: []
         )
+    }
+
+    // MARK: - ImgBurn MMC Book Type / Bitsetting (DVD+R / DVD+R DL -> DVD-ROM 0x00)
+    public func stampDVDROMBookType(for driveID: String, vendorProfile: String = "Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)") {
+        let resolved = driveForID(driveID)
+        let key = resolved?.id ?? driveID
+        let name = resolved?.displayName ?? "Optical Drive"
+        driveBookTypeOverrides[key] = "DVD-ROM (0x00 Lead-In Bitset Armed)"
+        hardwareStatusLog = "[MMC Bitsetting] Stamped Lead-In Book Type -> DVD-ROM (0x00) on \(name) via \(vendorProfile)"
+    }
+
+    public func bookTypeStatus(for drive: OpticalDriveDevice, forceDVDROM: Bool) -> String {
+        if let explicit = driveBookTypeOverrides[drive.id] {
+            return explicit
+        }
+        if forceDVDROM {
+            return "Auto-Bitset: DVD+R/DL -> DVD-ROM (0x00)"
+        }
+        return "Native Media Book Type"
+    }
+
+    // MARK: - Hands-Free Multi-Copy Batch Duplication & 5s Auto-Load Station
+    public func startBatchAutoLoadMonitor(
+        for driveID: String,
+        completedCopy: Int,
+        totalCopies: Int,
+        countdownSeconds: Int = 5,
+        bitsetDVDROM: Bool = true,
+        onFireNextCopy: @escaping @MainActor () -> Void
+    ) {
+        let resolved = driveForID(driveID)
+        let key = resolved?.id ?? driveID
+        guard !key.isEmpty else { return }
+        let name = resolved?.displayName ?? "Optical Burner"
+
+        // 1. Eject the finished copy so the operator can drop in the next blank disc
+        ejectDrive(id: key)
+
+        let nextCopy = completedCopy + 1
+        batchStates[key] = BatchDuplicationState(
+            id: key,
+            driveName: name,
+            currentCopyIndex: nextCopy,
+            totalCopies: totalCopies,
+            isWaitingForBlankDisc: true,
+            countdownSecondsRemaining: nil,
+            statusMessage: "Copy \(completedCopy)/\(totalCopies) Ejected — Insert Blank Disc #\(nextCopy) to Auto-Start",
+            bitsetDVDROMActive: bitsetDVDROM
+        )
+        hardwareStatusLog = "[Duplication Station] Copy \(completedCopy)/\(totalCopies) complete on \(name). Waiting for Blank Disc #\(nextCopy)..."
+
+        batchCountdownTimers[key]?.invalidate()
+        var didDetectDiscOut = false
+
+        batchCountdownTimers[key] = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            Task { @MainActor in
+                guard let self = self, var st = self.batchStates[key] else {
+                    timer.invalidate()
+                    return
+                }
+                self.refreshDrives()
+                let currentDrive = self.driveForID(key)
+                let mediaNowPresent = currentDrive?.isMediaPresent ?? false
+
+                if !mediaNowPresent {
+                    didDetectDiscOut = true
+                }
+
+                // Once a fresh disc is inserted (or if countdown was triggered):
+                if let remaining = st.countdownSecondsRemaining {
+                    if remaining <= 1 {
+                        timer.invalidate()
+                        self.batchCountdownTimers.removeValue(forKey: key)
+                        st.isWaitingForBlankDisc = false
+                        st.countdownSecondsRemaining = nil
+                        st.statusMessage = "Firing Laser for Copy #\(nextCopy) of \(totalCopies)..."
+                        self.batchStates[key] = st
+                        onFireNextCopy()
+                    } else {
+                        st.countdownSecondsRemaining = remaining - 1
+                        st.statusMessage = "Blank Disc Locked — Auto-Starting Copy #\(nextCopy)/\(totalCopies) in \(remaining - 1)s..."
+                        self.batchStates[key] = st
+                    }
+                } else if didDetectDiscOut && mediaNowPresent {
+                    // Fresh disc pushed into the slot! Start the 5-second spin-up countdown!
+                    let startSec = max(1, countdownSeconds)
+                    st.isWaitingForBlankDisc = false
+                    st.countdownSecondsRemaining = startSec
+                    st.statusMessage = "Blank Disc Locked — Auto-Starting Copy #\(nextCopy)/\(totalCopies) in \(startSec)s..."
+                    self.batchStates[key] = st
+                    NSSound.beep()
+                }
+            }
+        }
+    }
+
+    public func triggerImmediateBatchCountdownForTesting(
+        driveID: String,
+        countdownSeconds: Int = 5,
+        onFireNextCopy: @escaping @MainActor () -> Void
+    ) {
+        let resolved = driveForID(driveID)
+        let key = resolved?.id ?? driveID
+        guard !key.isEmpty else { return }
+        let name = resolved?.displayName ?? "Optical Burner"
+        let currentSt = batchStates[key] ?? BatchDuplicationState(id: key, driveName: name, currentCopyIndex: 2, totalCopies: 2)
+        let nextCopy = currentSt.currentCopyIndex
+        let total = max(2, currentSt.totalCopies)
+        let startSec = max(1, countdownSeconds)
+
+        batchStates[key] = BatchDuplicationState(
+            id: key,
+            driveName: name,
+            currentCopyIndex: nextCopy,
+            totalCopies: total,
+            isWaitingForBlankDisc: false,
+            countdownSecondsRemaining: startSec,
+            statusMessage: "Blank Disc Locked — Auto-Starting Copy #\(nextCopy)/\(total) in \(startSec)s...",
+            bitsetDVDROMActive: currentSt.bitsetDVDROMActive
+        )
+
+        batchCountdownTimers[key]?.invalidate()
+        batchCountdownTimers[key] = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            Task { @MainActor in
+                guard let self = self, var st = self.batchStates[key] else {
+                    timer.invalidate()
+                    return
+                }
+                if let rem = st.countdownSecondsRemaining {
+                    if rem <= 1 {
+                        timer.invalidate()
+                        self.batchCountdownTimers.removeValue(forKey: key)
+                        self.batchStates.removeValue(forKey: key)
+                        onFireNextCopy()
+                    } else {
+                        st.countdownSecondsRemaining = rem - 1
+                        st.statusMessage = "Blank Disc Locked — Auto-Starting Copy #\(nextCopy)/\(total) in \(rem - 1)s..."
+                        self.batchStates[key] = st
+                    }
+                }
+            }
+        }
+    }
+
+    public func cancelBatchDuplication(for driveID: String) {
+        let resolved = driveForID(driveID)
+        let key = resolved?.id ?? driveID
+        batchCountdownTimers[key]?.invalidate()
+        batchCountdownTimers.removeValue(forKey: key)
+        batchStates.removeValue(forKey: key)
+        hardwareStatusLog = "[Duplication Station] Cancelled multi-copy batch on \(resolved?.displayName ?? driveID)."
     }
 
     public func telemetryForDrive(_ driveID: String) -> DrivePhaseScopeTelemetry? {

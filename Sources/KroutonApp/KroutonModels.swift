@@ -206,6 +206,8 @@ public struct DestinationQueueItem: Identifiable, Hashable, Sendable {
     public var simulationMode: Bool
     public var verifyAfterBurn: Bool
     public var compressAfterCreation: Bool
+    public var copiesToBurn: Int = 1
+    public var completedCopies: Int = 0
 }
 
 @MainActor
@@ -217,8 +219,12 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var scratchDiskPath: String = "~/Library/Caches/app.krouton.staging"
     @Published public var autoPurgeScratch: Bool = true
 
+    @Published public var selectedSettingsPane: KroutonSettingsCategory = .general
     @Published public var selectedCategory: TaskMasterCategory = .burn
     @Published public var selectedTaskID: String = "data-hybrid"
+    @Published public var bitsetVendorProfile: String = "Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)"
+    @Published public var autoLoadNextDiscBatchMode: Bool = true
+    @Published public var autoLoadCountdownSeconds: Int = 5
 
     // Real Staged Files from Finder (Sprint 1)
     @Published public var stagedFiles: [StagedFileEntry] = []
@@ -458,6 +464,12 @@ public final class KroutonStateStore: ObservableObject {
         stagedFiles[idx].showOnPC.toggle()
         if !stagedFiles[idx].showOnPC && !stagedFiles[idx].showOnMac {
             stagedFiles[idx].showOnMac = true
+        }
+    }
+
+    public func enableCurrentTaskChooserFormat() {
+        if let idx = discFormats.firstIndex(where: { $0.id == selectedTaskID }) {
+            discFormats[idx].showInTaskChooser = true
         }
     }
 
