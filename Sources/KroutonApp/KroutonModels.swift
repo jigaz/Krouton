@@ -131,33 +131,6 @@ public enum SidebarIconSizeMode: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-public enum TextHighlightColorMode: String, CaseIterable, Identifiable, Sendable {
-    case automatic = "Automatic"
-    case blue = "Blue"
-    case purple = "Purple"
-    case pink = "Pink"
-    case red = "Red"
-    case orange = "Orange"
-    case yellow = "Yellow"
-    case green = "Green"
-    case graphite = "Graphite"
-    public var id: String { rawValue }
-
-    public func resolvedColor(fallback: Color) -> Color {
-        switch self {
-        case .automatic: return fallback
-        case .blue: return .blue
-        case .purple: return .purple
-        case .pink: return .pink
-        case .red: return .red
-        case .orange: return .orange
-        case .yellow: return .yellow
-        case .green: return .green
-        case .graphite: return .gray
-        }
-    }
-}
-
 public enum FolderColorMode: String, CaseIterable, Identifiable, Sendable {
     case automatic = "Automatic"
     case classicAqua = "Classic Aqua Blue"
@@ -183,6 +156,9 @@ public enum KroutonLanguage: String, CaseIterable, Identifiable, Sendable {
     case german = "Deutsch (German)"
     case french = "Français (French)"
     case spanish = "Español (Spanish)"
+    case italian = "Italiano (Italian)"
+    case portuguese = "Português (Brasil)"
+    case dutch = "Nederlands (Dutch)"
     case chineseSimplified = "简体中文 (Chinese)"
     case korean = "한국어 (Korean)"
     public var id: String { rawValue }
@@ -195,6 +171,9 @@ public enum KroutonLanguage: String, CaseIterable, Identifiable, Sendable {
         case .german: return "de"
         case .french: return "fr"
         case .spanish: return "es"
+        case .italian: return "it"
+        case .portuguese: return "pt-BR"
+        case .dutch: return "nl"
         case .chineseSimplified: return "zh-Hans"
         case .korean: return "ko"
         }
@@ -326,7 +305,6 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var appearanceMode: AppAppearanceMode = .dark
     @Published public var selectedAccentIndex: Int = 6
     // macOS System Settings Theme & Window Extensions
-    @Published public var textHighlightMode: TextHighlightColorMode = .automatic
     @Published public var iconWidgetStyle: IconWidgetStyleMode = .defaultStyle
     @Published public var folderColorMode: FolderColorMode = .automatic
     @Published public var sidebarIconSize: SidebarIconSizeMode = .medium
@@ -478,16 +456,39 @@ public final class KroutonStateStore: ObservableObject {
         )
     ]
 
+    public func multicolorPresetID(forTaskID taskID: String, category: TaskMasterCategory) -> Int {
+        switch category {
+        case .depot: return 4 // Cyan / Teal
+        case .copy:  return 1 // Orange
+        case .label: return 0 // Coral Red
+        case .burn:
+            if let spec = discFormats.first(where: { $0.id == taskID }) {
+                switch spec.filterGroup {
+                case .audio:   return 3 // Emerald Green for Audio CDs
+                case .video:   return 5 // 405nm Laser Blue for Video / Blu-ray
+                case .console: return 7 // Indigo / Violet for Retro Console ROMs
+                case .legacy:  return 8 // Toasted Brown for Vintage / Niche
+                case .data, .all, .enabled:
+                    return spec.id.contains("mdisc") ? 2 : 6 // Gold for M-DISC Vault, Slate Blue for Data
+                }
+            }
+            return 6
+        }
+    }
+
+    public func effectiveColorForTask(id taskID: String, category: TaskMasterCategory) -> Color {
+        let resolvedScheme: ColorScheme = (appearanceMode == .light) ? .light : .dark
+        if selectedAccentIndex == -1 {
+            let pid = multicolorPresetID(forTaskID: taskID, category: category)
+            let p = AccentColorPreset.allPresets.first(where: { $0.id == pid }) ?? resolvedAccentPreset
+            return p.effectiveAccent(for: resolvedScheme)
+        }
+        return activeAccent
+    }
+
     private var resolvedAccentPreset: AccentColorPreset {
         if selectedAccentIndex == -1 {
-            // Multicolor mode: dynamically maps to category color (Burn=Red, Depot=Blue, Copy=Orange, Label=Indigo)
-            let targetID: Int
-            switch selectedCategory {
-            case .burn: targetID = 0
-            case .depot: targetID = 5
-            case .copy: targetID = 1
-            case .label: targetID = 7
-            }
+            let targetID = multicolorPresetID(forTaskID: selectedTaskID, category: selectedCategory)
             return AccentColorPreset.allPresets.first(where: { $0.id == targetID }) ?? AccentColorPreset.allPresets[1]
         }
         return AccentColorPreset.allPresets.first(where: { $0.id == selectedAccentIndex })
@@ -655,4 +656,91 @@ public final class KroutonStateStore: ObservableObject {
     }
 
     public init() {}
+}
+
+
+// MARK: - Functional Icon & Widget Style Renderer (Default / Dark / Clear / Tinted)
+public struct KroutonStyledIconBadge: View {
+    public let sfSymbol: String
+    public let tintColor: Color
+    public let style: IconWidgetStyleMode
+    public let isSelectedRow: Bool
+    public let onAccentText: Color
+    public let size: CGFloat
+    public let symbolSize: CGFloat
+
+    public init(
+        sfSymbol: String,
+        tintColor: Color,
+        style: IconWidgetStyleMode,
+        isSelectedRow: Bool = false,
+        onAccentText: Color = .white,
+        size: CGFloat = 24,
+        symbolSize: CGFloat = 13
+    ) {
+        self.sfSymbol = sfSymbol
+        self.tintColor = tintColor
+        self.style = style
+        self.isSelectedRow = isSelectedRow
+        self.onAccentText = onAccentText
+        self.size = size
+        self.symbolSize = symbolSize
+    }
+
+    public var body: some View {
+        ZStack {
+            switch style {
+            case .defaultStyle:
+                RoundedRectangle(cornerRadius: size * 0.28)
+                    .fill(
+                        isSelectedRow
+                            ? AnyShapeStyle(onAccentText.opacity(0.22))
+                            : AnyShapeStyle(LinearGradient(colors: [tintColor, tintColor.opacity(0.72)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    )
+                Image(systemName: sfSymbol)
+                    .font(.system(size: symbolSize, weight: .semibold))
+                    .foregroundStyle(isSelectedRow ? onAccentText : .white)
+
+            case .dark:
+                RoundedRectangle(cornerRadius: size * 0.28)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(red: 0.14, green: 0.15, blue: 0.18), Color(red: 0.07, green: 0.08, blue: 0.10)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: size * 0.28)
+                            .stroke(tintColor.opacity(0.45), lineWidth: 1)
+                    )
+                Image(systemName: sfSymbol)
+                    .font(.system(size: symbolSize, weight: .semibold))
+                    .foregroundStyle(tintColor)
+
+            case .clear:
+                RoundedRectangle(cornerRadius: size * 0.28)
+                    .fill(Color.primary.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: size * 0.28)
+                            .stroke(isSelectedRow ? onAccentText.opacity(0.6) : Color.primary.opacity(0.24), lineWidth: 1)
+                    )
+                Image(systemName: sfSymbol)
+                    .font(.system(size: symbolSize, weight: .semibold))
+                    .foregroundStyle(isSelectedRow ? onAccentText : .primary)
+
+            case .tinted:
+                RoundedRectangle(cornerRadius: size * 0.28)
+                    .fill(tintColor.opacity(isSelectedRow ? 0.30 : 0.16))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: size * 0.28)
+                            .stroke(tintColor.opacity(0.55), lineWidth: 1)
+                    )
+                Image(systemName: sfSymbol)
+                    .font(.system(size: symbolSize, weight: .semibold))
+                    .foregroundStyle(isSelectedRow ? onAccentText : tintColor)
+            }
+        }
+        .frame(width: size, height: size)
+    }
 }

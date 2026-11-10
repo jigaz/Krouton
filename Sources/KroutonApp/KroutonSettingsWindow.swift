@@ -72,10 +72,15 @@ public struct KroutonSettingsWindowView: View {
 
                 List(KroutonSettingsCategory.allCases, selection: $store.selectedSettingsPane) { pane in
                     HStack(spacing: 10) {
-                        Image(systemName: pane.sfSymbol)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(store.selectedSettingsPane == pane ? store.activeAccent : .secondary)
-                            .frame(width: 20)
+                        KroutonStyledIconBadge(
+                            sfSymbol: pane.sfSymbol,
+                            tintColor: store.activeAccent,
+                            style: store.iconWidgetStyle,
+                            isSelectedRow: store.selectedSettingsPane == pane,
+                            onAccentText: store.activeOnAccentText,
+                            size: 22,
+                            symbolSize: 12
+                        )
                         Text(store.tr(pane.rawValue))
                             .font(.system(size: 13, weight: .medium))
                     }
@@ -131,10 +136,10 @@ public struct KroutonSettingsWindowView: View {
 
     private var generalPane: some View {
         VStack(alignment: .leading, spacing: 18) {
-            settingsCard(title: "Theme, Appearance & Accent Color (macOS System Settings + Krouton Studio Palette)") {
+            settingsCard(title: "Theme, Appearance & Accent Color") {
                 HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Color")
+                        Text(store.tr("Color"))
                             .fontWeight(.medium)
                         Text(store.selectedAccentIndex == -1 ? "Multicolor (Adapts per workspace)" : "Krouton Pro Studio Accent Swatch")
                             .font(.caption)
@@ -183,28 +188,11 @@ public struct KroutonSettingsWindowView: View {
                         }
                     }
                 }
-                Divider()
-                HStack {
-                    Text("Text highlight color")
-                        .fontWeight(.medium)
-                    Spacer()
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(store.textHighlightMode.resolvedColor(fallback: store.activeAccent))
-                            .frame(width: 12, height: 12)
-                        Picker("", selection: $store.textHighlightMode) {
-                            ForEach(TextHighlightColorMode.allCases) { mode in
-                                Text(mode.rawValue).tag(mode)
-                            }
-                        }
-                        .labelsHidden()
-                        .frame(width: 150)
-                    }
-                }
+
                 Divider()
                 HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Icon & widget style")
+                        Text(store.tr("Icon & widget style"))
                             .fontWeight(.medium)
                         Text("Controls how format badges, drive icons, and telemetry tiles render")
                             .font(.caption)
@@ -245,7 +233,7 @@ public struct KroutonSettingsWindowView: View {
                 }
                 Divider()
                 HStack {
-                    Text("Appearance Mode")
+                    Text(store.tr("Appearance Mode"))
                         .fontWeight(.medium)
                     Spacer()
                     HStack(spacing: 8) {
@@ -262,7 +250,7 @@ public struct KroutonSettingsWindowView: View {
                 }
                 Divider()
                 HStack {
-                    Text("Folder color")
+                    Text(store.tr("Folder color"))
                         .fontWeight(.medium)
                     Spacer()
                     HStack(spacing: 6) {
@@ -281,7 +269,7 @@ public struct KroutonSettingsWindowView: View {
 
             settingsCard(title: "Windows, Sidebar & Language") {
                 HStack {
-                    Text("Sidebar icon size")
+                    Text(store.tr("Sidebar icon size"))
                         .fontWeight(.medium)
                     Spacer()
                     Picker("", selection: $store.sidebarIconSize) {
@@ -297,7 +285,7 @@ public struct KroutonSettingsWindowView: View {
                 Divider()
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Application Language (Live UI Localization)")
+                        Text(store.tr("Application Language (Live UI Localization)"))
                             .fontWeight(.medium)
                         Text("Switches workspace headers, buttons & VoiceOver labels immediately without restarting")
                             .font(.caption)
@@ -1023,9 +1011,9 @@ public struct KroutonSettingsWindowView: View {
 
             }
 
-            settingsCard(title: "Internationalization & Foreign Languages (7 Built-In Locales)") {
+            settingsCard(title: "Internationalization & Foreign Languages") {
                 HStack {
-                    Text("Active Interface Language")
+                    Text(store.tr("Active Interface Language"))
                         .fontWeight(.semibold)
                     Spacer()
                     Picker("", selection: $store.appLanguage) {
@@ -1046,7 +1034,7 @@ public struct KroutonSettingsWindowView: View {
 
     private func settingsCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
+            Text(store.tr(title))
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 12) {
@@ -1067,7 +1055,7 @@ public struct KroutonSettingsWindowView: View {
             HStack(spacing: 6) {
                 Image(systemName: sfSymbol)
                     .font(.system(size: 11, weight: .semibold))
-                Text(title)
+                Text(store.tr(title))
                     .font(.system(size: 12, weight: .medium))
             }
             .padding(.horizontal, 12)

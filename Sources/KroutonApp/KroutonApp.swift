@@ -463,10 +463,16 @@ struct KroutonMainWorkspaceView: View {
             syncDefaultDestinationForCategory(category, taskID: id)
         } label: {
             HStack(spacing: 9) {
-                Image(systemName: sfSymbol)
-                    .font(.system(size: store.sidebarIconSize.iconFontSize, weight: .semibold))
-                    .foregroundStyle(isSelected ? store.activeOnAccentText : (store.iconWidgetStyle == .dark ? .white : store.activeAccent))
-                    .frame(width: 22)
+                let rowColor = store.effectiveColorForTask(id: id, category: category)
+                KroutonStyledIconBadge(
+                    sfSymbol: sfSymbol,
+                    tintColor: rowColor,
+                    style: store.iconWidgetStyle,
+                    isSelectedRow: isSelected,
+                    onAccentText: store.activeOnAccentText,
+                    size: store.sidebarIconSize.iconFontSize + 11,
+                    symbolSize: store.sidebarIconSize.iconFontSize - 1
+                )
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title)
@@ -669,8 +675,13 @@ struct KroutonMainWorkspaceView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 8) {
-                        Image(systemName: activeSpec.sfSymbol)
-                            .foregroundStyle(store.activeAccent)
+                        KroutonStyledIconBadge(
+                            sfSymbol: activeSpec.sfSymbol,
+                            tintColor: store.activeAccent,
+                            style: store.iconWidgetStyle,
+                            size: 28,
+                            symbolSize: 15
+                        )
                         Text(activeSpec.technicalName)
                             .font(.title3.bold())
                         Text(activeSpec.colloquialName)
