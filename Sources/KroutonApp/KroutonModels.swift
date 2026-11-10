@@ -1059,3 +1059,88 @@ public enum KroutonL10n {
         return Bundle.module.localizedString(forKey: key, value: key, table: "Localizable")
     }
 }
+
+
+// MARK: - DepotCatalogItem CAD Blueprint & Volume Structure Schematic Helpers
+extension DepotCatalogItem {
+    public var blueprintSectorSegments: [(label: String, lbaRange: String)] {
+        if bootStandard.contains("APM") || bootStandard.contains("HFS") {
+            return [
+                ("BLK 0..1: Driver + APM", "LBA 00..63"),
+                ("HFS Catalog & Extents", "LBA 64..1024"),
+                ("Blessed System + Payload", "LBA 1025..END")
+            ]
+        } else if bootStandard.contains("DOL-006") || bootStandard.contains("RVL-006") {
+            return [
+                ("boot.bin + bi2.bin", "0x0000..2440"),
+                ("apploader.img", "0x2440..FST"),
+                ("Game FST + main.dol", "32KB ECC..END")
+            ]
+        } else if bootStandard.contains("MIL-CD") || bootStandard.contains("Mode 2") {
+            return [
+                ("S1: Audio / Pre-Gap", "LBA 0..11400"),
+                ("IP.BIN Bootstrap", "LBA 45000+16"),
+                ("1ST_READ.BIN + XA", "LBA 45017..END")
+            ]
+        } else {
+            return [
+                ("SYS AREA / MBR", "LBA 00..15"),
+                ("PVD + EL TORITO", "LBA 16..31"),
+                ("UDF / ISO9660 TREE", "LBA 32..END")
+            ]
+        }
+    }
+
+    public var blueprintRootFiles: [String] {
+        switch channel {
+        case "Rescue & Diagnostics":
+            return [
+                "/EFI/BOOT/BOOTX64.EFI",
+                "/boot/grub/grub.cfg",
+                "/sysresccd/boot/x86_64/vmlinuz",
+                "/sysresccd/x86_64/airootfs.sfs",
+                "/NVME_SMART_DIAG.IMG"
+            ]
+        case "Live Linux & BSD":
+            return [
+                "/EFI/BOOT/grubx64.efi",
+                "/boot/vmlinuz-linux-lts",
+                "/live/filesystem.squashfs",
+                "/dists/stable/Release.gpg",
+                "/SHA256SUMS.SIGN"
+            ]
+        case "Vintage Apple (archive.org)":
+            return [
+                ":Apple_partition_map (Block 1)",
+                ":System Folder:Mac OS ROM",
+                ":System Folder:System",
+                ":System Folder:Finder",
+                ":Applications:Apple HD SC Setup"
+            ]
+        case "Console Homebrew & ROMs":
+            return [
+                "/SYSTEM.CNF (BOOT=cdrom:\\MAIN.EXE;1)",
+                "/APPLOADER.IMG + /BOOT.DOL",
+                "/VIDEO_TS/VIDEO_TS.IFO (FreeDVDBoot)",
+                "/240P_SUITE/PATTERNS.TIM",
+                "/REDUMP_SHA1_VERIFIED.DAT"
+            ]
+        case "Cover Discs & Demoscene":
+            return [
+                ":MacAddict_036_Interface",
+                "/DEMOS/FUTURE_CREW/2ND_REAL.EXE",
+                "/S3M_MOD_ARCHIVE/CHIPTUNE.XM",
+                "/QUICKTIME_4_INSTALLER.HQX",
+                "/AUTORUN.INF + /README.TXT"
+            ]
+        default:
+            return [
+                "/FDOS/BIN/COMMAND.COM",
+                "/AUTOBOOT/KERNEL.SYS",
+                "/BIOS_FLASH/AWDFLASH.EXE",
+                "/SYSTEM/SERVERS/APP_SERVER",
+                "/BOOT/CATALOG.BIN"
+            ]
+        }
+    }
+}

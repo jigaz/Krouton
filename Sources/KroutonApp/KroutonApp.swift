@@ -190,6 +190,8 @@ struct KroutonMainWorkspaceView: View {
     @State private var labelSubtitle: String = "2026 MASTER EDITION"
     @State private var autoLabelSearchQuery: String = "Dark Side of the Moon"
     @State private var depotSearchQuery: String = ""
+    @State private var leftColumnLiveWidth: CGFloat = 265
+    @State private var rightColumnLiveWidth: CGFloat = 360
     @State private var isDropTargeted: Bool = false
     @State private var activeDiscPopoverCardID: UUID? = nil
     @State private var romWriteModeDAO96SubQ: Bool = true
@@ -255,16 +257,16 @@ struct KroutonMainWorkspaceView: View {
 
             HSplitView {
                 leftFormatChooserColumn
-                    .frame(minWidth: 265, idealWidth: 285, maxWidth: 325)
+                    .frame(minWidth: 168, idealWidth: 255, maxWidth: 360, maxHeight: .infinity)
 
                 centerAdaptableWorkspace
-                    .frame(minWidth: 600, maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(minWidth: 410, idealWidth: 740, maxWidth: .infinity, maxHeight: .infinity)
 
                 rightDestinationColumn
-                    .frame(minWidth: 380, idealWidth: 400, maxWidth: 450)
+                    .frame(minWidth: 235, idealWidth: 350, maxWidth: 460, maxHeight: .infinity)
             }
         }
-        .frame(minWidth: 1320, idealWidth: 1420, minHeight: 840, idealHeight: 900)
+        .frame(minWidth: 880, idealWidth: 1380, minHeight: 680, idealHeight: 880)
         .background(
             ZStack {
                 Color(NSColor.windowBackgroundColor)
@@ -333,10 +335,11 @@ struct KroutonMainWorkspaceView: View {
     private var leftFormatChooserColumn: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Label(KroutonL10n.tr("FORMAT CHOOSER"), systemImage: "list.bullet.rectangle")
+                Label(leftColumnLiveWidth < 195 ? KroutonL10n.tr("FORMATS") : KroutonL10n.tr("FORMAT CHOOSER"), systemImage: "list.bullet.rectangle")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.secondary)
-                Spacer()
+                    .lineLimit(1)
+                Spacer(minLength: 4)
                 Button {
                     KroutonWindowManager.shared.openSettingsWindow(store: store, driveManager: driveManager, pane: .formatChooser)
                 } label: {
@@ -489,7 +492,13 @@ struct KroutonMainWorkspaceView: View {
                 .padding(10)
             }
         }
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(
+            GeometryReader { proxy in
+                Color(NSColor.controlBackgroundColor)
+                    .onAppear { leftColumnLiveWidth = proxy.size.width }
+                    .onChange(of: proxy.size.width) { _, newW in leftColumnLiveWidth = newW }
+            }
+        )
     }
 
     private func taskRowButton(id: String, category: TaskMasterCategory, title: String, colloquial: String, badge: String = "", sfSymbol: String) -> some View {
@@ -516,10 +525,12 @@ struct KroutonMainWorkspaceView: View {
                         .font(.system(size: store.sidebarIconSize.titleFontSize, weight: .semibold))
                         .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
                         .lineLimit(1)
-                    Text(KroutonL10n.tr(colloquial))
-                        .font(.system(size: max(9.5, store.sidebarIconSize.titleFontSize - 2.0)))
-                        .foregroundStyle(isSelected ? store.activeOnAccentText.opacity(0.82) : .secondary)
-                        .lineLimit(1)
+                    if leftColumnLiveWidth >= 215 {
+                        Text(KroutonL10n.tr(colloquial))
+                            .font(.system(size: max(9.5, store.sidebarIconSize.titleFontSize - 2.0)))
+                            .foregroundStyle(isSelected ? store.activeOnAccentText.opacity(0.82) : .secondary)
+                            .lineLimit(1)
+                    }
                 }
                 Spacer(minLength: 0)
             }
@@ -897,186 +908,233 @@ struct KroutonMainWorkspaceView: View {
     private func depotInteractiveHeroBanner(for item: DepotCatalogItem, isNarrow: Bool) -> some View {
         let isStaged = (store.stagedDepotItemID == item.id && !store.stagedFiles.isEmpty)
         let activeProgress = store.depotDownloadProgress[item.id]
-        let recommendedMedia = item.sizeDisplay.contains("GB")
-            ? (item.sizeDisplay.contains("80mm") ? "80mm Mini-DVD-R (1.46 GB)" : "4.7 GB DVD-R / BD-R")
-            : "700 MB CD-R (High-Reflectivity)"
+        let showBlueprintPanel = !isNarrow
+        let segments = item.blueprintSectorSegments
+        let treeFiles = item.blueprintRootFiles
 
-        return ZStack(alignment: .bottomLeading) {
-            RoundedRectangle(cornerRadius: 14)
+        return ZStack(alignment: .leading) {
+            // 1. Adaptive Gradient + CAD Blueprint Grid & Schematic Background
+            RoundedRectangle(cornerRadius: 12)
                 .fill(
                     LinearGradient(
                         colors: [
-                            store.activeAccent.opacity(0.45),
-                            Color(red: 0.10, green: 0.12, blue: 0.18),
-                            Color.black.opacity(0.94)
+                            store.activeAccent.opacity(0.38),
+                            Color(red: 0.08, green: 0.11, blue: 0.17),
+                            Color(red: 0.04, green: 0.06, blue: 0.10)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(isStaged ? Color.green.opacity(0.75) : store.activeAccent.opacity(0.55), lineWidth: 1.5)
-                )
 
-            if !isNarrow {
-                HStack {
-                    Spacer()
-                    ZStack {
-                        Circle()
-                            .stroke(store.activeAccent.opacity(0.18), lineWidth: 26)
-                            .frame(width: 195, height: 195)
-                        Circle()
-                            .stroke(Color.white.opacity(0.12), style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
-                            .frame(width: 142, height: 142)
-                        Image(systemName: item.sfSymbol)
-                            .font(.system(size: 50, weight: .bold))
-                            .foregroundStyle(store.activeAccent.opacity(0.35))
-                    }
-                    .offset(x: 16, y: 6)
+            // CAD Engineering Blueprint Mesh + Radial Platter Wireframe (SwiftUI Canvas)
+            Canvas { context, size in
+                let step: CGFloat = 18
+                var gridPath = Path()
+                var x: CGFloat = 0
+                while x <= size.width {
+                    gridPath.move(to: CGPoint(x: x, y: 0))
+                    gridPath.addLine(to: CGPoint(x: x, y: size.height))
+                    x += step
                 }
-                .clipped()
-            }
+                var y: CGFloat = 0
+                while y <= size.height {
+                    gridPath.move(to: CGPoint(x: 0, y: y))
+                    gridPath.addLine(to: CGPoint(x: size.width, y: y))
+                    y += step
+                }
+                context.stroke(gridPath, with: .color(Color.white.opacity(0.055)), lineWidth: 0.6)
 
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    HStack(spacing: 5) {
+                var majorPath = Path()
+                majorPath.move(to: CGPoint(x: size.width * 0.54, y: 0))
+                majorPath.addLine(to: CGPoint(x: size.width * 0.54, y: size.height))
+                majorPath.move(to: CGPoint(x: 0, y: size.height * 0.5))
+                majorPath.addLine(to: CGPoint(x: size.width, y: size.height * 0.5))
+                context.stroke(majorPath, with: .color(store.activeAccent.opacity(0.18)), style: StrokeStyle(lineWidth: 0.8, dash: [4, 3]))
+
+                let center = CGPoint(x: size.width - 115, y: size.height * 0.52)
+                for radius in [28.0, 52.0, 76.0, 98.0] {
+                    let rect = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
+                    context.stroke(
+                        Path(ellipseIn: rect),
+                        with: .color(store.activeAccent.opacity(radius == 52.0 ? 0.30 : 0.15)),
+                        style: StrokeStyle(lineWidth: radius == 52.0 ? 1.5 : 0.8, dash: radius == 76.0 ? [5, 3] : [])
+                    )
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            // 2. Foreground Content: Left Title/Specs/Actions + Right Live Disc Content Blueprint Schematic
+            HStack(alignment: .center, spacing: 14) {
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 6) {
                         Image(systemName: item.sfSymbol)
                             .font(.system(size: 10, weight: .bold))
-                        Text("SELECTED TITLE INSPECTOR  •  \(item.channel.uppercased())")
-                            .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
+                            .foregroundStyle(store.activeAccent)
+                        Text("BLUEPRINT INSPECTOR • \(item.channel.uppercased())")
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                            .foregroundStyle(store.activeAccent)
+                            .lineLimit(1)
+                        Text("•")
+                            .foregroundStyle(.white.opacity(0.35))
+                        Text("\(item.architecture) • \(item.bootStandard) • SHA: \(item.sha256Short)")
+                            .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.78))
                             .lineLimit(1)
                     }
-                    .foregroundStyle(store.activeAccent)
 
-                    Text("•")
-                        .foregroundStyle(.white.opacity(0.4))
-
-                    Text(item.isDownloaded ? "LOCAL CACHE VERIFIED" : "CLOUD REPOSITORY READY")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(item.isDownloaded ? .green : .cyan)
-                        .lineLimit(1)
-
-                    Spacer()
-
-                    Text("TARGET MEDIA: \(recommendedMedia)")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.65))
-                        .lineLimit(1)
-                }
-
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text(item.title)
-                        .font(.system(size: isNarrow ? 17 : 20, weight: .bold))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-
-                    Text("v\(item.version)")
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        .foregroundStyle(store.activeAccent)
-                        .lineLimit(1)
-                }
-
-                Text(item.subtitle)
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.86))
-                    .lineLimit(2)
-                    .frame(maxWidth: 590, alignment: .leading)
-
-                HStack(spacing: 10) {
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("ARCHITECTURE")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.5))
-                            Text(item.architecture)
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
-                        }
-                        Divider().frame(height: 22).overlay(Color.white.opacity(0.2))
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("BOOT SPECIFICATION")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.5))
-                            Text(item.bootStandard)
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.green)
-                                .lineLimit(1)
-                        }
-                        Divider().frame(height: 22).overlay(Color.white.opacity(0.2))
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("SIZE & SHA-256")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.5))
-                            Text("\(item.sizeDisplay) • \(item.sha256Short)")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
-                        }
-                    }
-
-                    Spacer(minLength: 4)
-
-                    if let prog = activeProgress {
-                        HStack(spacing: 6) {
-                            ProgressView(value: prog)
-                                .progressViewStyle(.circular)
-                                .controlSize(.small)
-                            Text("Downloading \(Int(prog * 100))%...")
-                                .font(.system(size: 10.5, weight: .heavy, design: .monospaced))
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(store.activeAccent.opacity(0.35))
-                        .clipShape(Capsule())
-                        .fixedSize(horizontal: true, vertical: false)
-                    } else {
-                        Button {
-                            store.downloadAndStageDepotItem(id: item.id, jumpToInspector: false)
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: isStaged ? "checkmark.circle.fill" : (item.isDownloaded ? "opticaldisc.fill" : "icloud.and.arrow.down.fill"))
-                                Text(isStaged ? "STAGED FOR BURN" : (item.isDownloaded ? "STAGE TO BURN" : "GET & STAGE (\(item.sizeDisplay))"))
-                                    .lineLimit(1)
-                            }
-                            .font(.system(size: 11, weight: .heavy))
-                            .padding(.horizontal, 15)
-                            .padding(.vertical, 7)
-                            .background(isStaged ? Color.green : store.activeAccent)
-                            .foregroundStyle(isStaged ? Color.black : store.activeOnAccentText)
-                            .clipShape(Capsule())
-                            .fixedSize(horizontal: true, vertical: false)
-                        }
-                        .buttonStyle(.plain)
-
-                        Button {
-                            store.downloadAndStageDepotItem(id: item.id, jumpToInspector: true)
-                        } label: {
-                            HStack(spacing: 5) {
-                                Image(systemName: "magnifyingglass.circle.fill")
-                                Text("Stage & Inspect Hex")
-                                    .lineLimit(1)
-                            }
-                            .font(.system(size: 10.5, weight: .bold))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                            .background(Color.white.opacity(0.14))
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(item.title)
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(.white)
-                            .clipShape(Capsule())
-                            .overlay(Capsule().stroke(Color.white.opacity(0.28), lineWidth: 1))
-                            .fixedSize(horizontal: true, vertical: false)
-                        }
-                        .buttonStyle(.plain)
+                            .lineLimit(1)
+                        Text("v\(item.version)")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundStyle(store.activeAccent)
+                            .lineLimit(1)
+                        Spacer(minLength: 0)
                     }
+
+                    Text(item.subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.82))
+                        .lineLimit(1)
+
+                    HStack(spacing: 8) {
+                        // Mini CAD Sector Partition Map of the Disc Image
+                        HStack(spacing: 2) {
+                            ForEach(Array(segments.enumerated()), id: \.offset) { idx, seg in
+                                VStack(alignment: .leading, spacing: 0) {
+                                    Text(seg.label)
+                                        .font(.system(size: 7.5, weight: .bold, design: .monospaced))
+                                        .foregroundStyle(.white)
+                                        .lineLimit(1)
+                                    Text(seg.lbaRange)
+                                        .font(.system(size: 7, design: .monospaced))
+                                        .foregroundStyle(.white.opacity(0.70))
+                                        .lineLimit(1)
+                                }
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(
+                                    idx == 0 ? Color.cyan.opacity(0.28) : (idx == 1 ? Color.green.opacity(0.28) : store.activeAccent.opacity(0.34))
+                                )
+                                .overlay(
+                                    Rectangle()
+                                        .stroke(Color.white.opacity(0.22), lineWidth: 0.6)
+                                )
+                            }
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+
+                        Spacer(minLength: 4)
+
+                        if let prog = activeProgress {
+                            HStack(spacing: 5) {
+                                ProgressView(value: prog)
+                                    .progressViewStyle(.circular)
+                                    .controlSize(.small)
+                                Text("\(Int(prog * 100))%")
+                                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                    .foregroundStyle(.white)
+                                    .lineLimit(1)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 5)
+                            .background(store.activeAccent.opacity(0.35))
+                            .clipShape(Capsule())
+                            .fixedSize(horizontal: true, vertical: false)
+                        } else {
+                            Button {
+                                store.downloadAndStageDepotItem(id: item.id, jumpToInspector: false)
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Image(systemName: isStaged ? "checkmark.circle.fill" : (item.isDownloaded ? "opticaldisc.fill" : "icloud.and.arrow.down.fill"))
+                                    Text(isStaged ? "STAGED" : (item.isDownloaded ? "STAGE (\(item.sizeDisplay))" : "GET (\(item.sizeDisplay))"))
+                                        .lineLimit(1)
+                                }
+                                .font(.system(size: 10.5, weight: .heavy))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 5)
+                                .background(isStaged ? Color.green : store.activeAccent)
+                                .foregroundStyle(isStaged ? Color.black : store.activeOnAccentText)
+                                .clipShape(Capsule())
+                                .fixedSize(horizontal: true, vertical: false)
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
+                                store.downloadAndStageDepotItem(id: item.id, jumpToInspector: true)
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "magnifyingglass.circle.fill")
+                                    Text("Inspect Hex")
+                                        .lineLimit(1)
+                                }
+                                .font(.system(size: 10, weight: .bold))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Color.white.opacity(0.14))
+                                .foregroundStyle(.white)
+                                .clipShape(Capsule())
+                                .overlay(Capsule().stroke(Color.white.opacity(0.28), lineWidth: 1))
+                                .fixedSize(horizontal: true, vertical: false)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.top, 2)
                 }
-                .padding(.top, 2)
+
+                // RIGHT SIDE: Live CAD Blueprint of the Actual On-Disc File Tree (Auto-hides when narrow!)
+                if showBlueprintPanel {
+                    VStack(alignment: .leading, spacing: 2.5) {
+                        HStack {
+                            Image(systemName: "cpu")
+                                .font(.system(size: 8.5, weight: .bold))
+                                .foregroundStyle(.cyan)
+                            Text("ON-DISC VOLUME BLUEPRINT")
+                                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                                .foregroundStyle(.cyan)
+                                .lineLimit(1)
+                            Spacer()
+                            Text(item.sizeDisplay)
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.white.opacity(0.65))
+                                .lineLimit(1)
+                        }
+                        Divider().overlay(Color.cyan.opacity(0.3))
+
+                        ForEach(treeFiles, id: \.self) { pathLine in
+                            HStack(spacing: 4) {
+                                Text("├─")
+                                    .foregroundStyle(.cyan.opacity(0.65))
+                                Text(pathLine)
+                                    .foregroundStyle(.white.opacity(0.88))
+                                    .lineLimit(1)
+                            }
+                            .font(.system(size: 8.5, weight: .medium, design: .monospaced))
+                        }
+                    }
+                    .padding(8)
+                    .frame(width: 240, alignment: .leading)
+                    .background(Color.black.opacity(0.42))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.cyan.opacity(0.32), style: StrokeStyle(lineWidth: 0.9, dash: [4, 2]))
+                    )
+                }
             }
-            .padding(16)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
         }
-        .frame(minHeight: 152)
+        .frame(height: 120)
+        .fixedSize(horizontal: false, vertical: true)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(isStaged ? Color.green.opacity(0.75) : store.activeAccent.opacity(0.55), lineWidth: 1.5)
+        )
     }
 
     private func depotAppStoreCard(for item: DepotCatalogItem, isSelectedInHero: Bool) -> some View {
@@ -3065,23 +3123,31 @@ struct KroutonMainWorkspaceView: View {
     // MARK: - RIGHT COLUMN: UUID-SAFE DESTINATION CARDS + CLICKABLE DISC MEDIA INSPECTOR PILL
     private var rightDestinationColumn: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Label("DESTINATIONS (\(store.destinationQueue.count))", systemImage: "arrow.right.doc.on.clipboard")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.secondary)
-                Spacer()
+            HStack(spacing: 6) {
+                Label(
+                    rightColumnLiveWidth < 265 ? "QUEUE (\(store.destinationQueue.count))" : "DESTINATIONS (\(store.destinationQueue.count))",
+                    systemImage: "arrow.right.doc.on.clipboard"
+                )
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                Spacer(minLength: 4)
                 Button {
                     appendContextAwareDestination()
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
-                        Text(KroutonL10n.tr("Add Output"))
+                        if rightColumnLiveWidth >= 255 {
+                            Text(KroutonL10n.tr("Add Output"))
+                                .lineLimit(1)
+                        }
                     }
                     .font(.system(size: 11, weight: .semibold))
                     .padding(.horizontal, 9)
                     .padding(.vertical, 4)
                     .background(store.activeAccent.opacity(0.2))
                     .clipShape(Capsule())
+                    .fixedSize(horizontal: true, vertical: false)
                 }
                 .buttonStyle(.plain)
             }
@@ -3092,6 +3158,12 @@ struct KroutonMainWorkspaceView: View {
 
             // Iterating directly over store.destinationQueue by UUID (Zero raw array indices = Zero crashes!)
             ScrollView {
+                GeometryReader { proxy in
+                    Color.clear
+                        .onAppear { rightColumnLiveWidth = proxy.size.width }
+                        .onChange(of: proxy.size.width) { _, newW in rightColumnLiveWidth = newW }
+                }
+                .frame(height: 0)
                 VStack(spacing: 12) {
                     ForEach(store.destinationQueue) { item in
                         destinationCard(item: item)
@@ -3278,8 +3350,7 @@ struct KroutonMainWorkspaceView: View {
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "eject.fill")
-                                Text(KroutonL10n.tr("Eject"))
-                                    .lineLimit(1)
+                                if rightColumnLiveWidth >= 285 { Text(KroutonL10n.tr("Eject")).lineLimit(1) }
                             }
                             .font(.system(size: 10, weight: .semibold))
                             .padding(.horizontal, 8)
@@ -3417,7 +3488,7 @@ struct KroutonMainWorkspaceView: View {
                 }
 
                 HStack {
-                    Text(KroutonL10n.tr("Write Speed:"))
+                    Text(rightColumnLiveWidth < 280 ? "Speed:" : KroutonL10n.tr("Write Speed:")).lineLimit(1)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -3459,7 +3530,7 @@ struct KroutonMainWorkspaceView: View {
                         HStack(spacing: 3) {
                             Image(systemName: "seal.fill")
                                 .font(.system(size: 8))
-                            Text(KroutonL10n.tr("DVD-ROM Bitset"))
+                            Text(rightColumnLiveWidth < 295 ? "DVD-ROM" : KroutonL10n.tr("DVD-ROM Bitset")).lineLimit(1)
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                         }
                         .padding(.horizontal, 6)
