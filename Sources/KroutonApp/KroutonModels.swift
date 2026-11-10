@@ -401,11 +401,27 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var autoVerifyDepotSHA256: Bool = true
     @Published public var enableVMTestBootInDepot: Bool = true
 
+    @Published public var stagedDepotItemID: String? = nil
+    @Published public var depotDownloadProgress: [String: Double] = [:]
+
     @Published public var depotItems: [DepotCatalogItem] = [
-        DepotCatalogItem(id: "sysrescue-11", title: "SystemRescue 11.03 Live", subtitle: "Complete ZFS/Btrfs/APFS recovery, partitioning, ddrescue & network tools", channel: "Rescue & Diagnostics", version: "11.03 (2026)", sizeDisplay: "854 MB", architecture: "x86_64 / UEFI", bootStandard: "El Torito BIOS + UEFI", sha256Short: "8f4a...e91c", sfSymbol: "cross.case.fill", isDownloaded: true),
-        DepotCatalogItem(id: "freedos-14", title: "FreeDOS 1.4 Live + BIOS Flasher Room", subtitle: "Classic DOS environment with 600 MB open space to inject motherboard/drive firmware", channel: "Rescue & Diagnostics", version: "1.4 Final", sizeDisplay: "412 MB", architecture: "x86 Real Mode", bootStandard: "El Torito Floppy/HD Emulation", sha256Short: "3c19...b04d", sfSymbol: "cpu.fill", isDownloaded: true),
-        DepotCatalogItem(id: "macos922-uni", title: "Mac OS 9.2.2 Universal Boot CD (Classic APM)", subtitle: "Bootable HFS Standard + Apple Partition Map for PowerMac G3/G4 & iBook", channel: "Vintage Apple (archive.org)", version: "9.2.2 (2002)", sizeDisplay: "618 MB", architecture: "PowerPC", bootStandard: "Apple Partition Map + Blessed Folder", sha256Short: "a72e...441f", sfSymbol: "desktopcomputer", isDownloaded: false),
-        DepotCatalogItem(id: "ubuntu-2604", title: "Ubuntu Desktop 26.04 LTS Live DVD", subtitle: "Official Canonical Live Desktop & Installer (ARM64 Apple Silicon VM & x86_64)", channel: "Live Linux & BSD", version: "26.04 LTS", sizeDisplay: "4.48 GB", architecture: "ARM64 / x86_64", bootStandard: "UEFI ESP + El Torito", sha256Short: "e901...772a", sfSymbol: "terminal.fill", isDownloaded: false)
+        // Channel 1: System Rescue & BIOS ("depot-rescue")
+        DepotCatalogItem(id: "sysrescue-11", title: "SystemRescue 11.03 Live", subtitle: "Complete ZFS/Btrfs/APFS recovery, GParted, ddrescue, TestDisk & network diagnostics", channel: "Rescue & Diagnostics", version: "11.03", sizeDisplay: "854 MB", architecture: "x86_64 / UEFI", bootStandard: "El Torito BIOS + UEFI", sha256Short: "8f4a...e91c", sfSymbol: "cross.case.fill", isDownloaded: true),
+        DepotCatalogItem(id: "freedos-14", title: "FreeDOS 1.4 Live + BIOS Flasher Room", subtitle: "Real-mode DOS environment with 600 MB open space for motherboard & optical drive firmware flashing", channel: "Rescue & Diagnostics", version: "1.4 Final", sizeDisplay: "412 MB", architecture: "x86 Real Mode", bootStandard: "El Torito Floppy Emulation", sha256Short: "3c19...b04d", sfSymbol: "cpu.fill", isDownloaded: true),
+        DepotCatalogItem(id: "gparted-live", title: "GParted Live 1.6 Partition Studio", subtitle: "Standalone bootable partition table editor for GPT, MBR, APM, NVMe & RAID arrays", channel: "Rescue & Diagnostics", version: "1.6.0-3", sizeDisplay: "518 MB", architecture: "x86_64 / i686", bootStandard: "El Torito ISOLINUX + UEFI", sha256Short: "5d82...110a", sfSymbol: "internaldrive.trianglebadge.exclamationmark", isDownloaded: false),
+        DepotCatalogItem(id: "memtest86-pro", title: "Memtest86+ v7.20 ECC & DDR5 Analyzer", subtitle: "Bare-metal RAM & CPU cache stress tester for Intel, AMD & UEFI workstations", channel: "Rescue & Diagnostics", version: "7.20", sizeDisplay: "48 MB", architecture: "x86_64 / Legacy", bootStandard: "El Torito + EFI Stub", sha256Short: "9b04...c4e2", sfSymbol: "memorychip.fill", isDownloaded: true),
+
+        // Channel 2: Live OS & Installers ("depot-linux")
+        DepotCatalogItem(id: "ubuntu-2604", title: "Ubuntu Desktop 26.04 LTS Live DVD", subtitle: "Official Canonical Live Desktop & Installer (ARM64 Apple Silicon VM & x86_64 hybrid)", channel: "Live Linux & BSD", version: "26.04 LTS", sizeDisplay: "4.48 GB", architecture: "ARM64 / x86_64", bootStandard: "UEFI ESP + El Torito", sha256Short: "e901...772a", sfSymbol: "terminal.fill", isDownloaded: false),
+        DepotCatalogItem(id: "fedora-43-ws", title: "Fedora Workstation 43 Live Media", subtitle: "Pure GNOME Wayland live environment, PipeWire studio audio & Btrfs installer", channel: "Live Linux & BSD", version: "43.1", sizeDisplay: "2.18 GB", architecture: "x86_64 / ARM64", bootStandard: "UEFI + El Torito Hybrid", sha256Short: "44c8...901b", sfSymbol: "opticaldisc.fill", isDownloaded: true),
+        DepotCatalogItem(id: "debian-13-net", title: "Debian 13 'Trixie' Multi-Arch DVD-1", subtitle: "Rock-solid universal server & workstation installer with complete offline firmware bundle", channel: "Live Linux & BSD", version: "13.1.0", sizeDisplay: "3.72 GB", architecture: "Multi-Arch", bootStandard: "El Torito GRUB2 + EFI", sha256Short: "71f0...33a9", sfSymbol: "server.rack", isDownloaded: false),
+        DepotCatalogItem(id: "freebsd-15-dvd", title: "FreeBSD 15.0-RELEASE Bootable DVD", subtitle: "Complete OpenZFS root-on-ZFS installer, BSD jails & UNIX rescue shell", channel: "Live Linux & BSD", version: "15.0", sizeDisplay: "4.12 GB", architecture: "amd64 / aarch64", bootStandard: "El Torito loader.efi", sha256Short: "12e7...88d1", sfSymbol: "network.badge.shield.half.filled", isDownloaded: false),
+
+        // Channel 3: Vintage Apple & Archive.org ("depot-vintage")
+        DepotCatalogItem(id: "macos922-uni", title: "Mac OS 9.2.2 Universal Boot CD (Classic APM)", subtitle: "Bootable HFS Standard + Apple Partition Map for PowerMac G3/G4, iMac & Titanium PowerBook", channel: "Vintage Apple (archive.org)", version: "9.2.2 (2002)", sizeDisplay: "618 MB", architecture: "PowerPC G3/G4", bootStandard: "Apple Partition Map (APM)", sha256Short: "a72e...441f", sfSymbol: "desktopcomputer", isDownloaded: true),
+        DepotCatalogItem(id: "system753-cd", title: "Macintosh System 7.5.3 Revision 2 CD", subtitle: "Classic 68040 & PowerPC bootable CD-ROM with Apple HD SC Setup & Disk First Aid", channel: "Vintage Apple (archive.org)", version: "7.5.3 Rev 2", sizeDisplay: "340 MB", architecture: "68k / PowerPC", bootStandard: "Apple Partition Map + Blessed HFS", sha256Short: "c019...558e", sfSymbol: "externaldrive.fill", isDownloaded: false),
+        DepotCatalogItem(id: "aht-ppc-suite", title: "Apple Hardware Test (PowerMac G4/G5 & iBook)", subtitle: "Factory Apple logic board, VRAM, Airport & optical bus diagnostic CD collection", channel: "Vintage Apple (archive.org)", version: "2.5.2", sizeDisplay: "184 MB", architecture: "PowerPC OpenFirmware", bootStandard: "APM CHRP Boot Script", sha256Short: "66a1...09f3", sfSymbol: "stethoscope", isDownloaded: true),
+        DepotCatalogItem(id: "macaddict-1999", title: "MacAddict Disc #036 (August 1999 Vault)", subtitle: "Interactive QuickTime 4 CD-ROM interface, classic shareware games, Kaleidoscope schemes & demos", channel: "Vintage Apple (archive.org)", version: "Issue #36", sizeDisplay: "648 MB", architecture: "68k / PPC HFS", bootStandard: "HFS Standard Custom Icon Volume", sha256Short: "f83b...2210", sfSymbol: "sparkles.tv.fill", isDownloaded: false)
     ]
 
     @Published public var defaultCrossfadeSec: Double = 3.5
@@ -727,6 +743,81 @@ public final class KroutonStateStore: ObservableObject {
             updated.showOnPC = entry.showOnPC
             stagedFiles[idx] = updated
             announceForVoiceOver("Converted \(entry.name) to 2,352 byte raw BIN sectors with CUE sheet.")
+        }
+    }
+
+    public func parseSizeDisplayToBytes(_ sizeDisplay: String) -> Int64 {
+        let parts = sizeDisplay.split(separator: " ")
+        guard let val = Double(parts.first ?? "650") else { return 681_574_400 }
+        if sizeDisplay.uppercased().contains("GB") {
+            return Int64(val * 1_000_000_000)
+        } else {
+            return Int64(val * 1_000_000)
+        }
+    }
+
+    public func downloadAndStageDepotItem(id: String, jumpToInspector: Bool = false) {
+        guard let idx = depotItems.firstIndex(where: { $0.id == id }) else { return }
+        if depotItems[idx].isDownloaded {
+            stageDepotItemForBurning(depotItems[idx], jumpToInspector: jumpToInspector)
+            return
+        }
+        depotDownloadProgress[id] = 0.08
+        Task { @MainActor in
+            for step in 1...6 {
+                try? await Task.sleep(nanoseconds: 140_000_000)
+                self.depotDownloadProgress[id] = min(1.0, Double(step) / 6.0)
+            }
+            self.depotDownloadProgress.removeValue(forKey: id)
+            if let freshIdx = self.depotItems.firstIndex(where: { $0.id == id }) {
+                self.depotItems[freshIdx].isDownloaded = true
+                self.stageDepotItemForBurning(self.depotItems[freshIdx], jumpToInspector: jumpToInspector)
+            }
+        }
+    }
+
+    public func stageDepotItemForBurning(_ item: DepotCatalogItem, jumpToInspector: Bool = false) {
+        let cacheDir = URL(fileURLWithPath: "/tmp/KroutonDepotCache", isDirectory: true)
+        try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+
+        let safeFilename = item.id + "-" + item.version.replacingOccurrences(of: " ", with: "_") + ".iso"
+        let isoURL = cacheDir.appendingPathComponent(safeFilename)
+
+        if !FileManager.default.fileExists(atPath: isoURL.path) {
+            var imgBytes = Data(count: 65_536)
+            let apmSig = Array("ER\u{08}\u{00}\u{00}\u{00}PM\u{00}\u{00}Apple_partition_map\u{00}\(item.title)".utf8)
+            imgBytes.replaceSubrange(0..<min(apmSig.count, 512), with: apmSig)
+            let pvdOffset = 16 * 2048
+            let pvdSig = Array("\u{01}CD001\u{01}\u{00}\(item.title.uppercased())".utf8)
+            imgBytes.replaceSubrange(pvdOffset..<(pvdOffset + min(pvdSig.count, 128)), with: pvdSig)
+            let bootOffset = 17 * 2048
+            let bootSig = Array("\u{00}CD001\u{01}EL TORITO SPECIFICATION\u{00}\u{00}\(item.bootStandard)".utf8)
+            imgBytes.replaceSubrange(bootOffset..<(bootOffset + min(bootSig.count, 128)), with: bootSig)
+            try? imgBytes.write(to: isoURL)
+        }
+
+        let logicalBytes = parseSizeDisplayToBytes(item.sizeDisplay)
+        let stagedEntry = StagedFileEntry(
+            url: isoURL,
+            name: safeFilename,
+            isDirectory: false,
+            byteSize: logicalBytes,
+            itemCount: 1,
+            posixPermissions: "r--r--r--",
+            modifiedDate: Date(),
+            showOnMac: true,
+            showOnPC: true
+        )
+
+        stagedFiles = [stagedEntry]
+        stagedDepotItemID = item.id
+        discVolumeTitle = item.id.uppercased().replacingOccurrences(of: "-", with: "_")
+        announceForVoiceOver("Staged \(item.title) (\(item.sizeDisplay)) ready to burn.")
+        NSSound.beep()
+
+        if jumpToInspector {
+            selectedCategory = .burn
+            selectedTaskID = "image-burn"
         }
     }
 
