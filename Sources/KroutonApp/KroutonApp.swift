@@ -599,6 +599,9 @@ struct KroutonMainWorkspaceView: View {
             case "depot-rescue": return "Rescue & Diagnostics"
             case "depot-linux": return "Live Linux & BSD"
             case "depot-vintage": return "Vintage Apple (archive.org)"
+            case "depot-homebrew": return "Console Homebrew & ROMs"
+            case "depot-coverdiscs": return "Cover Discs & Demoscene"
+            case "depot-ia-live": return "Internet Archive Live"
             default: return nil
             }
         }()
@@ -639,6 +642,24 @@ struct KroutonMainWorkspaceView: View {
                 "Vintage Apple Partition Map (APM) Boot CDs",
                 "Preserved HFS Standard & Blessed System Folders for 68040, PowerPC G3/G4/G5, iMac, iBook & Classic Mac restoration."
             )
+        case "depot-homebrew":
+            return (
+                "HOMEBREW BOOT DISCS • 240P SUITE • REDUMP VERIFIED",
+                "Console Homebrew, Boot Loaders & Indie Game ROMs",
+                "Legal self-booting console utilities (Swiss, FreeDVDBoot, UniROM, 240p Test Suite) & indie optical releases."
+            )
+        case "depot-coverdiscs":
+            return (
+                "INTERNET ARCHIVE CD-ROM VAULT • SCENE.ORG",
+                "Classic 90s Magazine Cover Discs & Demoscene",
+                "Preserved MacAddict, PC Gamer & Next Generation CD-ROMs plus real-time Demoscene optical anthologies."
+            )
+        case "depot-ia-live":
+            return (
+                "ARCHIVE.ORG LIVE REST API QUERY",
+                "Internet Archive Optical Software Vault",
+                "Live results fetched directly from archive.org/advancedsearch.php for optical ISO, BIN/CUE & CD-ROM software."
+            )
         default:
             return (
                 "VERIFIED BOOTABLE MEDIA STOREFRONT",
@@ -675,9 +696,11 @@ struct KroutonMainWorkspaceView: View {
                 // Category Filter Pills (Interactive Channel Switcher!)
                 HStack(spacing: 6) {
                     ForEach([
-                        ("depot-rescue", "Rescue & BIOS", "cross.case.fill"),
-                        ("depot-linux", "Linux & BSD", "terminal.fill"),
-                        ("depot-vintage", "Vintage Mac", "desktopcomputer")
+                        ("depot-rescue", "Rescue", "cross.case.fill"),
+                        ("depot-linux", "Linux/BSD", "terminal.fill"),
+                        ("depot-vintage", "Vintage Mac", "desktopcomputer"),
+                        ("depot-homebrew", "Console ROMs", "gamecontroller.fill"),
+                        ("depot-coverdiscs", "Cover Discs", "sparkles.tv.fill")
                     ], id: \.0) { taskID, label, icon in
                         let isSelected = (store.selectedTaskID == taskID)
                         Button {
@@ -703,12 +726,39 @@ struct KroutonMainWorkspaceView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(.secondary)
-                    TextField(KroutonL10n.tr("Search Depot..."), text: $depotSearchQuery)
+                    TextField(KroutonL10n.tr("Search Depot or archive.org..."), text: $depotSearchQuery)
                         .textFieldStyle(.plain)
-                        .frame(width: 145)
+                        .frame(width: 155)
+                        .onSubmit {
+                            store.selectedTaskID = "depot-ia-live"
+                            store.queryInternetArchiveLive(query: depotSearchQuery)
+                        }
+                    Button {
+                        store.selectedTaskID = "depot-ia-live"
+                        store.queryInternetArchiveLive(query: depotSearchQuery)
+                    } label: {
+                        HStack(spacing: 3) {
+                            if store.isSearchingInternetArchive {
+                                ProgressView().controlSize(.mini)
+                            } else {
+                                Image(systemName: "building.columns.fill")
+                                    .font(.system(size: 9))
+                            }
+                            Text("Archive.org API")
+                                .font(.system(size: 9.5, weight: .bold))
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(store.activeAccent)
+                        .foregroundStyle(store.activeOnAccentText)
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Query live Internet Archive REST API (archive.org/advancedsearch.php) for optical ISO / CD-ROM images")
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
+                .padding(.leading, 10)
+                .padding(.trailing, 4)
+                .padding(.vertical, 4)
                 .background(Color(NSColor.controlBackgroundColor))
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 1))
