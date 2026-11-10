@@ -254,6 +254,7 @@ public struct DrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable {
     public let id: String          // Drive ID
     public var driveName: String
     public var isActive: Bool       // True whenever throughputKBs > 0
+    public var isManuallyPinnedInline: Bool
     public var isFloatingWindowOpen: Bool
     public var phaseTitle: String
     public var progressFraction: Double
@@ -275,6 +276,7 @@ public struct DrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable {
         id: String,
         driveName: String,
         isActive: Bool = false,
+        isManuallyPinnedInline: Bool = false,
         isFloatingWindowOpen: Bool = false,
         phaseTitle: String = "Idle",
         progressFraction: Double = 0.0,
@@ -295,6 +297,7 @@ public struct DrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable {
         self.id = id
         self.driveName = driveName
         self.isActive = isActive
+        self.isManuallyPinnedInline = isManuallyPinnedInline
         self.isFloatingWindowOpen = isFloatingWindowOpen
         self.phaseTitle = phaseTitle
         self.progressFraction = progressFraction
@@ -749,18 +752,34 @@ public final class DriveManager: ObservableObject {
         return nil
     }
 
-    public func setFloatingScopeOpen(for driveID: String, isOpen: Bool) {
+    public func setFloatingScopeOpen(for driveID: String, isOpen: Bool, keepInlineVisible: Bool = true) {
         if var tel = driveTelemetry[driveID] {
             tel.isFloatingWindowOpen = isOpen
+            if !isOpen && keepInlineVisible {
+                tel.isManuallyPinnedInline = true
+            }
             driveTelemetry[driveID] = tel
         } else {
             let name = driveForID(driveID)?.displayName ?? "Optical Drive"
-            driveTelemetry[driveID] = DrivePhaseScopeTelemetry(id: driveID, driveName: name, isFloatingWindowOpen: isOpen)
+            driveTelemetry[driveID] = DrivePhaseScopeTelemetry(id: driveID, driveName: name, isManuallyPinnedInline: !isOpen && keepInlineVisible, isFloatingWindowOpen: isOpen)
+        }
+    }
+
+    public func setManualInlinePin(for driveID: String, isPinned: Bool) {
+        if var tel = driveTelemetry[driveID] {
+            tel.isManuallyPinnedInline = isPinned
+            driveTelemetry[driveID] = tel
+        } else {
+            let name = driveForID(driveID)?.displayName ?? "Optical Drive"
+            driveTelemetry[driveID] = DrivePhaseScopeTelemetry(id: driveID, driveName: name, isManuallyPinnedInline: isPinned)
+        }
+        if isPinned && (driveTelemetry[driveID]?.samples.isEmpty ?? true) {
+            runPhaseScopeTestSweep(for: driveID, keepPinnedAfterSweep: true)
         }
     }
 
     // Runs a live 6-second P-CAV Phase Scope telemetry sweep on a specific drive card so users can test & inspect the inline/floating scope anytime!
-    public func runPhaseScopeTestSweep(for driveID: String) {
+    public func runPhaseScopeTestSweep(for driveID: String, keepPinnedAfterSweep: Bool = true) {
         let resolved = driveForID(driveID)
         let targetID = resolved?.id ?? driveID
         guard !targetID.isEmpty else { return }
@@ -771,13 +790,15 @@ public final class DriveManager: ObservableObject {
         perDriveTimers[targetID]?.invalidate()
 
         let isFloated = driveTelemetry[targetID]?.isFloatingWindowOpen ?? false
+        let isPinned = keepPinnedAfterSweep || (driveTelemetry[targetID]?.isManuallyPinnedInline ?? false)
         let divisor: Double = mediaType.contains("BD") ? 4500.0 : (mediaType.contains("DVD") ? 1385.0 : 176.4)
         let laserStr = mediaType.contains("BD") ? "405 nm Violet" : (mediaType.contains("DVD") ? "650 nm Red" : "780 nm IR")
 
-        var tel = DrivePhaseScopeTelemetry(
+        let tel = DrivePhaseScopeTelemetry(
             id: targetID,
             driveName: driveName,
             isActive: true,
+            isManuallyPinnedInline: isPinned,
             isFloatingWindowOpen: isFloated,
             phaseTitle: "Phase Scope Calibration Sweep...",
             progressFraction: 0.02,
@@ -831,12 +852,13 @@ public final class DriveManager: ObservableObject {
                     self.perDriveTimers[targetID]?.invalidate()
                     self.perDriveTimers.removeValue(forKey: targetID)
                     self.driveTelemetry[targetID] = current
-                    // Auto-hide the inline mini scope 1.8s after throughput drops to 0 KB/s
+                    // Mark throughput as 0 after 1.8s, but if isManuallyPinnedInline is true the mini graph stays visible!
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
                         if var finished = self.driveTelemetry[targetID], finished.progressFraction >= 1.0 {
                             finished.isActive = false
                             finished.currentSpeedKBs = 0
                             finished.currentSpeedX = 0
+                            finished.phaseTitle = "Standby (Last Sweep Hold)"
                             self.driveTelemetry[targetID] = finished
                         }
                     }

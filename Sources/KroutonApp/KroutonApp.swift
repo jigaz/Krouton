@@ -57,9 +57,9 @@ final class KroutonWindowManager {
         self.phaseScopeWindows[targetID] = window
     }
 
-    func closeFloatingPhaseScopeWindow(driveID: String) {
-        driveManager.setFloatingScopeOpen(for: driveID, isOpen: false)
-        phaseScopeWindows[driveID]?.close()
+    func closeFloatingPhaseScopeWindow(driveID: String, suckIntoMiniGraph: Bool = true) {
+        driveManager.setFloatingScopeOpen(for: driveID, isOpen: false, keepInlineVisible: suckIntoMiniGraph)
+        phaseScopeWindows[driveID]?.orderOut(nil)
     }
 
     func openMainWindow() {
@@ -123,7 +123,7 @@ final class PhaseScopeWindowCloseDelegate: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        driveManager?.setFloatingScopeOpen(for: driveID, isOpen: false)
+        driveManager?.setFloatingScopeOpen(for: driveID, isOpen: false, keepInlineVisible: true)
     }
 }
 
@@ -237,6 +237,12 @@ struct KroutonMainWorkspaceView: View {
         .background(Color(NSColor.windowBackgroundColor))
         .preferredColorScheme(store.appearanceMode.colorScheme)
         .tint(store.activeAccent)
+        .onAppear {
+            reconcileUniqueDriveAssignments()
+        }
+        .onChange(of: driveManager.availableDrives) { _, _ in
+            reconcileUniqueDriveAssignments()
+        }
         .sheet(item: $driveManager.completionReport) { report in
             KroutonMasteringReportSheet(report: report, accent: store.activeAccent) {
                 driveManager.completionReport = nil
@@ -789,9 +795,38 @@ struct KroutonMainWorkspaceView: View {
                                 .foregroundStyle(.secondary)
                         }
                     } else {
-                        ScrollView {
-                            VStack(spacing: 0) {
-                                ForEach(store.stagedFiles) { entry in
+                        VStack(spacing: 0) {
+                            // Straightened Column Header Bar
+                            HStack(spacing: 12) {
+                                Text("ITEM NAME & PATH")
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                    .padding(.leading, 36)
+                                Spacer()
+                                if activeSpec.isDataDisc {
+                                    Text("OS VISIBILITY")
+                                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 112, alignment: .center)
+                                }
+                                Text("SECTORS")
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 86, alignment: .trailing)
+                                Text("SIZE")
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 72, alignment: .trailing)
+                                Spacer().frame(width: 22)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
+                            .background(Color.black.opacity(0.18))
+                            Divider()
+
+                            ScrollView {
+                                VStack(spacing: 0) {
+                                    ForEach(store.stagedFiles) { entry in
                                     HStack(spacing: 12) {
                                         Image(systemName: entry.isDirectory ? "folder.fill" : "doc.fill")
                                             .foregroundStyle(store.activeAccent)
@@ -849,16 +884,18 @@ struct KroutonMainWorkspaceView: View {
                                                 .buttonStyle(.plain)
                                                 .help(entry.showOnPC ? "Visible on Windows Explorer (ISO9660 / Joliet / UDF Tree) — Click to hide from PC" : "Hidden on Windows PC — Click to show on PC")
                                             }
+                                            .frame(width: 112, alignment: .center)
                                         }
 
                                         Text("\(entry.sectorsLBA) LBA")
                                             .font(.system(size: 10, weight: .semibold, design: .monospaced))
                                             .foregroundStyle(store.activeAccent)
+                                            .frame(width: 86, alignment: .trailing)
 
                                         Text(ByteCountFormatter.string(fromByteCount: entry.byteSize, countStyle: .file))
                                             .font(.system(size: 11, design: .monospaced))
                                             .foregroundStyle(.secondary)
-                                            .frame(width: 80, alignment: .trailing)
+                                            .frame(width: 72, alignment: .trailing)
 
                                         Button {
                                             store.removeStagedFile(id: entry.id)
@@ -867,10 +904,12 @@ struct KroutonMainWorkspaceView: View {
                                                 .foregroundStyle(.secondary)
                                         }
                                         .buttonStyle(.plain)
+                                        .frame(width: 18, alignment: .center)
                                     }
                                     .padding(.horizontal, 14)
-                                    .padding(.vertical, 9)
+                                    .padding(.vertical, 8)
                                     Divider()
+                                }
                                 }
                             }
                         }
@@ -1240,32 +1279,66 @@ struct KroutonMainWorkspaceView: View {
         mutate(&store.destinationQueue[idx])
     }
 
+    // Ensures every physicalBurner card has a unique targetDriveID so 2 cards never select the same drive
+    private func reconcileUniqueDriveAssignments() {
+        guard !driveManager.availableDrives.isEmpty else { return }
+        var claimedIDs = Set<String>()
+        for idx in store.destinationQueue.indices {
+            guard store.destinationQueue[idx].kind == .physicalBurner else { continue }
+            let currentID = store.destinationQueue[idx].targetDriveID
+            let isValidDrive = driveManager.availableDrives.contains(where: { $0.id == currentID })
+            if isValidDrive && !claimedIDs.contains(currentID) {
+                claimedIDs.insert(currentID)
+            } else if let nextFree = driveManager.availableDrives.first(where: { !claimedIDs.contains($0.id) }) {
+                store.destinationQueue[idx].targetDriveID = nextFree.id
+                store.destinationQueue[idx].hardwareOrPath = nextFree.displayName
+                claimedIDs.insert(nextFree.id)
+            }
+        }
+    }
+
     private func destinationCard(item: DestinationQueueItem) -> some View {
         let cardID = item.id
-        let cardDrive = driveManager.driveForID(item.targetDriveID)
-        let activeCardDriveID = cardDrive?.id ?? ""
-        let validSpeeds = cardDrive?.availableWriteSpeeds ?? ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
 
-        // Physical drives selected in OTHER destination cards are greyed out in this menu
+        // Drives claimed by OTHER destination cards in the queue
         let otherUsedDriveIDs = Set(
             store.destinationQueue
                 .filter { $0.id != cardID && $0.kind == .physicalBurner && !$0.targetDriveID.isEmpty }
                 .map { $0.targetDriveID }
         )
 
-        let isDriveBusy = driveManager.isExecutingQueue || (driveManager.telemetryForDrive(activeCardDriveID)?.isActive == true)
+        // Resolve THIS card's drive without falling back to a drive already claimed by another card!
+        let cardDrive: OpticalDriveDevice? = {
+            if let exact = driveManager.availableDrives.first(where: { $0.id == item.targetDriveID }) {
+                return exact
+            }
+            return driveManager.availableDrives.first(where: { !otherUsedDriveIDs.contains($0.id) }) ?? driveManager.availableDrives.first
+        }()
+
+        let activeCardDriveID = cardDrive?.id ?? ""
+        let validSpeeds = cardDrive?.availableWriteSpeeds ?? ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
+
+        let scopeTel = driveManager.telemetryForDrive(activeCardDriveID)
+        let isFloatingOpen = scopeTel?.isFloatingWindowOpen ?? false
+        let isInlineVisible = ((scopeTel?.isActive ?? false) || (scopeTel?.isManuallyPinnedInline ?? false)) && !isFloatingOpen
+
+        let isDriveBusy = driveManager.isExecutingQueue || (scopeTel?.isActive == true)
         let canEject = (cardDrive?.isMediaPresent == true) && !isDriveBusy
         let canErase = (cardDrive?.isMediaPresent == true) && (cardDrive?.isMediaErasable == true) && !isDriveBusy
 
         return VStack(alignment: .leading, spacing: 10) {
-            // Top Row: Output Kind Picker + Scope + (Conditional) Eject + Remove Card
+            // Top Row: Output Kind Picker + Scope Toggle/Dock Button + (Conditional) Eject + Remove Card
             HStack(spacing: 6) {
                 Image(systemName: item.kind.sfSymbol)
                     .foregroundStyle(store.activeAccent)
 
                 Picker("", selection: Binding(
                     get: { item.kind },
-                    set: { newKind in updateQueueItem(cardID) { $0.kind = newKind } }
+                    set: {
+                        let newKind = $0
+                        updateQueueItem(cardID) { $0.kind = newKind }
+                        reconcileUniqueDriveAssignments()
+                    }
                 )) {
                     ForEach(allowedDestinationsForCurrentCategory) { kind in
                         Text(kind.rawValue).tag(kind)
@@ -1278,29 +1351,47 @@ struct KroutonMainWorkspaceView: View {
                 Spacer(minLength: 4)
 
                 if item.kind == .physicalBurner {
+                    // Scope Button: Overrides auto-hide! If floating window is open, changes style and sucks it back into a mini graph when pressed!
                     Button {
-                        let currentTel = driveManager.telemetryForDrive(activeCardDriveID)
-                        if currentTel?.isActive == true {
-                            KroutonWindowManager.shared.openFloatingPhaseScopeWindow(driveID: activeCardDriveID)
-                        } else {
-                            driveManager.runPhaseScopeTestSweep(for: activeCardDriveID)
+                        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                            if isFloatingOpen {
+                                // Suck floating window back into inline mini graph!
+                                KroutonWindowManager.shared.closeFloatingPhaseScopeWindow(driveID: activeCardDriveID, suckIntoMiniGraph: true)
+                            } else if isInlineVisible {
+                                // Manual override: hide the inline mini graph
+                                driveManager.setManualInlinePin(for: activeCardDriveID, isPinned: false)
+                                if var t = driveManager.driveTelemetry[activeCardDriveID] {
+                                    t.isActive = false
+                                    driveManager.driveTelemetry[activeCardDriveID] = t
+                                }
+                            } else {
+                                // Manual override: pin inline mini graph open & run calibration sweep
+                                driveManager.setManualInlinePin(for: activeCardDriveID, isPinned: true)
+                                driveManager.runPhaseScopeTestSweep(for: activeCardDriveID, keepPinnedAfterSweep: true)
+                            }
                         }
                     } label: {
                         HStack(spacing: 4) {
-                            Image(systemName: "waveform.path.ecg")
-                            Text(driveManager.telemetryForDrive(activeCardDriveID)?.isFloatingWindowOpen == true ? "Scope Window" : "Scope")
+                            Image(systemName: isFloatingOpen ? "arrow.down.right.and.arrow.up.left" : "waveform.path.ecg")
+                            Text(isFloatingOpen ? "Dock Scope" : "Scope")
                                 .lineLimit(1)
                         }
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: 10, weight: .bold))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(Color.green.opacity(0.16))
-                        .foregroundStyle(.green)
+                        .background(
+                            isFloatingOpen
+                                ? Color.cyan
+                                : (isInlineVisible ? Color.green : Color.green.opacity(0.16))
+                        )
+                        .foregroundStyle(
+                            (isFloatingOpen || isInlineVisible) ? Color.black.opacity(0.9) : Color.green
+                        )
                         .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
                     .fixedSize()
-                    .help("Start Phase Scope telemetry sweep (or click while active to pop out Floating Phase Scope window)")
+                    .help(isFloatingOpen ? "Pull Floating Phase Scope window back into the inline mini graph" : (isInlineVisible ? "Hide inline Phase Scope mini graph" : "Show inline Phase Scope mini graph (overrides auto-hide)"))
 
                     if canEject {
                         Button {
@@ -1326,12 +1417,13 @@ struct KroutonMainWorkspaceView: View {
                 if store.destinationQueue.count > 1 {
                     Button {
                         store.destinationQueue.removeAll { $0.id == cardID }
+                        reconcileUniqueDriveAssignments()
                     } label: {
                         Image(systemName: "minus.circle.fill")
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
-                    .help("Remove this output from the queue")
+                    .help("Remove this output from the queue (releases its drive for other cards)")
                 }
             }
 
@@ -1344,27 +1436,45 @@ struct KroutonMainWorkspaceView: View {
                             .font(.system(size: 11, weight: .semibold))
                     }
                 } else {
-                    Picker("Drive:", selection: Binding(
-                        get: { activeCardDriveID },
-                        set: { newDriveID in
-                            guard !otherUsedDriveIDs.contains(newDriveID) else { return }
-                            updateQueueItem(cardID) { qItem in
-                                qItem.targetDriveID = newDriveID
-                                if let chosen = driveManager.driveForID(newDriveID) {
-                                    qItem.hardwareOrPath = chosen.displayName
-                                    driveManager.selectedDrive = chosen
+                    // Custom Hardware Drive Menu: Shows all drives, greys out drives selected in other cards, and never shows '(In Use)' on the active drive!
+                    Menu {
+                        ForEach(driveManager.availableDrives) { d in
+                            let isTakenByOther = otherUsedDriveIDs.contains(d.id)
+                            Button {
+                                guard !isTakenByOther else { return }
+                                updateQueueItem(cardID) { qItem in
+                                    qItem.targetDriveID = d.id
+                                    qItem.hardwareOrPath = d.displayName
+                                    driveManager.selectedDrive = d
+                                }
+                            } label: {
+                                HStack {
+                                    if d.id == activeCardDriveID {
+                                        Image(systemName: "checkmark")
+                                    }
+                                    Text(isTakenByOther ? "\(d.displayName) — In Use" : d.displayName)
                                 }
                             }
+                            .disabled(isTakenByOther)
                         }
-                    )) {
-                        ForEach(driveManager.availableDrives) { d in
-                            let isTaken = otherUsedDriveIDs.contains(d.id)
-                            Text(isTaken ? "\(d.displayName) (In Use)" : d.displayName)
-                                .tag(d.id)
-                                .disabled(isTaken)
+                    } label: {
+                        HStack {
+                            Text(cardDrive?.displayName ?? "Select Optical Burner")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                            Spacer()
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.secondary)
                         }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color(NSColor.controlBackgroundColor))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.primary.opacity(0.12), lineWidth: 1))
                     }
-                    .labelsHidden()
+                    .buttonStyle(.plain)
 
                     if let activeDrive = cardDrive {
                         HStack(spacing: 8) {
@@ -1397,7 +1507,6 @@ struct KroutonMainWorkspaceView: View {
                                 DiscMediaInspectorPopover(drive: activeDrive, accent: store.activeAccent)
                             }
 
-                            // Replaced Firmware tag with Erase RW button (only appears when disc is erasable & ready!)
                             if canErase {
                                 Menu {
                                     Button("Quick Erase (Fast TOC Blank — ~30s)") {
@@ -1481,7 +1590,7 @@ struct KroutonMainWorkspaceView: View {
                     .foregroundStyle(.primary)
             }
 
-            // Bottom Row: Options on Left + Dedicated Per-Card Action Button (Burn / Save / Print) on Right!
+            // Bottom Row: Options on Left + Dedicated Per-Card Action Button on Right
             HStack(spacing: 10) {
                 if item.kind == .physicalBurner || item.kind == .networkBurner {
                     HStack(spacing: 10) {
@@ -1528,10 +1637,10 @@ struct KroutonMainWorkspaceView: View {
                 .help("Execute only this destination card (\(item.kind.rawValue))")
             }
 
-            // Auto-Hiding Per-Burner Inline Mini Phase Scope (Appears only when throughput > 0 KB/s and not popped out)
+            // Per-Burner Inline Mini Phase Scope (Shown when active OR manually pinned via Scope button, and not popped out)
             if item.kind == .physicalBurner,
-               let scopeTel = driveManager.telemetryForDrive(activeCardDriveID),
-               scopeTel.isActive && !scopeTel.isFloatingWindowOpen {
+               let scopeTel = scopeTel,
+               isInlineVisible {
                 InlineMiniPhaseScopeView(telemetry: scopeTel, accent: store.activeAccent) {
                     KroutonWindowManager.shared.openFloatingPhaseScopeWindow(driveID: activeCardDriveID)
                 }
