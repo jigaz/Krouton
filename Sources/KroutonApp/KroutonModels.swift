@@ -303,7 +303,7 @@ public struct DestinationQueueItem: Identifiable, Hashable, Sendable {
 @MainActor
 public final class KroutonStateStore: ObservableObject {
     @Published public var appearanceMode: AppAppearanceMode = .dark
-    @Published public var selectedAccentIndex: Int = 6
+    @Published public var selectedAccentIndex: Int = 8 // Default: Toasted Krouton Brown
     // macOS System Settings Theme & Window Extensions
     @Published public var iconWidgetStyle: IconWidgetStyleMode = .defaultStyle
     @Published public var folderColorMode: FolderColorMode = .automatic
@@ -494,7 +494,7 @@ public final class KroutonStateStore: ObservableObject {
             return AccentColorPreset.allPresets.first(where: { $0.id == targetID }) ?? AccentColorPreset.allPresets[1]
         }
         return AccentColorPreset.allPresets.first(where: { $0.id == selectedAccentIndex })
-            ?? AccentColorPreset.allPresets.first(where: { $0.id == 6 })
+            ?? AccentColorPreset.allPresets.first(where: { $0.id == 8 })
             ?? AccentColorPreset.allPresets[0]
     }
 
