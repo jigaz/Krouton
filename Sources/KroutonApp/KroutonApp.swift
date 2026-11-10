@@ -125,7 +125,7 @@ struct KroutonMainWorkspaceView: View {
                     .frame(minWidth: 580, maxWidth: .infinity, maxHeight: .infinity)
 
                 rightDestinationColumn
-                    .frame(minWidth: 335, idealWidth: 365, maxWidth: 410)
+                    .frame(minWidth: 345, idealWidth: 375, maxWidth: 420)
             }
         }
         .frame(minWidth: 1280, idealWidth: 1380, minHeight: 820, idealHeight: 880)
@@ -140,7 +140,6 @@ struct KroutonMainWorkspaceView: View {
         }
     }
 
-    // MARK: - Top Pro Toolbar (Eject button removed from toolbar for cleaner layout)
     private var topProToolbar: some View {
         HStack(spacing: 16) {
             HStack(spacing: 9) {
@@ -481,7 +480,6 @@ struct KroutonMainWorkspaceView: View {
         }
     }
 
-    // MARK: - BURN WORKSPACE WITH "File List" & "Add..." DIALOG
     private var burnWorkspaceView: some View {
         let activeSpec = store.discFormats.first(where: { $0.id == store.selectedTaskID }) ?? store.discFormats[0]
         return VStack(alignment: .leading, spacing: 14) {
@@ -871,7 +869,7 @@ struct KroutonMainWorkspaceView: View {
         .padding(.vertical, 9)
     }
 
-    // MARK: - RIGHT COLUMN: DESTINATIONS WITH DEDICATED STATUS PILLS & LIVE BURN EXECUTION
+    // MARK: - RIGHT COLUMN: DESTINATIONS WITH ERASE RW & REAL BURN
     private var rightDestinationColumn: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -910,7 +908,6 @@ struct KroutonMainWorkspaceView: View {
 
             Divider()
 
-            // Live Burn / Image Mastering Progress Telemetry Box (When Running)
             if driveManager.isExecutingQueue || driveManager.activeJobProgress > 0 {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
@@ -962,8 +959,9 @@ struct KroutonMainWorkspaceView: View {
     }
 
     private func destinationCard(index: Int, item: DestinationQueueItem) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
+        let validSpeeds = driveManager.selectedDrive?.availableWriteSpeeds ?? ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
                 Image(systemName: item.kind.sfSymbol)
                     .foregroundStyle(store.activeAccent)
                 Picker("", selection: $store.destinationQueue[index].kind) {
@@ -974,6 +972,39 @@ struct KroutonMainWorkspaceView: View {
                 .labelsHidden()
                 Spacer()
                 if item.kind == .physicalBurner {
+                    // Erase Rewritable Disc Menu (Quick Erase TOC vs Full Sector Zero)
+                    Menu {
+                        Button("Quick Erase (Fast TOC Blank — ~30s)") {
+                            driveManager.eraseRewritableDisc(fullErase: false) { res in
+                                switch res {
+                                case .success(let msg): burnStatusAlertMessage = msg
+                                case .failure(let err): burnStatusAlertMessage = err.localizedDescription
+                                }
+                            }
+                        }
+                        Button("Full Erase (Zero All Sectors)") {
+                            driveManager.eraseRewritableDisc(fullErase: true) { res in
+                                switch res {
+                                case .success(let msg): burnStatusAlertMessage = msg
+                                case .failure(let err): burnStatusAlertMessage = err.localizedDescription
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "eraser.fill")
+                            Text("Erase RW")
+                        }
+                        .font(.system(size: 10, weight: .semibold))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(store.activeAccent.opacity(0.16))
+                    .clipShape(Capsule())
+                    .help("Erase CD-RW, DVD-RW, DVD+RW, or BD-RE disc")
+
                     Button {
                         driveManager.ejectDrive(id: driveManager.selectedDrive?.id)
                     } label: {
@@ -1010,7 +1041,6 @@ struct KroutonMainWorkspaceView: View {
                             .font(.system(size: 11, weight: .semibold))
                     }
                 } else {
-                    // Drive chooser menu shows ONLY the clean hardware name
                     Picker("Drive:", selection: $driveManager.selectedDrive) {
                         ForEach(driveManager.availableDrives) { d in
                             Text(d.displayName).tag(Optional(d))
@@ -1018,7 +1048,6 @@ struct KroutonMainWorkspaceView: View {
                     }
                     .labelsHidden()
 
-                    // Burner status shown in its own dedicated Pill (not inside the dropdown menu)
                     if let activeDrive = driveManager.selectedDrive {
                         HStack(spacing: 6) {
                             HStack(spacing: 5) {
@@ -1052,13 +1081,22 @@ struct KroutonMainWorkspaceView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Picker("", selection: $store.destinationQueue[index].speedOrCodec) {
-                        ForEach(driveManager.selectedDrive?.availableWriteSpeeds ?? ["Max Safe (Auto)", "8x CAV", "4x CLV"], id: \.self) { spd in
+                    Picker("", selection: Binding(
+                        get: {
+                            validSpeeds.contains(store.destinationQueue[index].speedOrCodec)
+                                ? store.destinationQueue[index].speedOrCodec
+                                : "Max Safe (Auto)"
+                        },
+                        set: { newVal in
+                            store.destinationQueue[index].speedOrCodec = newVal
+                        }
+                    )) {
+                        ForEach(validSpeeds, id: \.self) { spd in
                             Text(spd).tag(spd)
                         }
                     }
                     .labelsHidden()
-                    .frame(width: 145)
+                    .frame(width: 155)
                 }
             } else if item.kind == .networkBurner {
                 Text(item.hardwareOrPath)
@@ -1117,7 +1155,6 @@ struct KroutonMainWorkspaceView: View {
         )
     }
 
-    // MARK: - Sprint 2 Execution Dispatcher
     private func executeDestinationQueue() {
         if driveManager.isExecutingQueue {
             driveManager.abortActiveBurn()
@@ -1153,6 +1190,7 @@ struct KroutonMainWorkspaceView: View {
                     driveManager.startPhysicalDataBurn(
                         stagedFiles: store.stagedFiles,
                         volumeTitle: store.discVolumeTitle,
+                        requestedSpeedLabel: target.speedOrCodec,
                         simulationMode: target.simulationMode,
                         verifyDisc: target.verifyAfterBurn
                     ) { result in
@@ -1187,7 +1225,7 @@ struct KroutonMainWorkspaceView: View {
         switch category {
         case .burn, .depot:
             store.destinationQueue = [
-                DestinationQueueItem(kind: .physicalBurner, hardwareOrPath: currentDriveName, speedOrCodec: "Max Safe (Auto)", simulationMode: true, verifyAfterBurn: true, compressAfterCreation: false)
+                DestinationQueueItem(kind: .physicalBurner, hardwareOrPath: currentDriveName, speedOrCodec: "Max Safe (Auto)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
             ]
         case .copy:
             if taskID == "copy-rip-audio" {
@@ -1200,7 +1238,7 @@ struct KroutonMainWorkspaceView: View {
                 ]
             } else {
                 store.destinationQueue = [
-                    DestinationQueueItem(kind: .physicalBurner, hardwareOrPath: currentDriveName, speedOrCodec: "Fit-to-Disc 4.7 GB DVD-5", simulationMode: true, verifyAfterBurn: true, compressAfterCreation: false)
+                    DestinationQueueItem(kind: .physicalBurner, hardwareOrPath: currentDriveName, speedOrCodec: "Fit-to-Disc 4.7 GB DVD-5", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
                 ]
             }
         case .label:

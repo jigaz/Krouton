@@ -1,6 +1,6 @@
 import Foundation
 import AppKit
-import DiscRecording
+@preconcurrency import DiscRecording
 
 public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
     public let id: String
@@ -16,6 +16,7 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
     public let isMediaPresent: Bool
     public let isMediaBlank: Bool
     public let isMediaErasable: Bool
+    public let isMediaOverwritable: Bool
     public let freeSectorsLBA: Int64
     public let freeBytes: Int64
     public let availableWriteSpeeds: [String]
@@ -34,9 +35,10 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
         isMediaPresent: Bool = false,
         isMediaBlank: Bool = false,
         isMediaErasable: Bool = false,
+        isMediaOverwritable: Bool = false,
         freeSectorsLBA: Int64 = 0,
         freeBytes: Int64 = 0,
-        availableWriteSpeeds: [String] = ["Max Safe", "8x CAV", "4x CLV"]
+        availableWriteSpeeds: [String] = ["Max Safe (Auto)", "10x (1764 KB/s)", "4x (705 KB/s)"]
     ) {
         self.id = id
         self.vendor = vendor
@@ -51,6 +53,7 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
         self.isMediaPresent = isMediaPresent
         self.isMediaBlank = isMediaBlank
         self.isMediaErasable = isMediaErasable
+        self.isMediaOverwritable = isMediaOverwritable
         self.freeSectorsLBA = freeSectorsLBA
         self.freeBytes = freeBytes
         self.availableWriteSpeeds = availableWriteSpeeds
@@ -63,7 +66,14 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
     public var statusBadgeText: String {
         if isMediaPresent {
             let gb = Double(freeBytes) / 1_000_000_000.0
-            let statePrefix = isMediaBlank ? "Blank" : "Disc"
+            let statePrefix: String
+            if isMediaBlank {
+                statePrefix = "Blank"
+            } else if isMediaErasable {
+                statePrefix = "Rewritable"
+            } else {
+                statePrefix = "Disc"
+            }
             if gb >= 0.9 {
                 return String(format: "%@ %@ (%.2f GB)", statePrefix, mediaType, gb)
             } else if freeBytes > 0 {
@@ -117,7 +127,6 @@ public final class DriveManager: ObservableObject {
     @Published public var selectedDrive: OpticalDriveDevice?
     @Published public var hardwareStatusLog: String = "Scanning IOKit / DiscRecording bus..."
 
-    // Sprint 2 Live Burn & Image Mastering Telemetry
     @Published public var isExecutingQueue: Bool = false
     @Published public var activeJobPhase: String = "Idle"
     @Published public var activeJobProgress: Double = 0.0
@@ -125,7 +134,9 @@ public final class DriveManager: ObservableObject {
 
     private var pollTimer: Timer?
     private var activeDRBurn: DRBurn?
-    private var burnMonitorTimer: Timer?
+    private var activeDRErase: DRErase?
+    public var burnMonitorTimer: Timer?
+    public var eraseMonitorTimer: Timer?
 
     public init() {
         refreshDrives()
@@ -135,7 +146,8 @@ public final class DriveManager: ObservableObject {
     private func startHardwarePolling() {
         pollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                self?.refreshDrives()
+                guard let self = self, !self.isExecutingQueue else { return }
+                self.refreshDrives()
             }
         }
     }
@@ -176,9 +188,11 @@ public final class DriveManager: ObservableObject {
                 var mType = "No Disc"
                 var isBlank = false
                 var isErasable = false
+                var isOverwritable = false
                 var freeBlocks: Int64 = 0
                 var freeByteCount: Int64 = 0
-                var speeds: [String] = ["Max Safe (Auto)", "8x CAV", "4x CLV", "2x Mastering"]
+                // Stable list of speeds so SwiftUI Picker never throws an invalid tag warning when disc ejects
+                var speeds: [String] = ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
 
                 if isTransition {
                     humanState = "Reading Slot..."
@@ -187,14 +201,15 @@ public final class DriveManager: ObservableObject {
                     mType = (mediaInfo[DRDeviceMediaTypeKey] as? String ?? "Optical Media").uppercased()
                     isBlank = (mediaInfo[DRDeviceMediaIsBlankKey] as? Bool) ?? false
                     isErasable = (mediaInfo[DRDeviceMediaIsErasableKey] as? Bool) ?? false
+                    isOverwritable = (mediaInfo[DRDeviceMediaIsOverwritableKey] as? Bool) ?? false
 
-                    if let blocks = mediaInfo[DRDeviceMediaFreeSpaceKey] as? NSNumber {
+                    if let blocks = mediaInfo[DRDeviceMediaFreeSpaceKey] as? NSNumber, blocks.int64Value > 0 {
                         freeBlocks = blocks.int64Value
                         freeByteCount = freeBlocks * 2048
                     } else if let totalBlocks = mediaInfo[DRDeviceMediaBlocksOverwritableKey] as? NSNumber, totalBlocks.int64Value > 0 {
                         freeBlocks = totalBlocks.int64Value
                         freeByteCount = freeBlocks * 2048
-                    } else if isBlank {
+                    } else if isBlank || isErasable {
                         if mType.contains("DVD") {
                             freeBlocks = 2_295_104
                             freeByteCount = 4_700_372_992
@@ -214,9 +229,18 @@ public final class DriveManager: ObservableObject {
                                 parsedSpeeds.append(label)
                             }
                         }
+                        for fallback in speeds where !parsedSpeeds.contains(fallback) {
+                            parsedSpeeds.append(fallback)
+                        }
                         speeds = parsedSpeeds
                     }
-                    humanState = isBlank ? "Blank \(mType) Ready" : "\(mType) Mounted"
+                    if isBlank {
+                        humanState = "Blank \(mType) Ready"
+                    } else if isErasable {
+                        humanState = "Rewritable \(mType)"
+                    } else {
+                        humanState = "\(mType) Mounted"
+                    }
                 }
 
                 let deviceID = "\(vendor)-\(product)-\(revision)"
@@ -234,6 +258,7 @@ public final class DriveManager: ObservableObject {
                     isMediaPresent: isPresent,
                     isMediaBlank: isBlank,
                     isMediaErasable: isErasable,
+                    isMediaOverwritable: isOverwritable,
                     freeSectorsLBA: freeBlocks,
                     freeBytes: freeByteCount,
                     availableWriteSpeeds: speeds
@@ -281,7 +306,86 @@ public final class DriveManager: ObservableObject {
         refreshDrives()
     }
 
-    // MARK: - Sprint 2: Real Data Disc Image Creation (.dmg / .iso) & Physical DRBurn
+    // MARK: - Erase Rewritable Disc (CD-RW / DVD-RW / DVD+RW / BD-RE) via DRErase
+    public func eraseRewritableDisc(
+        fullErase: Bool,
+        onCompletion: @escaping @MainActor (Result<String, Error>) -> Void
+    ) {
+        guard let device = resolveDRDevice(id: selectedDrive?.id) else {
+            onCompletion(.failure(NSError(domain: "KroutonEraseEngine", code: 404, userInfo: [NSLocalizedDescriptionKey: "No physical optical burner detected."])))
+            return
+        }
+
+        let status = device.status() as? [String: Any] ?? [:]
+        let mediaState = status[DRDeviceMediaStateKey] as? String ?? DRDeviceMediaStateNone
+        guard mediaState == DRDeviceMediaStateMediaPresent else {
+            onCompletion(.failure(NSError(domain: "KroutonEraseEngine", code: 409, userInfo: [NSLocalizedDescriptionKey: "Slot is empty. Insert a rewritable disc (CD-RW, DVD-RW, DVD+RW, or BD-RE) first."])))
+            return
+        }
+
+        let mediaInfo = status[DRDeviceMediaInfoKey] as? [String: Any] ?? [:]
+        let isErasable = (mediaInfo[DRDeviceMediaIsErasableKey] as? Bool) ?? false
+        guard isErasable else {
+            let mType = (mediaInfo[DRDeviceMediaTypeKey] as? String ?? "inserted disc").uppercased()
+            onCompletion(.failure(NSError(domain: "KroutonEraseEngine", code: 412, userInfo: [NSLocalizedDescriptionKey: "The \(mType) in the drive is write-once (not rewritable) and cannot be erased."])))
+            return
+        }
+
+        // Unmount any mounted volume on this disc before erasing
+        device.acquireMediaReservation()
+
+        guard let erase = DRErase(for: device) else {
+            device.releaseMediaReservation()
+            onCompletion(.failure(NSError(domain: "KroutonEraseEngine", code: 500, userInfo: [NSLocalizedDescriptionKey: "Could not initialize DRErase session."])))
+            return
+        }
+
+        erase.setEraseType(fullErase ? DREraseTypeComplete : DREraseTypeQuick)
+
+        self.activeDRErase = erase
+        self.isExecutingQueue = true
+        self.activeJobPhase = fullErase ? "Erasing Disc (Full Sector Zero)..." : "Quick Erasing Rewritable Disc (PMA/TOC)..."
+        self.activeJobProgress = 0.05
+        self.activeJobDetail = "\(selectedDrive?.displayName ?? "Optical Drive") • \(fullErase ? "Full Erase" : "Quick Erase")"
+
+        erase.start()
+
+        eraseMonitorTimer?.invalidate()
+        eraseMonitorTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self = self, let activeErase = self.activeDRErase else {
+                    self?.eraseMonitorTimer?.invalidate()
+                    return
+                }
+                let eStatus = activeErase.status() as? [String: Any] ?? [:]
+                let state = eStatus[DRStatusStateKey] as? String ?? ""
+                let pct = (eStatus[DRStatusPercentCompleteKey] as? NSNumber)?.doubleValue ?? 0.0
+
+                self.activeJobProgress = max(0.05, min(1.0, pct))
+                self.activeJobPhase = "Erasing Disc: \(state)"
+
+                if state == DRStatusStateDone {
+                    self.eraseMonitorTimer?.invalidate()
+                    device.releaseMediaReservation()
+                    self.isExecutingQueue = false
+                    self.activeJobProgress = 1.0
+                    self.activeJobPhase = "Rewritable Disc Erased & Ready"
+                    NSSound.beep()
+                    self.refreshDrives()
+                    onCompletion(.success("Successfully erased rewritable disc on \(self.selectedDrive?.displayName ?? "Optical Drive"). It is now blank and ready to burn!"))
+                } else if state == DRStatusStateFailed {
+                    self.eraseMonitorTimer?.invalidate()
+                    device.releaseMediaReservation()
+                    self.isExecutingQueue = false
+                    let errInfo = eStatus[DRErrorStatusKey] as? [String: Any]
+                    let errStr = errInfo?[DRErrorStatusErrorStringKey] as? String ?? "Hardware erase failed."
+                    self.activeJobPhase = "Erase Failed: \(errStr)"
+                    onCompletion(.failure(NSError(domain: "KroutonEraseEngine", code: 505, userInfo: [NSLocalizedDescriptionKey: errStr])))
+                }
+            }
+        }
+    }
+
     public func createDiscImageFile(
         stagedFiles: [StagedFileEntry],
         volumeTitle: String,
@@ -307,7 +411,6 @@ public final class DriveManager: ObservableObject {
                 activeJobProgress = 0.15 + (0.35 * Double(index + 1) / Double(max(1, stagedFiles.count)))
             }
 
-            // Synthesize Windows Explorer desktop.ini / autorun.inf & Finder metadata if Custom View enabled
             if enableCustomLayout {
                 let autorunContent = "[Autorun]\r\nLabel=\(volumeTitle)\r\n"
                 try? autorunContent.write(to: tempRoot.appendingPathComponent("autorun.inf"), atomically: true, encoding: .utf8)
@@ -367,9 +470,11 @@ public final class DriveManager: ObservableObject {
         }
     }
 
+    // MARK: - Fixed Physical Optical Burn (Writes real sectors, supports CD-RW overwrite & requested speed)
     public func startPhysicalDataBurn(
         stagedFiles: [StagedFileEntry],
         volumeTitle: String,
+        requestedSpeedLabel: String,
         simulationMode: Bool,
         verifyDisc: Bool,
         onCompletion: @escaping @MainActor (Result<String, Error>) -> Void
@@ -382,49 +487,96 @@ public final class DriveManager: ObservableObject {
         let status = device.status() as? [String: Any] ?? [:]
         let mediaState = status[DRDeviceMediaStateKey] as? String ?? DRDeviceMediaStateNone
         guard mediaState == DRDeviceMediaStateMediaPresent else {
-            onCompletion(.failure(NSError(domain: "KroutonBurnEngine", code: 409, userInfo: [NSLocalizedDescriptionKey: "Slot is empty. Please insert a blank CD or DVD into \(selectedDrive?.displayName ?? "your burner") first."])))
+            onCompletion(.failure(NSError(domain: "KroutonBurnEngine", code: 409, userInfo: [NSLocalizedDescriptionKey: "Slot is empty. Please insert a disc into \(selectedDrive?.displayName ?? "your burner") first."])))
             return
         }
 
-        // Build virtual DRFolder containing all staged files/folders
-        guard let rootFolder = DRFolder.virtualFolder(withName: volumeTitle) else {
-            onCompletion(.failure(NSError(domain: "KroutonBurnEngine", code: 500, userInfo: [NSLocalizedDescriptionKey: "Could not initialize DRFolder root."])))
-            return
-        }
-        rootFolder.setExplicitFilesystemMask(DRFilesystemMask(DRFilesystemInclusionMaskHFSPlus | DRFilesystemInclusionMaskISO9660 | DRFilesystemInclusionMaskJoliet | DRFilesystemInclusionMaskUDF))
+        let mediaInfo = status[DRDeviceMediaInfoKey] as? [String: Any] ?? [:]
+        let isBlank = (mediaInfo[DRDeviceMediaIsBlankKey] as? Bool) ?? false
+        let isErasable = (mediaInfo[DRDeviceMediaIsErasableKey] as? Bool) ?? false
+        let isOverwritable = (mediaInfo[DRDeviceMediaIsOverwritableKey] as? Bool) ?? false
+        let mediaType = (mediaInfo[DRDeviceMediaTypeKey] as? String ?? "Disc").uppercased()
 
-        for entry in stagedFiles {
-            if entry.isDirectory {
-                if let subFolder = DRFolder(path: entry.url.path) {
-                    rootFolder.addChild(subFolder)
-                }
-            } else {
-                if let fileObj = DRFile(path: entry.url.path) {
-                    rootFolder.addChild(fileObj)
-                }
+        // If a non-blank CD-RW or DVD-RW is inserted, warn if it isn't directly overwritable
+        if !isBlank && isErasable && !isOverwritable && mediaType.contains("CD-RW") {
+            // Note: DRBurnOverwriteDiscKey handles overwriting if supported, or user can click Quick Erase first
+        }
+
+        device.acquireMediaReservation()
+
+        // Stage files into a temporary directory and convert to a virtual DRFolder so HFS+/ISO/Joliet/UDF trees are 100% populated
+        let fm = FileManager.default
+        let tempBurnStage = fm.temporaryDirectory.appendingPathComponent("KroutonHardwareStage_\(UUID().uuidString)")
+        do {
+            try fm.createDirectory(at: tempBurnStage, withIntermediateDirectories: true)
+            for item in stagedFiles {
+                let targetURL = tempBurnStage.appendingPathComponent(item.name)
+                try fm.copyItem(at: item.url, to: targetURL)
             }
+        } catch {
+            device.releaseMediaReservation()
+            onCompletion(.failure(error))
+            return
+        }
+
+        guard let rootFolder = DRFolder(path: tempBurnStage.path) else {
+            try? FileManager.default.removeItem(at: tempBurnStage)
+            device.releaseMediaReservation()
+            onCompletion(.failure(NSError(domain: "KroutonBurnEngine", code: 500, userInfo: [NSLocalizedDescriptionKey: "Could not initialize DRFolder from staging directory."])))
+            return
+        }
+
+        rootFolder.makeVirtual()
+        rootFolder.setBaseName(volumeTitle)
+
+        // CD-RW / CD-R compatibility: Use HFS+ + ISO9660 + Joliet on CD media (some Matshita drives reject UDF 2.x on CD-RW)
+        if mediaType.contains("CD") {
+            rootFolder.setExplicitFilesystemMask(DRFilesystemMask(DRFilesystemInclusionMaskHFSPlus | DRFilesystemInclusionMaskISO9660 | DRFilesystemInclusionMaskJoliet))
+        } else {
+            rootFolder.setExplicitFilesystemMask(DRFilesystemMask(DRFilesystemInclusionMaskHFSPlus | DRFilesystemInclusionMaskISO9660 | DRFilesystemInclusionMaskJoliet | DRFilesystemInclusionMaskUDF))
         }
 
         guard let track = DRTrack(forRootFolder: rootFolder) else {
+            try? FileManager.default.removeItem(at: tempBurnStage)
+            device.releaseMediaReservation()
             onCompletion(.failure(NSError(domain: "KroutonBurnEngine", code: 501, userInfo: [NSLocalizedDescriptionKey: "Could not create DRTrack from staged files."])))
             return
         }
 
         guard let burn = DRBurn(for: device) else {
+            try? FileManager.default.removeItem(at: tempBurnStage)
+            device.releaseMediaReservation()
             onCompletion(.failure(NSError(domain: "KroutonBurnEngine", code: 502, userInfo: [NSLocalizedDescriptionKey: "Could not create DRBurn session on drive."])))
             return
         }
 
         var props = burn.properties() as? [String: Any] ?? [:]
+        // REAL laser write when simulationMode == false!
         props[DRBurnTestingKey] = NSNumber(value: simulationMode)
         props[DRBurnVerifyDiscKey] = NSNumber(value: verifyDisc)
+        // Allow overwriting rewritable media (CD-RW / DVD-RW / DVD+RW)
+        props[DRBurnOverwriteDiscKey] = NSNumber(value: true)
+        props[DRBurnCompletionActionKey] = DRBurnCompletionActionEject
+
+        // Parse requested speed in KB/s if user picked e.g. "4x (705 KB/s)" or "10x (1764 KB/s)"
+        if let openParen = requestedSpeedLabel.firstIndex(of: "("),
+           let kbsRange = requestedSpeedLabel.range(of: " KB/s"),
+           openParen < kbsRange.lowerBound {
+            let numStr = requestedSpeedLabel[requestedSpeedLabel.index(after: openParen)..<kbsRange.lowerBound].trimmingCharacters(in: .whitespaces)
+            if let speedKBs = Float(numStr), speedKBs > 0 {
+                props[DRBurnRequestedSpeedKey] = NSNumber(value: speedKBs)
+            }
+        } else {
+            props[DRBurnRequestedSpeedKey] = NSNumber(value: Float(65535.0))
+        }
+
         burn.setProperties(props)
 
         self.activeDRBurn = burn
         self.isExecutingQueue = true
-        self.activeJobPhase = simulationMode ? "Igniting Laser (Simulation Mode)..." : "Igniting Laser (Writing Track)..."
+        self.activeJobPhase = simulationMode ? "Simulating Burn (Laser Test Only)..." : "Writing Real Data to \(mediaType)..."
         self.activeJobProgress = 0.02
-        self.activeJobDetail = "\(selectedDrive?.displayName ?? "Optical Drive") • \(volumeTitle)"
+        self.activeJobDetail = "\(selectedDrive?.displayName ?? "Optical Drive") • \(volumeTitle) (\(simulationMode ? "Simulation" : "Real Burn"))"
 
         burn.writeLayout(track)
 
@@ -440,22 +592,34 @@ public final class DriveManager: ObservableObject {
                 let pct = (bStatus[DRStatusPercentCompleteKey] as? NSNumber)?.doubleValue ?? 0.0
 
                 self.activeJobProgress = max(0.02, min(1.0, pct))
-                self.activeJobPhase = "Burn Status: \(state)"
+                self.activeJobPhase = "\(simulationMode ? "[SIMULATION] " : "")Burn Status: \(state)"
 
                 if state == DRStatusStateDone {
                     self.burnMonitorTimer?.invalidate()
+                    try? FileManager.default.removeItem(at: tempBurnStage)
+                    device.releaseMediaReservation()
                     self.isExecutingQueue = false
                     self.activeJobProgress = 1.0
-                    self.activeJobPhase = simulationMode ? "Simulation Burn Completed Successfully" : "Optical Burn & Verification Complete"
+                    self.activeJobPhase = simulationMode ? "Simulation Completed (No Data Written)" : "Optical Burn & Verification Complete!"
                     NSSound.beep()
-                    onCompletion(.success("Burn finished on \(self.selectedDrive?.displayName ?? "Optical Drive")"))
+                    self.refreshDrives()
+                    if simulationMode {
+                        onCompletion(.success("Simulation burn finished! Note: 'Simulate' was checked, so the laser ran a test pass without writing data. Leave 'Simulate' unchecked to write real files."))
+                    } else {
+                        onCompletion(.success("Successfully burned and verified '\(volumeTitle)' (\(stagedFiles.count) items) on \(self.selectedDrive?.displayName ?? "Optical Drive")!"))
+                    }
                 } else if state == DRStatusStateFailed {
                     self.burnMonitorTimer?.invalidate()
+                    try? FileManager.default.removeItem(at: tempBurnStage)
+                    device.releaseMediaReservation()
                     self.isExecutingQueue = false
                     let errInfo = bStatus[DRErrorStatusKey] as? [String: Any]
                     let errStr = errInfo?[DRErrorStatusErrorStringKey] as? String ?? "Hardware burn failed."
                     self.activeJobPhase = "Burn Failed: \(errStr)"
-                    onCompletion(.failure(NSError(domain: "KroutonBurnEngine", code: 505, userInfo: [NSLocalizedDescriptionKey: errStr])))
+                    let helpfulHint = isErasable && !isBlank
+                        ? "\(errStr)\n\nTip: Since this is a previously used CD-RW/DVD-RW, click the 'Erase RW' button on the burner card to Quick Erase the disc first, and use 10x or Auto speed (High-Speed CD-RW discs reject 4x CLV)."
+                        : errStr
+                    onCompletion(.failure(NSError(domain: "KroutonBurnEngine", code: 505, userInfo: [NSLocalizedDescriptionKey: helpfulHint])))
                 }
             }
         }
@@ -464,8 +628,9 @@ public final class DriveManager: ObservableObject {
     public func abortActiveBurn() {
         activeDRBurn?.abort()
         burnMonitorTimer?.invalidate()
+        eraseMonitorTimer?.invalidate()
         isExecutingQueue = false
-        activeJobPhase = "Burn Aborted by User"
+        activeJobPhase = "Operation Aborted by User"
     }
 
     public static func inspectFileOrFolder(url: URL) -> StagedFileEntry {

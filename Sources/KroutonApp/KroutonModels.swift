@@ -279,7 +279,7 @@ public final class KroutonStateStore: ObservableObject {
             kind: .physicalBurner,
             hardwareOrPath: "MATSHITA DVD-R UJ-898 (Local USB)",
             speedOrCodec: "Max Safe (Auto)",
-            simulationMode: true,
+            simulationMode: false,
             verifyAfterBurn: true,
             compressAfterCreation: false
         )
