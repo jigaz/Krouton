@@ -1,23 +1,23 @@
 # Krouton Project History & Architecture Log
 
-## Current Version: `v0.2.0-alpha.5` (Step 2C — Floating High-Detail Phase Scope Window)
+## Current Version: `v0.2.0-alpha.6` (Per-File Mac/PC Visibility, Pre-Flight Sanity & Retro Console ROM Mastering)
 * **Target OS:** macOS 26 (Tahoe) / Apple Silicon (`arm64`)
 * **Domain:** [krouton.app](https://krouton.app)
 
-### Phase Scope 3-Step Implementation Plan (COMPLETE)
-* **Step 2A (`v0.2.0-alpha.3` — Completed):**
-  1. Fixed `ContiguousArrayBuffer` out-of-range crash by using `UUID`-based destination card bindings.
-  2. Built the textured, card-based **Disc Media Inspector Popover** with media-accurate disc icons (`CD-RW`, `CD-R`, `DVD-R`, `BD-R`, `M-DISC`, `DVD-RAM`), mounted volume/file scanning, and removed all non-clickable fake pills across the app.
-  3. Implemented deterministic AppKit `NSWindow` launch inside `KroutonWindowManager`.
-* **Step 2B (`v0.2.0-alpha.4` — Completed):**
-  1. Added `DrivePhaseScopeTelemetry` per-drive dictionary (`driveTelemetry: [String: DrivePhaseScopeTelemetry]`) inside `DriveManager` so each connected optical burner tracks its own independent speed, spindle RPM, buffer fill, LBA sector cursor, and waveform samples.
-  2. Embedded the auto-hiding **`InlineMiniPhaseScopeView`** inside each physical burner destination card: hidden when idle (`0 KB/s`), and automatically expands whenever that specific drive has active throughput (`> 0 KB/s`).
-* **Step 2C (`v0.2.0-alpha.5` — Current Commit):**
-  1. Added click-to-pop-out **Floating Phase Scope Window** (`NSWindow` per burner via `KroutonWindowManager.openFloatingPhaseScopeWindow`).
-  2. Enforced single-graph-per-burner rule: opening a burner's floating Phase Scope window automatically hides its inline mini graph (`isFloatingWindowOpen = true`), and closing the floating window (or clicking **Dock Inline**) seamlessly returns the graph to the burner card.
-  3. Built `FloatingPhaseScopeWindowView` with 5 modernized telemetry layers:
-     - **Emerald Shaded Area + Curve:** Actual Write/Read Speed (`X` & `KB/s`)
-     - **Dashed Cyan Curve:** Theoretical P-CAV Target Envelope (`4.2x -> 16.0x`)
-     - **Amber/Gold Curve:** Spindle Motor Velocity (`RPM`)
-     - **Purple Bottom Ribbon:** Hardware Drive Buffer Fill (`0–100%` BURN-Proof state)
-     - **Red Vertical Playhead:** Live Radial LBA Cursor (`r = 24.0 mm -> 58.0 mm`) + 6-tile live hardware telemetry deck (`OPC Laser Power mW`, `Jitter %`, `Rotational Strategy`, `Radial Position`, `LBA Sector`, `Buffer State`).
+### Completed Milestones
+* **Step 2A–2C (`v0.2.0-alpha.3` .. `alpha.5`):**
+  - Fixed `ContiguousArrayBuffer` removal crash with UUID-safe destination bindings.
+  - Built textured **Disc Media Inspector Popover** with media-accurate disc icons (`CD-RW`, `CD-R`, `DVD-R`, `BD-R`, `M-DISC`, `DVD-RAM`) and mounted volume/file scanning.
+  - Built per-burner auto-hiding **Inline Mini Phase Scope** and click-to-pop-out **Floating Phase Scope Window** with 5-layer telemetry.
+* **Step 2D (`v0.2.0-alpha.6` — Current Commit):**
+  1. **LiquidCD-Inspired Per-File Mac (`HFS+`) & PC (`ISO9660 / Joliet / UDF`) Visibility Toggles:**
+     - Added `showOnMac` and `showOnPC` flags to `StagedFileEntry`.
+     - Added interactive `[ Mac]` and `[⊞ PC]` pill buttons on every row in the Data Disc File List.
+     - Wired `startPhysicalDataBurn` and `createDiscImageFile` to set per-item `DRFSObject.setExplicitFilesystemMask(...)` so Mac-only files are hidden on Windows and PC-only files (`autorun.inf`, `.exe`) are hidden on macOS Finder.
+  2. **K3b / ImgBurn Pre-Flight Sanity & Compatibility Banner:**
+     - Automatically inspects staged files for `> 4 GB` single-file ISO9660 overflow (requiring UDF), Joliet `> 64 char` filename truncation, and ATIP overburn risks.
+  3. **Retro Console ROM & Preservation Mastering Bar (PS1, PS2, GameCube, Wii, Xbox/360):**
+     - **PS1 / Saturn / Sega CD (`CD-ROM XA Mode 2 Form 1/2`):** Raw 2,352-byte sector `.cue/.bin` verification, `DAO/96` subchannel Q (`+SubQ` / LibCrypt), and `4x–8x CLV` laser reflection guard (warns if `CD-RW` is inserted since retro pickups cannot read phase-change reflectivity).
+     - **PS2 (`DVD / CD`):** `FreeDVDBoot` / `ESR` UDF 1.02 + ISO9660 descriptor verification and `DVD+R -> DVD-ROM` Book Type bitsetting.
+     - **GameCube (`RVZ / GCM`) & Wii (`WBFS / ISO`):** `1,459,978,240 byte` (`1.35 GiB`) Mini-DVD and `4,699,979,776 byte` Wii scrubber/padding verification + `32 KB` ECC alignment.
+     - **Xbox / Xbox 360 (`XDVDFS`):** Exact layer-break sector lock (`1913760` for `XGD2`, `2133520` for `XGD3` with `.dvd` descriptor parser) + `Perform OPC Before Write`.

@@ -191,6 +191,10 @@ struct KroutonMainWorkspaceView: View {
     @State private var depotSearchQuery: String = ""
     @State private var isDropTargeted: Bool = false
     @State private var activeDiscPopoverCardID: UUID? = nil
+    @State private var romWriteModeDAO96SubQ: Bool = true
+    @State private var romBitsetDVDROM: Bool = true
+    @State private var romPerformOPCBeforeWrite: Bool = true
+    @State private var xboxLayerBreakPreset: String = "Auto (.dvd / Calculate Optimal)"
 
     private var primarySelectedDrive: OpticalDriveDevice? {
         if let firstBurnerCard = store.destinationQueue.first(where: { $0.kind == .physicalBurner }),
@@ -673,6 +677,26 @@ struct KroutonMainWorkspaceView: View {
 
             Divider()
 
+            if activeSpec.id.hasPrefix("game-") {
+                retroConsoleROMMasteringDeck(for: activeSpec)
+            }
+
+            if let sanityWarning = currentPreFlightSanityWarning(for: activeSpec) {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.shield.fill")
+                        .foregroundStyle(.orange)
+                    Text(sanityWarning)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.primary)
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(Color.orange.opacity(0.14))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.orange.opacity(0.4), lineWidth: 1))
+            }
+
             HStack(spacing: 14) {
                 HStack(spacing: 6) {
                     Image(systemName: "opticaldisc")
@@ -785,6 +809,48 @@ struct KroutonMainWorkspaceView: View {
 
                                         Spacer()
 
+                                        if activeSpec.isDataDisc {
+                                            HStack(spacing: 5) {
+                                                Button {
+                                                    store.toggleMacVisibility(id: entry.id)
+                                                } label: {
+                                                    HStack(spacing: 3) {
+                                                        Image(systemName: "apple.logo")
+                                                            .font(.system(size: 9))
+                                                        Text("Mac")
+                                                            .font(.system(size: 9, weight: .bold))
+                                                    }
+                                                    .padding(.horizontal, 7)
+                                                    .padding(.vertical, 3)
+                                                    .background(entry.showOnMac ? store.activeAccent.opacity(0.22) : Color.secondary.opacity(0.10))
+                                                    .foregroundStyle(entry.showOnMac ? store.activeAccent : .secondary.opacity(0.55))
+                                                    .clipShape(Capsule())
+                                                    .overlay(Capsule().stroke(entry.showOnMac ? store.activeAccent.opacity(0.5) : Color.clear, lineWidth: 1))
+                                                }
+                                                .buttonStyle(.plain)
+                                                .help(entry.showOnMac ? "Visible on macOS Finder (HFS+ Tree) — Click to hide from Mac" : "Hidden on macOS Finder — Click to show on Mac")
+
+                                                Button {
+                                                    store.togglePCVisibility(id: entry.id)
+                                                } label: {
+                                                    HStack(spacing: 3) {
+                                                        Image(systemName: "pc")
+                                                            .font(.system(size: 9))
+                                                        Text("PC")
+                                                            .font(.system(size: 9, weight: .bold))
+                                                    }
+                                                    .padding(.horizontal, 7)
+                                                    .padding(.vertical, 3)
+                                                    .background(entry.showOnPC ? Color.cyan.opacity(0.20) : Color.secondary.opacity(0.10))
+                                                    .foregroundStyle(entry.showOnPC ? Color.cyan : .secondary.opacity(0.55))
+                                                    .clipShape(Capsule())
+                                                    .overlay(Capsule().stroke(entry.showOnPC ? Color.cyan.opacity(0.5) : Color.clear, lineWidth: 1))
+                                                }
+                                                .buttonStyle(.plain)
+                                                .help(entry.showOnPC ? "Visible on Windows Explorer (ISO9660 / Joliet / UDF Tree) — Click to hide from PC" : "Hidden on Windows PC — Click to show on PC")
+                                            }
+                                        }
+
                                         Text("\(entry.sectorsLBA) LBA")
                                             .font(.system(size: 10, weight: .semibold, design: .monospaced))
                                             .foregroundStyle(store.activeAccent)
@@ -815,6 +881,84 @@ struct KroutonMainWorkspaceView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Retro Console ROM Mastering Deck & Pre-Flight Sanity Engine
+    private func retroConsoleROMMasteringDeck(for spec: DiscFormatSpec) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Image(systemName: "gamecontroller.fill")
+                    .foregroundStyle(store.activeAccent)
+                Text("RETRO CONSOLE HARDWARE MASTERING PROFILE")
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Toggle("Perform OPC Before Write", isOn: $romPerformOPCBeforeWrite)
+                    .toggleStyle(.checkbox)
+                    .font(.caption)
+            }
+
+            HStack(spacing: 16) {
+                if spec.id == "game-ps1" {
+                    Toggle("DAO/96 Raw Mode 2 Form 1/2 (2,352 B/sector + SubQ)", isOn: $romWriteModeDAO96SubQ)
+                        .toggleStyle(.checkbox)
+                        .font(.caption.bold())
+                    Text("• Recommended Speed: 4x–8x CLV (High-Reflectivity CD-R Only — Never CD-RW)")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                } else if spec.id == "game-ps2" {
+                    Toggle("Stamp Book Type as DVD-ROM (Bitsetting for PS2 Mechacon)", isOn: $romBitsetDVDROM)
+                        .toggleStyle(.checkbox)
+                        .font(.caption.bold())
+                    Text("• Enforces UDF 1.02 + ISO9660 Bridge (FreeDVDBoot / ESR Compatible)")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                } else if spec.id == "game-gc" || spec.id == "game-wii" {
+                    Toggle("Stamp Book Type as DVD-ROM + 32 KB ECC Boundary Alignment", isOn: $romBitsetDVDROM)
+                        .toggleStyle(.checkbox)
+                        .font(.caption.bold())
+                    Text(spec.id == "game-gc" ? "• Exact 80mm Mini-DVD Target: 1,459,978,240 Bytes (712,880 LBA)" : "• Exact Wii Single-Layer Target: 4,699,979,776 Bytes (2,294,912 LBA)")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                } else if spec.id == "game-xbox" {
+                    Picker("Layer Break:", selection: $xboxLayerBreakPreset) {
+                        Text("Auto (.dvd Descriptor)").tag("Auto (.dvd / Calculate Optimal)")
+                        Text("XGD2 Lock (LBA 1913760)").tag("XGD2 (1913760)")
+                        Text("XGD3 Lock (LBA 2133520)").tag("XGD3 (2133520)")
+                    }
+                    .frame(width: 265)
+                    .font(.caption)
+                    Toggle("DVD+R DL -> DVD-ROM Bitsetting", isOn: $romBitsetDVDROM)
+                        .toggleStyle(.checkbox)
+                        .font(.caption.bold())
+                }
+                Spacer()
+            }
+        }
+        .padding(10)
+        .background(Color(NSColor.controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 9))
+        .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
+    }
+
+    private func currentPreFlightSanityWarning(for spec: DiscFormatSpec) -> String? {
+        if spec.id.hasPrefix("game-"), let drive = primarySelectedDrive, drive.isMediaPresent && drive.isMediaErasable {
+            return "Retro Console Pickup Warning: \(drive.displayName) has rewritable \(drive.mediaType) loaded (~20% reflectivity). Vintage PS1/PS2/GameCube/Dreamcast optical pickups require high-reflectivity write-once CD-R or DVD-R media at 4x–8x."
+        }
+        if spec.id == "game-ps1" && !store.stagedFiles.isEmpty {
+            let hasBin = store.stagedFiles.contains { $0.name.lowercased().hasSuffix(".bin") }
+            let hasCue = store.stagedFiles.contains { $0.name.lowercased().hasSuffix(".cue") || $0.name.lowercased().hasSuffix(".ccd") }
+            if hasBin && !hasCue {
+                return "Missing .CUE Descriptor: A raw .BIN track is staged without its companion .CUE sheet. Add the .CUE file to preserve Red Book audio tracks and 2-second pre-gap offsets."
+            }
+        }
+        if let hugeFile = store.stagedFiles.first(where: { $0.exceedsISO9660FourGiBLimit }) {
+            return "4 GiB File Limit Notice: '\(hugeFile.name)' exceeds the 4 GiB ISO9660 Level 2 ceiling. Krouton will bridge this file via UDF 2.60 + HFS+."
+        }
+        if let longFile = store.stagedFiles.first(where: { $0.exceedsJoliet64CharLimit }) {
+            return "Joliet 64-Char Notice: '\(longFile.name)' is \(longFile.name.count) characters long. Full name is preserved on Mac (HFS+) and UDF, and safely truncated in legacy Windows Joliet tables."
+        }
+        return nil
     }
 
     private func promptToAddFiles() {

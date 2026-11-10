@@ -188,6 +188,8 @@ public struct StagedFileEntry: Identifiable, Hashable, Sendable {
     public let itemCount: Int
     public let posixPermissions: String
     public let modifiedDate: Date
+    public var showOnMac: Bool
+    public var showOnPC: Bool
 
     public init(
         id: UUID = UUID(),
@@ -197,7 +199,9 @@ public struct StagedFileEntry: Identifiable, Hashable, Sendable {
         byteSize: Int64,
         itemCount: Int,
         posixPermissions: String,
-        modifiedDate: Date
+        modifiedDate: Date,
+        showOnMac: Bool = true,
+        showOnPC: Bool = true
     ) {
         self.id = id
         self.url = url
@@ -207,10 +211,20 @@ public struct StagedFileEntry: Identifiable, Hashable, Sendable {
         self.itemCount = itemCount
         self.posixPermissions = posixPermissions
         self.modifiedDate = modifiedDate
+        self.showOnMac = showOnMac
+        self.showOnPC = showOnPC
     }
 
     public var sectorsLBA: Int64 {
         max(1, (byteSize + 2047) / 2048)
+    }
+
+    public var exceedsISO9660FourGiBLimit: Bool {
+        byteSize >= 4_294_967_295
+    }
+
+    public var exceedsJoliet64CharLimit: Bool {
+        name.count > 64
     }
 }
 
@@ -1307,10 +1321,25 @@ public final class DriveManager: ObservableObject {
         rootFolder.makeVirtual()
         rootFolder.setBaseName(volumeTitle)
 
-        if mediaType.contains("CD") {
-            rootFolder.setExplicitFilesystemMask(DRFilesystemMask(DRFilesystemInclusionMaskHFSPlus | DRFilesystemInclusionMaskISO9660 | DRFilesystemInclusionMaskJoliet))
-        } else {
-            rootFolder.setExplicitFilesystemMask(DRFilesystemMask(DRFilesystemInclusionMaskHFSPlus | DRFilesystemInclusionMaskISO9660 | DRFilesystemInclusionMaskJoliet | DRFilesystemInclusionMaskUDF))
+        let isCDMedia = mediaType.contains("CD")
+        let pcMask: UInt32 = isCDMedia
+            ? UInt32(DRFilesystemInclusionMaskISO9660 | DRFilesystemInclusionMaskJoliet)
+            : UInt32(DRFilesystemInclusionMaskISO9660 | DRFilesystemInclusionMaskJoliet | DRFilesystemInclusionMaskUDF)
+        let macMask: UInt32 = UInt32(DRFilesystemInclusionMaskHFSPlus)
+        rootFolder.setExplicitFilesystemMask(DRFilesystemMask(macMask | pcMask))
+
+        // Apply LiquidCD-style Per-File OS Visibility (Mac HFS+ vs PC ISO/Joliet/UDF) to each child DRFSObject
+        if let children = rootFolder.children() as? [DRFSObject] {
+            for child in children {
+                let childName = child.baseName()
+                if let matchedEntry = stagedFiles.first(where: { $0.name == childName }) {
+                    var itemMask: UInt32 = 0
+                    if matchedEntry.showOnMac { itemMask |= macMask }
+                    if matchedEntry.showOnPC  { itemMask |= pcMask }
+                    if itemMask == 0 { itemMask = macMask | pcMask }
+                    child.setExplicitFilesystemMask(DRFilesystemMask(itemMask))
+                }
+            }
         }
 
         guard let track = DRTrack(forRootFolder: rootFolder),
@@ -1529,6 +1558,10 @@ public final class DriveManager: ObservableObject {
             }
         }
 
+        let lowerName = url.lastPathComponent.lowercased()
+        let defaultMac = !(lowerName == "autorun.inf" || lowerName.hasSuffix(".exe") || lowerName.hasSuffix(".msi") || lowerName.hasSuffix(".bat"))
+        let defaultPC = !(lowerName == ".ds_store" || lowerName == ".localized")
+
         return StagedFileEntry(
             url: url,
             name: url.lastPathComponent,
@@ -1536,7 +1569,9 @@ public final class DriveManager: ObservableObject {
             byteSize: totalBytes,
             itemCount: count,
             posixPermissions: permsString,
-            modifiedDate: modDate
+            modifiedDate: modDate,
+            showOnMac: defaultMac,
+            showOnPC: defaultPC
         )
     }
 }

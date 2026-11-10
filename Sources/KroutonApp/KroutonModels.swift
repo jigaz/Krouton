@@ -356,6 +356,22 @@ public final class KroutonStateStore: ObservableObject {
         stagedFiles.removeAll { $0.id == id }
     }
 
+    public func toggleMacVisibility(id: UUID) {
+        guard let idx = stagedFiles.firstIndex(where: { $0.id == id }) else { return }
+        stagedFiles[idx].showOnMac.toggle()
+        if !stagedFiles[idx].showOnMac && !stagedFiles[idx].showOnPC {
+            stagedFiles[idx].showOnPC = true
+        }
+    }
+
+    public func togglePCVisibility(id: UUID) {
+        guard let idx = stagedFiles.firstIndex(where: { $0.id == id }) else { return }
+        stagedFiles[idx].showOnPC.toggle()
+        if !stagedFiles[idx].showOnPC && !stagedFiles[idx].showOnMac {
+            stagedFiles[idx].showOnMac = true
+        }
+    }
+
     public func clearStagedFiles() {
         stagedFiles.removeAll()
     }
