@@ -270,6 +270,7 @@ struct KroutonMainWorkspaceView: View {
                     leftFormatChooserColumn
                         .frame(width: clampedLeft)
                         .frame(maxHeight: .infinity)
+                        .clipped()
 
                     // Left Interactive Column Resize Handle
                     ZStack {
@@ -301,7 +302,8 @@ struct KroutonMainWorkspaceView: View {
                     )
 
                     centerAdaptableWorkspace
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(minWidth: minCenterW, maxWidth: .infinity, maxHeight: .infinity)
+                        .clipped()
 
                     // Right Interactive Column Resize Handle
                     ZStack {
@@ -335,6 +337,7 @@ struct KroutonMainWorkspaceView: View {
                     rightDestinationColumn
                         .frame(width: clampedRight)
                         .frame(maxHeight: .infinity)
+                        .clipped()
                 }
             }
         }
@@ -438,7 +441,7 @@ struct KroutonMainWorkspaceView: View {
                             taskRowButton(
                                 id: fmt.id,
                                 category: .burn,
-                                title: fmt.technicalName,
+                                title: fmt.shortDisplayName,
                                 colloquial: fmt.colloquialName,
                                 badge: fmt.sourceSupport,
                                 sfSymbol: fmt.sfSymbol
@@ -455,14 +458,14 @@ struct KroutonMainWorkspaceView: View {
                         taskRowButton(
                             id: "depot-all",
                             category: .depot,
-                            title: "All Depot Library (60+)",
+                            title: "All Library (60+)",
                             colloquial: "Complete Verified Optical Catalog",
                             sfSymbol: "square.grid.2x2.fill"
                         )
                         taskRowButton(
                             id: "depot-rescue",
                             category: .depot,
-                            title: "System Rescue & BIOS",
+                            title: "Rescue & BIOS",
                             colloquial: "SystemRescue, GParted, Memtest, UBCD",
                             sfSymbol: "cross.case.fill"
                         )
@@ -476,28 +479,28 @@ struct KroutonMainWorkspaceView: View {
                         taskRowButton(
                             id: "depot-vintage",
                             category: .depot,
-                            title: "Vintage Mac & Apple",
+                            title: "Vintage Mac",
                             colloquial: "Mac OS 9.2.2, System 7.5, A/UX, AHT",
                             sfSymbol: "desktopcomputer"
                         )
                         taskRowButton(
                             id: "depot-homebrew",
                             category: .depot,
-                            title: "Console Homebrew & ROMs",
+                            title: "Console ROMs",
                             colloquial: "Swiss GC, FreeDVDBoot PS2, 240p Suite",
                             sfSymbol: "gamecontroller.fill"
                         )
                         taskRowButton(
                             id: "depot-coverdiscs",
                             category: .depot,
-                            title: "90s Cover Discs & Scene",
+                            title: "Cover Discs",
                             colloquial: "MacAddict, PC Gamer, NextGen, Scene.org",
                             sfSymbol: "sparkles.tv.fill"
                         )
                         taskRowButton(
                             id: "depot-retropc",
                             category: .depot,
-                            title: "Retro PC, DOS & Alt OS",
+                            title: "Retro PC & DOS",
                             colloquial: "FreeDOS 1.4, Haiku, BeOS R5, OS/2, IRIX",
                             sfSymbol: "cpu.fill"
                         )
@@ -546,7 +549,7 @@ struct KroutonMainWorkspaceView: View {
                         taskRowButton(
                             id: "label-auto",
                             category: .label,
-                            title: "Automatic Disc Label",
+                            title: "Auto Label",
                             colloquial: "Artwork Lookup + Hole Avoidance",
                             badge: "120mm",
                             sfSymbol: "wand.and.stars"
@@ -554,7 +557,7 @@ struct KroutonMainWorkspaceView: View {
                         taskRowButton(
                             id: "label-manual",
                             category: .label,
-                            title: "Manual Disc Label",
+                            title: "Manual Label",
                             colloquial: "120mm / 18mm Canvas Studio",
                             badge: "Custom",
                             sfSymbol: "printer.dotmatrix.fill"
@@ -649,55 +652,68 @@ struct KroutonMainWorkspaceView: View {
             ? (primarySelectedDrive?.mediaType ?? "Optical Disc")
             : (store.discFormats.first(where: { $0.id == store.selectedTaskID })?.capacity ?? "4.7 GB Target")
 
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Label("DISC SPACE ALLOCATION (\(mediaLabel))", systemImage: "chart.bar.xaxis")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text("Used: \(ByteCountFormatter.string(fromByteCount: usedB, countStyle: .file)) (\(store.totalStagedSectorsLBA) LBA)")
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(isOverburn ? .red : .primary)
-                Text(KroutonL10n.tr("•"))
-                    .foregroundStyle(.secondary)
-                Text("Available: \(ByteCountFormatter.string(fromByteCount: freeB, countStyle: .file)) (\(max(0, activeDiscTotalSectorsLBA - store.totalStagedSectorsLBA)) LBA)")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                Text(KroutonL10n.tr("•"))
-                    .foregroundStyle(.secondary)
-                Text(String(format: "%.1f%% Full", ratio * 100.0))
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(isOverburn ? .red : store.activeAccent)
+        return VStack(alignment: .leading, spacing: 5) {
+            ViewThatFits(in: .horizontal) {
+                // 1. Wide Workspace Layout
+                HStack(spacing: 6) {
+                    Label("DISC SPACE (\(mediaLabel))", systemImage: "chart.bar.xaxis")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    Text("Used: \(ByteCountFormatter.string(fromByteCount: usedB, countStyle: .file)) (\(store.totalStagedSectorsLBA) LBA)")
+                        .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(isOverburn ? .red : .primary)
+                        .lineLimit(1)
+                    Text("•").foregroundStyle(.secondary)
+                    Text("Free: \(ByteCountFormatter.string(fromByteCount: freeB, countStyle: .file))")
+                        .font(.system(size: 10.5, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Text("•").foregroundStyle(.secondary)
+                    Text(String(format: "%.1f%%", ratio * 100.0))
+                        .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                        .foregroundStyle(isOverburn ? .red : store.activeAccent)
+                        .lineLimit(1)
+                }
+
+                // 2. Compact / Narrow Workspace Fallback (Zero Multi-Line Wrapping!)
+                HStack(spacing: 6) {
+                    Text("\(mediaLabel):")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Text("\(ByteCountFormatter.string(fromByteCount: usedB, countStyle: .file)) / \(ByteCountFormatter.string(fromByteCount: totalB, countStyle: .file))")
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(isOverburn ? .red : .primary)
+                        .lineLimit(1)
+                    Spacer(minLength: 4)
+                    Text(String(format: "%.1f%%", ratio * 100.0))
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundStyle(isOverburn ? .red : store.activeAccent)
+                        .lineLimit(1)
+                }
             }
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color.black.opacity(0.35))
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(
-                            LinearGradient(
-                                colors: isOverburn ? [.red, .orange] : [store.activeAccent, store.activeAccent.opacity(0.65)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: max(4, geo.size.width * CGFloat(ratio)))
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.primary.opacity(0.08))
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(isOverburn ? Color.red : store.activeAccent)
+                        .frame(width: max(4, geo.size.width * ratio))
                     Rectangle()
-                        .fill(Color.yellow.opacity(0.5))
-                        .frame(width: 1.5, height: geo.size.height)
-                        .offset(x: geo.size.width * 0.90)
+                        .fill(Color.yellow.opacity(0.65))
+                        .frame(width: 1.5)
+                        .offset(x: geo.size.width * 0.96)
                 }
             }
-            .frame(height: 12)
+            .frame(height: 7)
         }
         .padding(10)
         .background(Color(NSColor.controlBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(store.a11yIncreaseContrast ? Color.primary.opacity(0.45) : Color.primary.opacity(0.08), lineWidth: store.a11yIncreaseContrast ? 1.5 : 1.0))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Disc Space Allocation for \(mediaLabel)")
-        .accessibilityValue(String(format: "%.1f percent full, \(store.totalStagedSectorsLBA) sectors staged", ratio * 100.0))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .accessibilityLabel(String(format: "Disc capacity %.1f percent full", ratio * 100.0))
     }
 
     private var filteredDepotItems: [DepotCatalogItem] {
@@ -794,7 +810,7 @@ struct KroutonMainWorkspaceView: View {
         let heroItem = depotHeroSelectedItem
 
         return GeometryReader { geo in
-            let isNarrowWorkspace = geo.size.width < 700
+            let isNarrowWorkspace = geo.size.width < 740
 
             VStack(alignment: .leading, spacing: 10) {
                 // Row 1: Clean Sub-Library Header + Search Bar (NO top category pills!)
@@ -977,216 +993,271 @@ struct KroutonMainWorkspaceView: View {
     private func depotInteractiveHeroBanner(for item: DepotCatalogItem, isNarrow: Bool) -> some View {
         let isStaged = (store.stagedDepotItemID == item.id && !store.stagedFiles.isEmpty)
         let activeProgress = store.depotDownloadProgress[item.id]
-        let showRightArtPanel = !isNarrow
         let segments = item.blueprintSectorSegments
         let treeFiles = item.blueprintRootFiles
 
         return ZStack(alignment: .leading) {
-            // 1. Rich Blueprint Gradient Background (Adapts to all 11 Krouton Accent Swatches & Dark/Light Modes)
-            RoundedRectangle(cornerRadius: 13)
+            // 1. Deep Blueprint Gradient Surface (Works across all 11 Krouton Accent Swatches & Dark/Light Modes)
+            RoundedRectangle(cornerRadius: 14)
                 .fill(
                     LinearGradient(
                         colors: [
-                            store.activeAccent.opacity(0.44),
-                            Color(red: 0.06, green: 0.11, blue: 0.20),
-                            Color(red: 0.03, green: 0.05, blue: 0.11)
+                            store.activeAccent.opacity(0.42),
+                            Color(red: 0.05, green: 0.10, blue: 0.19),
+                            Color(red: 0.02, green: 0.04, blue: 0.09)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
 
-            // 2. Custom CAD / Blueprint Content Sketch Canvas (Draws thematic wireframe art for the disc's content!)
+            // 2. Vector Blueprint Art Canvas (Tux Penguin, Classic Mac System 7 Icons, MacAddict + Doom 3D, DOS/TempleOS, Gamepad, Radar)
             Canvas { context, size in
-                let gridStep: CGFloat = 16
+                // Fine 18px CAD Engineering Grid
+                let step: CGFloat = 18
                 var grid = Path()
                 var gx: CGFloat = 0
                 while gx <= size.width {
                     grid.move(to: CGPoint(x: gx, y: 0))
                     grid.addLine(to: CGPoint(x: gx, y: size.height))
-                    gx += gridStep
+                    gx += step
                 }
                 var gy: CGFloat = 0
                 while gy <= size.height {
                     grid.move(to: CGPoint(x: 0, y: gy))
                     grid.addLine(to: CGPoint(x: size.width, y: gy))
-                    gy += gridStep
+                    gy += step
                 }
-                context.stroke(grid, with: .color(Color.cyan.opacity(0.06)), lineWidth: 0.5)
+                context.stroke(grid, with: .color(Color.cyan.opacity(0.065)), lineWidth: 0.5)
 
-                // Blueprint Dimension Ticks & Crosshairs
-                var axes = Path()
-                axes.move(to: CGPoint(x: size.width * 0.48, y: 0))
-                axes.addLine(to: CGPoint(x: size.width * 0.48, y: size.height))
-                axes.move(to: CGPoint(x: 0, y: size.height * 0.52))
-                axes.addLine(to: CGPoint(x: size.width, y: size.height * 0.52))
-                context.stroke(axes, with: .color(Color.cyan.opacity(0.14)), style: StrokeStyle(lineWidth: 0.7, dash: [5, 4]))
+                // Blueprint Dimension Lines & Open Showcase Zone on the Right
+                let artX: CGFloat = isNarrow ? size.width * 0.78 : size.width * 0.64
+                let artY: CGFloat = size.height * 0.50
+                let cyanLine = Color.cyan.opacity(0.38)
+                let accentLine = store.activeAccent.opacity(0.48)
+                let faintCyan = Color.cyan.opacity(0.16)
 
-                // Thematic CAD Wireframe Sketch in the right-center background zone
-                let artCenter = CGPoint(x: showRightArtPanel ? size.width - 335 : size.width - 110, y: size.height * 0.50)
-                let sketchColor = Color.cyan.opacity(0.26)
-                let accentSketch = store.activeAccent.opacity(0.34)
+                // Outer Blueprint Calibration Ring in the Open Showcase Zone
+                let outerRing = CGRect(x: artX - 74, y: artY - 74, width: 148, height: 148)
+                context.stroke(Path(ellipseIn: outerRing), with: .color(faintCyan), style: StrokeStyle(lineWidth: 0.9, dash: [6, 4]))
 
-                if item.channel.contains("Vintage Apple") || item.id.contains("mac") {
-                    // Sketch 1: Classic Compact Macintosh CRT + Happy Mac Face + System 7 Finder Window
-                    let macBody = CGRect(x: artCenter.x - 44, y: artCenter.y - 56, width: 88, height: 108)
-                    let crtScreen = CGRect(x: artCenter.x - 32, y: artCenter.y - 44, width: 64, height: 48)
-                    let floppySlot = CGRect(x: artCenter.x + 4, y: artCenter.y + 18, width: 24, height: 4)
-                    var macPath = Path()
-                    macPath.addRoundedRect(in: macBody, cornerSize: CGSize(width: 6, height: 6))
-                    macPath.addRoundedRect(in: crtScreen, cornerSize: CGSize(width: 4, height: 4))
-                    macPath.addRect(floppySlot)
-                    // Happy Mac eyes & smile inside CRT
-                    macPath.move(to: CGPoint(x: artCenter.x - 12, y: artCenter.y - 28))
-                    macPath.addLine(to: CGPoint(x: artCenter.x - 12, y: artCenter.y - 22))
-                    macPath.move(to: CGPoint(x: artCenter.x + 12, y: artCenter.y - 28))
-                    macPath.addLine(to: CGPoint(x: artCenter.x + 12, y: artCenter.y - 22))
-                    macPath.move(to: CGPoint(x: artCenter.x - 2, y: artCenter.y - 24))
-                    macPath.addLine(to: CGPoint(x: artCenter.x - 2, y: artCenter.y - 16))
-                    macPath.addLine(to: CGPoint(x: artCenter.x + 3, y: artCenter.y - 16))
-                    macPath.move(to: CGPoint(x: artCenter.x - 14, y: artCenter.y - 10))
-                    macPath.addQuadCurve(to: CGPoint(x: artCenter.x + 14, y: artCenter.y - 10), control: CGPoint(x: artCenter.x, y: artCenter.y - 2))
-                    context.stroke(macPath, with: .color(sketchColor), lineWidth: 1.4)
+                if item.channel.contains("Live Linux") || item.id.contains("linux") || item.id.contains("ubuntu") || item.id.contains("fedora") || item.id.contains("debian") || item.id.contains("arch") {
+                    // === VECTOR ART 1: LINUX TUX PENGUIN + KERNEL NODE GRAPH ===
+                    var tux = Path()
+                    // Head & Body Torso
+                    tux.addEllipse(in: CGRect(x: artX - 24, y: artY - 56, width: 48, height: 42))
+                    tux.addEllipse(in: CGRect(x: artX - 34, y: artY - 22, width: 68, height: 74))
+                    // Inner Belly Oval
+                    tux.addEllipse(in: CGRect(x: artX - 22, y: artY - 12, width: 44, height: 54))
+                    // Left & Right Flippers
+                    tux.move(to: CGPoint(x: artX - 32, y: artY - 12))
+                    tux.addQuadCurve(to: CGPoint(x: artX - 42, y: artY + 28), control: CGPoint(x: artX - 52, y: artY + 6))
+                    tux.addLine(to: CGPoint(x: artX - 30, y: artY + 22))
+                    tux.move(to: CGPoint(x: artX + 32, y: artY - 12))
+                    tux.addQuadCurve(to: CGPoint(x: artX + 42, y: artY + 28), control: CGPoint(x: artX + 52, y: artY + 6))
+                    tux.addLine(to: CGPoint(x: artX + 30, y: artY + 22))
+                    // Eyes
+                    tux.addEllipse(in: CGRect(x: artX - 13, y: artY - 44, width: 9, height: 11))
+                    tux.addEllipse(in: CGRect(x: artX + 4, y: artY - 44, width: 9, height: 11))
+                    // Beak Triangle
+                    tux.move(to: CGPoint(x: artX - 11, y: artY - 30))
+                    tux.addLine(to: CGPoint(x: artX + 11, y: artY - 30))
+                    tux.addLine(to: CGPoint(x: artX, y: artY - 21))
+                    tux.closeSubpath()
+                    // Webbed Feet
+                    tux.addRoundedRect(in: CGRect(x: artX - 28, y: artY + 46, width: 22, height: 11), cornerSize: CGSize(width: 4, height: 4))
+                    tux.addRoundedRect(in: CGRect(x: artX + 6, y: artY + 46, width: 22, height: 11), cornerSize: CGSize(width: 4, height: 4))
+                    context.stroke(tux, with: .color(cyanLine), lineWidth: 1.6)
 
-                    // Floating Classic Finder Window Blueprint
-                    let winRect = CGRect(x: artCenter.x + 54, y: artCenter.y - 38, width: 84, height: 62)
-                    var winPath = Path()
-                    winPath.addRect(winRect)
-                    winPath.move(to: CGPoint(x: winRect.minX, y: winRect.minY + 12))
-                    winPath.addLine(to: CGPoint(x: winRect.maxX, y: winRect.minY + 12))
-                    context.stroke(winPath, with: .color(accentSketch), lineWidth: 1.1)
-                } else if item.channel.contains("Cover Discs") || item.id.contains("kolibri") || item.id.contains("pcgamer") {
-                    // Sketch 2: 3D Raycast / Doom / Demoscene Perspective Corridor + Reticle + Waveform
-                    let outer = CGRect(x: artCenter.x - 75, y: artCenter.y - 52, width: 150, height: 104)
-                    let mid = CGRect(x: artCenter.x - 44, y: artCenter.y - 30, width: 88, height: 60)
-                    let inner = CGRect(x: artCenter.x - 18, y: artCenter.y - 12, width: 36, height: 24)
-                    var doomPath = Path()
-                    doomPath.addRect(outer)
-                    doomPath.addRect(mid)
-                    doomPath.addRect(inner)
-                    doomPath.move(to: CGPoint(x: outer.minX, y: outer.minY)); doomPath.addLine(to: CGPoint(x: inner.minX, y: inner.minY))
-                    doomPath.move(to: CGPoint(x: outer.maxX, y: outer.minY)); doomPath.addLine(to: CGPoint(x: inner.maxX, y: inner.minY))
-                    doomPath.move(to: CGPoint(x: outer.minX, y: outer.maxY)); doomPath.addLine(to: CGPoint(x: inner.minX, y: inner.maxY))
-                    doomPath.move(to: CGPoint(x: outer.maxX, y: outer.maxY)); doomPath.addLine(to: CGPoint(x: inner.maxX, y: inner.maxY))
-                    context.stroke(doomPath, with: .color(sketchColor), lineWidth: 1.3)
+                    // BSD Daemon Trident / Kernel Nodes on the side
+                    var nodes = Path()
+                    for pt in [CGPoint(x: artX - 72, y: artY - 35), CGPoint(x: artX - 64, y: artY + 25), CGPoint(x: artX + 68, y: artY - 30)] {
+                        nodes.addEllipse(in: CGRect(x: pt.x - 5, y: pt.y - 5, width: 10, height: 10))
+                        nodes.move(to: pt)
+                        nodes.addLine(to: CGPoint(x: artX, y: artY))
+                    }
+                    context.stroke(nodes, with: .color(accentLine), lineWidth: 1.1)
 
-                    // Target Reticle in center of 3D corridor
-                    let ret = CGRect(x: artCenter.x - 10, y: artCenter.y - 10, width: 20, height: 20)
-                    context.stroke(Path(ellipseIn: ret), with: .color(accentSketch), lineWidth: 1.4)
+                } else if item.channel.contains("Vintage Apple") || item.id.contains("mac") {
+                    // === VECTOR ART 2: CLASSIC MAC OS SYSTEM 7 HAPPY MAC + TRASH CAN + BOMB DIALOG ===
+                    var mac = Path()
+                    // Compact Macintosh SE / Classic Bezel
+                    mac.addRoundedRect(in: CGRect(x: artX - 58, y: artY - 58, width: 82, height: 98), cornerSize: CGSize(width: 6, height: 6))
+                    mac.addRoundedRect(in: CGRect(x: artX - 48, y: artY - 46, width: 62, height: 46), cornerSize: CGSize(width: 4, height: 4))
+                    mac.addRect(CGRect(x: artX - 10, y: artY + 14, width: 24, height: 4))
+                    // Susan Kare Happy Mac Picasso Nose & Smile
+                    mac.move(to: CGPoint(x: artX - 28, y: artY - 34)); mac.addLine(to: CGPoint(x: artX - 28, y: artY - 28))
+                    mac.move(to: CGPoint(x: artX - 6, y: artY - 34)); mac.addLine(to: CGPoint(x: artX - 6, y: artY - 28))
+                    mac.move(to: CGPoint(x: artX - 17, y: artY - 34)); mac.addLine(to: CGPoint(x: artX - 20, y: artY - 20)); mac.addLine(to: CGPoint(x: artX - 14, y: artY - 20))
+                    mac.move(to: CGPoint(x: artX - 28, y: artY - 14))
+                    mac.addQuadCurve(to: CGPoint(x: artX - 6, y: artY - 14), control: CGPoint(x: artX - 17, y: artY - 6))
+                    context.stroke(mac, with: .color(cyanLine), lineWidth: 1.6)
+
+                    // Classic System 7 Fluted Trash Can Icon
+                    var trash = Path()
+                    let tx = artX + 42, ty = artY - 10
+                    trash.addRect(CGRect(x: tx, y: ty, width: 32, height: 42))
+                    trash.addRect(CGRect(x: tx - 3, y: ty - 6, width: 38, height: 6))
+                    trash.addRect(CGRect(x: tx + 10, y: ty - 11, width: 12, height: 5))
+                    for ridge in [7.0, 16.0, 25.0] {
+                        trash.move(to: CGPoint(x: tx + ridge, y: ty + 6))
+                        trash.addLine(to: CGPoint(x: tx + ridge, y: ty + 36))
+                    }
+                    // Classic System 7 Bomb Icon above Trash
+                    trash.addEllipse(in: CGRect(x: tx + 4, y: ty - 46, width: 22, height: 22))
+                    trash.move(to: CGPoint(x: tx + 22, y: ty - 44))
+                    trash.addQuadCurve(to: CGPoint(x: tx + 32, y: ty - 54), control: CGPoint(x: tx + 28, y: ty - 52))
+                    context.stroke(trash, with: .color(accentLine), lineWidth: 1.4)
+
+                } else if item.channel.contains("Cover Discs") || item.id.contains("macaddict") || item.id.contains("pcgamer") {
+                    // === VECTOR ART 3: MACADDICT CD-ROM MASCOT + DOOM 3D RAYCAST CORRIDOR ===
+                    var doom = Path()
+                    let r1 = CGRect(x: artX - 78, y: artY - 54, width: 156, height: 108)
+                    let r2 = CGRect(x: artX - 46, y: artY - 32, width: 92, height: 64)
+                    let r3 = CGRect(x: artX - 20, y: artY - 14, width: 40, height: 28)
+                    doom.addRect(r1); doom.addRect(r2); doom.addRect(r3)
+                    doom.move(to: CGPoint(x: r1.minX, y: r1.minY)); doom.addLine(to: CGPoint(x: r3.minX, y: r3.minY))
+                    doom.move(to: CGPoint(x: r1.maxX, y: r1.minY)); doom.addLine(to: CGPoint(x: r3.maxX, y: r3.minY))
+                    doom.move(to: CGPoint(x: r1.minX, y: r1.maxY)); doom.addLine(to: CGPoint(x: r3.minX, y: r3.maxY))
+                    doom.move(to: CGPoint(x: r1.maxX, y: r1.maxY)); doom.addLine(to: CGPoint(x: r3.maxX, y: r3.maxY))
+                    context.stroke(doom, with: .color(cyanLine), lineWidth: 1.3)
+
+                    // MacAddict Spinning CD-ROM Head Emblem in the center of the corridor
+                    var discGuy = Path()
+                    discGuy.addEllipse(in: CGRect(x: artX - 28, y: artY - 28, width: 56, height: 56))
+                    discGuy.addEllipse(in: CGRect(x: artX - 8, y: artY - 8, width: 16, height: 16))
+                    // Cool 90s Shades on the CD Mascot
+                    discGuy.addRect(CGRect(x: artX - 20, y: artY - 14, width: 16, height: 8))
+                    discGuy.addRect(CGRect(x: artX + 4, y: artY - 14, width: 16, height: 8))
+                    discGuy.move(to: CGPoint(x: artX - 4, y: artY - 10)); discGuy.addLine(to: CGPoint(x: artX + 4, y: artY - 10))
+                    context.stroke(discGuy, with: .color(accentLine), lineWidth: 1.6)
+
                 } else if item.channel.contains("Console") {
-                    // Sketch 3: Console Optical Pickup Laser Assembly + D-Pad / Controller Blueprint
-                    for r in [22.0, 44.0, 64.0] {
-                        let cRect = CGRect(x: artCenter.x - r, y: artCenter.y - r, width: r * 2, height: r * 2)
-                        context.stroke(Path(ellipseIn: cRect), with: .color(sketchColor), lineWidth: 1.2)
-                    }
-                    // D-Pad Crosshair & Action Buttons
+                    // === VECTOR ART 4: GAMECUBE / PS2 OPTICAL PICKUP + ISOMETRIC CONTROLLER ===
                     var pad = Path()
-                    pad.addRect(CGRect(x: artCenter.x + 56, y: artCenter.y - 8, width: 36, height: 12))
-                    pad.addRect(CGRect(x: artCenter.x + 68, y: artCenter.y - 20, width: 12, height: 36))
-                    context.stroke(pad, with: .color(accentSketch), lineWidth: 1.3)
-                } else if item.channel.contains("Retro PC") || item.id.contains("freedos") {
-                    // Sketch 4: MS-DOS Monitor Terminal + 3.5-inch Floppy Disk & DIP Chip Schematic
-                    let dosBox = CGRect(x: artCenter.x - 68, y: artCenter.y - 48, width: 112, height: 82)
-                    var dosPath = Path()
-                    dosPath.addRoundedRect(in: dosBox, cornerSize: CGSize(width: 5, height: 5))
-                    for lineY in [-28.0, -14.0, 0.0, 14.0] {
-                        dosPath.move(to: CGPoint(x: dosBox.minX + 12, y: artCenter.y + lineY))
-                        dosPath.addLine(to: CGPoint(x: dosBox.maxX - 18, y: artCenter.y + lineY))
+                    // Controller Body Outline
+                    pad.addRoundedRect(in: CGRect(x: artX - 64, y: artY - 34, width: 128, height: 68), cornerSize: CGSize(width: 24, height: 24))
+                    // D-Pad Left
+                    pad.addRect(CGRect(x: artX - 46, y: artY - 6, width: 28, height: 10))
+                    pad.addRect(CGRect(x: artX - 37, y: artY - 15, width: 10, height: 28))
+                    // Action Buttons Right (A/B/X/Y or Triangle/Circle/X/Square)
+                    for bpt in [CGPoint(x: artX + 36, y: artY - 14), CGPoint(x: artX + 36, y: artY + 12), CGPoint(x: artX + 22, y: artY - 1), CGPoint(x: artX + 50, y: artY - 1)] {
+                        pad.addEllipse(in: CGRect(x: bpt.x - 5, y: bpt.y - 5, width: 10, height: 10))
                     }
-                    context.stroke(dosPath, with: .color(sketchColor), lineWidth: 1.3)
+                    // Analog Sticks
+                    pad.addEllipse(in: CGRect(x: artX - 20, y: artY + 8, width: 16, height: 16))
+                    pad.addEllipse(in: CGRect(x: artX + 4, y: artY + 8, width: 16, height: 16))
+                    context.stroke(pad, with: .color(cyanLine), lineWidth: 1.5)
 
-                    let floppy = CGRect(x: artCenter.x + 54, y: artCenter.y - 34, width: 64, height: 68)
-                    var flopPath = Path()
-                    flopPath.addRect(floppy)
-                    flopPath.addRect(CGRect(x: floppy.minX + 14, y: floppy.minY, width: 36, height: 22))
-                    flopPath.addRect(CGRect(x: floppy.minX + 10, y: floppy.minY + 34, width: 44, height: 28))
-                    context.stroke(flopPath, with: .color(accentSketch), lineWidth: 1.2)
+                    // Mini-DVD / GD-ROM Ring
+                    let ring = CGRect(x: artX - 48, y: artY - 48, width: 96, height: 96)
+                    context.stroke(Path(ellipseIn: ring), with: .color(accentLine), style: StrokeStyle(lineWidth: 1.2, dash: [5, 3]))
+
+                } else if item.channel.contains("Retro PC") || item.id.contains("templeos") || item.id.contains("freedos") {
+                    // === VECTOR ART 5: MS-DOS C:\> CRT + TEMPLEOS SWORD/SUNBURST + 3.5" FLOPPY ===
+                    var retro = Path()
+                    let crt = CGRect(x: artX - 66, y: artY - 46, width: 88, height: 68)
+                    retro.addRoundedRect(in: crt, cornerSize: CGSize(width: 5, height: 5))
+                    // CRT Stand
+                    retro.addRect(CGRect(x: artX - 36, y: artY + 22, width: 28, height: 8))
+                    retro.addRect(CGRect(x: artX - 50, y: artY + 30, width: 56, height: 6))
+                    // DOS Prompt Chevron `C:\>`
+                    retro.move(to: CGPoint(x: crt.minX + 12, y: crt.minY + 16))
+                    retro.addLine(to: CGPoint(x: crt.minX + 20, y: crt.minY + 22))
+                    retro.addLine(to: CGPoint(x: crt.minX + 12, y: crt.minY + 28))
+                    retro.addRect(CGRect(x: crt.minX + 25, y: crt.minY + 24, width: 10, height: 3))
+                    context.stroke(retro, with: .color(cyanLine), lineWidth: 1.5)
+
+                    // 3.5-inch Floppy Disk + TempleOS Sunburst Rays on Right
+                    var flop = Path()
+                    let flRect = CGRect(x: artX + 32, y: artY - 36, width: 54, height: 58)
+                    flop.addRect(flRect)
+                    flop.addRect(CGRect(x: flRect.minX + 12, y: flRect.minY, width: 28, height: 18))
+                    flop.addRect(CGRect(x: flRect.minX + 8, y: flRect.minY + 28, width: 38, height: 24))
+                    context.stroke(flop, with: .color(accentLine), lineWidth: 1.4)
                 } else {
-                    // Sketch 5: Partition Cylinder/Sector Radar + Kernel Node Topology + ECG Telemetry Sine Wave
-                    for r in [24.0, 48.0, 72.0] {
-                        let cRect = CGRect(x: artCenter.x - r, y: artCenter.y - r, width: r * 2, height: r * 2)
-                        context.stroke(Path(ellipseIn: cRect), with: .color(sketchColor), style: StrokeStyle(lineWidth: 1.1, dash: r == 48.0 ? [5, 3] : []))
+                    // === VECTOR ART 6: SYSTEM RESCUE PLATTER RADAR + ECG WAVEFORM ===
+                    for r in [24.0, 46.0, 68.0] {
+                        let cRect = CGRect(x: artX - r, y: artY - r, width: r * 2, height: r * 2)
+                        context.stroke(Path(ellipseIn: cRect), with: .color(cyanLine), style: StrokeStyle(lineWidth: 1.2, dash: r == 46.0 ? [5, 3] : []))
                     }
-                    var wave = Path()
-                    let startX = artCenter.x - 85
-                    wave.move(to: CGPoint(x: startX, y: artCenter.y + 36))
-                    for step in 0...34 {
-                        let wx = startX + CGFloat(step) * 5.0
-                        let wy = artCenter.y + 36 + sin(CGFloat(step) * 0.55) * 14.0
-                        wave.addLine(to: CGPoint(x: wx, y: wy))
-                    }
-                    context.stroke(wave, with: .color(accentSketch), lineWidth: 1.4)
+                    var ecg = Path()
+                    ecg.move(to: CGPoint(x: artX - 75, y: artY))
+                    ecg.addLine(to: CGPoint(x: artX - 28, y: artY))
+                    ecg.addLine(to: CGPoint(x: artX - 18, y: artY - 34))
+                    ecg.addLine(to: CGPoint(x: artX - 4, y: artY + 38))
+                    ecg.addLine(to: CGPoint(x: artX + 10, y: artY - 18))
+                    ecg.addLine(to: CGPoint(x: artX + 22, y: artY))
+                    ecg.addLine(to: CGPoint(x: artX + 75, y: artY))
+                    context.stroke(ecg, with: .color(accentLine), lineWidth: 1.8)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 13))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
 
-            // 3. Foreground Content: Left Title/Specs/Actions + Right Visual Blueprint Schematic Card
-            HStack(alignment: .center, spacing: 16) {
-                VStack(alignment: .leading, spacing: 7) {
+            // 3. Foreground Layout: Left Info Column + Open Vector Showcase + Right Schematic Box
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
                     // Top Micro Telemetry Header
                     HStack(spacing: 6) {
                         Image(systemName: item.sfSymbol)
-                            .font(.system(size: 10.5, weight: .bold))
+                            .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(store.activeAccent)
                         Text("CAD BLUEPRINT INSPECTOR • \(item.channel.uppercased())")
                             .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
                             .foregroundStyle(store.activeAccent)
                             .lineLimit(1)
-                        Text("•")
-                            .foregroundStyle(.white.opacity(0.35))
-                        Text("\(item.architecture) • \(item.bootStandard) • SHA: \(item.sha256Short)")
+                        Text("•").foregroundStyle(.white.opacity(0.35))
+                        Text("\(item.architecture) • \(item.bootStandard)")
                             .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
                             .foregroundStyle(.white.opacity(0.82))
                             .lineLimit(1)
                     }
 
-                    // Selected Title + Version Badge
-                    HStack(alignment: .firstTextBaseline, spacing: 9) {
+                    // Selected Title + Version
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(item.title)
-                            .font(.system(size: 19, weight: .bold))
+                            .font(.system(size: isNarrow ? 17 : 20, weight: .bold))
                             .foregroundStyle(.white)
                             .lineLimit(1)
                         Text("v\(item.version)")
                             .font(.system(size: 12, weight: .bold, design: .monospaced))
                             .foregroundStyle(.cyan)
                             .lineLimit(1)
-                        Spacer(minLength: 0)
                     }
 
                     Text(item.subtitle)
                         .font(.system(size: 11.5))
                         .foregroundStyle(.white.opacity(0.86))
                         .lineLimit(2)
-                        .frame(maxWidth: 560, alignment: .leading)
+                        .frame(maxWidth: 460, alignment: .leading)
+
+                    Spacer(minLength: 2)
 
                     // Bottom Row: 3-Segment CAD Sector Map + Stage & Hex Action Buttons
                     HStack(spacing: 8) {
-                        HStack(spacing: 2) {
-                            ForEach(Array(segments.enumerated()), id: \.offset) { idx, seg in
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(seg.label)
-                                        .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                        .foregroundStyle(.white)
-                                        .lineLimit(1)
-                                    Text(seg.lbaRange)
-                                        .font(.system(size: 7.5, design: .monospaced))
-                                        .foregroundStyle(.cyan.opacity(0.9))
-                                        .lineLimit(1)
+                        if !isNarrow {
+                            HStack(spacing: 2) {
+                                ForEach(Array(segments.enumerated()), id: \.offset) { idx, seg in
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text(seg.label)
+                                            .font(.system(size: 7.5, weight: .bold, design: .monospaced))
+                                            .foregroundStyle(.white)
+                                            .lineLimit(1)
+                                        Text(seg.lbaRange)
+                                            .font(.system(size: 7, design: .monospaced))
+                                            .foregroundStyle(.cyan.opacity(0.9))
+                                            .lineLimit(1)
+                                    }
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3.5)
+                                    .background(
+                                        idx == 0 ? Color.cyan.opacity(0.28) : (idx == 1 ? Color.green.opacity(0.26) : store.activeAccent.opacity(0.36))
+                                    )
+                                    .overlay(Rectangle().stroke(Color.cyan.opacity(0.32), lineWidth: 0.6))
                                 }
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 3.5)
-                                .background(
-                                    idx == 0 ? Color.cyan.opacity(0.28) : (idx == 1 ? Color.green.opacity(0.26) : store.activeAccent.opacity(0.36))
-                                )
-                                .overlay(
-                                    Rectangle()
-                                        .stroke(Color.cyan.opacity(0.32), lineWidth: 0.6)
-                                )
                             }
+                            .clipShape(RoundedRectangle(cornerRadius: 5))
                         }
-                        .clipShape(RoundedRectangle(cornerRadius: 5))
-
-                        Spacer(minLength: 4)
 
                         if let prog = activeProgress {
                             HStack(spacing: 5) {
@@ -1202,7 +1273,6 @@ struct KroutonMainWorkspaceView: View {
                             .padding(.vertical, 6)
                             .background(store.activeAccent.opacity(0.35))
                             .clipShape(Capsule())
-                            .fixedSize(horizontal: true, vertical: false)
                         } else {
                             Button {
                                 store.downloadAndStageDepotItem(id: item.id, jumpToInspector: false)
@@ -1218,7 +1288,6 @@ struct KroutonMainWorkspaceView: View {
                                 .background(isStaged ? Color.green : store.activeAccent)
                                 .foregroundStyle(isStaged ? Color.black : store.activeOnAccentText)
                                 .clipShape(Capsule())
-                                .fixedSize(horizontal: true, vertical: false)
                             }
                             .buttonStyle(.plain)
 
@@ -1237,26 +1306,25 @@ struct KroutonMainWorkspaceView: View {
                                 .foregroundStyle(.white)
                                 .clipShape(Capsule())
                                 .overlay(Capsule().stroke(Color.white.opacity(0.28), lineWidth: 1))
-                                .fixedSize(horizontal: true, vertical: false)
                             }
                             .buttonStyle(.plain)
                         }
                     }
-                    .padding(.top, 2)
                 }
 
-                // RIGHT SIDE: Thematic Visual Content Schematic + On-Disc File Tree
-                if showRightArtPanel {
+                Spacer(minLength: isNarrow ? 8 : 95) // Open showcase space so the Vector Blueprint Art shines through!
+
+                if !isNarrow {
                     VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: 5) {
                             Image(systemName: item.sfSymbol)
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundStyle(.cyan)
                             Text("DISC CONTENT SCHEMATIC")
                                 .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
                                 .foregroundStyle(.cyan)
                                 .lineLimit(1)
-                            Spacer()
+                            Spacer(minLength: 4)
                             Text(item.sizeDisplay)
                                 .font(.system(size: 8.5, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.white.opacity(0.75))
@@ -1265,19 +1333,19 @@ struct KroutonMainWorkspaceView: View {
                         Divider().overlay(Color.cyan.opacity(0.35))
 
                         ForEach(treeFiles, id: \.self) { pathLine in
-                            HStack(spacing: 5) {
+                            HStack(spacing: 4) {
                                 Text("├─")
                                     .foregroundStyle(.cyan.opacity(0.75))
                                 Text(pathLine)
                                     .foregroundStyle(.white.opacity(0.92))
                                     .lineLimit(1)
                             }
-                            .font(.system(size: 9, weight: .medium, design: .monospaced))
+                            .font(.system(size: 8.5, weight: .medium, design: .monospaced))
                         }
                     }
                     .padding(10)
-                    .frame(width: 255, alignment: .leading)
-                    .background(Color.black.opacity(0.46))
+                    .frame(width: 225, alignment: .leading)
+                    .background(Color.black.opacity(0.50))
                     .clipShape(RoundedRectangle(cornerRadius: 9))
                     .overlay(
                         RoundedRectangle(cornerRadius: 9)
@@ -1286,12 +1354,12 @@ struct KroutonMainWorkspaceView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.vertical, 14)
         }
-        .frame(height: 158)
+        .frame(height: 184)
         .fixedSize(horizontal: false, vertical: true)
         .overlay(
-            RoundedRectangle(cornerRadius: 13)
+            RoundedRectangle(cornerRadius: 14)
                 .stroke(isStaged ? Color.green.opacity(0.75) : store.activeAccent.opacity(0.55), lineWidth: 1.5)
         )
     }
@@ -1301,7 +1369,7 @@ struct KroutonMainWorkspaceView: View {
         let activeProgress = store.depotDownloadProgress[item.id]
 
         return VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top, spacing: 11) {
+            HStack(alignment: .top, spacing: 10) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 11)
                         .fill(
@@ -1314,14 +1382,14 @@ struct KroutonMainWorkspaceView: View {
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .frame(width: 42, height: 42)
+                        .frame(width: 40, height: 40)
                         .overlay(
                             RoundedRectangle(cornerRadius: 11)
                                 .stroke(Color.white.opacity(isSelectedInHero ? 0.45 : 0.18), lineWidth: 1)
                         )
 
                     Image(systemName: item.sfSymbol)
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(isStaged ? Color.black : store.activeOnAccentText)
                 }
 
@@ -1331,15 +1399,16 @@ struct KroutonMainWorkspaceView: View {
                             .font(.system(size: 12.5, weight: .bold))
                             .foregroundStyle(isSelectedInHero ? store.activeAccent : .primary)
                             .lineLimit(1)
-                        Spacer(minLength: 0)
+                        Spacer(minLength: 2)
                         if isSelectedInHero {
-                            Text("IN HERO")
+                            Text("HERO")
                                 .font(.system(size: 8, weight: .heavy, design: .monospaced))
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 1.5)
                                 .background(store.activeAccent.opacity(0.20))
                                 .foregroundStyle(store.activeAccent)
                                 .clipShape(RoundedRectangle(cornerRadius: 3))
+                                .fixedSize(horizontal: true, vertical: false)
                         }
                     }
 
@@ -1353,22 +1422,21 @@ struct KroutonMainWorkspaceView: View {
 
             Divider()
 
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("\(item.architecture)  •  \(item.sizeDisplay)")
+                    Text("\(item.architecture) • \(item.sizeDisplay)")
                         .font(.system(size: 9.5, weight: .bold, design: .monospaced))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
-                    Text("\(item.bootStandard)")
+                    Text(item.bootStandard)
                         .font(.system(size: 9, design: .monospaced))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-
-                Spacer(minLength: 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 if let prog = activeProgress {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 4) {
                         ProgressView(value: prog)
                             .progressViewStyle(.circular)
                             .controlSize(.small)
@@ -1376,7 +1444,7 @@ struct KroutonMainWorkspaceView: View {
                             .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
                             .lineLimit(1)
                     }
-                    .padding(.horizontal, 10)
+                    .padding(.horizontal, 9)
                     .padding(.vertical, 4)
                     .background(store.activeAccent.opacity(0.18))
                     .clipShape(Capsule())
@@ -1392,7 +1460,7 @@ struct KroutonMainWorkspaceView: View {
                                 .lineLimit(1)
                         }
                         .font(.system(size: 10, weight: .heavy))
-                        .padding(.horizontal, 11)
+                        .padding(.horizontal, 10)
                         .padding(.vertical, 4.5)
                         .background(isStaged ? Color.green : (item.isDownloaded ? store.activeAccent : Color.primary.opacity(0.12)))
                         .foregroundStyle(isStaged ? Color.black : (item.isDownloaded ? store.activeOnAccentText : store.activeAccent))
@@ -1421,6 +1489,7 @@ struct KroutonMainWorkspaceView: View {
             }
         }
         .padding(11)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 11)
                 .fill(isSelectedInHero ? store.activeAccent.opacity(0.08) : Color(NSColor.controlBackgroundColor))
@@ -1432,6 +1501,7 @@ struct KroutonMainWorkspaceView: View {
                     lineWidth: (isStaged || isSelectedInHero) ? 1.5 : 1.0
                 )
         )
+        .clipped()
         .contentShape(RoundedRectangle(cornerRadius: 11))
         .onTapGesture {
             store.selectedDepotHeroItemID = item.id

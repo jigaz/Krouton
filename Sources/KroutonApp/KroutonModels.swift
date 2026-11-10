@@ -1255,3 +1255,40 @@ extension DiscFormatSpec {
         return "Files and folders"
     }
 }
+
+
+// MARK: - Concise Left-Sidebar Display Names (Zero Truncation)
+extension DiscFormatSpec {
+    public var shortDisplayName: String {
+        switch id {
+        case "audio-cdda":      return "Audio CD"
+        case "audio-mp3":       return "MP3 / FLAC CD"
+        case "audio-cdextra":   return "CD-Extra"
+        case "video-dvd":       return "DVD-Video"
+        case "avchd-dvd":       return "AVCHD"
+        case "bd-sl":           return "BD-R"
+        case "bd-dl":           return "BD-R DL"
+        case "bd-xl":           return "UHD-BD / BDXL"
+        case "video-svcd":      return "Super VCD"
+        case "image-burn":      return "Burn Image"
+        case "data-hybrid":     return "Data"
+        case "data-udf-modern": return "UDF Large Data"
+        case "data-apple-apfs": return "Apple Volume"
+        case "data-retro-iso":  return "Retro ISO 8.3"
+        case "mdisc-vault":     return "M-DISC"
+        case "game-wii":        return "Nintendo Wii"
+        case "game-gc":         return "GameCube"
+        case "game-ps2":        return "PS2"
+        case "game-ps1":        return "PS1"
+        case "game-xbox":       return "Xbox"
+        case "game-dc":         return "Dreamcast"
+        case "game-3do":        return "3DO / PCE"
+        case "audio-dtscd":     return "DTS-CD"
+        case "audio-dvda":      return "DVD-Audio"
+        case "data-dvdram":     return "DVD-RAM"
+        case "data-hfs-apm":    return "Mac OS 9 HFS"
+        case "legacy-photocd":  return "Kodak Photo CD"
+        default:                return technicalName
+        }
+    }
+}
