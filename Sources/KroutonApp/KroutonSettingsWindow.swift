@@ -64,7 +64,7 @@ public struct KroutonSettingsWindowView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(Color(NSColor.controlBackgroundColor))
-                .clipShape(Capsule())
+                .clipShape(RoundedRectangle(cornerRadius: 7))
                 .padding(.horizontal, 10)
                 .padding(.top, 8)
 
@@ -386,12 +386,9 @@ public struct KroutonSettingsWindowView: View {
                                 HStack(spacing: 8) {
                                     Text(channel.name)
                                         .font(.system(size: 13, weight: .semibold))
-                                    Text("\(channel.itemCount) Images")
-                                        .font(.system(size: 10, weight: .medium, design: .monospaced))
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(store.activeAccent.opacity(0.15))
-                                        .clipShape(Capsule())
+                                    Text("• \(channel.itemCount) Images")
+                                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                        .foregroundStyle(store.activeAccent)
                                 }
                                 Text(channel.description)
                                     .font(.system(size: 11))
@@ -574,31 +571,24 @@ public struct KroutonSettingsWindowView: View {
                                     HStack(spacing: 8) {
                                         Text(drive.displayName)
                                             .font(.system(size: 13, weight: .bold))
-                                        Text("FW \(drive.firmware)")
-                                            .font(.system(size: 10, design: .monospaced))
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(Color.secondary.opacity(0.15))
-                                            .clipShape(Capsule())
-                                        Text(drive.interconnect)
-                                            .font(.system(size: 10, design: .monospaced))
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(store.activeAccent.opacity(0.18))
-                                            .clipShape(Capsule())
+                                        Text("FW \(drive.firmware) • \(drive.interconnect)")
+                                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                            .foregroundStyle(.secondary)
                                     }
                                     Text("Write Capabilities: \(drive.capabilitiesSummary)")
                                         .font(.system(size: 11))
                                         .foregroundStyle(.secondary)
                                 }
                                 Spacer()
-                                Text(drive.statusBadgeText)
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundStyle(drive.isMediaPresent ? .green : .secondary)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background((drive.isMediaPresent ? Color.green : Color.secondary).opacity(0.12))
-                                    .clipShape(Capsule())
+                                HStack(spacing: 5) {
+                                    Circle()
+                                        .fill(drive.isMediaPresent ? Color.green : Color.secondary)
+                                        .frame(width: 7, height: 7)
+                                    Text(drive.statusBadgeText)
+                                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                        .foregroundStyle(drive.isMediaPresent ? .green : .secondary)
+                                }
+                                .padding(.trailing, 6)
 
                                 pillToggleButton(title: "Eject", sfSymbol: "eject.fill", isSelected: false) {
                                     driveManager.ejectDrive(id: drive.id)
