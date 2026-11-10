@@ -378,30 +378,57 @@ struct KroutonMainWorkspaceView: View {
                             .padding(.horizontal, 10)
 
                         taskRowButton(
+                            id: "depot-all",
+                            category: .depot,
+                            title: "All Depot Library (60+)",
+                            colloquial: "Complete Verified Optical Catalog",
+                            sfSymbol: "square.grid.2x2.fill"
+                        )
+                        taskRowButton(
                             id: "depot-rescue",
                             category: .depot,
                             title: "System Rescue & BIOS",
-                            colloquial: "SystemRescue, GParted, FreeDOS 1.4",
-                            badge: "Get ISO",
+                            colloquial: "SystemRescue, GParted, Memtest, UBCD",
                             sfSymbol: "cross.case.fill"
                         )
                         taskRowButton(
-                            id: "depot-linux-win",
+                            id: "depot-linux",
                             category: .depot,
-                            title: "Live OS & Installers",
-                            colloquial: "Ubuntu, Fedora, Windows 11 API",
-                            badge: "Get ISO",
+                            title: "Live Linux & BSD",
+                            colloquial: "Ubuntu, Fedora, Debian, FreeBSD, Arch",
                             sfSymbol: "terminal.fill"
                         )
                         taskRowButton(
-                            id: "depot-archive-mac",
+                            id: "depot-vintage",
                             category: .depot,
-                            title: "Vintage Apple & Archive.org",
-                            colloquial: "Mac OS 9.2.2, System 7.5, Shareware",
-                            badge: "Vault",
+                            title: "Vintage Mac & Apple",
+                            colloquial: "Mac OS 9.2.2, System 7.5, A/UX, AHT",
                             sfSymbol: "desktopcomputer"
                         )
+                        taskRowButton(
+                            id: "depot-homebrew",
+                            category: .depot,
+                            title: "Console Homebrew & ROMs",
+                            colloquial: "Swiss GC, FreeDVDBoot PS2, 240p Suite",
+                            sfSymbol: "gamecontroller.fill"
+                        )
+                        taskRowButton(
+                            id: "depot-coverdiscs",
+                            category: .depot,
+                            title: "90s Cover Discs & Scene",
+                            colloquial: "MacAddict, PC Gamer, NextGen, Scene.org",
+                            sfSymbol: "sparkles.tv.fill"
+                        )
+                        taskRowButton(
+                            id: "depot-retropc",
+                            category: .depot,
+                            title: "Retro PC, DOS & Alt OS",
+                            colloquial: "FreeDOS 1.4, Haiku, BeOS R5, OS/2, IRIX",
+                            sfSymbol: "cpu.fill"
+                        )
                     }
+
+                    Divider().padding(.vertical, 2)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(KroutonL10n.tr("COPY"))
@@ -601,8 +628,9 @@ struct KroutonMainWorkspaceView: View {
             case "depot-vintage": return "Vintage Apple (archive.org)"
             case "depot-homebrew": return "Console Homebrew & ROMs"
             case "depot-coverdiscs": return "Cover Discs & Demoscene"
+            case "depot-retropc": return "Retro PC & Alt OS"
             case "depot-ia-live": return "Internet Archive Live"
-            default: return nil
+            default: return nil // "depot-all" shows all 60+ titles
             }
         }()
 
@@ -614,432 +642,541 @@ struct KroutonMainWorkspaceView: View {
                 || item.subtitle.lowercased().contains(q)
                 || item.architecture.lowercased().contains(q)
                 || item.bootStandard.lowercased().contains(q)
+                || item.channel.lowercased().contains(q)
             return matchesChannel && matchesQuery
         }
     }
 
-    private var depotHeroFeaturedItem: DepotCatalogItem {
-        filteredDepotItems.first ?? store.depotItems[0]
+    private var depotHeroSelectedItem: DepotCatalogItem {
+        let items = filteredDepotItems
+        if let selID = store.selectedDepotHeroItemID,
+           let match = items.first(where: { $0.id == selID }) {
+            return match
+        }
+        return items.first ?? store.depotItems[0]
     }
 
     private var depotChannelHeadline: (badge: String, title: String, subtitle: String) {
         switch store.selectedTaskID {
         case "depot-rescue":
             return (
-                "FEATURED HARDWARE & PARTITION RECOVERY",
-                "Bare-Metal System Rescue & BIOS Flasher Suite",
-                "Verified El Torito BIOS/UEFI boot discs for ZFS/APFS recovery, partition repair, RAM diagnostics & DOS firmware flashing."
+                "SYSTEM RESCUE & BIOS SUB-LIBRARY",
+                "System Rescue & BIOS",
+                "Bare-metal El Torito BIOS/UEFI recovery discs, partition editors, RAM analyzers & drive sanitizers."
             )
         case "depot-linux":
             return (
-                "OFFICIAL LIVE WORKSTATIONS & INSTALLERS",
-                "Live Linux & BSD Optical Distributions",
-                "Cryptographically verified ISO/UDF hybrid images ready for physical DVD/BD burning or instant Apple Virtualization test-boot."
+                "LIVE LINUX & BSD SUB-LIBRARY",
+                "Live Linux & BSD",
+                "Cryptographically verified hybrid ISO/UDF images ready for physical DVD/BD burning or VM test-boot."
             )
         case "depot-vintage":
             return (
-                "INTERNET ARCHIVE • CLASSIC MACINTOSH VAULT",
-                "Vintage Apple Partition Map (APM) Boot CDs",
-                "Preserved HFS Standard & Blessed System Folders for 68040, PowerPC G3/G4/G5, iMac, iBook & Classic Mac restoration."
+                "VINTAGE APPLE & ARCHIVE.ORG SUB-LIBRARY",
+                "Vintage Mac & Apple",
+                "Bootable HFS Standard & Blessed System Folders for 680x0, PowerPC G3/G4/G5, A/UX & Apple IIgs."
             )
         case "depot-homebrew":
             return (
-                "HOMEBREW BOOT DISCS • 240P SUITE • REDUMP VERIFIED",
-                "Console Homebrew, Boot Loaders & Indie Game ROMs",
-                "Legal self-booting console utilities (Swiss, FreeDVDBoot, UniROM, 240p Test Suite) & indie optical releases."
+                "CONSOLE HOMEBREW & BOOT ROMS SUB-LIBRARY",
+                "Console Homebrew & ROMs",
+                "Legal optical boot discs (Swiss, FreeDVDBoot, UniROM, DreamShell, Pseudo Saturn Kai & 240p Test Suite)."
             )
         case "depot-coverdiscs":
             return (
-                "INTERNET ARCHIVE CD-ROM VAULT • SCENE.ORG",
-                "Classic 90s Magazine Cover Discs & Demoscene",
-                "Preserved MacAddict, PC Gamer & Next Generation CD-ROMs plus real-time Demoscene optical anthologies."
+                "90S COVER DISCS & DEMOSCENE SUB-LIBRARY",
+                "90s Cover Discs & Scene",
+                "Preserved MacAddict, Macworld, PC Gamer, Next Generation, Amiga Format & Assembly/Scene.org discs."
+            )
+        case "depot-retropc":
+            return (
+                "RETRO PC, DOS & ALT OS SUB-LIBRARY",
+                "Retro PC, DOS & Alt OS",
+                "Bootable optical releases for FreeDOS 1.4, Haiku, BeOS R5, IBM OS/2 Warp 4.52, ReactOS, Plan 9 & IRIX."
             )
         case "depot-ia-live":
             return (
-                "ARCHIVE.ORG LIVE REST API QUERY",
-                "Internet Archive Optical Software Vault",
-                "Live results fetched directly from archive.org/advancedsearch.php for optical ISO, BIN/CUE & CD-ROM software."
+                "INTERNET ARCHIVE LIVE API RESULTS",
+                "Internet Archive Optical Software Query",
+                "Live results fetched directly from archive.org/advancedsearch.php for optical ISO, BIN/CUE & CD-ROM media."
             )
         default:
             return (
-                "VERIFIED BOOTABLE MEDIA STOREFRONT",
-                "Disc Image Depot",
-                "One-click download, SHA-256 verification, and instant staging to your optical burner."
+                "COMPLETE OPTICAL LIBRARY (60+ VERIFIED TITLES)",
+                "All Depot Library",
+                "Select any sub-library in the left column or click any title card below to inspect its details in the Hero deck."
             )
         }
     }
 
     private var depotWorkspaceView: some View {
         let heroMeta = depotChannelHeadline
-        let featured = depotHeroFeaturedItem
+        let heroItem = depotHeroSelectedItem
 
-        return VStack(alignment: .leading, spacing: 12) {
-            // 1. Top Storefront Navigation & Search Bar
-            HStack(spacing: 12) {
-                KroutonStyledIconBadge(
-                    sfSymbol: "bag.fill",
-                    tintColor: store.activeAccent,
-                    style: store.iconWidgetStyle,
-                    size: 30,
-                    symbolSize: 15
-                )
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(KroutonL10n.tr(heroMeta.title))
-                        .font(.title3.bold())
-                    Text(KroutonL10n.tr(heroMeta.subtitle))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                Spacer()
+        return GeometryReader { geo in
+            let isNarrowWorkspace = geo.size.width < 700
 
-                // Category Filter Pills (Interactive Channel Switcher!)
-                HStack(spacing: 6) {
-                    ForEach([
-                        ("depot-rescue", "Rescue", "cross.case.fill"),
-                        ("depot-linux", "Linux/BSD", "terminal.fill"),
-                        ("depot-vintage", "Vintage Mac", "desktopcomputer"),
-                        ("depot-homebrew", "Console ROMs", "gamecontroller.fill"),
-                        ("depot-coverdiscs", "Cover Discs", "sparkles.tv.fill")
-                    ], id: \.0) { taskID, label, icon in
-                        let isSelected = (store.selectedTaskID == taskID)
-                        Button {
-                            store.selectedTaskID = taskID
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: icon)
-                                    .font(.system(size: 10))
-                                Text(KroutonL10n.tr(label))
-                                    .font(.system(size: 11, weight: .semibold))
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(isSelected ? store.activeAccent : Color(NSColor.controlBackgroundColor))
-                            .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
-                            .clipShape(Capsule())
-                            .overlay(Capsule().stroke(isSelected ? Color.clear : Color.primary.opacity(0.12), lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-
-                HStack(spacing: 6) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    TextField(KroutonL10n.tr("Search Depot or archive.org..."), text: $depotSearchQuery)
-                        .textFieldStyle(.plain)
-                        .frame(width: 155)
-                        .onSubmit {
-                            store.selectedTaskID = "depot-ia-live"
-                            store.queryInternetArchiveLive(query: depotSearchQuery)
-                        }
-                    Button {
-                        store.selectedTaskID = "depot-ia-live"
-                        store.queryInternetArchiveLive(query: depotSearchQuery)
-                    } label: {
-                        HStack(spacing: 3) {
-                            if store.isSearchingInternetArchive {
-                                ProgressView().controlSize(.mini)
-                            } else {
-                                Image(systemName: "building.columns.fill")
-                                    .font(.system(size: 9))
-                            }
-                            Text("Archive.org API")
-                                .font(.system(size: 9.5, weight: .bold))
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(store.activeAccent)
-                        .foregroundStyle(store.activeOnAccentText)
-                        .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .help("Query live Internet Archive REST API (archive.org/advancedsearch.php) for optical ISO / CD-ROM images")
-                }
-                .padding(.leading, 10)
-                .padding(.trailing, 4)
-                .padding(.vertical, 4)
-                .background(Color(NSColor.controlBackgroundColor))
-                .clipShape(Capsule())
-                .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 1))
-            }
-
-            // 2. Active Staged Image Ready-to-Burn Banner
-            if let stagedEntry = store.stagedFiles.first {
-                HStack(spacing: 12) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(.green)
-
+            VStack(alignment: .leading, spacing: 10) {
+                // Row 1: Clean Sub-Library Header + Search Bar (NO top category pills!)
+                HStack(spacing: 10) {
+                    KroutonStyledIconBadge(
+                        sfSymbol: heroItem.sfSymbol,
+                        tintColor: store.activeAccent,
+                        style: store.iconWidgetStyle,
+                        size: 28,
+                        symbolSize: 14
+                    )
                     VStack(alignment: .leading, spacing: 1) {
-                        HStack(spacing: 6) {
-                            Text("STAGED READY TO BURN:")
-                                .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
-                                .foregroundStyle(.green)
-                            Text(stagedEntry.name)
-                                .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        }
-                        Text("Loaded into Burn Queue (\(ByteCountFormatter.string(fromByteCount: stagedEntry.byteSize, countStyle: .file)) • \(stagedEntry.sectorsLBA) LBA Sectors) — Click BURN on the right or inspect sector hex map.")
-                            .font(.system(size: 10))
+                        Text(KroutonL10n.tr(heroMeta.title))
+                            .font(.title3.bold())
+                            .lineLimit(1)
+                        Text(KroutonL10n.tr(heroMeta.subtitle))
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
+                    Spacer(minLength: 8)
 
-                    Spacer()
-
-                    Button {
-                        store.selectedCategory = .burn
-                        store.selectedTaskID = "image-burn"
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: "waveform.path.ecg.rectangle.fill")
-                            Text("Inspect Sector & Hex Map")
-                        }
-                        .font(.system(size: 10.5, weight: .bold))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 5)
-                        .background(store.activeAccent)
-                        .foregroundStyle(store.activeOnAccentText)
-                        .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        store.clearStagedFiles()
-                        store.stagedDepotItemID = nil
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "xmark.circle.fill")
-                            Text("Unstage")
-                        }
-                        .font(.system(size: 10, weight: .semibold))
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 5)
-                        .background(Color.primary.opacity(0.08))
-                        .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 9)
-                .background(Color.green.opacity(0.11))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.green.opacity(0.40), lineWidth: 1))
-            }
-
-            // 3. Scrollable Mac App Store Editorial Hero + 2-Column Curated Grid
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Mac App Store Editorial Hero Showcase Banner
-                    ZStack(alignment: .bottomLeading) {
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        store.activeAccent.opacity(0.42),
-                                        Color(red: 0.10, green: 0.12, blue: 0.18),
-                                        Color.black.opacity(0.92)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(store.activeAccent.opacity(0.45), lineWidth: 1)
-                            )
-
-                        HStack {
-                            Spacer()
-                            ZStack {
-                                Circle()
-                                    .stroke(store.activeAccent.opacity(0.18), lineWidth: 26)
-                                    .frame(width: 210, height: 210)
-                                Circle()
-                                    .stroke(Color.white.opacity(0.12), style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
-                                    .frame(width: 155, height: 155)
-                                Image(systemName: featured.sfSymbol)
-                                    .font(.system(size: 56, weight: .bold))
-                                    .foregroundStyle(store.activeAccent.opacity(0.35))
-                            }
-                            .offset(x: 20, y: 10)
-                        }
-                        .clipped()
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(heroMeta.badge)
-                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                                .foregroundStyle(store.activeAccent)
-
-                            Text(featured.title)
-                                .font(.system(size: 22, weight: .bold))
-                                .foregroundStyle(.white)
-
-                            Text(featured.subtitle)
-                                .font(.system(size: 12))
-                                .foregroundStyle(.white.opacity(0.82))
-                                .frame(maxWidth: 540, alignment: .leading)
-
-                            HStack(spacing: 14) {
-                                Text("VERSION \(featured.version)  •  \(featured.architecture)  •  \(featured.bootStandard)  •  \(featured.sizeDisplay)")
-                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(.white.opacity(0.70))
-
-                                Spacer()
-
-                                let isFeaturedStaged = (store.stagedDepotItemID == featured.id && !store.stagedFiles.isEmpty)
-
-                                Button {
-                                    store.downloadAndStageDepotItem(id: featured.id, jumpToInspector: false)
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: isFeaturedStaged ? "checkmark.circle.fill" : (featured.isDownloaded ? "opticaldisc.fill" : "arrow.down.circle.fill"))
-                                        Text(isFeaturedStaged ? "STAGED FOR BURN" : (featured.isDownloaded ? "STAGE TO BURN" : "GET & STAGE (\(featured.sizeDisplay))"))
-                                    }
-                                    .font(.system(size: 11, weight: .heavy))
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 8)
-                                    .background(isFeaturedStaged ? Color.green : store.activeAccent)
-                                    .foregroundStyle(isFeaturedStaged ? Color.black : store.activeOnAccentText)
-                                    .clipShape(Capsule())
-                                }
-                                .buttonStyle(.plain)
-
-                                Button {
-                                    store.downloadAndStageDepotItem(id: featured.id, jumpToInspector: true)
-                                } label: {
-                                    HStack(spacing: 5) {
-                                        Image(systemName: "magnifyingglass.circle.fill")
-                                        Text("Stage & Inspect Hex")
-                                    }
-                                    .font(.system(size: 11, weight: .bold))
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 8)
-                                    .background(Color.white.opacity(0.14))
-                                    .foregroundStyle(.white)
-                                    .clipShape(Capsule())
-                                    .overlay(Capsule().stroke(Color.white.opacity(0.28), lineWidth: 1))
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            .padding(.top, 4)
-                        }
-                        .padding(18)
-                    }
-                    .frame(height: 158)
-
-                    // Section Header
-                    HStack {
-                        Text(KroutonL10n.tr("VERIFIED OPTICAL RELEASES & BOOTABLE IMAGES"))
-                            .font(.system(size: 10.5, weight: .heavy, design: .monospaced))
+                    HStack(spacing: 6) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 11))
                             .foregroundStyle(.secondary)
-                        Spacer()
-                        Text("\(filteredDepotItems.count) Curated Images  •  SHA-256 Verified")
-                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(store.activeAccent)
+                        TextField(KroutonL10n.tr("Filter or search archive.org..."), text: $depotSearchQuery)
+                            .textFieldStyle(.plain)
+                            .frame(minWidth: 140, maxWidth: 210)
+                            .onSubmit {
+                                store.selectedTaskID = "depot-ia-live"
+                                store.queryInternetArchiveLive(query: depotSearchQuery)
+                            }
+                        if !depotSearchQuery.isEmpty {
+                            Button {
+                                depotSearchQuery = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        Button {
+                            store.selectedTaskID = "depot-ia-live"
+                            store.queryInternetArchiveLive(query: depotSearchQuery)
+                        } label: {
+                            HStack(spacing: 4) {
+                                if store.isSearchingInternetArchive {
+                                    ProgressView().controlSize(.mini)
+                                } else {
+                                    Image(systemName: "building.columns.fill")
+                                        .font(.system(size: 9))
+                                }
+                                Text("Archive.org API")
+                                    .font(.system(size: 9.5, weight: .bold))
+                                    .lineLimit(1)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(store.activeAccent)
+                            .foregroundStyle(store.activeOnAccentText)
+                            .clipShape(Capsule())
+                            .fixedSize(horizontal: true, vertical: false)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Query live Internet Archive REST API (archive.org/advancedsearch.php) for optical ISO / CD-ROM images")
                     }
+                    .padding(.leading, 10)
+                    .padding(.trailing, 4)
+                    .padding(.vertical, 3)
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 1))
+                }
 
-                    // 2-Column Mac App Store Card Grid
+                // Row 2: Interactive Hero Inspector Zone (Shows details of whichever title card is clicked!)
+                depotInteractiveHeroBanner(for: heroItem, isNarrow: isNarrowWorkspace)
+
+                // Row 3: Active Staged Image Ready-to-Burn Dock
+                if let stagedEntry = store.stagedFiles.first {
+                    HStack(spacing: 10) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 15))
+                            .foregroundStyle(.green)
+
+                        VStack(alignment: .leading, spacing: 1) {
+                            HStack(spacing: 6) {
+                                Text("STAGED IN BURN QUEUE:")
+                                    .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
+                                    .foregroundStyle(.green)
+                                    .lineLimit(1)
+                                Text(stagedEntry.name)
+                                    .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                                    .lineLimit(1)
+                            }
+                            Text("\(ByteCountFormatter.string(fromByteCount: stagedEntry.byteSize, countStyle: .file)) (\(stagedEntry.sectorsLBA) LBA Sectors) — Ready for physical burn or hex sector inspection.")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+
+                        Spacer(minLength: 4)
+
+                        Button {
+                            store.selectedCategory = .burn
+                            store.selectedTaskID = "image-burn"
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: "waveform.path.ecg.rectangle.fill")
+                                Text("Inspect Sector & Hex Map")
+                                    .lineLimit(1)
+                            }
+                            .font(.system(size: 10, weight: .bold))
+                            .padding(.horizontal, 11)
+                            .padding(.vertical, 5)
+                            .background(store.activeAccent)
+                            .foregroundStyle(store.activeOnAccentText)
+                            .clipShape(Capsule())
+                            .fixedSize(horizontal: true, vertical: false)
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            store.clearStagedFiles()
+                            store.stagedDepotItemID = nil
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "xmark.circle.fill")
+                                Text("Unstage")
+                                    .lineLimit(1)
+                            }
+                            .font(.system(size: 10, weight: .semibold))
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 5)
+                            .background(Color.primary.opacity(0.08))
+                            .clipShape(Capsule())
+                            .fixedSize(horizontal: true, vertical: false)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(Color.green.opacity(0.11))
+                    .clipShape(RoundedRectangle(cornerRadius: 9))
+                    .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.green.opacity(0.40), lineWidth: 1))
+                }
+
+                // Row 4: Sub-Library Grid Header
+                HStack {
+                    Text("\(heroMeta.badge)  •  CLICK ANY TITLE BELOW TO INSPECT IN HERO DECK")
+                        .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Spacer()
+                    Text("\(filteredDepotItems.count) Titles in Sub-Library  •  SHA-256 Verified")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundStyle(store.activeAccent)
+                        .lineLimit(1)
+                }
+
+                // Row 5: Scrollable Responsive 1-or-2 Column Sub-Library Card Grid
+                ScrollView {
                     LazyVGrid(
-                        columns: [
-                            GridItem(.flexible(minimum: 290), spacing: 12),
-                            GridItem(.flexible(minimum: 290), spacing: 12)
-                        ],
-                        spacing: 12
+                        columns: isNarrowWorkspace
+                            ? [GridItem(.flexible(), spacing: 10)]
+                            : [GridItem(.flexible(minimum: 300), spacing: 10), GridItem(.flexible(minimum: 300), spacing: 10)],
+                        spacing: 10
                     ) {
                         ForEach(filteredDepotItems) { item in
-                            depotAppStoreCard(for: item)
+                            depotAppStoreCard(for: item, isSelectedInHero: item.id == heroItem.id)
                         }
                     }
+                    .padding(.bottom, 8)
                 }
-                .padding(.bottom, 8)
             }
         }
     }
 
-    private func depotAppStoreCard(for item: DepotCatalogItem) -> some View {
+    private func depotInteractiveHeroBanner(for item: DepotCatalogItem, isNarrow: Bool) -> some View {
+        let isStaged = (store.stagedDepotItemID == item.id && !store.stagedFiles.isEmpty)
+        let activeProgress = store.depotDownloadProgress[item.id]
+        let recommendedMedia = item.sizeDisplay.contains("GB")
+            ? (item.sizeDisplay.contains("80mm") ? "80mm Mini-DVD-R (1.46 GB)" : "4.7 GB DVD-R / BD-R")
+            : "700 MB CD-R (High-Reflectivity)"
+
+        return ZStack(alignment: .bottomLeading) {
+            RoundedRectangle(cornerRadius: 14)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            store.activeAccent.opacity(0.45),
+                            Color(red: 0.10, green: 0.12, blue: 0.18),
+                            Color.black.opacity(0.94)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(isStaged ? Color.green.opacity(0.75) : store.activeAccent.opacity(0.55), lineWidth: 1.5)
+                )
+
+            if !isNarrow {
+                HStack {
+                    Spacer()
+                    ZStack {
+                        Circle()
+                            .stroke(store.activeAccent.opacity(0.18), lineWidth: 26)
+                            .frame(width: 195, height: 195)
+                        Circle()
+                            .stroke(Color.white.opacity(0.12), style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                            .frame(width: 142, height: 142)
+                        Image(systemName: item.sfSymbol)
+                            .font(.system(size: 50, weight: .bold))
+                            .foregroundStyle(store.activeAccent.opacity(0.35))
+                    }
+                    .offset(x: 16, y: 6)
+                }
+                .clipped()
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    HStack(spacing: 5) {
+                        Image(systemName: item.sfSymbol)
+                            .font(.system(size: 10, weight: .bold))
+                        Text("SELECTED TITLE INSPECTOR  •  \(item.channel.uppercased())")
+                            .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(store.activeAccent)
+
+                    Text("•")
+                        .foregroundStyle(.white.opacity(0.4))
+
+                    Text(item.isDownloaded ? "LOCAL CACHE VERIFIED" : "CLOUD REPOSITORY READY")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundStyle(item.isDownloaded ? .green : .cyan)
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    Text("TARGET MEDIA: \(recommendedMedia)")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.65))
+                        .lineLimit(1)
+                }
+
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(item.title)
+                        .font(.system(size: isNarrow ? 17 : 20, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+
+                    Text("v\(item.version)")
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundStyle(store.activeAccent)
+                        .lineLimit(1)
+                }
+
+                Text(item.subtitle)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white.opacity(0.86))
+                    .lineLimit(2)
+                    .frame(maxWidth: 590, alignment: .leading)
+
+                HStack(spacing: 10) {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("ARCHITECTURE")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.white.opacity(0.5))
+                            Text(item.architecture)
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                        }
+                        Divider().frame(height: 22).overlay(Color.white.opacity(0.2))
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("BOOT SPECIFICATION")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.white.opacity(0.5))
+                            Text(item.bootStandard)
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.green)
+                                .lineLimit(1)
+                        }
+                        Divider().frame(height: 22).overlay(Color.white.opacity(0.2))
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("SIZE & SHA-256")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.white.opacity(0.5))
+                            Text("\(item.sizeDisplay) • \(item.sha256Short)")
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                        }
+                    }
+
+                    Spacer(minLength: 4)
+
+                    if let prog = activeProgress {
+                        HStack(spacing: 6) {
+                            ProgressView(value: prog)
+                                .progressViewStyle(.circular)
+                                .controlSize(.small)
+                            Text("Downloading \(Int(prog * 100))%...")
+                                .font(.system(size: 10.5, weight: .heavy, design: .monospaced))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(store.activeAccent.opacity(0.35))
+                        .clipShape(Capsule())
+                        .fixedSize(horizontal: true, vertical: false)
+                    } else {
+                        Button {
+                            store.downloadAndStageDepotItem(id: item.id, jumpToInspector: false)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: isStaged ? "checkmark.circle.fill" : (item.isDownloaded ? "opticaldisc.fill" : "icloud.and.arrow.down.fill"))
+                                Text(isStaged ? "STAGED FOR BURN" : (item.isDownloaded ? "STAGE TO BURN" : "GET & STAGE (\(item.sizeDisplay))"))
+                                    .lineLimit(1)
+                            }
+                            .font(.system(size: 11, weight: .heavy))
+                            .padding(.horizontal, 15)
+                            .padding(.vertical, 7)
+                            .background(isStaged ? Color.green : store.activeAccent)
+                            .foregroundStyle(isStaged ? Color.black : store.activeOnAccentText)
+                            .clipShape(Capsule())
+                            .fixedSize(horizontal: true, vertical: false)
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            store.downloadAndStageDepotItem(id: item.id, jumpToInspector: true)
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: "magnifyingglass.circle.fill")
+                                Text("Stage & Inspect Hex")
+                                    .lineLimit(1)
+                            }
+                            .font(.system(size: 10.5, weight: .bold))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(Color.white.opacity(0.14))
+                            .foregroundStyle(.white)
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(Color.white.opacity(0.28), lineWidth: 1))
+                            .fixedSize(horizontal: true, vertical: false)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.top, 2)
+            }
+            .padding(16)
+        }
+        .frame(minHeight: 152)
+    }
+
+    private func depotAppStoreCard(for item: DepotCatalogItem, isSelectedInHero: Bool) -> some View {
         let isStaged = (store.stagedDepotItemID == item.id && !store.stagedFiles.isEmpty)
         let activeProgress = store.depotDownloadProgress[item.id]
 
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 12) {
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 11) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: 11)
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    isStaged ? Color.green : store.activeAccent,
-                                    (isStaged ? Color.green : store.activeAccent).opacity(0.55)
+                                    isStaged ? Color.green : (isSelectedInHero ? store.activeAccent : store.activeAccent.opacity(0.80)),
+                                    (isStaged ? Color.green : store.activeAccent).opacity(0.45)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .frame(width: 48, height: 48)
+                        .frame(width: 42, height: 42)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 11)
+                                .stroke(Color.white.opacity(isSelectedInHero ? 0.45 : 0.18), lineWidth: 1)
                         )
 
                     Image(systemName: item.sfSymbol)
-                        .font(.system(size: 22, weight: .bold))
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(isStaged ? Color.black : store.activeOnAccentText)
                 }
 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(item.title)
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 12.5, weight: .bold))
+                            .foregroundStyle(isSelectedInHero ? store.activeAccent : .primary)
                             .lineLimit(1)
                         Spacer(minLength: 0)
+                        if isSelectedInHero {
+                            Text("IN HERO")
+                                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1.5)
+                                .background(store.activeAccent.opacity(0.20))
+                                .foregroundStyle(store.activeAccent)
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                        }
                     }
 
                     Text(item.subtitle)
-                        .font(.system(size: 11))
+                        .font(.system(size: 10.5))
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(minHeight: 26, alignment: .topLeading)
                 }
             }
 
             Divider()
 
             HStack(spacing: 8) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text("\(item.architecture)  •  \(item.sizeDisplay)")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .font(.system(size: 9.5, weight: .bold, design: .monospaced))
                         .foregroundStyle(.primary)
-                    Text("\(item.bootStandard)  •  SHA: \(item.sha256Short)")
-                        .font(.system(size: 9.5, design: .monospaced))
+                        .lineLimit(1)
+                    Text("\(item.bootStandard)")
+                        .font(.system(size: 9, design: .monospaced))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
 
-                Spacer()
+                Spacer(minLength: 4)
 
                 if let prog = activeProgress {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 5) {
                         ProgressView(value: prog)
                             .progressViewStyle(.circular)
                             .controlSize(.small)
                         Text("\(Int(prog * 100))%")
-                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                            .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
+                            .lineLimit(1)
                     }
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
+                    .padding(.vertical, 4)
                     .background(store.activeAccent.opacity(0.18))
                     .clipShape(Capsule())
+                    .fixedSize(horizontal: true, vertical: false)
                 } else {
                     Button {
+                        store.selectedDepotHeroItemID = item.id
                         store.downloadAndStageDepotItem(id: item.id, jumpToInspector: false)
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: isStaged ? "checkmark.circle.fill" : (item.isDownloaded ? "opticaldisc.fill" : "icloud.and.arrow.down.fill"))
                             Text(isStaged ? "STAGED" : (item.isDownloaded ? "STAGE" : "GET"))
+                                .lineLimit(1)
                         }
-                        .font(.system(size: 10.5, weight: .heavy))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 5)
+                        .font(.system(size: 10, weight: .heavy))
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 4.5)
                         .background(isStaged ? Color.green : (item.isDownloaded ? store.activeAccent : Color.primary.opacity(0.12)))
                         .foregroundStyle(isStaged ? Color.black : (item.isDownloaded ? store.activeOnAccentText : store.activeAccent))
                         .clipShape(Capsule())
@@ -1047,16 +1184,17 @@ struct KroutonMainWorkspaceView: View {
                             Capsule()
                                 .stroke(isStaged ? Color.clear : store.activeAccent.opacity(0.5), lineWidth: 1)
                         )
+                        .fixedSize(horizontal: true, vertical: false)
                     }
                     .buttonStyle(.plain)
-                    .help(isStaged ? "Staged in Burn Queue! Click BURN on the right." : (item.isDownloaded ? "Stage this verified ISO image into the Burn Queue" : "Download & verify SHA-256, then stage for burning"))
 
                     Button {
+                        store.selectedDepotHeroItemID = item.id
                         store.downloadAndStageDepotItem(id: item.id, jumpToInspector: true)
                     } label: {
                         Image(systemName: "magnifyingglass")
-                            .font(.system(size: 10, weight: .bold))
-                            .padding(6)
+                            .font(.system(size: 9.5, weight: .bold))
+                            .padding(5.5)
                             .background(Color.primary.opacity(0.08))
                             .clipShape(Circle())
                     }
@@ -1065,13 +1203,22 @@ struct KroutonMainWorkspaceView: View {
                 }
             }
         }
-        .padding(12)
-        .background(Color(NSColor.controlBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(isStaged ? Color.green.opacity(0.65) : Color.primary.opacity(0.09), lineWidth: isStaged ? 1.5 : 1.0)
+        .padding(11)
+        .background(
+            RoundedRectangle(cornerRadius: 11)
+                .fill(isSelectedInHero ? store.activeAccent.opacity(0.08) : Color(NSColor.controlBackgroundColor))
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 11)
+                .stroke(
+                    isStaged ? Color.green.opacity(0.70) : (isSelectedInHero ? store.activeAccent.opacity(0.85) : Color.primary.opacity(0.09)),
+                    lineWidth: (isStaged || isSelectedInHero) ? 1.5 : 1.0
+                )
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 11))
+        .onTapGesture {
+            store.selectedDepotHeroItemID = item.id
+        }
     }
 
     private var burnWorkspaceView: some View {
