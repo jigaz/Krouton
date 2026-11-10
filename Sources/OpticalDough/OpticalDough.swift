@@ -319,8 +319,10 @@ public final class DriveManager: ObservableObject {
     private var jobStartTime: Date = Date()
 
     public init() {
-        refreshDrives()
         startHardwarePolling()
+        Task { @MainActor [weak self] in
+            self?.refreshDrives()
+        }
     }
 
     private func startHardwarePolling() {
@@ -410,21 +412,9 @@ public final class DriveManager: ObservableObject {
             let volName = vals.volumeName ?? url.lastPathComponent
             let isAudio = lowerFormat.contains("audio") || lowerFormat.contains("cd-da") || lowerFormat.contains("cdda")
 
-            // Count visible files or audio tracks on this mounted volume (bounded to 2,500 items for instant UI response)
-            var count = 0
-            if isAudio {
-                let topItems = (try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
-                count = topItems.count
-            } else {
-                if let enumerator = fm.enumerator(at: url, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles, .skipsPackageDescendants]) {
-                    for case let childURL as URL in enumerator {
-                        if let cVals = try? childURL.resourceValues(forKeys: [.isDirectoryKey]), cVals.isDirectory != true {
-                            count += 1
-                            if count >= 2500 { break }
-                        }
-                    }
-                }
-            }
+            // Fast top-level item count so main thread never blocks during app launch
+            let topItems = (try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
+            let count = topItems.count
 
             let totalCap = Int64(vals.volumeTotalCapacity ?? Int(max(usedBytes, 0)))
             let availCap = Int64(vals.volumeAvailableCapacity ?? 0)
