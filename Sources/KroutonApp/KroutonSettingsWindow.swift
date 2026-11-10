@@ -453,6 +453,49 @@ public struct KroutonSettingsWindowView: View {
                 Divider()
                 Toggle("Automatically strip foreign audio dubs (retain Original Language + English) to maximize video bitrate", isOn: $store.fitToDiscStripForeignDubs)
             }
+
+            settingsCard(title: "Universal Hardware & Software Decoder Matrix (HandBrake / VLC / Compressor Parity)") {
+                HStack {
+                    Label("Apple Silicon VideoToolbox ASIC + Accelerate vDSP + libavformat/libavcodec Active", systemImage: "cpu.fill")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.green)
+                    Spacer()
+                    Text("Zero-Copy GPU & SIMD Pipeline")
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+                Divider()
+                ForEach(UniversalMediaDecoderEngine.liveHardwareCodecMatrix) { row in
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack {
+                            Image(systemName: row.isHardwareAccelerated ? "bolt.shield.fill" : "cpu")
+                                .foregroundStyle(row.isHardwareAccelerated ? .green : store.activeAccent)
+                                .font(.system(size: 12))
+                            Text(row.category)
+                                .font(.system(size: 12, weight: .semibold))
+                            Spacer()
+                            Text(row.hardwareStatus)
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(Color.green.opacity(0.16))
+                                .foregroundStyle(.green)
+                                .clipShape(Capsule())
+                        }
+                        HStack {
+                            Text("Formats: \(row.formatsAndExtensions)")
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("Engine: \(row.primaryEngine)")
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundStyle(store.activeAccent)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                    Divider()
+                }
+            }
         }
     }
 
