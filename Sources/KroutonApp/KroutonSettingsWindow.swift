@@ -70,24 +70,47 @@ public struct KroutonSettingsWindowView: View {
                 .padding(.horizontal, 10)
                 .padding(.top, 8)
 
-                List(KroutonSettingsCategory.allCases, selection: $store.selectedSettingsPane) { pane in
-                    HStack(spacing: 10) {
-                        KroutonStyledIconBadge(
-                            sfSymbol: pane.sfSymbol,
-                            tintColor: store.activeAccent,
-                            style: store.iconWidgetStyle,
-                            isSelectedRow: store.selectedSettingsPane == pane,
-                            onAccentText: store.activeOnAccentText,
-                            size: 22,
-                            symbolSize: 12
-                        )
-                        Text(KroutonL10n.tr(pane.rawValue))
-                            .font(.system(size: 13, weight: .medium))
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(KroutonSettingsCategory.allCases) { pane in
+                            let isSelected = (store.selectedSettingsPane == pane)
+                            Button {
+                                store.selectedSettingsPane = pane
+                            } label: {
+                                HStack(spacing: 10) {
+                                    KroutonStyledIconBadge(
+                                        sfSymbol: pane.sfSymbol,
+                                        tintColor: store.activeAccent,
+                                        style: store.iconWidgetStyle,
+                                        isSelectedRow: isSelected,
+                                        onAccentText: store.activeOnAccentText,
+                                        size: 22,
+                                        symbolSize: 12
+                                    )
+                                    Text(KroutonL10n.tr(pane.rawValue))
+                                        .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
+                                        .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
+                                        .lineLimit(1)
+                                    Spacer(minLength: 0)
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 7)
+                                        .fill(isSelected ? store.activeAccent : Color.clear)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 7)
+                                        .stroke(store.a11yIncreaseContrast && isSelected ? Color.primary : Color.clear, lineWidth: 1.5)
+                                )
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-                    .padding(.vertical, 4)
-                    .tag(pane)
+                    .padding(.horizontal, 10)
+                    .padding(.top, 4)
                 }
-                .listStyle(.sidebar)
             }
             .navigationSplitViewColumnWidth(min: 210, ideal: 225, max: 250)
         } detail: {
