@@ -223,6 +223,9 @@ struct KroutonMainWorkspaceView: View {
     // Dedicated Disc Image Burner State
     @State private var discImageWriteMethod: String = "DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)"
     @State private var verifyImageSHA256BeforeBurn: Bool = true
+    @State private var inspectedImageLBA: Int = 17
+    @State private var computedImageSHA256: String = ""
+    @State private var imageActionStatusBanner: String = "" 
 
     private var primarySelectedDrive: OpticalDriveDevice? {
         if let firstBurnerCard = store.destinationQueue.first(where: { $0.kind == .physicalBurner }),
@@ -1513,12 +1516,12 @@ struct KroutonMainWorkspaceView: View {
     }
 
     // ==========================================================================
-    // 5A. DEDICATED DISC IMAGE (.ISO / .BIN / .DMG / .CDR) INSPECTOR & BURNER
-    //     (Bootability, Sector Geometry, SHA-256 & .BIN/.CUE <-> .ISO Converter)
+    // 5A. DEDICATED DISC IMAGE (.ISO / .BIN / .DMG / .CDR) FULL-WORKSPACE DECK
+    //     (Single-Image Radial Platter, Live LBA Hex Scope & Actionable Pills)
     // ==========================================================================
     private func discImageInspectorWorkspace(for spec: DiscFormatSpec) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            // Sector & Boot Catalog Mastering Header
+            // Top Mastering Bar
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 10) {
                     Image(systemName: "opticaldisc.fill")
@@ -1527,9 +1530,15 @@ struct KroutonMainWorkspaceView: View {
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text(KroutonL10n.tr("Supports .ISO • .DMG • .CDR • .BIN/.CUE • .IMG • .TOAST • .NRG • .MDS"))
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.green)
+                    if !imageActionStatusBanner.isEmpty {
+                        Text("[ \(imageActionStatusBanner) ]")
+                            .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                            .foregroundStyle(store.activeAccent)
+                    } else {
+                        Text("FORMATS: .ISO • .DMG • .CDR • .BIN/.CUE • .IMG • .TOAST • .NRG • .MDS")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 HStack(spacing: 16) {
@@ -1552,6 +1561,7 @@ struct KroutonMainWorkspaceView: View {
             .clipShape(RoundedRectangle(cornerRadius: 9))
             .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
 
+            // Full-Workspace Single Disc Image Deck
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color(NSColor.controlBackgroundColor))
@@ -1563,135 +1573,424 @@ struct KroutonMainWorkspaceView: View {
                             )
                     )
 
-                if store.stagedFiles.isEmpty {
-                    VStack(spacing: 10) {
-                        Image(systemName: "opticaldisc.fill")
-                            .font(.system(size: 38))
-                            .foregroundStyle(store.activeAccent.opacity(0.85))
-                        Text(KroutonL10n.tr("Drop a Disc Image (.ISO, .DMG, .BIN/.CUE, .CDR, .IMG, or .TOAST) to Inspect & Burn"))
-                            .font(.headline)
-                        Text(KroutonL10n.tr("Automatically inspects Sector 17 El Torito BIOS/UEFI boot catalogs, Apple Partition Maps (APM), and 2,048B / 2,352B sector framing."))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    VStack(spacing: 0) {
-                        HStack(spacing: 12) {
-                            Text(KroutonL10n.tr("DISC IMAGE & VOLUME TOPOLOGY"))
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .padding(.leading, 36)
-                            Spacer()
-                            Text(KroutonL10n.tr("BOOT CATALOG & SECTOR GEOMETRY"))
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 260, alignment: .center)
-                            Text(KroutonL10n.tr("SECTORS"))
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 86, alignment: .trailing)
-                            Text(KroutonL10n.tr("SIZE"))
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 72, alignment: .trailing)
-                            Spacer().frame(width: 22)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(Color.black.opacity(0.18))
-                        Divider()
+                if let entry = store.stagedFiles.first {
+                    let ext = entry.url.pathExtension.lowercased()
+                    let isRaw2352 = (ext == "bin" || ext == "cue")
+                    let sectorByteSize = isRaw2352 ? 2352 : 2048
+                    let bootReadout = entry.bootabilityBadge ?? "Non-Bootable Data Volume (Sectors 0..15 Unbooted)"
+                    let hexRows = BootableImageInspector.readSectorHexDump(url: entry.url, lba: inspectedImageLBA, sectorSize: sectorByteSize)
 
-                        ScrollView {
-                            VStack(spacing: 0) {
-                                ForEach(store.stagedFiles) { entry in
-                                    let ext = entry.url.pathExtension.lowercased()
-                                    let sectorGeometry = (ext == "bin" || ext == "cue")
-                                        ? "2,352 B/sec (Mode 1 / Mode 2 XA Raw)"
-                                        : (ext == "dmg" ? "UDIF / HFS+ / APFS Block Image" : "2,048 B/sec (ISO9660 / UDF Block)")
-                                    let bootStatus = entry.bootabilityBadge ?? "Non-Bootable Data Volume (Sectors 0..15 Empty)"
+                    VStack(alignment: .leading, spacing: 12) {
+                        // 1. Top Identity Banner + Interactive Action Pill Bar (EVERY pill is a button!)
+                        HStack(alignment: .center, spacing: 12) {
+                            KroutonStyledIconBadge(
+                                sfSymbol: "opticaldisc.fill",
+                                tintColor: store.activeAccent,
+                                style: store.iconWidgetStyle,
+                                size: 38,
+                                symbolSize: 20
+                            )
 
-                                    HStack(spacing: 12) {
-                                        Image(systemName: "opticaldisc.fill")
-                                            .foregroundStyle(store.activeAccent)
-                                            .font(.system(size: 16))
-                                            .frame(width: 24)
-
-                                        VStack(alignment: .leading, spacing: 3) {
-                                            HStack(spacing: 8) {
-                                                Text(entry.name)
-                                                    .font(.system(size: 12, weight: .semibold))
-                                                if entry.isConvertibleBinOrIso {
-                                                    Button {
-                                                        store.convertStagedBinOrIso(id: entry.id)
-                                                    } label: {
-                                                        HStack(spacing: 3) {
-                                                            Image(systemName: "arrow.left.arrow.right.circle.fill")
-                                                                .font(.system(size: 9))
-                                                            Text(entry.conversionTargetLabel)
-                                                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                                        }
-                                                        .padding(.horizontal, 7)
-                                                        .padding(.vertical, 2)
-                                                        .background(store.activeAccent.opacity(0.20))
-                                                        .foregroundStyle(store.activeAccent)
-                                                        .clipShape(Capsule())
-                                                    }
-                                                    .buttonStyle(.plain)
-                                                    .help("1-Click Sector Conversion between Raw 2,352-byte .BIN/.CUE and 2,048-byte .ISO")
-                                                }
-                                            }
-                                            Text("\(entry.url.path) • \(sectorGeometry)")
-                                                .font(.system(size: 10))
-                                                .foregroundStyle(.secondary)
-                                                .lineLimit(1)
-                                        }
-
-                                        Spacer()
-
-                                        HStack(spacing: 4) {
-                                            Image(systemName: entry.bootabilityBadge != nil ? "checkmark.seal.fill" : "internaldrive")
-                                                .font(.system(size: 9))
-                                            Text(bootStatus)
-                                                .font(.system(size: 9.5, weight: .bold, design: .monospaced))
-                                                .lineLimit(1)
-                                        }
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 3)
-                                        .background(entry.bootabilityBadge != nil ? Color.green.opacity(0.16) : Color.secondary.opacity(0.12))
-                                        .foregroundStyle(entry.bootabilityBadge != nil ? .green : .secondary)
-                                        .clipShape(Capsule())
-                                        .frame(width: 260, alignment: .center)
-
-                                        Text("\(entry.sectorsLBA) LBA")
-                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                                            .foregroundStyle(store.activeAccent)
-                                            .frame(width: 86, alignment: .trailing)
-
-                                        Text(ByteCountFormatter.string(fromByteCount: entry.byteSize, countStyle: .file))
-                                            .font(.system(size: 11, design: .monospaced))
-                                            .foregroundStyle(.secondary)
-                                            .frame(width: 72, alignment: .trailing)
-
-                                        Button {
-                                            store.removeStagedFile(id: entry.id)
-                                        } label: {
-                                            Image(systemName: "xmark.circle.fill")
-                                                .foregroundStyle(.secondary)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .frame(width: 18, alignment: .center)
-                                    }
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 9)
-                                    Divider()
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 8) {
+                                    Text(entry.name)
+                                        .font(.system(size: 16, weight: .bold, design: .monospaced))
+                                        .lineLimit(1)
+                                    Text("[ \(ext.uppercased()) VOLUME ]")
+                                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                        .foregroundStyle(store.activeAccent)
                                 }
+                                Text("\(entry.url.path)  —  \(ByteCountFormatter.string(fromByteCount: entry.byteSize, countStyle: .file)) (\(entry.sectorsLBA) LBA Blocks @ \(sectorByteSize) B/sec)")
+                                    .font(.system(size: 10.5, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+
+                            Spacer()
+
+                            // Interactive Action Pill Buttons (100% clickable buttons!)
+                            HStack(spacing: 7) {
+                                if entry.isConvertibleBinOrIso {
+                                    Button {
+                                        store.convertStagedBinOrIso(id: entry.id)
+                                        imageActionStatusBanner = "Converted Sector Framing for \(entry.name)"
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "arrow.left.arrow.right.circle.fill")
+                                            Text(entry.conversionTargetLabel)
+                                        }
+                                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(store.activeAccent)
+                                        .foregroundStyle(store.activeOnAccentText)
+                                        .clipShape(Capsule())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("Convert between 2,352 B/sec Raw .BIN/.CUE and 2,048 B/sec .ISO")
+                                }
+
+                                Button {
+                                    let hash = BootableImageInspector.computeSHA256Hex(url: entry.url)
+                                    computedImageSHA256 = hash
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(hash, forType: .string)
+                                    imageActionStatusBanner = "SHA-256 Copied to Clipboard"
+                                    NSSound.beep()
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: computedImageSHA256.isEmpty ? "checkmark.shield.fill" : "doc.on.clipboard.fill")
+                                        Text(computedImageSHA256.isEmpty ? "Compute SHA-256" : "SHA-256: \(computedImageSHA256.prefix(10))… (Copy)")
+                                    }
+                                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Color.primary.opacity(0.09))
+                                    .clipShape(Capsule())
+                                    .overlay(Capsule().stroke(store.activeAccent.opacity(0.45), lineWidth: 1))
+                                }
+                                .buttonStyle(.plain)
+                                .help("Compute cryptographic SHA-256 digest of the image file and copy to clipboard")
+
+                                Button {
+                                    let proc = Process()
+                                    proc.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
+                                    proc.arguments = ["attach", entry.url.path]
+                                    try? proc.run()
+                                    imageActionStatusBanner = "Mounting \(entry.name) via hdiutil..."
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "externaldrive.connected.to.line.below.fill")
+                                        Text("Mount in Finder")
+                                    }
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Color.primary.opacity(0.09))
+                                    .clipShape(Capsule())
+                                    .overlay(Capsule().stroke(Color.primary.opacity(0.18), lineWidth: 1))
+                                }
+                                .buttonStyle(.plain)
+                                .help("Mount this disc image on the macOS Desktop using hdiutil")
+
+                                Button {
+                                    NSWorkspace.shared.activateFileViewerSelecting([entry.url])
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "folder.fill")
+                                        Text("Reveal")
+                                    }
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Color.primary.opacity(0.09))
+                                    .clipShape(Capsule())
+                                    .overlay(Capsule().stroke(Color.primary.opacity(0.18), lineWidth: 1))
+                                }
+                                .buttonStyle(.plain)
+                                .help("Reveal disc image file in macOS Finder")
                             }
                         }
+                        .padding(.horizontal, 14)
+                        .padding(.top, 12)
+
+                        Divider()
+
+                        // 2. Main Engineering Split: Radial Platter Schematic (Left) + Live Sector Hex Scope (Right)
+                        HStack(alignment: .top, spacing: 14) {
+                            // LEFT COLUMN: Radial Optical Track Map + 2,352B / 2,048B Sector Framing Diagram
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("OPTICAL PLATTER & TRACK ZONE TOPOLOGY")
+                                    .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color.black.opacity(0.28))
+                                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.10), lineWidth: 1))
+
+                                    VStack(spacing: 10) {
+                                        // Concentric Optical Platter Graphic
+                                        ZStack {
+                                            // Outer Polycarbonate Substrate (120mm)
+                                            Circle()
+                                                .fill(
+                                                    RadialGradient(
+                                                        colors: [
+                                                            Color.black.opacity(0.9),
+                                                            store.activeAccent.opacity(0.28),
+                                                            Color.cyan.opacity(0.18),
+                                                            store.activeAccent.opacity(0.38),
+                                                            Color.black.opacity(0.85)
+                                                        ],
+                                                        center: .center,
+                                                        startRadius: 18,
+                                                        endRadius: 92
+                                                    )
+                                                )
+                                                .frame(width: 184, height: 184)
+                                                .overlay(Circle().stroke(Color.white.opacity(0.22), lineWidth: 1.5))
+
+                                            // Outer Lead-Out Ring
+                                            Circle()
+                                                .stroke(Color.orange.opacity(0.55), style: StrokeStyle(lineWidth: 3, dash: [5, 3]))
+                                                .frame(width: 174, height: 174)
+
+                                            // User Data Zone Ring (LBA 32..End)
+                                            Circle()
+                                                .stroke(store.activeAccent.opacity(0.85), lineWidth: 18)
+                                                .frame(width: 136, height: 136)
+
+                                            // Boot Catalog & PVD Ring (LBA 16..31) — Highlights when LBA 16/17 inspected!
+                                            Circle()
+                                                .stroke(
+                                                    (inspectedImageLBA == 16 || inspectedImageLBA == 17) ? Color.green : Color.cyan.opacity(0.75),
+                                                    lineWidth: (inspectedImageLBA == 16 || inspectedImageLBA == 17) ? 6 : 4
+                                                )
+                                                .frame(width: 96, height: 96)
+
+                                            // System Area / Lead-In Ring (LBA 0..15)
+                                            Circle()
+                                                .stroke(inspectedImageLBA == 0 ? Color.yellow : Color.white.opacity(0.45), lineWidth: 4)
+                                                .frame(width: 72, height: 72)
+
+                                            // Clamping Hub & 15mm Spindle Hole
+                                            Circle()
+                                                .fill(Color(NSColor.windowBackgroundColor))
+                                                .frame(width: 34, height: 34)
+                                                .overlay(Circle().stroke(Color.secondary.opacity(0.5), lineWidth: 1.5))
+
+                                            // Laser Read-Head Crosshair Vector
+                                            Path { path in
+                                                path.move(to: CGPoint(x: 92, y: 92))
+                                                path.addLine(to: CGPoint(x: 168, y: 36))
+                                            }
+                                            .stroke(Color.green.opacity(0.85), style: StrokeStyle(lineWidth: 1.2, dash: [3, 2]))
+                                            .frame(width: 184, height: 184)
+                                        }
+                                        .padding(.top, 6)
+
+                                        // Platter Zone Legend (Sharp Terminal Readouts — Not Fake Pills)
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            HStack {
+                                                Rectangle().fill(Color.yellow).frame(width: 8, height: 8)
+                                                Text("LBA 00..15   : 32 KB System Area / APM / MBR")
+                                                Spacer()
+                                            }
+                                            HStack {
+                                                Rectangle().fill(Color.green).frame(width: 8, height: 8)
+                                                Text("LBA 16..31   : ISO9660 PVD & El Torito Catalog")
+                                                Spacer()
+                                            }
+                                            HStack {
+                                                Rectangle().fill(store.activeAccent).frame(width: 8, height: 8)
+                                                Text("LBA 32..\(entry.sectorsLBA) : User Data Extent (\(sectorByteSize) B/sec)")
+                                                Spacer()
+                                            }
+                                            HStack {
+                                                Rectangle().fill(Color.orange).frame(width: 8, height: 8)
+                                                Text("LEAD-OUT     : PMA / TOC / Session Closure")
+                                                Spacer()
+                                            }
+                                        }
+                                        .font(.system(size: 9.5, weight: .medium, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+                                        .padding(.horizontal, 12)
+                                        .padding(.bottom, 8)
+                                    }
+                                }
+
+                                // Physical Sector Byte Framing Schematic Bar
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text("PHYSICAL SECTOR FRAMING (\(sectorByteSize) BYTES / BLOCK)")
+                                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+
+                                    if isRaw2352 {
+                                        HStack(spacing: 2) {
+                                            Text("SYNC 12B")
+                                                .frame(width: 52, height: 22)
+                                                .background(Color.purple.opacity(0.32))
+                                            Text("HDR 4B")
+                                                .frame(width: 44, height: 22)
+                                                .background(Color.cyan.opacity(0.32))
+                                            Text("USER PAYLOAD 2,048 B")
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 22)
+                                                .background(store.activeAccent.opacity(0.38))
+                                            Text("EDC/ECC 288B")
+                                                .frame(width: 78, height: 22)
+                                                .background(Color.orange.opacity(0.32))
+                                        }
+                                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                                    } else {
+                                        HStack(spacing: 2) {
+                                            Text("HW DRIVE SYNC/HDR (16B)")
+                                                .frame(width: 118, height: 22)
+                                                .background(Color.secondary.opacity(0.18))
+                                                .foregroundStyle(.secondary)
+                                            Text("COOKED BLOCK PAYLOAD (2,048 BYTES)")
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 22)
+                                                .background(store.activeAccent.opacity(0.38))
+                                            Text("HW RSPC ECC (288B)")
+                                                .frame(width: 102, height: 22)
+                                                .background(Color.secondary.opacity(0.18))
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                                    }
+                                }
+                            }
+                            .frame(width: 310)
+
+                            // RIGHT COLUMN: Volume Descriptor Telemetry Grid + Interactive LBA Hex/ASCII Inspector
+                            VStack(alignment: .leading, spacing: 10) {
+                                // Rectangular Telemetry Matrix (Non-clickable readouts use sharp terminal boxes, never pills!)
+                                HStack(spacing: 8) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("BOOT RECORD SIGNATURE")
+                                            .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                        Text(bootReadout)
+                                            .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                                            .foregroundStyle(entry.bootabilityBadge != nil ? .green : .primary)
+                                            .lineLimit(1)
+                                    }
+                                    .padding(8)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(Color.black.opacity(0.24))
+                                    .overlay(Rectangle().stroke(Color.primary.opacity(0.12), lineWidth: 1))
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("LOGICAL BLOCKS & ECC")
+                                            .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                        Text("\(entry.sectorsLBA) LBA  |  16-Sec ECC: \(entry.sectorsLBA % 16 == 0 ? "ALIGNED" : "+\(16 - (entry.sectorsLBA % 16)) PAD")")
+                                            .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                                            .foregroundStyle(store.activeAccent)
+                                            .lineLimit(1)
+                                    }
+                                    .padding(8)
+                                    .frame(width: 235, alignment: .leading)
+                                    .background(Color.black.opacity(0.24))
+                                    .overlay(Rectangle().stroke(Color.primary.opacity(0.12), lineWidth: 1))
+                                }
+
+                                // Interactive Sector Jump Pill Buttons (Every pill jumps the Hex Reader to that LBA!)
+                                HStack(spacing: 6) {
+                                    Text("JUMP READ HEAD:")
+                                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+
+                                    ForEach([
+                                        (0, "LBA 00 • System / APM"),
+                                        (16, "LBA 16 • ISO9660 PVD"),
+                                        (17, "LBA 17 • El Torito Boot"),
+                                        (256, "LBA 256 • UDF Anchor")
+                                    ], id: \.0) { lbaTarget, label in
+                                        let isCurrentLBA = (inspectedImageLBA == lbaTarget)
+                                        Button {
+                                            inspectedImageLBA = lbaTarget
+                                            imageActionStatusBanner = "Read Head -> LBA \(lbaTarget) (Byte Offset \(String(format: "0x%08X", lbaTarget * sectorByteSize)))"
+                                        } label: {
+                                            Text(label)
+                                                .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                                                .padding(.horizontal, 9)
+                                                .padding(.vertical, 4)
+                                                .background(isCurrentLBA ? store.activeAccent : Color.primary.opacity(0.08))
+                                                .foregroundStyle(isCurrentLBA ? store.activeOnAccentText : .primary)
+                                                .clipShape(Capsule())
+                                                .overlay(Capsule().stroke(isCurrentLBA ? Color.clear : Color.primary.opacity(0.15), lineWidth: 1))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    Spacer()
+                                }
+
+                                // Live Sector Hexadecimal + ASCII Inspector Terminal
+                                VStack(alignment: .leading, spacing: 0) {
+                                    HStack {
+                                        Text("OFFSET    00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F   ASCII DECODED")
+                                            .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
+                                            .foregroundStyle(store.activeAccent)
+                                        Spacer()
+                                        Text("SECTOR LBA \(inspectedImageLBA)")
+                                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                            .foregroundStyle(.green)
+                                    }
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Color.black.opacity(0.45))
+
+                                    Divider()
+
+                                    ScrollView {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            ForEach(hexRows) { hRow in
+                                                HStack(spacing: 12) {
+                                                    Text(hRow.offsetHex)
+                                                        .foregroundStyle(.secondary)
+                                                    Text(hRow.hexBytes)
+                                                        .foregroundStyle(.primary)
+                                                    Text(hRow.asciiText)
+                                                        .foregroundStyle(.green)
+                                                    Spacer(minLength: 0)
+                                                }
+                                                .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                                            }
+                                        }
+                                        .padding(10)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(Color.black.opacity(0.32))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.14), lineWidth: 1))
+                            }
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 14)
+                    }
+                } else {
+                    // Empty State: Interactive Drop Zone & Quick Image Picker
+                    VStack(spacing: 12) {
+                        Image(systemName: "opticaldisc.fill")
+                            .font(.system(size: 46))
+                            .foregroundStyle(store.activeAccent.opacity(0.85))
+                        Text(KroutonL10n.tr("Drop a Disc Image (.ISO, .DMG, .BIN/.CUE, .CDR, .IMG, or .TOAST) to Launch the Sector & Hex Inspector"))
+                            .font(.headline)
+                        Text(KroutonL10n.tr("Displays radial track geometry, live LBA 0/16/17/256 hexadecimal sector dumps, El Torito / APM boot records, and 1-Click .BIN <-> .ISO framing conversion."))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Button {
+                            promptToAddFiles()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "folder.badge.plus")
+                                Text("Choose Disc Image File...")
+                            }
+                            .font(.system(size: 12, weight: .bold))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(store.activeAccent)
+                            .foregroundStyle(store.activeOnAccentText)
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 4)
                     }
                 }
             }
             .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-                handleFinderDrop(providers: providers)
+                // When in single-image mode, dropping a new disc image replaces the old one cleanly
+                store.clearStagedFiles()
+                computedImageSHA256 = ""
+                imageActionStatusBanner = ""
+                return handleFinderDrop(providers: providers)
             }
         }
     }
