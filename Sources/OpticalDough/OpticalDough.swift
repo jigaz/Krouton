@@ -319,6 +319,42 @@ public struct DrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable {
     public var radialMillimeters: Double {
         24.0 + (34.0 * min(1.0, max(0.0, progressFraction)))
     }
+
+    public mutating func appendMonotonicSample(
+        rawFraction: Double,
+        speedX: Double,
+        rpm: Int,
+        kbs: Double
+    ) {
+        let clamped = min(1.0, max(0.0, rawFraction))
+        if let last = samples.last {
+            if clamped < last.progressFraction - 0.08 {
+                samples.removeAll()
+                peakSpeedX = speedX
+            } else if abs(clamped - last.progressFraction) < 0.003 {
+                samples[samples.count - 1] = NeroTelemetrySample(
+                    progressFraction: last.progressFraction,
+                    speedMultiplierX: speedX,
+                    spindleRPM: Double(rpm),
+                    throughputKBs: kbs
+                )
+                progressFraction = last.progressFraction
+                let sumX = samples.reduce(0.0) { $0 + $1.speedMultiplierX }
+                averageSpeedX = sumX / Double(max(1, samples.count))
+                return
+            }
+        }
+        let monotonicFrac = max(samples.last?.progressFraction ?? 0.0, clamped)
+        progressFraction = monotonicFrac
+        samples.append(NeroTelemetrySample(
+            progressFraction: monotonicFrac,
+            speedMultiplierX: speedX,
+            spindleRPM: Double(rpm),
+            throughputKBs: kbs
+        ))
+        let sumX = samples.reduce(0.0) { $0 + $1.speedMultiplierX }
+        averageSpeedX = sumX / Double(max(1, samples.count))
+    }
 }
 
 public struct BurnCompletionReport: Identifiable, Hashable, Sendable {
@@ -745,6 +781,42 @@ public final class DriveManager: ObservableObject {
         }
     }
 
+    public func beginNewPhaseScopeEvent(
+        for driveID: String,
+        driveName: String,
+        eventTitle: String,
+        totalSectorsLBA: Int64,
+        laserText: String,
+        strategyText: String,
+        pinInlineOverride: Bool? = nil
+    ) {
+        guard !driveID.isEmpty else { return }
+        let wasFloated = driveTelemetry[driveID]?.isFloatingWindowOpen ?? false
+        let wasPinned = pinInlineOverride ?? (driveTelemetry[driveID]?.isManuallyPinnedInline ?? false)
+        driveTelemetry[driveID] = DrivePhaseScopeTelemetry(
+            id: driveID,
+            driveName: driveName,
+            isActive: true,
+            isManuallyPinnedInline: wasPinned,
+            isFloatingWindowOpen: wasFloated,
+            phaseTitle: eventTitle,
+            progressFraction: 0.0,
+            currentSpeedX: 0.0,
+            currentSpeedKBs: 0.0,
+            peakSpeedX: 0.0,
+            averageSpeedX: 0.0,
+            targetSpeedX: 16.0,
+            currentSpindleRPM: 0,
+            currentSectorLBA: 0,
+            totalSectorsLBA: max(1, totalSectorsLBA),
+            bufferFillPercent: 100.0,
+            laserWavelengthText: laserText,
+            writeStrategyText: strategyText,
+            elapsedSeconds: 0,
+            samples: []
+        )
+    }
+
     public func telemetryForDrive(_ driveID: String) -> DrivePhaseScopeTelemetry? {
         if let existing = driveTelemetry[driveID] {
             return existing
@@ -856,9 +928,7 @@ public final class DriveManager: ObservableObject {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
                         if var finished = self.driveTelemetry[targetID], finished.progressFraction >= 1.0 {
                             finished.isActive = false
-                            finished.currentSpeedKBs = 0
-                            finished.currentSpeedX = 0
-                            finished.phaseTitle = "Standby (Last Sweep Hold)"
+                            finished.phaseTitle = "Last Event: Calibration Sweep"
                             self.driveTelemetry[targetID] = finished
                         }
                     }
@@ -993,6 +1063,15 @@ public final class DriveManager: ObservableObject {
         self.isExecutingQueue = true
         self.jobStartTime = Date()
         self.neroSamples = []
+        let eraseTargetKey = resolvedMeta?.id ?? (driveID ?? "")
+        self.beginNewPhaseScopeEvent(
+            for: eraseTargetKey,
+            driveName: driveName,
+            eventTitle: fullErase ? "Event: Full Sector Erase" : "Event: Quick TOC Erase",
+            totalSectorsLBA: resolvedMeta?.freeSectorsLBA ?? 359_847,
+            laserText: mType.contains("DVD") ? "650 nm Red (DVD-RW)" : "780 nm IR (CD-RW)",
+            strategyText: fullErase ? "Full Zero CLV" : "Quick PMA/TOC Blank"
+        )
         self.peakSpeedX = 10.0
         self.averageSpeedX = 8.4
         self.laserWavelengthText = mType.contains("DVD") ? "650 nm Red (DVD-RW)" : "780 nm IR (CD-RW)"
@@ -1047,9 +1126,7 @@ public final class DriveManager: ObservableObject {
                     dTel.laserWavelengthText = self.laserWavelengthText
                     dTel.writeStrategyText = self.writeStrategyText
                     dTel.elapsedSeconds = self.elapsedSeconds
-                    dTel.samples.append(sample)
-                    let sSum = dTel.samples.reduce(0.0) { $0 + $1.speedMultiplierX }
-                    dTel.averageSpeedX = sSum / Double(max(1, dTel.samples.count))
+                    dTel.appendMonotonicSample(rawFraction: clampedPct, speedX: simulatedX, rpm: self.currentSpindleRPM, kbs: self.currentSpeedKBs)
                     self.driveTelemetry[targetKey] = dTel
                 }
 
@@ -1394,6 +1471,16 @@ public final class DriveManager: ObservableObject {
         self.isExecutingQueue = true
         self.jobStartTime = Date()
         self.neroSamples = []
+        let burnTargetKey = resolvedMeta?.id ?? (driveID ?? "")
+        let eventLabel = simulationMode ? (verifyDisc ? "Event: Simulation + Verify" : "Event: Simulation Write") : (verifyDisc ? "Event: Write + Verify" : "Event: Write (No Verify)")
+        self.beginNewPhaseScopeEvent(
+            for: burnTargetKey,
+            driveName: driveName,
+            eventTitle: eventLabel,
+            totalSectorsLBA: totalLBA,
+            laserText: mediaType.contains("BD") ? "405 nm Violet (BD)" : (mediaType.contains("DVD") ? "650 nm Red (DVD)" : "780 nm IR (CD)"),
+            strategyText: isErasable ? "Phase-Change CLV/Z-CLV" : "Organic Dye P-CAV"
+        )
         self.totalTargetSectorsLBA = totalLBA
         self.peakSpeedX = 0.0
         self.averageSpeedX = 0.0
@@ -1460,7 +1547,7 @@ public final class DriveManager: ObservableObject {
                     dTel.laserWavelengthText = self.laserWavelengthText
                     dTel.writeStrategyText = self.writeStrategyText
                     dTel.elapsedSeconds = self.elapsedSeconds
-                    dTel.samples.append(sample)
+                    dTel.appendMonotonicSample(rawFraction: clampedPct, speedX: speedX, rpm: self.currentSpindleRPM, kbs: reportedKBs)
                     self.driveTelemetry[targetKey] = dTel
                 }
 
