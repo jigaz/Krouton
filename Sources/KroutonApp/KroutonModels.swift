@@ -155,6 +155,7 @@ public enum DestinationOutputKind: String, CaseIterable, Identifiable, Sendable 
 public struct DestinationQueueItem: Identifiable, Hashable, Sendable {
     public let id = UUID()
     public var kind: DestinationOutputKind
+    public var targetDriveID: String = ""
     public var hardwareOrPath: String
     public var speedOrCodec: String
     public var simulationMode: Bool
