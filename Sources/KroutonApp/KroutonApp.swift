@@ -6,7 +6,36 @@ import OpticalDough
 @MainActor
 final class KroutonWindowManager {
     static let shared = KroutonWindowManager()
+    let store = KroutonStateStore()
+    let driveManager = DriveManager()
+
+    private var mainWindow: NSWindow?
     private var settingsWindow: NSWindow?
+
+    func openMainWindow() {
+        if let existing = mainWindow {
+            existing.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let rootView = KroutonMainWorkspaceView(store: store, driveManager: driveManager)
+        let hostingController = NSHostingController(rootView: rootView)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1380, height: 880),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Krouton"
+        window.contentViewController = hostingController
+        window.center()
+        window.setFrameAutosaveName("KroutonMainWorkspaceWindow")
+        window.isReleasedWhenClosed = false
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        self.mainWindow = window
+    }
 
     func openSettingsWindow(store: KroutonStateStore, driveManager: DriveManager) {
         if let existing = settingsWindow {
@@ -33,38 +62,45 @@ final class KroutonWindowManager {
     }
 }
 
+@MainActor
 final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        for delay in [0.1, 0.35, 0.7] {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                NSApp.setActivationPolicy(.regular)
-                NSApp.activate(ignoringOtherApps: true)
-                for window in NSApp.windows {
-                    window.makeKeyAndOrderFront(nil)
-                }
-            }
+        KroutonWindowManager.shared.openMainWindow()
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            KroutonWindowManager.shared.openMainWindow()
         }
+        return true
     }
 }
 
 @main
 struct KroutonApp: App {
     @NSApplicationDelegateAdaptor(KroutonAppDelegate.self) var appDelegate
-    @StateObject private var store = KroutonStateStore()
-    @StateObject private var driveManager = DriveManager()
 
     var body: some Scene {
-        WindowGroup("Krouton") {
-            KroutonMainWorkspaceView(store: store, driveManager: driveManager)
-                .preferredColorScheme(store.appearanceMode.colorScheme)
-                .tint(store.activeAccent)
+        Settings {
+            KroutonSettingsWindowView(
+                store: KroutonWindowManager.shared.store,
+                driveManager: KroutonWindowManager.shared.driveManager
+            )
         }
-        .windowResizability(.contentMinSize)
         .commands {
+            CommandGroup(replacing: .newItem) {
+                Button("Show Krouton Workspace") {
+                    KroutonWindowManager.shared.openMainWindow()
+                }
+                .keyboardShortcut("0", modifiers: .command)
+            }
             CommandGroup(replacing: .appSettings) {
                 Button("Settings...") {
-                    KroutonWindowManager.shared.openSettingsWindow(store: store, driveManager: driveManager)
+                    KroutonWindowManager.shared.openSettingsWindow(
+                        store: KroutonWindowManager.shared.store,
+                        driveManager: KroutonWindowManager.shared.driveManager
+                    )
                 }
                 .keyboardShortcut(",", modifiers: .command)
             }
@@ -128,6 +164,8 @@ struct KroutonMainWorkspaceView: View {
         }
         .frame(minWidth: 1320, idealWidth: 1420, minHeight: 840, idealHeight: 900)
         .background(Color(NSColor.windowBackgroundColor))
+        .preferredColorScheme(store.appearanceMode.colorScheme)
+        .tint(store.activeAccent)
         .sheet(item: $driveManager.completionReport) { report in
             KroutonMasteringReportSheet(report: report, accent: store.activeAccent) {
                 driveManager.completionReport = nil
