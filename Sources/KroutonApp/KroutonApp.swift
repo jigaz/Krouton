@@ -87,7 +87,8 @@ final class KroutonWindowManager {
         self.mainWindow = window
     }
 
-    func openSettingsWindow(store: KroutonStateStore, driveManager: DriveManager) {
+    func openSettingsWindow(store: KroutonStateStore, driveManager: DriveManager, pane: KroutonSettingsCategory? = nil) {
+        if let targetPane = pane { store.selectedSettingsPane = targetPane }
         if let existing = settingsWindow {
             existing.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -319,7 +320,7 @@ struct KroutonMainWorkspaceView: View {
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button {
-                    KroutonWindowManager.shared.openSettingsWindow(store: store, driveManager: driveManager)
+                    KroutonWindowManager.shared.openSettingsWindow(store: store, driveManager: driveManager, pane: .formatChooser)
                 } label: {
                     Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 11))
@@ -2312,6 +2313,108 @@ struct KroutonMainWorkspaceView: View {
                     .labelsHidden()
                     .frame(width: 155)
                 }
+
+                // Multi-Copy Batch & Book Type Bitsetting Row
+                HStack(spacing: 8) {
+                    Stepper(value: Binding(
+                        get: { item.copiesToBurn },
+                        set: { newCopies in updateQueueItem(cardID) { $0.copiesToBurn = max(1, min(99, newCopies)) } }
+                    ), in: 1...99) {
+                        HStack(spacing: 4) {
+                            Image(systemName: item.copiesToBurn > 1 ? "square.stack.3d.up.fill" : "doc.on.doc")
+                                .font(.system(size: 10))
+                                .foregroundStyle(item.copiesToBurn > 1 ? store.activeAccent : .secondary)
+                            Text(item.copiesToBurn > 1 ? "Batch: \(item.copiesToBurn) Copies" : "Copies: 1")
+                                .font(.system(size: 11, weight: item.copiesToBurn > 1 ? .bold : .regular, design: .monospaced))
+                        }
+                    }
+                    .controlSize(.small)
+
+                    Spacer(minLength: 4)
+
+                    if store.forceDVDROMBookType {
+                        HStack(spacing: 3) {
+                            Image(systemName: "seal.fill")
+                                .font(.system(size: 8))
+                            Text("DVD-ROM Bitset")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.cyan.opacity(0.16))
+                        .foregroundStyle(.cyan)
+                        .clipShape(Capsule())
+                        .help("MMC Bitsetting Active: Stamps DVD+R / DVD+R DL lead-in Book Type as DVD-ROM (0x00)")
+                    }
+
+                    if item.copiesToBurn > 1 && store.autoLoadNextDiscBatchMode {
+                        HStack(spacing: 3) {
+                            Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                                .font(.system(size: 9))
+                            Text("Auto-Load (\(store.autoLoadCountdownSeconds)s)")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.green.opacity(0.18))
+                        .foregroundStyle(.green)
+                        .clipShape(Capsule())
+                        .help("Hands-Free Duplication: Auto-ejects finished disc and starts next burn \(store.autoLoadCountdownSeconds)s after a fresh blank disc is inserted")
+                    }
+                }
+
+                // Live Hands-Free Auto-Load Next Disc Banner (Appears between copies in a batch)
+                if let batchSt = driveManager.batchStates[activeCardDriveID] {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: batchSt.countdownSecondsRemaining != nil ? "timer" : "opticaldisc.fill")
+                                .foregroundStyle(batchSt.countdownSecondsRemaining != nil ? .orange : .green)
+                            Text(batchSt.statusMessage)
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.primary)
+                                .lineLimit(2)
+                            Spacer()
+                        }
+                        HStack(spacing: 8) {
+                            if batchSt.countdownSecondsRemaining == nil {
+                                Button {
+                                    driveManager.triggerImmediateBatchCountdownForTesting(
+                                        driveID: activeCardDriveID,
+                                        countdownSeconds: store.autoLoadCountdownSeconds
+                                    ) {
+                                        executeSingleDestination(item)
+                                    }
+                                } label: {
+                                    Text("Simulate Blank Disc Insert (\(store.autoLoadCountdownSeconds)s)")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 3)
+                                        .background(store.activeAccent)
+                                        .foregroundStyle(store.activeOnAccentText)
+                                        .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            Button {
+                                driveManager.cancelBatchDuplication(for: activeCardDriveID)
+                            } label: {
+                                Text("Cancel Batch")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(Color.red.opacity(0.18))
+                                    .foregroundStyle(.red)
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            Spacer()
+                        }
+                    }
+                    .padding(8)
+                    .background(Color.green.opacity(0.10))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.green.opacity(0.35), lineWidth: 1))
+                }
             } else if item.kind == .networkBurner {
                 Text(item.hardwareOrPath)
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
@@ -2477,8 +2580,44 @@ struct KroutonMainWorkspaceView: View {
 
     private func runTargetDestination(_ target: DestinationQueueItem) async {
         switch target.kind {
+        case .physicalBurner, .networkBurner:
+            if store.forceDVDROMBookType, !target.targetDriveID.isEmpty {
+                driveManager.stampDVDROMBookType(for: target.targetDriveID, vendorProfile: store.bitsetVendorProfile)
+            }
+            let burnSucceeded = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+                driveManager.startPhysicalDataBurn(
+                    driveID: target.targetDriveID.isEmpty ? nil : target.targetDriveID,
+                    stagedFiles: store.stagedFiles,
+                    volumeTitle: store.discVolumeTitle,
+                    requestedSpeedLabel: target.speedOrCodec,
+                    simulationMode: target.simulationMode,
+                    verifyDisc: target.verifyAfterBurn
+                ) { report in
+                    continuation.resume(returning: report.isSuccess)
+                }
+            }
+            if burnSucceeded && target.copiesToBurn > 1 && store.autoLoadNextDiscBatchMode {
+                let finishedCount = target.completedCopies + 1
+                if finishedCount < target.copiesToBurn {
+                    updateQueueItem(target.id) { $0.completedCopies = finishedCount }
+                    let driveKey = target.targetDriveID.isEmpty ? (driveManager.selectedDrive?.id ?? "") : target.targetDriveID
+                    driveManager.startBatchAutoLoadMonitor(
+                        for: driveKey,
+                        completedCopy: finishedCount,
+                        totalCopies: target.copiesToBurn,
+                        countdownSeconds: store.autoLoadCountdownSeconds,
+                        bitsetDVDROM: store.forceDVDROMBookType
+                    ) {
+                        if let updatedItem = store.destinationQueue.first(where: { $0.id == target.id }) {
+                            executeSingleDestination(updatedItem)
+                        }
+                    }
+                } else {
+                    updateQueueItem(target.id) { $0.completedCopies = 0 }
+                }
+            }
         case .discImage:
-            _ = await driveManager.createDiscImageFile(
+            let _ = await driveManager.createDiscImageFile(
                 stagedFiles: store.stagedFiles,
                 volumeTitle: store.discVolumeTitle,
                 outputPathString: target.hardwareOrPath,
@@ -2486,19 +2625,8 @@ struct KroutonMainWorkspaceView: View {
                 enableCustomLayout: enableCustomFinderLayoutTab,
                 iconSizePx: Int(finderIconSize)
             )
-
-        case .physicalBurner:
-            driveManager.startPhysicalDataBurn(
-                driveID: target.targetDriveID,
-                stagedFiles: store.stagedFiles,
-                volumeTitle: store.discVolumeTitle,
-                requestedSpeedLabel: target.speedOrCodec,
-                simulationMode: target.simulationMode,
-                verifyDisc: target.verifyAfterBurn
-            ) { _ in }
-
         default:
-            break
+            try? await Task.sleep(nanoseconds: 500_000_000)
         }
     }
 

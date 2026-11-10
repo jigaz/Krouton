@@ -525,6 +525,7 @@ public struct BatchDuplicationState: Identifiable, Hashable, Sendable {
     public var currentCopyIndex: Int
     public var totalCopies: Int
     public var isWaitingForBlankDisc: Bool
+    public var hasDetectedDiscEject: Bool = false
     public var countdownSecondsRemaining: Int?
     public var statusMessage: String
     public var bitsetDVDROMActive: Bool
@@ -1170,12 +1171,12 @@ public final class DriveManager: ObservableObject {
         hardwareStatusLog = "[Duplication Station] Copy \(completedCopy)/\(totalCopies) complete on \(name). Waiting for Blank Disc #\(nextCopy)..."
 
         batchCountdownTimers[key]?.invalidate()
-        var didDetectDiscOut = false
 
-        batchCountdownTimers[key] = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
-            Task { @MainActor in
+        batchCountdownTimers[key] = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
                 guard let self = self, var st = self.batchStates[key] else {
-                    timer.invalidate()
+                    self?.batchCountdownTimers[key]?.invalidate()
+                    self?.batchCountdownTimers.removeValue(forKey: key)
                     return
                 }
                 self.refreshDrives()
@@ -1183,13 +1184,13 @@ public final class DriveManager: ObservableObject {
                 let mediaNowPresent = currentDrive?.isMediaPresent ?? false
 
                 if !mediaNowPresent {
-                    didDetectDiscOut = true
+                    st.hasDetectedDiscEject = true
+                    self.batchStates[key] = st
                 }
 
-                // Once a fresh disc is inserted (or if countdown was triggered):
                 if let remaining = st.countdownSecondsRemaining {
                     if remaining <= 1 {
-                        timer.invalidate()
+                        self.batchCountdownTimers[key]?.invalidate()
                         self.batchCountdownTimers.removeValue(forKey: key)
                         st.isWaitingForBlankDisc = false
                         st.countdownSecondsRemaining = nil
@@ -1201,8 +1202,7 @@ public final class DriveManager: ObservableObject {
                         st.statusMessage = "Blank Disc Locked — Auto-Starting Copy #\(nextCopy)/\(totalCopies) in \(remaining - 1)s..."
                         self.batchStates[key] = st
                     }
-                } else if didDetectDiscOut && mediaNowPresent {
-                    // Fresh disc pushed into the slot! Start the 5-second spin-up countdown!
+                } else if st.hasDetectedDiscEject && mediaNowPresent {
                     let startSec = max(1, countdownSeconds)
                     st.isWaitingForBlankDisc = false
                     st.countdownSecondsRemaining = startSec
@@ -1240,15 +1240,16 @@ public final class DriveManager: ObservableObject {
         )
 
         batchCountdownTimers[key]?.invalidate()
-        batchCountdownTimers[key] = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
-            Task { @MainActor in
+        batchCountdownTimers[key] = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
                 guard let self = self, var st = self.batchStates[key] else {
-                    timer.invalidate()
+                    self?.batchCountdownTimers[key]?.invalidate()
+                    self?.batchCountdownTimers.removeValue(forKey: key)
                     return
                 }
                 if let rem = st.countdownSecondsRemaining {
                     if rem <= 1 {
-                        timer.invalidate()
+                        self.batchCountdownTimers[key]?.invalidate()
                         self.batchCountdownTimers.removeValue(forKey: key)
                         self.batchStates.removeValue(forKey: key)
                         onFireNextCopy()
