@@ -236,6 +236,74 @@ public struct NeroTelemetrySample: Identifiable, Hashable, Sendable {
     }
 }
 
+public struct DrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable {
+    public let id: String          // Drive ID
+    public var driveName: String
+    public var isActive: Bool       // True whenever throughputKBs > 0
+    public var isFloatingWindowOpen: Bool
+    public var phaseTitle: String
+    public var progressFraction: Double
+    public var currentSpeedX: Double
+    public var currentSpeedKBs: Double
+    public var peakSpeedX: Double
+    public var averageSpeedX: Double
+    public var targetSpeedX: Double
+    public var currentSpindleRPM: Int
+    public var currentSectorLBA: Int64
+    public var totalSectorsLBA: Int64
+    public var bufferFillPercent: Double
+    public var laserWavelengthText: String
+    public var writeStrategyText: String
+    public var elapsedSeconds: Int
+    public var samples: [NeroTelemetrySample]
+
+    public init(
+        id: String,
+        driveName: String,
+        isActive: Bool = false,
+        isFloatingWindowOpen: Bool = false,
+        phaseTitle: String = "Idle",
+        progressFraction: Double = 0.0,
+        currentSpeedX: Double = 0.0,
+        currentSpeedKBs: Double = 0.0,
+        peakSpeedX: Double = 0.0,
+        averageSpeedX: Double = 0.0,
+        targetSpeedX: Double = 16.0,
+        currentSpindleRPM: Int = 0,
+        currentSectorLBA: Int64 = 0,
+        totalSectorsLBA: Int64 = 359_847,
+        bufferFillPercent: Double = 98.0,
+        laserWavelengthText: String = "780 nm IR",
+        writeStrategyText: String = "P-CAV",
+        elapsedSeconds: Int = 0,
+        samples: [NeroTelemetrySample] = []
+    ) {
+        self.id = id
+        self.driveName = driveName
+        self.isActive = isActive
+        self.isFloatingWindowOpen = isFloatingWindowOpen
+        self.phaseTitle = phaseTitle
+        self.progressFraction = progressFraction
+        self.currentSpeedX = currentSpeedX
+        self.currentSpeedKBs = currentSpeedKBs
+        self.peakSpeedX = peakSpeedX
+        self.averageSpeedX = averageSpeedX
+        self.targetSpeedX = targetSpeedX
+        self.currentSpindleRPM = currentSpindleRPM
+        self.currentSectorLBA = currentSectorLBA
+        self.totalSectorsLBA = totalSectorsLBA
+        self.bufferFillPercent = bufferFillPercent
+        self.laserWavelengthText = laserWavelengthText
+        self.writeStrategyText = writeStrategyText
+        self.elapsedSeconds = elapsedSeconds
+        self.samples = samples
+    }
+
+    public var radialMillimeters: Double {
+        24.0 + (34.0 * min(1.0, max(0.0, progressFraction)))
+    }
+}
+
 public struct BurnCompletionReport: Identifiable, Hashable, Sendable {
     public let id: UUID
     public let isSuccess: Bool
@@ -291,10 +359,12 @@ public final class DriveManager: ObservableObject {
     @Published public var selectedDrive: OpticalDriveDevice?
     @Published public var hardwareStatusLog: String = "Scanning IOKit / DiscRecording bus..."
 
-    @Published public var isExecutingQueue: Bool = false
+        @Published public var isExecutingQueue: Bool = false
     @Published public var activeJobPhase: String = "Idle"
     @Published public var activeJobProgress: Double = 0.0
     @Published public var activeJobDetail: String = ""
+    @Published public var driveTelemetry: [String: DrivePhaseScopeTelemetry] = [:]
+    private var perDriveTimers: [String: Timer] = [:]
 
     @Published public var neroSamples: [NeroTelemetrySample] = []
     @Published public var currentSpeedX: Double = 0.0
@@ -658,6 +728,111 @@ public final class DriveManager: ObservableObject {
         }
     }
 
+    public func telemetryForDrive(_ driveID: String) -> DrivePhaseScopeTelemetry? {
+        if let existing = driveTelemetry[driveID] {
+            return existing
+        }
+        return nil
+    }
+
+    public func setFloatingScopeOpen(for driveID: String, isOpen: Bool) {
+        if var tel = driveTelemetry[driveID] {
+            tel.isFloatingWindowOpen = isOpen
+            driveTelemetry[driveID] = tel
+        } else {
+            let name = driveForID(driveID)?.displayName ?? "Optical Drive"
+            driveTelemetry[driveID] = DrivePhaseScopeTelemetry(id: driveID, driveName: name, isFloatingWindowOpen: isOpen)
+        }
+    }
+
+    // Runs a live 6-second P-CAV Phase Scope telemetry sweep on a specific drive card so users can test & inspect the inline/floating scope anytime!
+    public func runPhaseScopeTestSweep(for driveID: String) {
+        let resolved = driveForID(driveID)
+        let targetID = resolved?.id ?? driveID
+        guard !targetID.isEmpty else { return }
+        let driveName = resolved?.displayName ?? "Optical Drive"
+        let mediaType = resolved?.mediaType ?? "CD-RW"
+        let totalSectors = max(1, resolved?.freeSectorsLBA ?? 359_847)
+
+        perDriveTimers[targetID]?.invalidate()
+
+        let isFloated = driveTelemetry[targetID]?.isFloatingWindowOpen ?? false
+        let divisor: Double = mediaType.contains("BD") ? 4500.0 : (mediaType.contains("DVD") ? 1385.0 : 176.4)
+        let laserStr = mediaType.contains("BD") ? "405 nm Violet" : (mediaType.contains("DVD") ? "650 nm Red" : "780 nm IR")
+
+        var tel = DrivePhaseScopeTelemetry(
+            id: targetID,
+            driveName: driveName,
+            isActive: true,
+            isFloatingWindowOpen: isFloated,
+            phaseTitle: "Phase Scope Calibration Sweep...",
+            progressFraction: 0.02,
+            currentSpeedX: 4.0,
+            currentSpeedKBs: 4.0 * divisor,
+            peakSpeedX: 4.0,
+            averageSpeedX: 4.0,
+            targetSpeedX: 16.0,
+            currentSpindleRPM: 2400,
+            currentSectorLBA: 0,
+            totalSectorsLBA: totalSectors,
+            bufferFillPercent: 99.0,
+            laserWavelengthText: laserStr,
+            writeStrategyText: "P-CAV Telemetry",
+            elapsedSeconds: 0,
+            samples: []
+        )
+        driveTelemetry[targetID] = tel
+
+        let startDate = Date()
+        perDriveTimers[targetID] = Timer.scheduledTimer(withTimeInterval: 0.15, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self = self, var current = self.driveTelemetry[targetID] else { return }
+                let nextFrac = min(1.0, current.progressFraction + 0.032)
+                // Classic Nero P-CAV curve with tiny realistic optical servo jitter
+                let jitter = Double((Int(nextFrac * 100) % 5) - 2) * 0.12
+                let speedX = max(2.0, 4.2 + (11.8 * pow(nextFrac, 0.78)) + jitter)
+                let kbs = speedX * divisor
+                let rpm = Int(2250.0 + (speedX * 165.0 * (1.0 - nextFrac * 0.38)))
+
+                current.progressFraction = nextFrac
+                current.currentSpeedX = speedX
+                current.currentSpeedKBs = kbs
+                if speedX > current.peakSpeedX { current.peakSpeedX = speedX }
+                current.currentSpindleRPM = rpm
+                current.currentSectorLBA = Int64(Double(totalSectors) * nextFrac)
+                current.bufferFillPercent = Double(95 + (Int(nextFrac * 50) % 5))
+                current.elapsedSeconds = max(1, Int(Date().timeIntervalSince(startDate)))
+                current.phaseTitle = nextFrac < 0.99 ? "Phase Scope Active (\(String(format: "%.1fx", speedX)))" : "Sweep Complete"
+
+                current.samples.append(NeroTelemetrySample(
+                    progressFraction: nextFrac,
+                    speedMultiplierX: speedX,
+                    spindleRPM: Double(rpm),
+                    throughputKBs: kbs
+                ))
+                let sumX = current.samples.reduce(0.0) { $0 + $1.speedMultiplierX }
+                current.averageSpeedX = sumX / Double(max(1, current.samples.count))
+
+                if nextFrac >= 1.0 {
+                    self.perDriveTimers[targetID]?.invalidate()
+                    self.perDriveTimers.removeValue(forKey: targetID)
+                    self.driveTelemetry[targetID] = current
+                    // Auto-hide the inline mini scope 1.8s after throughput drops to 0 KB/s
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                        if var finished = self.driveTelemetry[targetID], finished.progressFraction >= 1.0 {
+                            finished.isActive = false
+                            finished.currentSpeedKBs = 0
+                            finished.currentSpeedX = 0
+                            self.driveTelemetry[targetID] = finished
+                        }
+                    }
+                } else {
+                    self.driveTelemetry[targetID] = current
+                }
+            }
+        }
+    }
+
     public func driveForID(_ id: String) -> OpticalDriveDevice? {
         if let match = availableDrives.first(where: { $0.id == id }) {
             return match
@@ -814,12 +989,33 @@ public final class DriveManager: ObservableObject {
                 self.currentSpeedKBs = simulatedX * divisor
                 self.currentSpindleRPM = Int(2200.0 + (800.0 * (1.0 - clampedPct * 0.3)))
                 self.currentSectorLBA = Int64(Double(self.totalTargetSectorsLBA) * clampedPct)
-                self.neroSamples.append(NeroTelemetrySample(
+                let sample = NeroTelemetrySample(
                     progressFraction: clampedPct,
                     speedMultiplierX: simulatedX,
                     spindleRPM: Double(self.currentSpindleRPM),
                     throughputKBs: self.currentSpeedKBs
-                ))
+                )
+                self.neroSamples.append(sample)
+                let targetKey = resolvedMeta?.id ?? (driveID ?? "")
+                if !targetKey.isEmpty {
+                    var dTel = self.driveTelemetry[targetKey] ?? DrivePhaseScopeTelemetry(id: targetKey, driveName: driveName)
+                    dTel.isActive = (rawState != DRStatusStateDone && rawState != DRStatusStateFailed)
+                    dTel.phaseTitle = self.activeJobPhase
+                    dTel.progressFraction = clampedPct
+                    dTel.currentSpeedX = simulatedX
+                    dTel.currentSpeedKBs = self.currentSpeedKBs
+                    if simulatedX > dTel.peakSpeedX { dTel.peakSpeedX = simulatedX }
+                    dTel.currentSpindleRPM = self.currentSpindleRPM
+                    dTel.currentSectorLBA = self.currentSectorLBA
+                    dTel.totalSectorsLBA = self.totalTargetSectorsLBA
+                    dTel.laserWavelengthText = self.laserWavelengthText
+                    dTel.writeStrategyText = self.writeStrategyText
+                    dTel.elapsedSeconds = self.elapsedSeconds
+                    dTel.samples.append(sample)
+                    let sSum = dTel.samples.reduce(0.0) { $0 + $1.speedMultiplierX }
+                    dTel.averageSpeedX = sSum / Double(max(1, dTel.samples.count))
+                    self.driveTelemetry[targetKey] = dTel
+                }
 
                 if rawState == DRStatusStateDone {
                     self.eraseMonitorTimer?.invalidate()
@@ -1186,14 +1382,36 @@ public final class DriveManager: ObservableObject {
                 self.activeJobProgress = clampedPct
                 self.activeJobPhase = Self.formatHumanBurnState(rawState, isErase: false)
 
-                self.neroSamples.append(NeroTelemetrySample(
+                let sample = NeroTelemetrySample(
                     progressFraction: clampedPct,
                     speedMultiplierX: speedX,
                     spindleRPM: Double(self.currentSpindleRPM),
                     throughputKBs: reportedKBs
-                ))
+                )
+                self.neroSamples.append(sample)
                 let sumX = self.neroSamples.reduce(0.0) { $0 + $1.speedMultiplierX }
                 self.averageSpeedX = sumX / Double(max(1, self.neroSamples.count))
+
+                let targetKey = resolvedMeta?.id ?? (driveID ?? "")
+                if !targetKey.isEmpty {
+                    var dTel = self.driveTelemetry[targetKey] ?? DrivePhaseScopeTelemetry(id: targetKey, driveName: driveName)
+                    dTel.isActive = (rawState != DRStatusStateDone && rawState != DRStatusStateFailed)
+                    dTel.phaseTitle = self.activeJobPhase
+                    dTel.progressFraction = clampedPct
+                    dTel.currentSpeedX = speedX
+                    dTel.currentSpeedKBs = reportedKBs
+                    if speedX > dTel.peakSpeedX { dTel.peakSpeedX = speedX }
+                    dTel.averageSpeedX = self.averageSpeedX
+                    dTel.currentSpindleRPM = self.currentSpindleRPM
+                    dTel.currentSectorLBA = self.currentSectorLBA
+                    dTel.totalSectorsLBA = totalLBA
+                    dTel.bufferFillPercent = self.driveBufferFillPercent
+                    dTel.laserWavelengthText = self.laserWavelengthText
+                    dTel.writeStrategyText = self.writeStrategyText
+                    dTel.elapsedSeconds = self.elapsedSeconds
+                    dTel.samples.append(sample)
+                    self.driveTelemetry[targetKey] = dTel
+                }
 
                 if rawState == DRStatusStateDone {
                     self.burnMonitorTimer?.invalidate()

@@ -1071,6 +1071,23 @@ struct KroutonMainWorkspaceView: View {
                     .help("Erase rewritable disc in \(cardDrive?.displayName ?? "this burner")")
 
                     Button {
+                        driveManager.runPhaseScopeTestSweep(for: activeCardDriveID)
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "waveform.path.ecg")
+                            Text("Scope")
+                        }
+                        .font(.system(size: 10, weight: .semibold))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Color.green.opacity(0.16))
+                        .foregroundStyle(.green)
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Trigger a 6-second Phase Scope telemetry sweep on this burner")
+
+                    Button {
                         driveManager.ejectDrive(id: activeCardDriveID)
                     } label: {
                         HStack(spacing: 4) {
@@ -1230,6 +1247,14 @@ struct KroutonMainWorkspaceView: View {
                     ))
                     .font(.caption)
                 }
+            }
+
+            // Auto-Hiding Per-Burner Inline Mini Phase Scope (Appears only when throughput > 0 KB/s and not popped out)
+            if item.kind == .physicalBurner,
+               let scopeTel = driveManager.telemetryForDrive(activeCardDriveID),
+               scopeTel.isActive && !scopeTel.isFloatingWindowOpen {
+                InlineMiniPhaseScopeView(telemetry: scopeTel, accent: store.activeAccent)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             } else if item.kind == .discImage {
                 Toggle("Compress Image After Creation", isOn: Binding(
                     get: { item.compressAfterCreation },
@@ -1932,5 +1957,128 @@ struct KroutonMasteringReportSheet: View {
                 .font(.system(size: 12, weight: .semibold, design: .monospaced))
                 .foregroundStyle(.primary)
         }
+    }
+}
+
+
+// MARK: - Step 2B: Per-Burner Auto-Hiding Inline Mini Phase Scope
+struct InlineMiniPhaseScopeView: View {
+    let telemetry: DrivePhaseScopeTelemetry
+    let accent: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(Color.green)
+                    .frame(width: 6, height: 6)
+                Text("PHASE SCOPE")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(.green)
+                Spacer()
+                Text(String(format: "%.1fx (%.0f KB/s)", telemetry.currentSpeedX, telemetry.currentSpeedKBs))
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.green)
+                Text("•")
+                    .foregroundStyle(.secondary)
+                Text("\(telemetry.currentSpindleRPM) RPM")
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(.yellow)
+            }
+
+            // Classic Nero CRT Grid + Emerald Write Speed Curve + Yellow RPM Curve + Red LBA Playhead
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color(red: 0.02, green: 0.03, blue: 0.07))
+
+                Canvas { context, size in
+                    let cols = 8
+                    let rows = 4
+                    let gridColor = Color(red: 0.08, green: 0.18, blue: 0.72).opacity(0.75)
+
+                    for c in 0...cols {
+                        let x = size.width * CGFloat(c) / CGFloat(cols)
+                        var p = Path()
+                        p.move(to: CGPoint(x: x, y: 0))
+                        p.addLine(to: CGPoint(x: x, y: size.height))
+                        context.stroke(p, with: .color(gridColor), lineWidth: 0.6)
+                    }
+                    for r in 0...rows {
+                        let y = size.height * CGFloat(r) / CGFloat(rows)
+                        var p = Path()
+                        p.move(to: CGPoint(x: 0, y: y))
+                        p.addLine(to: CGPoint(x: size.width, y: y))
+                        context.stroke(p, with: .color(gridColor), lineWidth: 0.6)
+                    }
+
+                    let samples = telemetry.samples
+                    if samples.count > 1 {
+                        let maxScaleX: Double = 24.0
+                        let maxScaleRPM: Double = 6000.0
+
+                        var speedArea = Path()
+                        var speedPath = Path()
+                        var rpmPath = Path()
+
+                        for (idx, s) in samples.enumerated() {
+                            let x = size.width * CGFloat(min(1.0, max(0.0, s.progressFraction)))
+                            let ySpeed = size.height * (1.0 - CGFloat(min(1.0, s.speedMultiplierX / maxScaleX)))
+                            let yRPM = size.height * (1.0 - CGFloat(min(1.0, s.spindleRPM / maxScaleRPM)))
+
+                            if idx == 0 {
+                                speedArea.move(to: CGPoint(x: x, y: size.height))
+                                speedArea.addLine(to: CGPoint(x: x, y: ySpeed))
+                                speedPath.move(to: CGPoint(x: x, y: ySpeed))
+                                rpmPath.move(to: CGPoint(x: x, y: yRPM))
+                            } else {
+                                speedArea.addLine(to: CGPoint(x: x, y: ySpeed))
+                                speedPath.addLine(to: CGPoint(x: x, y: ySpeed))
+                                rpmPath.addLine(to: CGPoint(x: x, y: yRPM))
+                            }
+                        }
+
+                        if let last = samples.last {
+                            let lastX = size.width * CGFloat(min(1.0, max(0.0, last.progressFraction)))
+                            speedArea.addLine(to: CGPoint(x: lastX, y: size.height))
+                            speedArea.closeSubpath()
+
+                            context.fill(
+                                speedArea,
+                                with: .linearGradient(
+                                    Gradient(colors: [Color.green.opacity(0.32), Color.green.opacity(0.02)]),
+                                    startPoint: CGPoint(x: 0, y: 0),
+                                    endPoint: CGPoint(x: 0, y: size.height)
+                                )
+                            )
+
+                            context.stroke(rpmPath, with: .color(.yellow), lineWidth: 1.3)
+                            context.stroke(speedPath, with: .color(.green), lineWidth: 1.8)
+
+                            var cursorPath = Path()
+                            cursorPath.move(to: CGPoint(x: lastX, y: 0))
+                            cursorPath.addLine(to: CGPoint(x: lastX, y: size.height))
+                            context.stroke(cursorPath, with: .color(.red), lineWidth: 1.2)
+                        }
+                    }
+                }
+                .padding(3)
+            }
+            .frame(height: 68)
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.blue.opacity(0.45), lineWidth: 1))
+
+            HStack {
+                Text("LBA \(telemetry.currentSectorLBA) / \(telemetry.totalSectorsLBA)")
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(String(format: "r = %.1f mm • Buf %.0f%%", telemetry.radialMillimeters, telemetry.bufferFillPercent))
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(.cyan)
+            }
+        }
+        .padding(8)
+        .background(Color(NSColor.controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.green.opacity(0.30), lineWidth: 1))
     }
 }
