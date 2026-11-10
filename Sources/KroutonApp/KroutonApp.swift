@@ -264,6 +264,7 @@ struct KroutonMainWorkspaceView: View {
             }
         )
         .preferredColorScheme(store.appearanceMode.colorScheme)
+        .environment(\.locale, store.activeLocale)
         .tint(store.activeAccent)
         .onAppear {
             reconcileUniqueDriveAssignments()
@@ -343,7 +344,7 @@ struct KroutonMainWorkspaceView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("BURN")
+                        Text(store.tr("BURN"))
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 10)
@@ -361,7 +362,7 @@ struct KroutonMainWorkspaceView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("DISC IMAGE DEPOT")
+                        Text(store.tr("DISC IMAGE DEPOT"))
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 10)
@@ -393,7 +394,7 @@ struct KroutonMainWorkspaceView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("COPY")
+                        Text(store.tr("COPY"))
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 10)
@@ -425,7 +426,7 @@ struct KroutonMainWorkspaceView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("LABEL")
+                        Text(store.tr("LABEL"))
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 10)
@@ -454,7 +455,7 @@ struct KroutonMainWorkspaceView: View {
         .background(Color(NSColor.controlBackgroundColor))
     }
 
-    private func taskRowButton(id: String, category: TaskMasterCategory, title: String, colloquial: String, badge: String, sfSymbol: String) -> some View {
+    private func taskRowButton(id: String, category: TaskMasterCategory, title: String, colloquial: String, badge: String = "", sfSymbol: String) -> some View {
         let isSelected = (store.selectedTaskID == id)
         return Button {
             store.selectedCategory = category
@@ -463,33 +464,36 @@ struct KroutonMainWorkspaceView: View {
         } label: {
             HStack(spacing: 9) {
                 Image(systemName: sfSymbol)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(isSelected ? store.activeOnAccentText : store.activeAccent)
-                    .frame(width: 20)
+                    .font(.system(size: store.sidebarIconSize.iconFontSize, weight: .semibold))
+                    .foregroundStyle(isSelected ? store.activeOnAccentText : (store.iconWidgetStyle == .dark ? .white : store.activeAccent))
+                    .frame(width: 22)
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: store.sidebarIconSize.titleFontSize, weight: .semibold))
                         .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
                         .lineLimit(1)
                     Text(colloquial)
-                        .font(.system(size: 10))
+                        .font(.system(size: max(9.5, store.sidebarIconSize.titleFontSize - 2.0)))
                         .foregroundStyle(isSelected ? store.activeOnAccentText.opacity(0.82) : .secondary)
                         .lineLimit(1)
                 }
-                Spacer()
-                if badge != "New & Image" && !badge.isEmpty {
-                    Text(badge)
-                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(isSelected ? store.activeOnAccentText.opacity(0.85) : .secondary)
-                }
+                Spacer(minLength: 0)
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(isSelected ? store.activeAccent : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .padding(.vertical, store.sidebarIconSize.rowVerticalPadding)
+            .background(
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(isSelected ? store.activeAccent : Color.clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 7)
+                    .stroke(store.a11yIncreaseContrast && isSelected ? Color.primary : Color.clear, lineWidth: 1.5)
+            )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("\(title), \(colloquial)")
     }
 
     // MARK: - CENTER COLUMN: ADAPTABLE WORKSPACE + INTEGRATED CAPACITY BAR (Global graph removed)
@@ -702,7 +706,7 @@ struct KroutonMainWorkspaceView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: addButtonSymbol(for: activeSpec))
-                        Text(addButtonTitle(for: activeSpec))
+                        Text(store.tr(addButtonTitle(for: activeSpec)))
                     }
                     .font(.system(size: 12, weight: .semibold))
                     .padding(.horizontal, 12)
@@ -784,7 +788,7 @@ struct KroutonMainWorkspaceView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "waveform.path.ecg.rectangle.fill")
                         .foregroundStyle(store.activeAccent)
-                    Text("WAVEBURNER RED BOOK CD-DA & CD-TEXT MASTERING DECK (44.1 kHz / 16-BIT PCM • 2,352 B/SECTOR)")
+                    Text("RED BOOK CD-DA & CD-TEXT MASTERING DECK (44.1 kHz / 16-BIT PCM • 2,352 B/SECTOR)")
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -795,14 +799,14 @@ struct KroutonMainWorkspaceView: View {
 
                 HStack(spacing: 14) {
                     HStack(spacing: 5) {
-                        Text("Album Title:")
+                        Text(store.tr("Album Title:"))
                             .font(.caption.bold())
                         TextField("ALBUM TITLE", text: $cdTextAlbumTitle)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 175)
                     }
                     HStack(spacing: 5) {
-                        Text("Performer:")
+                        Text(store.tr("Performer:"))
                             .font(.caption.bold())
                         TextField("ARTIST / PERFORMER", text: $cdTextAlbumPerformer)
                             .textFieldStyle(.roundedBorder)
@@ -823,7 +827,7 @@ struct KroutonMainWorkspaceView: View {
                     Picker("Default Track Splice:", selection: $defaultAudioTransition) {
                         Text("2.0s Standard Pre-Gap (INDEX 00)").tag("2.0s Standard Pre-Gap (INDEX 00)")
                         Text("0.0s Gapless Live Album (DAO)").tag("0.0s Gapless Live Album (DAO)")
-                        Text("2.5s Jam Equal-Power Crossfade").tag("2.5s Jam Equal-Power Crossfade")
+                        Text("2.5s Equal-Power Crossfade").tag("2.5s Equal-Power Crossfade")
                     }
                     .frame(width: 295)
                     .font(.caption)
@@ -1185,7 +1189,7 @@ struct KroutonMainWorkspaceView: View {
 
                 HStack(spacing: 14) {
                     HStack(spacing: 5) {
-                        Text("Disc Title:")
+                        Text(store.tr("Disc Title:"))
                             .font(.caption.bold())
                         TextField("KROUTON_VIDEO", text: $store.discVolumeTitle)
                             .textFieldStyle(.roundedBorder)
@@ -1194,7 +1198,7 @@ struct KroutonMainWorkspaceView: View {
                     Picker("Menu Style:", selection: $videoMenuTemplate) {
                         Text("Dark Studio Chapter Grid").tag("Dark Studio Chapter Grid")
                         Text("No Menu (Auto-Play Title 1 on Insert)").tag("No Menu (Auto-Play Title 1 on Insert)")
-                        Text("Criterion Minimalist Track List").tag("Criterion Minimalist Track List")
+                        Text("Minimalist Studio Track List").tag("Minimalist Studio Track List")
                     }
                     .frame(width: 245)
                     .font(.caption)
@@ -1482,7 +1486,7 @@ struct KroutonMainWorkspaceView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "opticaldisc")
                         .foregroundStyle(store.activeAccent)
-                    Text("Disc Title:")
+                    Text(store.tr("Disc Title:"))
                         .font(.caption.bold())
                     TextField("KROUTON_DISC", text: $store.discVolumeTitle)
                         .textFieldStyle(.roundedBorder)
@@ -3747,6 +3751,7 @@ struct FloatingPhaseScopeWindowView: View {
         .frame(minWidth: 740, idealWidth: 780, minHeight: 490, idealHeight: 540)
         .background(Color(NSColor.windowBackgroundColor))
         .preferredColorScheme(store.appearanceMode.colorScheme)
+        .environment(\.locale, store.activeLocale)
         .tint(store.activeAccent)
     }
 

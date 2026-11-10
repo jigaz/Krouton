@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "Krouton",
+    defaultLocalization: "en",
     platforms: [
         .macOS(.v15)
     ],
@@ -31,6 +32,9 @@ let package = Package(
                 "Tartine",
                 "Galette",
                 "Crustini"
+            ],
+            resources: [
+                .process("Resources")
             ]
         )
     ]

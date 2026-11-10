@@ -34,7 +34,7 @@ public struct AccentColorPreset: Identifiable, Hashable, Sendable {
         AccentColorPreset(id: 4, swatchColor: Color.cyan, darkAccent: Color(red: 0.16, green: 0.74, blue: 0.88), lightAccent: Color(red: 0.04, green: 0.54, blue: 0.68), darkOnAccentText: Color.black.opacity(0.88), lightOnAccentText: .white, isMonochrome: false),
         // 5: 405nm Laser Blue
         AccentColorPreset(id: 5, swatchColor: Color.blue, darkAccent: Color.blue, lightAccent: Color(red: 0.0, green: 0.40, blue: 0.88), darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
-        // 6: CCC Slate Blue (Default)
+        // 6: Studio Slate Blue (Default)
         AccentColorPreset(id: 6, swatchColor: Color(red: 0.35, green: 0.52, blue: 0.78), darkAccent: Color(red: 0.38, green: 0.56, blue: 0.84), lightAccent: Color(red: 0.24, green: 0.42, blue: 0.68), darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
         // 7: Indigo / Violet
         AccentColorPreset(id: 7, swatchColor: Color.indigo, darkAccent: Color(red: 0.46, green: 0.42, blue: 0.92), lightAccent: Color.indigo, darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
@@ -195,7 +195,7 @@ public enum KroutonLanguage: String, CaseIterable, Identifiable, Sendable {
         case .german: return "de"
         case .french: return "fr"
         case .spanish: return "es"
-        case .chineseSimplified: return "zh"
+        case .chineseSimplified: return "zh-Hans"
         case .korean: return "ko"
         }
     }
@@ -337,7 +337,6 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var a11yIncreaseContrast: Bool = false
     @Published public var a11yDifferentiateWithoutColor: Bool = true
     @Published public var a11yReduceMotion: Bool = false
-    @Published public var a11yTextScale: Double = 1.0
     @Published public var rememberLastTaskOnLaunch: Bool = true
     @Published public var useBase10Units: Bool = true
     @Published public var scratchDiskPath: String = "~/Library/Caches/app.krouton.staging"
@@ -479,16 +478,35 @@ public final class KroutonStateStore: ObservableObject {
         )
     ]
 
+    private var resolvedAccentPreset: AccentColorPreset {
+        if selectedAccentIndex == -1 {
+            // Multicolor mode: dynamically maps to category color (Burn=Red, Depot=Blue, Copy=Orange, Label=Indigo)
+            let targetID: Int
+            switch selectedCategory {
+            case .burn: targetID = 0
+            case .depot: targetID = 5
+            case .copy: targetID = 1
+            case .label: targetID = 7
+            }
+            return AccentColorPreset.allPresets.first(where: { $0.id == targetID }) ?? AccentColorPreset.allPresets[1]
+        }
+        return AccentColorPreset.allPresets.first(where: { $0.id == selectedAccentIndex })
+            ?? AccentColorPreset.allPresets.first(where: { $0.id == 6 })
+            ?? AccentColorPreset.allPresets[0]
+    }
+
     public var activeAccent: Color {
-        let preset = AccentColorPreset.allPresets[min(max(0, selectedAccentIndex), AccentColorPreset.allPresets.count - 1)]
         let resolvedScheme: ColorScheme = (appearanceMode == .light) ? .light : .dark
-        return preset.effectiveAccent(for: resolvedScheme)
+        return resolvedAccentPreset.effectiveAccent(for: resolvedScheme)
     }
 
     public var activeOnAccentText: Color {
-        let preset = AccentColorPreset.allPresets[min(max(0, selectedAccentIndex), AccentColorPreset.allPresets.count - 1)]
         let resolvedScheme: ColorScheme = (appearanceMode == .light) ? .light : .dark
-        return preset.effectiveOnAccentText(for: resolvedScheme)
+        return resolvedAccentPreset.effectiveOnAccentText(for: resolvedScheme)
+    }
+
+    public var activeLocale: Locale {
+        Locale(identifier: appLanguage.isoCode)
     }
 
     public var totalStagedBytes: Int64 {
@@ -615,53 +633,21 @@ public final class KroutonStateStore: ObservableObject {
         }
     }
 
-    /// Lightweight built-in localization engine for instant live UI translation across 7 languages
+    /// Real Apple Bundle.module .lproj localization lookup (Sources/KroutonApp/Resources/<lang>.lproj/Localizable.strings)
     public func tr(_ key: String) -> String {
-        let lang = appLanguage.isoCode
-        guard lang != "en" else { return key }
-        let table: [String: [String: String]] = [
-            "FORMAT CHOOSER": [
-                "ja": "フォーマット選択", "de": "FORMAT-AUSWAHL", "fr": "CHOIX DU FORMAT",
-                "es": "SELECTOR DE FORMATO", "zh": "光盘格式选择", "ko": "포맷 선택기"
-            ],
-            "DESTINATIONS": [
-                "ja": "出力先・ドライブ", "de": "ZIELLAUFWERKE", "fr": "DESTINATIONS",
-                "es": "DESTINOS DE GRABACIÓN", "zh": "目标刻录机与输出", "ko": "대상 드라이브"
-            ],
-            "BURN": [
-                "ja": "ディスク作成", "de": "BRENNEN", "fr": "GRAVER",
-                "es": "GRABAR", "zh": "刻录", "ko": "굽기"
-            ],
-            "DISC IMAGE DEPOT": [
-                "ja": "イメージ保管庫", "de": "IMAGE-DEPOT", "fr": "DÉPÔT D’IMAGES",
-                "es": "DEPÓSITO ISO", "zh": "镜像仓库", "ko": "디스크 이미지 보관소"
-            ],
-            "COPY": [
-                "ja": "複製・リッピング", "de": "KOPIEREN", "fr": "COPIER",
-                "es": "COPIAR", "zh": "复制与抓轨", "ko": "복사 및 추출"
-            ],
-            "LABEL": [
-                "ja": "レーベル印刷", "de": "LABELDRUCK", "fr": "ÉTIQUETTE",
-                "es": "ETIQUETA", "zh": "盘面打印", "ko": "라벨 인쇄"
-            ],
-            "Clear All": [
-                "ja": "すべて消去", "de": "Alle löschen", "fr": "Tout effacer",
-                "es": "Borrar todo", "zh": "全部清空", "ko": "모두 지우기"
-            ],
-            "Write Speed:": [
-                "ja": "書込速度:", "de": "Schreibtempo:", "fr": "Vitesse d’écriture :",
-                "es": "Velocidad:", "zh": "刻录速度:", "ko": "쓰기 속도:"
-            ],
-            "Simulate": [
-                "ja": "テスト書込", "de": "Simulieren", "fr": "Simuler",
-                "es": "Simular", "zh": "模拟刻录", "ko": "시뮬레이션"
-            ],
-            "Verify": [
-                "ja": "ベリファイ検証", "de": "Prüfen", "fr": "Vérifier",
-                "es": "Verificar", "zh": "刻录后校验", "ko": "검증"
-            ]
-        ]
-        return table[key]?[lang] ?? key
+        let code = appLanguage.isoCode
+        if let lprojPath = Bundle.module.path(forResource: code, ofType: "lproj"),
+           let langBundle = Bundle(path: lprojPath) {
+            let localized = langBundle.localizedString(forKey: key, value: key, table: "Localizable")
+            if localized != key {
+                return localized
+            }
+        }
+        if let fallbackPath = Bundle.module.path(forResource: String(code.prefix(2)), ofType: "lproj"),
+           let langBundle = Bundle(path: fallbackPath) {
+            return langBundle.localizedString(forKey: key, value: key, table: "Localizable")
+        }
+        return Bundle.module.localizedString(forKey: key, value: key, table: "Localizable")
     }
 
     public func clearStagedFiles() {

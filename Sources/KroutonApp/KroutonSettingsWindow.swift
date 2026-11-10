@@ -76,7 +76,7 @@ public struct KroutonSettingsWindowView: View {
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(store.selectedSettingsPane == pane ? store.activeAccent : .secondary)
                             .frame(width: 20)
-                        Text(pane.rawValue)
+                        Text(store.tr(pane.rawValue))
                             .font(.system(size: 13, weight: .medium))
                     }
                     .padding(.vertical, 4)
@@ -93,7 +93,7 @@ public struct KroutonSettingsWindowView: View {
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 20) {
-                            Text(store.selectedSettingsPane.rawValue)
+                            Text(store.tr(store.selectedSettingsPane.rawValue))
                                 .font(.title2.bold())
 
                             switch store.selectedSettingsPane {
@@ -560,7 +560,7 @@ public struct KroutonSettingsWindowView: View {
 
     private var audioVideoPane: some View {
         VStack(alignment: .leading, spacing: 18) {
-            settingsCard(title: "Red Book Audio CD & Jam Crossfade Defaults") {
+            settingsCard(title: "Red Book Audio CD & Crossfade Defaults") {
                 Toggle("Analyze BPM & Beat Grid automatically via Apple SoundAnalysis on import", isOn: $store.autoBeatmatchSoundAnalysis)
                 Divider()
                 HStack {
@@ -585,7 +585,7 @@ public struct KroutonSettingsWindowView: View {
                 Toggle("Automatically strip foreign audio dubs (retain Original Language + English) to maximize video bitrate", isOn: $store.fitToDiscStripForeignDubs)
             }
 
-            settingsCard(title: "Universal Hardware & Software Decoder Matrix (HandBrake / VLC / Compressor Parity)") {
+            settingsCard(title: "Universal Hardware & Software Decoder Matrix") {
                 HStack {
                     Label("Apple Silicon VideoToolbox ASIC + Accelerate vDSP + libavformat/libavcodec Active", systemImage: "cpu.fill")
                         .font(.system(size: 11, weight: .bold, design: .monospaced))
@@ -1020,13 +1020,7 @@ public struct KroutonSettingsWindowView: View {
                 Toggle("Differentiate Without Color (Show explicit status symbols alongside green/amber/red LEDs)", isOn: $store.a11yDifferentiateWithoutColor)
                 Divider()
                 Toggle("Reduce Motion (Disable continuous disc rotation & smooth Phase Scope sweeps)", isOn: $store.a11yReduceMotion)
-                Divider()
-                HStack {
-                    Text(String(format: "Workspace & Telemetry Text Scale: %.0f%%", store.a11yTextScale * 100))
-                    Spacer()
-                    Slider(value: $store.a11yTextScale, in: 0.90...1.35, step: 0.05)
-                        .frame(width: 220)
-                }
+
             }
 
             settingsCard(title: "Internationalization & Foreign Languages (7 Built-In Locales)") {

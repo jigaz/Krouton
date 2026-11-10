@@ -188,7 +188,7 @@ public enum AudioTransitionStyle: String, CaseIterable, Identifiable, Sendable {
     case standard2s = "2.0s Standard Pre-Gap"
     case gapless0s = "0.0s Gapless (Live)"
     case customPause = "Custom INDEX 00 Pause"
-    case jamCrossfade = "Jam Equal-Power Crossfade"
+    case jamCrossfade = "Equal-Power Crossfade"
     public var id: String { rawValue }
 }
 
@@ -325,7 +325,7 @@ public final class RedBookAuditionEngine: ObservableObject {
 
         if let nextTrack = trackB {
             auditionStatusText = xfade > 0
-                ? String(format: "Auditioning %.1fs Jam Crossfade: %@ -> %@", xfade, trackA.title, nextTrack.title)
+                ? String(format: "Auditioning %.1fs Crossfade: %@ -> %@", xfade, trackA.title, nextTrack.title)
                 : String(format: "Auditioning Splice (%.1fs INDEX 00 Gap): %@ -> %@", gap, trackA.title, nextTrack.title)
         } else {
             auditionStatusText = "Auditioning Lead-Out Tail: \(trackA.title)"
@@ -2344,11 +2344,11 @@ public final class DriveManager: ObservableObject {
 }
 
 
-// MARK: - Universal Media Decoder & Hardware Acceleration Engine (HandBrake / VLC / Compressor Parity)
+// MARK: - Universal Media Decoder & Hardware Acceleration Engine (Hardware & Software Stream Engine)
 
 public enum HardwareAccelerationTier: String, Sendable {
     case videoToolboxASIC = "Apple Silicon VideoToolbox ASIC (Zero-Copy GPU)"
-    case hybridDemuxVT = "FFmpeg Demux (MKV/M2TS) -> VideoToolbox Hardware"
+    case hybridDemuxVT = "Container Stream Demux -> VideoToolbox Hardware"
     case accelerateSIMD = "Apple Accelerate vDSP / ARM64 NEON SIMD"
     case coreAudioHardware = "CoreAudio / AudioToolbox ExtAudioFile"
     case bitstreamPassthrough = "Direct Optical Bitstream Passthrough (Zero Re-encode)"
@@ -2423,7 +2423,7 @@ public enum UniversalMediaDecoderEngine {
             ),
             CodecCapabilityRow(
                 id: "vt-prores",
-                category: "Apple Compressor & Broadcast Mezzanine (ProRes / CineForm / DNxHR)",
+                category: "Broadcast & Post-Production Mezzanine (ProRes / CineForm / DNxHR)",
                 formatsAndExtensions: ".mov, .mxf (ProRes 422 / LT / HQ / 4444 / XQ / RAW)",
                 primaryEngine: "VideoToolbox ProRes Media Engine + libavcodec DNxHR",
                 hardwareStatus: proResHW ? "Dedicated ProRes Silicon Engine" : "Apple Accelerate SIMD",
@@ -2439,7 +2439,7 @@ public enum UniversalMediaDecoderEngine {
             ),
             CodecCapabilityRow(
                 id: "ffmpeg-containers",
-                category: "VLC / HandBrake Universal Containers & Optical Streams",
+                category: "Universal Multi-Track Containers & Optical Streams",
                 formatsAndExtensions: ".mkv, .m2ts, .mts, .vob, .evo, .avi, .wmv, .asf, .flv, .ogv, .rmvb",
                 primaryEngine: "libavformat Demuxer -> VideoToolbox HW Bridge",
                 hardwareStatus: "Zero-Copy Packet Remux -> VT Hardware",
@@ -2506,7 +2506,7 @@ public enum UniversalMediaDecoderEngine {
                 audioCodecName: "Dolby TrueHD Atmos / DTS-HD MA + AC-3 5.1 Core",
                 subtitleSummary: "Blu-ray PGS (.sup) + ASS/SRT Softsubs",
                 accelerationTier: .hybridDemuxVT,
-                shortHardwareBadge: "FFmpeg Demux -> VT HW",
+                shortHardwareBadge: "Stream Demux -> VT HW",
                 isHardwareAccelerated: true,
                 targetMasteringPipeline: "libavformat Packet Demux -> VideoToolbox ASIC -> BDMV / VIDEO_TS"
             )
