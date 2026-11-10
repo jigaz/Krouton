@@ -302,7 +302,7 @@ public struct DestinationQueueItem: Identifiable, Hashable, Sendable {
 
 @MainActor
 public final class KroutonStateStore: ObservableObject {
-    @Published public var appearanceMode: AppAppearanceMode = .dark
+    @Published public var appearanceMode: AppAppearanceMode = .auto
     @Published public var selectedAccentIndex: Int = 8 // Default: Toasted Krouton Brown
     // macOS System Settings Theme & Window Extensions
     @Published public var iconWidgetStyle: IconWidgetStyleMode = .defaultStyle
@@ -479,7 +479,15 @@ public final class KroutonStateStore: ObservableObject {
     }
 
     public func effectiveColorForTask(id taskID: String, category: TaskMasterCategory) -> Color {
-        let resolvedScheme: ColorScheme = (appearanceMode == .light) ? .light : .dark
+        let resolvedScheme: ColorScheme = {
+            switch appearanceMode {
+            case .light: return .light
+            case .dark: return .dark
+            case .auto:
+                let isDark = NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                return isDark ? .dark : .light
+            }
+        }()
         if selectedAccentIndex == -1 {
             let pid = multicolorPresetID(forTaskID: taskID, category: category)
             let p = AccentColorPreset.allPresets.first(where: { $0.id == pid }) ?? resolvedAccentPreset
@@ -499,12 +507,28 @@ public final class KroutonStateStore: ObservableObject {
     }
 
     public var activeAccent: Color {
-        let resolvedScheme: ColorScheme = (appearanceMode == .light) ? .light : .dark
+        let resolvedScheme: ColorScheme = {
+            switch appearanceMode {
+            case .light: return .light
+            case .dark: return .dark
+            case .auto:
+                let isDark = NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                return isDark ? .dark : .light
+            }
+        }()
         return resolvedAccentPreset.effectiveAccent(for: resolvedScheme)
     }
 
     public var activeOnAccentText: Color {
-        let resolvedScheme: ColorScheme = (appearanceMode == .light) ? .light : .dark
+        let resolvedScheme: ColorScheme = {
+            switch appearanceMode {
+            case .light: return .light
+            case .dark: return .dark
+            case .auto:
+                let isDark = NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                return isDark ? .dark : .light
+            }
+        }()
         return resolvedAccentPreset.effectiveOnAccentText(for: resolvedScheme)
     }
 
