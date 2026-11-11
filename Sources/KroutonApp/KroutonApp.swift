@@ -1110,7 +1110,7 @@ struct KroutonMainWorkspaceView: View {
                             .lineLimit(1)
                         Text("•").foregroundStyle(.white.opacity(0.35))
                         Text("\(item.architecture) • \(item.bootStandard)")
-                            .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
+                            .font(KroutonDesign.Typography.badgeMono)
                             .foregroundStyle(.white.opacity(0.82))
                             .lineLimit(1)
                     }
@@ -1228,7 +1228,7 @@ struct KroutonMainWorkspaceView: View {
                                 .lineLimit(1)
                             Spacer(minLength: 4)
                             Text(item.sizeDisplay)
-                                .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                                .font(KroutonDesign.Typography.microMono)
                                 .foregroundStyle(.white.opacity(0.75))
                                 .lineLimit(1)
                         }
@@ -2560,7 +2560,7 @@ struct KroutonMainWorkspaceView: View {
                                                 .frame(width: 78, height: 22)
                                                 .background(Color.orange.opacity(0.32))
                                         }
-                                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                                        .font(KroutonDesign.Typography.microMono)
                                         .clipShape(RoundedRectangle(cornerRadius: 4))
                                     } else {
                                         HStack(spacing: 2) {
@@ -2577,7 +2577,7 @@ struct KroutonMainWorkspaceView: View {
                                                 .background(Color.secondary.opacity(0.18))
                                                 .foregroundStyle(.secondary)
                                         }
-                                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                                        .font(KroutonDesign.Typography.microMono)
                                         .clipShape(RoundedRectangle(cornerRadius: 4))
                                     }
                                 }
@@ -2590,10 +2590,10 @@ struct KroutonMainWorkspaceView: View {
                                 HStack(spacing: 8) {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("BOOT RECORD SIGNATURE")
-                                            .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                                            .font(KroutonDesign.Typography.microMono)
                                             .foregroundStyle(.secondary)
                                         Text(bootReadout)
-                                            .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                                            .font(KroutonDesign.Typography.telemetryMono)
                                             .foregroundStyle(entry.bootabilityBadge != nil ? .green : .primary)
                                             .lineLimit(1)
                                     }
@@ -2604,10 +2604,10 @@ struct KroutonMainWorkspaceView: View {
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("LOGICAL BLOCKS & ECC")
-                                            .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                                            .font(KroutonDesign.Typography.microMono)
                                             .foregroundStyle(.secondary)
                                         Text("\(entry.sectorsLBA) LBA  |  16-Sec ECC: \(entry.sectorsLBA % 16 == 0 ? "ALIGNED" : "+\(16 - (entry.sectorsLBA % 16)) PAD")")
-                                            .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                                            .font(KroutonDesign.Typography.telemetryMono)
                                             .foregroundStyle(store.activeAccent)
                                             .lineLimit(1)
                                     }
