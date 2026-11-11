@@ -195,6 +195,10 @@ struct KroutonMainWorkspaceView: View {
     @State private var leftSidebarDragStartWidth: CGFloat? = nil
     @State private var rightSidebarDragStartWidth: CGFloat? = nil
     @State private var dropRejectShakePhase: CGFloat = 0
+    @State private var isLeftSidebarCompact: Bool = false
+    @State private var isLeftSidebarUltraSkinny: Bool = false
+    @State private var isRightQueueCompact: Bool = false
+    @State private var isCenterWorkspaceNarrow: Bool = false
     @State private var isDropTargeted: Bool = false
     @State private var activeDiscPopoverCardID: UUID? = nil
     @State private var romWriteModeDAO96SubQ: Bool = true
@@ -266,13 +270,15 @@ struct KroutonMainWorkspaceView: View {
                 let maxAllowedRight = max(225, min(460, totalW - clampedLeft - minCenterW))
                 let clampedRight = min(max(225, rightColumnLiveWidth), maxAllowedRight)
 
+                let centerLiveW = max(minCenterW, totalW - clampedLeft - clampedRight - 14)
+
                 HStack(spacing: 0) {
                     leftFormatChooserColumn
                         .frame(width: clampedLeft)
                         .frame(maxHeight: .infinity)
                         .clipped()
 
-                    // Left Interactive Column Resize Handle
+                    // Left Interactive Column Resize Handle (Pinned to Stationary Window Coordinate Space!)
                     ZStack {
                         Rectangle()
                             .fill(Color.primary.opacity(0.10))
@@ -288,13 +294,32 @@ struct KroutonMainWorkspaceView: View {
                         if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
                     }
                     .gesture(
-                        DragGesture(minimumDistance: 1)
+                        DragGesture(minimumDistance: 0, coordinateSpace: .named("KroutonSplitSpace"))
                             .onChanged { val in
+                                let startW = leftSidebarDragStartWidth ?? clampedLeft
                                 if leftSidebarDragStartWidth == nil {
-                                    leftSidebarDragStartWidth = clampedLeft
+                                    leftSidebarDragStartWidth = startW
                                 }
-                                let proposed = (leftSidebarDragStartWidth ?? clampedLeft) + val.translation.width
-                                leftColumnLiveWidth = min(max(165, proposed), min(360, totalW - clampedRight - minCenterW))
+                                let maxL = max(165, min(360, totalW - clampedRight - minCenterW - 14))
+                                let newW = min(max(165, startW + val.translation.width), maxL)
+                                if abs(newW - leftColumnLiveWidth) > 0.5 {
+                                    var tx = Transaction()
+                                    tx.disablesAnimations = true
+                                    withTransaction(tx) {
+                                        leftColumnLiveWidth = newW
+                                        // Hysteresis deadband (228pt <-> 244pt) so names NEVER flicker!
+                                        if !isLeftSidebarCompact && newW < 228 {
+                                            isLeftSidebarCompact = true
+                                        } else if isLeftSidebarCompact && newW > 244 {
+                                            isLeftSidebarCompact = false
+                                        }
+                                        if !isLeftSidebarUltraSkinny && newW < 204 {
+                                            isLeftSidebarUltraSkinny = true
+                                        } else if isLeftSidebarUltraSkinny && newW > 218 {
+                                            isLeftSidebarUltraSkinny = false
+                                        }
+                                    }
+                                }
                             }
                             .onEnded { _ in
                                 leftSidebarDragStartWidth = nil
@@ -302,10 +327,11 @@ struct KroutonMainWorkspaceView: View {
                     )
 
                     centerAdaptableWorkspace
-                        .frame(minWidth: minCenterW, maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(width: centerLiveW)
+                        .frame(maxHeight: .infinity)
                         .clipped()
 
-                    // Right Interactive Column Resize Handle
+                    // Right Interactive Column Resize Handle (Pinned to Stationary Window Coordinate Space!)
                     ZStack {
                         Rectangle()
                             .fill(Color.primary.opacity(0.10))
@@ -321,13 +347,27 @@ struct KroutonMainWorkspaceView: View {
                         if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
                     }
                     .gesture(
-                        DragGesture(minimumDistance: 1)
+                        DragGesture(minimumDistance: 0, coordinateSpace: .named("KroutonSplitSpace"))
                             .onChanged { val in
+                                let startW = rightSidebarDragStartWidth ?? clampedRight
                                 if rightSidebarDragStartWidth == nil {
-                                    rightSidebarDragStartWidth = clampedRight
+                                    rightSidebarDragStartWidth = startW
                                 }
-                                let proposed = (rightSidebarDragStartWidth ?? clampedRight) - val.translation.width
-                                rightColumnLiveWidth = min(max(225, proposed), min(460, totalW - clampedLeft - minCenterW))
+                                let maxR = max(225, min(460, totalW - clampedLeft - minCenterW - 14))
+                                let newW = min(max(225, startW - val.translation.width), maxR)
+                                if abs(newW - rightColumnLiveWidth) > 0.5 {
+                                    var tx = Transaction()
+                                    tx.disablesAnimations = true
+                                    withTransaction(tx) {
+                                        rightColumnLiveWidth = newW
+                                        // Hysteresis deadband (278pt <-> 294pt) so right queue labels NEVER flicker!
+                                        if !isRightQueueCompact && newW < 278 {
+                                            isRightQueueCompact = true
+                                        } else if isRightQueueCompact && newW > 294 {
+                                            isRightQueueCompact = false
+                                        }
+                                    }
+                                }
                             }
                             .onEnded { _ in
                                 rightSidebarDragStartWidth = nil
@@ -338,6 +378,25 @@ struct KroutonMainWorkspaceView: View {
                         .frame(width: clampedRight)
                         .frame(maxHeight: .infinity)
                         .clipped()
+                }
+                .coordinateSpace(name: "KroutonSplitSpace")
+                .onAppear {
+                    isLeftSidebarCompact = clampedLeft < 235
+                    isLeftSidebarUltraSkinny = clampedLeft < 210
+                    isRightQueueCompact = clampedRight < 285
+                    isCenterWorkspaceNarrow = centerLiveW < 720
+                }
+                .onChange(of: centerLiveW) { _, newCenterW in
+                    // Hysteresis deadband (705pt <-> 735pt) for Center Workspace 1-Column / 2-Column & Hero Schematic box!
+                    var tx = Transaction()
+                    tx.disablesAnimations = true
+                    withTransaction(tx) {
+                        if !isCenterWorkspaceNarrow && newCenterW < 705 {
+                            isCenterWorkspaceNarrow = true
+                        } else if isCenterWorkspaceNarrow && newCenterW > 735 {
+                            isCenterWorkspaceNarrow = false
+                        }
+                    }
                 }
             }
         }
@@ -410,7 +469,7 @@ struct KroutonMainWorkspaceView: View {
     private var leftFormatChooserColumn: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Label(leftColumnLiveWidth < 195 ? KroutonL10n.tr("FORMATS") : KroutonL10n.tr("FORMAT CHOOSER"), systemImage: "list.bullet.rectangle")
+                Label(isLeftSidebarUltraSkinny ? KroutonL10n.tr("FORMATS") : KroutonL10n.tr("FORMAT CHOOSER"), systemImage: "list.bullet.rectangle")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -585,7 +644,7 @@ struct KroutonMainWorkspaceView: View {
 
     private func taskRowButton(id: String, category: TaskMasterCategory, title: String,
         shortTitle: String? = nil, colloquial: String, badge: String = "", sfSymbol: String) -> some View {
-        let effectiveTitle = (leftColumnLiveWidth < 238) ? (shortTitle ?? title) : title
+        let effectiveTitle = isLeftSidebarCompact ? (shortTitle ?? title) : title
         let isSelected = (store.selectedTaskID == id)
         return Button {
             store.selectedCategory = category
@@ -611,7 +670,7 @@ struct KroutonMainWorkspaceView: View {
                         .font(.system(size: store.sidebarIconSize.titleFontSize, weight: .semibold))
                         .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
                         .lineLimit(1)
-                    if leftColumnLiveWidth >= 215 {
+                    if !isLeftSidebarUltraSkinny {
                         Text(KroutonL10n.tr(colloquial))
                             .font(.system(size: max(9.5, store.sidebarIconSize.titleFontSize - 2.0)))
                             .foregroundStyle(isSelected ? store.activeOnAccentText.opacity(0.82) : .secondary)
@@ -825,7 +884,7 @@ struct KroutonMainWorkspaceView: View {
         let heroItem = depotHeroSelectedItem
 
         return GeometryReader { geo in
-            let isNarrowWorkspace = geo.size.width < 740
+            let isNarrowWorkspace = isCenterWorkspaceNarrow
 
             VStack(alignment: .leading, spacing: 10) {
                 // Row 1: Clean Sub-Library Header + Search Bar (NO top category pills!)
@@ -3279,7 +3338,7 @@ struct KroutonMainWorkspaceView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
                 Label(
-                    rightColumnLiveWidth < 265 ? "QUEUE (\(store.destinationQueue.count))" : "DESTINATIONS (\(store.destinationQueue.count))",
+                    isRightQueueCompact ? "QUEUE (\(store.destinationQueue.count))" : "DESTINATIONS (\(store.destinationQueue.count))",
                     systemImage: "arrow.right.doc.on.clipboard"
                 )
                 .font(.system(size: 11, weight: .bold))
@@ -3291,7 +3350,7 @@ struct KroutonMainWorkspaceView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
-                        if rightColumnLiveWidth >= 255 {
+                        if !isRightQueueCompact {
                             Text(KroutonL10n.tr("Add Output"))
                                 .lineLimit(1)
                         }
@@ -3498,7 +3557,7 @@ struct KroutonMainWorkspaceView: View {
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "eject.fill")
-                                if rightColumnLiveWidth >= 285 { Text(KroutonL10n.tr("Eject")).lineLimit(1) }
+                                if !isRightQueueCompact { Text(KroutonL10n.tr("Eject")).lineLimit(1) }
                             }
                             .font(.system(size: 10, weight: .semibold))
                             .padding(.horizontal, 8)
@@ -3636,7 +3695,7 @@ struct KroutonMainWorkspaceView: View {
                 }
 
                 HStack {
-                    Text(rightColumnLiveWidth < 280 ? "Speed:" : KroutonL10n.tr("Write Speed:")).lineLimit(1)
+                    Text(isRightQueueCompact ? "Speed:" : KroutonL10n.tr("Write Speed:")).lineLimit(1)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -3678,7 +3737,7 @@ struct KroutonMainWorkspaceView: View {
                         HStack(spacing: 3) {
                             Image(systemName: "seal.fill")
                                 .font(.system(size: 8))
-                            Text(rightColumnLiveWidth < 295 ? "DVD-ROM" : KroutonL10n.tr("DVD-ROM Bitset")).lineLimit(1)
+                            Text(isRightQueueCompact ? "DVD-ROM" : KroutonL10n.tr("DVD-ROM Bitset")).lineLimit(1)
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                         }
                         .padding(.horizontal, 6)
