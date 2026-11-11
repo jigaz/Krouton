@@ -459,9 +459,9 @@ struct KroutonMainWorkspaceView: View {
                     .font(.system(size: 12, weight: .semibold))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(store.activeAccent.opacity(0.18))
+                    .background(store.uiSecondaryAccent.opacity(0.18))
                     .clipShape(Capsule())
-                    .overlay(Capsule().stroke(store.activeAccent.opacity(0.5), lineWidth: 1))
+                    .overlay(Capsule().stroke(store.uiSecondaryAccent.opacity(0.5), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
             }

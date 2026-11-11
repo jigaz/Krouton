@@ -24,7 +24,7 @@ extension KroutonMainWorkspaceView {
                 Button {
                     KroutonWindowManager.shared.openSettingsWindow(store: store, driveManager: driveManager, pane: .formatChooser)
                 } label: {
-                    Image(systemName: "slider.horizontal.3")
+                    Image(systemName: "slider.horizontal.3").foregroundStyle(store.uiSecondaryAccent)
                         .font(.system(size: 11))
                 }
                 .buttonStyle(.plain)
@@ -59,7 +59,7 @@ extension KroutonMainWorkspaceView {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(KroutonL10n.tr("DISC IMAGE DEPOT"))
                             .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.90) : .secondary)
                             .padding(.horizontal, 10)
 
                         taskRowButton(
@@ -662,7 +662,7 @@ extension KroutonMainWorkspaceView {
                     .font(.system(size: 11, weight: .semibold))
                     .padding(.horizontal, 9)
                     .padding(.vertical, 4)
-                    .background(store.activeAccent.opacity(0.2))
+                    .background(store.uiSecondaryAccent.opacity(0.2))
                     .clipShape(Capsule())
                     .fixedSize(horizontal: true, vertical: false)
                 }
