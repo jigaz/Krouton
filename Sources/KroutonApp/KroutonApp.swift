@@ -1116,7 +1116,7 @@ struct KroutonMainWorkspaceView: View {
                             .lineLimit(1)
                         Text("v\(item.version)")
                             .font(.system(size: 12, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.cyan)
+                            .foregroundStyle(Color.cyan)
                             .lineLimit(1)
                     }
 
@@ -1214,10 +1214,10 @@ struct KroutonMainWorkspaceView: View {
                         HStack(spacing: 5) {
                             Image(systemName: item.sfSymbol)
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(.cyan)
+                                .foregroundStyle(Color.cyan)
                             Text("DISC CONTENT SCHEMATIC")
                                 .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
-                                .foregroundStyle(.cyan)
+                                .foregroundStyle(Color.cyan)
                                 .lineLimit(1)
                             Spacer(minLength: 4)
                             Text(item.sizeDisplay)
@@ -1591,7 +1591,7 @@ struct KroutonMainWorkspaceView: View {
                     if spec.id.contains("extra") || spec.technicalName.contains("Extra") {
                         Text(KroutonL10n.tr("• Session 1: Audio Tracks | Session 2: Multisession Data Track (XA)"))
                             .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(.cyan)
+                            .foregroundStyle(Color.cyan)
                     }
                     Spacer()
                 }
@@ -1696,7 +1696,7 @@ struct KroutonMainWorkspaceView: View {
 
                                         Text(defaultAudioTransition.components(separatedBy: " (").first ?? "2.0s Pre-Gap")
                                             .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                                            .foregroundStyle(.cyan)
+                                            .foregroundStyle(Color.cyan)
                                             .frame(width: 145, alignment: .center)
 
                                         Text(String(format: "%02d:%02d:%02d", mm, ss, ff))
@@ -2061,7 +2061,7 @@ struct KroutonMainWorkspaceView: View {
                                         let vProbe = UniversalMediaDecoderEngine.probeFile(entry.url)
                                         Text("\(vProbe.shortHardwareBadge) • \(isBluRay ? "BDMV" : "DVD-V")")
                                             .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                                            .foregroundStyle(.cyan)
+                                            .foregroundStyle(Color.cyan)
                                             .frame(width: 195, alignment: .center)
                                         Text("\(entry.sectorsLBA) LBA")
                                             .font(.system(size: 10, weight: .semibold, design: .monospaced))
@@ -3743,7 +3743,7 @@ struct KroutonMainWorkspaceView: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Color.cyan.opacity(0.16))
-                        .foregroundStyle(.cyan)
+                        .foregroundStyle(Color.cyan)
                         .clipShape(Capsule())
                         .help("MMC Bitsetting Active: Stamps DVD+R / DVD+R DL lead-in Book Type as DVD-ROM (0x00)")
                     }
@@ -4815,7 +4815,7 @@ struct InlineMiniPhaseScopeView: View {
                     Spacer()
                     Text(String(format: "r = %.1f mm • Click to Pop Out", telemetry.radialMillimeters))
                         .font(.system(size: 9, design: .monospaced))
-                        .foregroundStyle(.cyan)
+                        .foregroundStyle(Color.cyan)
                 }
             }
             .padding(8)
@@ -4916,7 +4916,7 @@ struct FloatingPhaseScopeWindowView: View {
                 Spacer()
                 Text(String(format: "Radial Position: r = %.2f mm / 58.00 mm", telemetry.radialMillimeters))
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(.cyan)
+                    .foregroundStyle(Color.cyan)
             }
             .padding(.horizontal, 4)
 
@@ -6742,12 +6742,14 @@ struct DepotBlueprintArtStudioView: View {
 
 // MARK: - Perceptual Split-Complementary + Warm/Cool Polarity Color Engine (CGColor / P3)
 extension Color {
-    /// Maps each Krouton appearance swatch to its own unique Display-P3 secondary color:
+    /// Maps each Krouton appearance swatch to its own distinct Display-P3 secondary color:
     /// - Titanium / Monochrome -> Pure Crisp White
-    /// - Toasted Brown -> Warm Caramel / Espresso Tan (Brown-on-Brown two-tone)
+    /// - Toasted Brown -> Bright Champagne Almond / Pale Tan (High-contrast two-tone brown!)
+    /// - Red -> Cool Arctic Periwinkle / Ice Blue (Zero Christmas-tree green!)
     /// - Green -> Electric Cobalt / Cerulean Blue
-    /// - Light Blue / Cyan -> Vibrant Teenage-Engineering Orange
-    /// - Every other swatch -> Its own distinct, non-repeating P3 secondary color
+    /// - Teal / Aqua-Blue -> Electric Cyber Magenta / Berry
+    /// - Light Blue / Sky -> Vibrant Teenage-Engineering Safety Orange
+    /// - Deep Blue / Indigo -> Electric Spring Turquoise / Cyber Mint
     var perceptualSplitComplement: Color {
         let nsColor = NSColor(self).usingColorSpace(.sRGB) ?? NSColor.systemCyan
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
@@ -6765,61 +6767,61 @@ extension Color {
             return Color(cgColor: CGColor(srgbRed: pr, green: pg, blue: pb, alpha: 1.0))
         }
 
-        // 1. TITANIUM / MONOCHROME (Low Saturation) -> Pure Crisp White (or Machined Titanium if swatch is pure white)
-        if s < 0.12 {
-            return v > 0.88 ? p3(0.62, 0.66, 0.72) : p3(0.98, 0.99, 1.00)
+        // 1. TITANIUM / MONOCHROME (Low Saturation) -> Pure Crisp White
+        if s < 0.14 {
+            return v > 0.88 ? p3(0.60, 0.65, 0.72) : p3(0.98, 0.99, 1.00)
         }
 
-        // 2. TOASTED KROUTON BROWN vs. VIBRANT ORANGE (Hue 17°..40°)
-        //    Brown has lower saturation/brightness (or warm earthy R/G/B ratios) compared to neon orange.
-        if hueDeg >= 17.0 && hueDeg < 40.0 {
-            let isEarthyBrown = (s < 0.78) || (v < 0.86) || (r - g < 0.34)
+        // 2. TOASTED KROUTON BROWN vs. VIBRANT ORANGE (Hue 16°..42°)
+        if hueDeg >= 16.0 && hueDeg < 42.0 {
+            let isEarthyBrown = (s < 0.82) || (v < 0.88) || (r - g < 0.36)
             if isEarthyBrown {
-                // BROWN -> Secondary Warm Toasted Caramel / Champagne Bronze (Distinct lighter/warmer brownish tone!)
-                return p3(0.91, 0.73, 0.50)
+                // BROWN -> High-Contrast Pale Toasted Almond / Warm Cream Tan (Dramatic lightness & warmth delta!)
+                return p3(0.98, 0.87, 0.68)
             } else {
-                // VIBRANT ORANGE -> Deep Ultramarine / Royal Indigo
-                return p3(0.42, 0.56, 1.00)
+                // VIBRANT ORANGE -> Deep Ultramarine / Royal Cobalt
+                return p3(0.36, 0.60, 1.00)
             }
         }
 
-        // 3. GOLD / AMBER / YELLOW (Hue 40°..78°) -> Electric Amethyst / Royal Violet
-        if hueDeg >= 40.0 && hueDeg < 78.0 {
-            return p3(0.76, 0.46, 1.00)
+        // 3. GOLD / AMBER / YELLOW (Hue 42°..78°) -> Electric Amethyst / Lavender Violet
+        if hueDeg >= 42.0 && hueDeg < 78.0 {
+            return p3(0.78, 0.50, 1.00)
         }
 
-        // 4. GREEN / EMERALD (Hue 78°..162°) -> Electric Cobalt / Cerulean Blue (Locked!)
-        if hueDeg >= 78.0 && hueDeg < 162.0 {
+        // 4. GREEN / EMERALD (Hue 78°..164°) -> Electric Cobalt / Cerulean Blue (Locked!)
+        if hueDeg >= 78.0 && hueDeg < 164.0 {
             return p3(0.20, 0.68, 1.00)
         }
 
-        // 5. TEAL / AQUA (Hue 162°..184°) -> Warm Coral / Salmon Pink
-        if hueDeg >= 162.0 && hueDeg < 184.0 {
-            return p3(1.00, 0.50, 0.54)
+        // 5. BLUE FAMILY SPLIT INTO 3 COMPLETELY DIFFERENT DIRECTIONS:
+        //    5A. TEAL / AQUA / CYAN-BLUE (Hue 164°..195°) -> Electric Cyber Magenta / Hot Berry
+        if hueDeg >= 164.0 && hueDeg < 195.0 {
+            return p3(0.98, 0.36, 0.76)
         }
 
-        // 6. LIGHT BLUE / CYAN / SKY (Hue 184°..220°) -> Vibrant Safety Orange (Locked!)
-        if hueDeg >= 184.0 && hueDeg < 220.0 {
-            return p3(1.00, 0.56, 0.15)
+        //    5B. LIGHT BLUE / SKY / AZURE (Hue 195°..216°, or high-brightness blue) -> Teenage-Engineering Orange (Locked!)
+        if (hueDeg >= 195.0 && hueDeg < 216.0) || (hueDeg >= 195.0 && hueDeg < 228.0 && s < 0.78 && v > 0.88) {
+            return p3(1.00, 0.55, 0.14)
         }
 
-        // 7. DEEP BLUE / INDIGO / NAVY (Hue 220°..262°) -> Warm Champagne Gold / Laser Yellow
-        if hueDeg >= 220.0 && hueDeg < 262.0 {
-            return p3(1.00, 0.85, 0.30)
+        //    5C. DEEP BLUE / COBALT / INDIGO (Hue 216°..262°) -> Electric Cyber Mint / Spring Turquoise
+        if hueDeg >= 216.0 && hueDeg < 262.0 {
+            return p3(0.22, 0.98, 0.76)
         }
 
-        // 8. PURPLE / VIOLET (Hue 262°..305°) -> Cyber Chartreuse / Acid Lime
+        // 6. PURPLE / VIOLET (Hue 262°..305°) -> Warm Sunburst Gold / Amber
         if hueDeg >= 262.0 && hueDeg < 305.0 {
-            return p3(0.68, 0.98, 0.28)
+            return p3(1.00, 0.84, 0.28)
         }
 
-        // 9. MAGENTA / PINK / ROSE (Hue 305°..344°) -> Electric Sky Cyan
+        // 7. MAGENTA / PINK / ROSE (Hue 305°..344°) -> Electric Sky Cyan
         if hueDeg >= 305.0 && hueDeg < 344.0 {
             return p3(0.24, 0.92, 0.98)
         }
 
-        // 10. RED / CRIMSON (Hue 344°..360° or 0°..17°) -> Cool Phosphor Seafoam / Mint
-        return p3(0.34, 0.96, 0.78)
+        // 8. RED / CRIMSON (Hue 344°..360° or 0°..16°) -> Cool Arctic Periwinkle / Ice Blue (Zero green!)
+        return p3(0.56, 0.78, 1.00)
     }
 
     /// Deep blueprint occlusion backing subtly tinted by the active swatch & its unique secondary color
@@ -6828,21 +6830,42 @@ extension Color {
         var h1: CGFloat = 0, s1: CGFloat = 0, v1: CGFloat = 0, a1: CGFloat = 0
         nsPrimary.getHue(&h1, saturation: &s1, brightness: &v1, alpha: &a1)
 
-        // Titanium / Monochrome gets a clean charcoal-slate backing
-        if s1 < 0.12 {
+        if s1 < 0.14 {
             return Color(cgColor: CGColor(srgbRed: 0.08, green: 0.09, blue: 0.11, alpha: 1.0))
         }
 
-        // Brown gets a deep roasted espresso-mahogany backing so brown-on-brown feels super cohesive!
+        // Deep Roasted Espresso backing for Brown so the Primary Brown & Secondary Cream-Tan pop!
         let hueDeg = h1 * 360.0
-        if hueDeg >= 17.0 && hueDeg < 40.0 && ((s1 < 0.78) || (v1 < 0.86)) {
-            return Color(cgColor: CGColor(srgbRed: 0.13, green: 0.09, blue: 0.06, alpha: 1.0))
+        if hueDeg >= 16.0 && hueDeg < 42.0 && ((s1 < 0.82) || (v1 < 0.88)) {
+            return Color(cgColor: CGColor(srgbRed: 0.09, green: 0.055, blue: 0.035, alpha: 1.0))
         }
 
         let nsSec = NSColor(self.perceptualSplitComplement).usingColorSpace(.sRGB) ?? NSColor.systemCyan
         var h2: CGFloat = 0, s2: CGFloat = 0, v2: CGFloat = 0, a2: CGFloat = 0
         nsSec.getHue(&h2, saturation: &s2, brightness: &v2, alpha: &a2)
-        let darkNS = NSColor(hue: h2, saturation: min(s2, 0.68), brightness: 0.12, alpha: 1.0).usingColorSpace(.sRGB) ?? NSColor.black
+        let darkNS = NSColor(hue: h2, saturation: min(s2, 0.68), brightness: 0.11, alpha: 1.0).usingColorSpace(.sRGB) ?? NSColor.black
         return Color(cgColor: darkNS.cgColor)
+    }
+}
+
+
+// MARK: - KroutonStateStore Secondary Accent Harmony Extension
+extension KroutonStateStore {
+    var enableSecondaryAccentUITints: Bool {
+        get {
+            (UserDefaults.standard.object(forKey: "krouton.enableSecondaryAccentUITints") as? Bool) ?? true
+        }
+        set {
+            objectWillChange.send()
+            UserDefaults.standard.set(newValue, forKey: "krouton.enableSecondaryAccentUITints")
+        }
+    }
+
+    var activeSecondaryAccent: Color {
+        activeAccent.perceptualSplitComplement
+    }
+
+    var uiSecondaryAccent: Color {
+        enableSecondaryAccentUITints ? activeAccent.perceptualSplitComplement : activeAccent
     }
 }
