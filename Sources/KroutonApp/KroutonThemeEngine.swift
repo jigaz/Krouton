@@ -191,16 +191,45 @@ extension KroutonStateStore {
         return Color(red: r, green: g, blue: b)
     }
 
-    /// Deterministic Display-P3 Secondary Harmony lookup by exact Swatch ID (0..9),
-    /// eliminating any sRGB/P3 hue-boundary ambiguity between adjacent blue/teal swatches.
-    public static func secondaryHarmonyForPresetID(_ id: Int) -> Color {
+    /// Resolves whether the app is currently rendering in Dark or Light appearance
+    public var resolvedColorScheme: ColorScheme {
+        switch appearanceMode {
+        case .light: return .light
+        case .dark:  return .dark
+        case .auto:
+            let isDark = NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            return isDark ? .dark : .light
+        }
+    }
+
+    /// Deterministic Display-P3 Secondary Harmony lookup by exact Swatch ID (0..9) + Appearance Polarity.
+    /// - In `.dark` mode: uses the locked high-energy phosphor/synth Display-P3 coordinates.
+    /// - In `.light` mode: preserves the exact same hue family while shifting luminance to a deep,
+    ///   WCAG-AA high-contrast studio ink shade so labels, icons, and pills never wash out on white!
+    public static func secondaryHarmonyForPresetID(_ id: Int, scheme: ColorScheme = .dark) -> Color {
+        if scheme == .light {
+            switch id {
+            case 0:  return p3Color(0.50, 0.16, 0.84) // #2 Laser Crimson     -> Deep Royal Amethyst
+            case 1:  return p3Color(0.28, 0.54, 0.00) // #3 Vibrant Tangerine -> Deep Olive Chartreuse
+            case 2:  return p3Color(0.14, 0.42, 0.82) // #4 Solar Gold        -> Deep Cobalt Periwinkle
+            case 3:  return p3Color(0.00, 0.44, 0.78) // #5 Oscilloscope Green-> Deep Marine Cerulean
+            case 4:  return p3Color(0.64, 0.44, 0.00) // #6 Analog Seafoam    -> Deep Goldenrod / Ochre
+            case 5:  return p3Color(0.82, 0.30, 0.00) // #7 405nm Laser Cobalt-> Burnt International Orange
+            case 6:  return p3Color(0.76, 0.10, 0.48) // #8 Studio Slate Blue -> Deep Crimson Berry
+            case 7:  return p3Color(0.00, 0.54, 0.46) // #9 Synth Violet      -> Deep Viridian Mint
+            case 8:  return p3Color(0.56, 0.34, 0.10) // #10 Toasted Brown    -> Rich Espresso Bronze
+            case 9:  return p3Color(0.22, 0.26, 0.32) // #11 Titanium Mono    -> Deep Gunmetal Slate
+            default: return p3Color(0.76, 0.10, 0.48)
+            }
+        }
+
         switch id {
         case 0:  return p3Color(0.78, 0.50, 1.00) // #2 Laser Crimson     -> Electric Amethyst
         case 1:  return p3Color(0.72, 1.00, 0.18) // #3 Vibrant Tangerine -> Acid Chartreuse
         case 2:  return p3Color(0.56, 0.78, 1.00) // #4 Solar Gold        -> Arctic Periwinkle
         case 3:  return p3Color(0.20, 0.68, 1.00) // #5 Oscilloscope Green-> Electric Cerulean
         case 4:  return p3Color(0.98, 0.94, 0.32) // #6 Analog Seafoam    -> Laser Lemon
-        case 5:  return p3Color(1.00, 0.48, 0.08) // #7 405nm Laser Cobalt Blue -> Teenage Fluorescent Orange
+        case 5:  return p3Color(1.00, 0.48, 0.08) // #7 405nm Laser Cobalt-> Teenage Fluorescent Orange
         case 6:  return p3Color(0.98, 0.36, 0.76) // #8 Studio Slate Blue -> Cyber Hot Berry
         case 7:  return p3Color(0.26, 0.99, 0.88) // #9 Synth Violet      -> Phosphor Cyber Mint
         case 8:  return p3Color(0.98, 0.87, 0.68) // #10 Toasted Brown    -> Champagne Almond
@@ -210,11 +239,27 @@ extension KroutonStateStore {
     }
 
     var activeSecondaryAccent: Color {
+        let scheme = resolvedColorScheme
         if selectedAccentIndex >= 0 && selectedAccentIndex <= 9 {
-            return Self.secondaryHarmonyForPresetID(selectedAccentIndex)
+            return Self.secondaryHarmonyForPresetID(selectedAccentIndex, scheme: scheme)
         }
-        // When Multicolor (-1) is selected, resolve the active task's preset ID directly
-        return activeAccent.perceptualSplitComplement
+        // When Multicolor (-1) is selected, resolve the active task's preset ID directly!
+        let pid = multicolorPresetID(forTaskID: selectedTaskID, category: selectedCategory)
+        return Self.secondaryHarmonyForPresetID(pid, scheme: scheme)
+    }
+
+    /// Optimal foreground text color (`.black` or `.white`) when drawing ON TOP of a solid `activeSecondaryAccent` pill
+    var activeOnSecondaryAccentText: Color {
+        if resolvedColorScheme == .light {
+            return .white
+        }
+        // In Dark Mode, bright harmony colors (Chartreuse, Periwinkle, Lemon, Mint, Cream, White) take dark text
+        switch selectedAccentIndex {
+        case 1, 2, 4, 7, 8, 9:
+            return Color.black.opacity(0.90)
+        default:
+            return .white
+        }
     }
 
     var uiSecondaryAccent: Color {
@@ -234,14 +279,16 @@ extension KroutonStateStore {
         }
     }
 
-    /// Direct SwiftUI overlay tint matching KroutonSettingsWindow (0.11 opacity of activeAccent when Harmony is ON)
+    /// Direct SwiftUI overlay tint matching KroutonSettingsWindow (0.11 opacity in Dark, 0.085 in Light)
     var mainPanelTintOverlay: Color {
-        enableSecondaryAccentUITints ? activeAccent.opacity(0.11) : Color.clear
+        guard enableSecondaryAccentUITints else { return Color.clear }
+        return activeAccent.opacity(resolvedColorScheme == .light ? 0.085 : 0.11)
     }
 
     /// Subtle darker tint for sidebars and header/footer bars when Harmony is ON
     var sidebarTintOverlay: Color {
-        enableSecondaryAccentUITints ? activeAccent.opacity(0.085) : Color.clear
+        guard enableSecondaryAccentUITints else { return Color.clear }
+        return activeAccent.opacity(resolvedColorScheme == .light ? 0.065 : 0.085)
     }
 
     /// Card background fill that picks up a subtle primary/secondary tint when Harmony is ON
@@ -251,6 +298,6 @@ extension KroutonStateStore {
 
     /// Card border stroke that shifts to Secondary Harmony when Harmony is ON
     var harmonizedCardBorder: Color {
-        enableSecondaryAccentUITints ? activeSecondaryAccent.opacity(0.28) : Color.primary.opacity(0.08)
+        enableSecondaryAccentUITints ? activeSecondaryAccent.opacity(resolvedColorScheme == .light ? 0.42 : 0.28) : Color.primary.opacity(0.08)
     }
 }
