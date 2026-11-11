@@ -168,7 +168,12 @@ struct KroutonApp: App {
                         driveManager: KroutonWindowManager.shared.driveManager
                     )
                 } label: {
-                    Label(KroutonL10n.tr("Settings..."), systemImage: "gearshape")
+                    HStack(spacing: 5) {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(KroutonWindowManager.shared.store.uiSecondaryAccent)
+                        Text(KroutonL10n.tr("Settings..."))
+                    }
                 }
                 .keyboardShortcut(",", modifiers: .command)
             }
@@ -436,7 +441,7 @@ struct KroutonMainWorkspaceView: View {
                         .font(.system(size: 13, weight: .heavy, design: .rounded))
                     Text("\(driveManager.availableDrives.count) Optical Drive(s) Online • \(driveManager.hardwareStatusLog)")
                         .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.90) : Color.secondary)
                         .lineLimit(1)
                 }
             }
@@ -471,7 +476,7 @@ struct KroutonMainWorkspaceView: View {
             HStack {
                 Label(isLeftSidebarUltraSkinny ? KroutonL10n.tr("FORMATS") : KroutonL10n.tr("FORMAT CHOOSER"), systemImage: "list.bullet.rectangle")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : Color.secondary)
                     .lineLimit(1)
                 Spacer(minLength: 4)
                 Button {
@@ -6857,13 +6862,22 @@ extension Color {
 
 // MARK: - KroutonStateStore Secondary Accent Harmony Extension
 extension KroutonStateStore {
-    
-
     var activeSecondaryAccent: Color {
         activeAccent.perceptualSplitComplement
     }
 
     var uiSecondaryAccent: Color {
         enableSecondaryAccentUITints ? activeAccent.perceptualSplitComplement : activeAccent
+    }
+
+    /// Tints the main window & Settings window identically when Window & UI Harmony is enabled
+    var windowSurfaceTint: Color {
+        guard enableSecondaryAccentUITints else {
+            return Color(nsColor: .windowBackgroundColor)
+        }
+        let base = NSColor.windowBackgroundColor.usingColorSpace(.sRGB) ?? NSColor(calibratedWhite: 0.12, alpha: 1.0)
+        let tint = NSColor(activeAccent).usingColorSpace(.sRGB) ?? NSColor.systemGreen
+        let blended = base.blended(withFraction: 0.12, of: tint) ?? base
+        return Color(nsColor: blended)
     }
 }

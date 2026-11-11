@@ -135,6 +135,7 @@ public enum FolderColorMode: String, CaseIterable, Identifiable, Sendable {
     case automatic = "Automatic"
     case classicAqua = "Classic Aqua Blue"
     case accentTinted = "Theme Accent"
+    case secondaryHarmony = "Secondary Harmony"
     case amberGold = "Amber Gold"
     case graphite = "Space Gray"
     public var id: String { rawValue }
@@ -142,6 +143,7 @@ public enum FolderColorMode: String, CaseIterable, Identifiable, Sendable {
     public func resolvedFolderColor(accent: Color) -> Color {
         switch self {
         case .automatic, .accentTinted: return accent
+        case .secondaryHarmony: return accent.perceptualSplitComplement
         case .classicAqua: return Color(red: 0.22, green: 0.64, blue: 0.96)
         case .amberGold: return Color.orange
         case .graphite: return Color.secondary
