@@ -5745,11 +5745,15 @@ struct DepotBlueprintArtStudioView: View {
                 bottomBase.closeSubpath()
                 drawOccludedWedge(bottomBase, fill: accentFill, stroke: accentStroke, lineWidth: 2.5)
 
-                // Subtle Inner 3D Spherical Contour Highlight inside the Bottom & Side Wedges
-                var innerContour = Path()
-                innerContour.move(to: xpt(-0.38, 0.72))
-                innerContour.addQuadCurve(to: xpt(0.38, 0.72), control: xpt(0.0, 0.86))
-                context.stroke(innerContour, with: .color(primaryStroke.opacity(0.55)), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                // Tapered Specular Reflection Crescent inside the Bottom Spherical Wedge
+                var reflectionCrescent = Path()
+                reflectionCrescent.move(to: xpt(-0.39, 0.71))
+                // Lower outer curve of the reflection (swells thicker at the center)
+                reflectionCrescent.addQuadCurve(to: xpt(0.39, 0.71), control: xpt(0.0, 0.89))
+                // Upper inner curve returning to the left needle tip
+                reflectionCrescent.addQuadCurve(to: xpt(-0.39, 0.71), control: xpt(0.0, 0.82))
+                reflectionCrescent.closeSubpath()
+                context.fill(reflectionCrescent, with: .color(primaryStroke.opacity(0.68)))
 
             } else if key.contains("ps1") || key.contains("ps2") || key.contains("playstation") || key.contains("freedvd") || key.contains("unirom") {
                 // --- 6. PLAYSTATION (1:1 Exact SVG Coordinate Reconstruction of Standing 'P' + Slotted Floor 'S') ---
