@@ -1257,38 +1257,37 @@ extension DiscFormatSpec {
 }
 
 
-// MARK: - Concise Left-Sidebar Display Names (Zero Truncation)
+// MARK: - Concise Left-Sidebar Display Names (Used ONLY when Left Column is Skinny)
 extension DiscFormatSpec {
     public var shortDisplayName: String {
-        switch id {
-        case "audio-cdda":      return "Audio CD"
-        case "audio-mp3":       return "MP3 / FLAC CD"
-        case "audio-cdextra":   return "CD-Extra"
-        case "video-dvd":       return "DVD-Video"
-        case "avchd-dvd":       return "AVCHD"
-        case "bd-sl":           return "BD-R"
-        case "bd-dl":           return "BD-R DL"
-        case "bd-xl":           return "UHD-BD / BDXL"
-        case "video-svcd":      return "Super VCD"
-        case "image-burn":      return "Burn Image"
-        case "data-hybrid":     return "Data"
-        case "data-udf-modern": return "UDF Large Data"
-        case "data-apple-apfs": return "Apple Volume"
-        case "data-retro-iso":  return "Retro ISO 8.3"
-        case "mdisc-vault":     return "M-DISC"
-        case "game-wii":        return "Nintendo Wii"
-        case "game-gc":         return "GameCube"
-        case "game-ps2":        return "PS2"
-        case "game-ps1":        return "PS1"
-        case "game-xbox":       return "Xbox"
-        case "game-dc":         return "Dreamcast"
-        case "game-3do":        return "3DO / PCE"
-        case "audio-dtscd":     return "DTS-CD"
-        case "audio-dvda":      return "DVD-Audio"
-        case "data-dvdram":     return "DVD-RAM"
-        case "data-hfs-apm":    return "Mac OS 9 HFS"
-        case "legacy-photocd":  return "Kodak Photo CD"
-        default:                return technicalName
-        }
+        let t = technicalName
+        if t.contains("CD-DA") || id == "audio-cdda" { return "Audio CD" }
+        if t.contains("ISO9660 / UDF Audio") || id == "audio-mp3" { return "MP3 / FLAC CD" }
+        if t.contains("CD-Extra") || id == "audio-cdextra" { return "CD-Extra" }
+        if t.contains("DVD-Video") || id == "video-dvd" { return "DVD-Video" }
+        if t.contains("AVCHD") || id == "avchd-dvd" { return "AVCHD" }
+        if t.contains("BD-R DL") || t.contains("Dual-Layer") { return "BD-R DL" }
+        if t.contains("BD-R") || t.contains("BD-RE") { return "BD-R" }
+        if t.contains("BDXL") || t.contains("UHD-BD") { return "UHD-BD" }
+        if t.contains("Super VCD") || t.contains("SVCD") { return "SVCD" }
+        if t.contains("Burn Disc Image") || id == "image-burn" { return "Burn Image" }
+        if t.contains("Universal Hybrid") || id == "data-hybrid" { return "Data" }
+        if t.contains("UDF 2.60") || id == "data-udf-modern" { return "UDF Data" }
+        if t.contains("APFS") || t.contains("HFS+") { return "Mac Volume" }
+        if t.contains("ISO9660 Level 1") || id == "data-retro-iso" { return "Retro ISO" }
+        if t.contains("M-DISC") || id == "mdisc-vault" { return "M-DISC" }
+        if t.contains("Wii") { return "Wii" }
+        if t.contains("GameCube") { return "GameCube" }
+        if t.contains("PlayStation 2") { return "PS2" }
+        if t.contains("PlayStation CD") || t.contains("PS1") { return "PS1" }
+        if t.contains("Xbox") { return "Xbox" }
+        if t.contains("Dreamcast") { return "Dreamcast" }
+        if t.contains("3DO") || t.contains("TurboGrafx") { return "3DO / PCE" }
+        if t.contains("DTS-CD") { return "DTS-CD" }
+        if t.contains("DVD-Audio") { return "DVD-Audio" }
+        if t.contains("DVD-RAM") { return "DVD-RAM" }
+        if t.contains("Mac OS 9") { return "Mac OS 9 HFS" }
+        if t.contains("Photo CD") { return "Photo CD" }
+        return technicalName
     }
 }

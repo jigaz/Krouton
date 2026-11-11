@@ -441,7 +441,8 @@ struct KroutonMainWorkspaceView: View {
                             taskRowButton(
                                 id: fmt.id,
                                 category: .burn,
-                                title: fmt.shortDisplayName,
+                                title: fmt.technicalName,
+                                shortTitle: fmt.shortDisplayName,
                                 colloquial: fmt.colloquialName,
                                 badge: fmt.sourceSupport,
                                 sfSymbol: fmt.sfSymbol
@@ -458,14 +459,16 @@ struct KroutonMainWorkspaceView: View {
                         taskRowButton(
                             id: "depot-all",
                             category: .depot,
-                            title: "All Library (60+)",
+                            title: "All Depot Library (60+)",
+                            shortTitle: "All Depot",
                             colloquial: "Complete Verified Optical Catalog",
                             sfSymbol: "square.grid.2x2.fill"
                         )
                         taskRowButton(
                             id: "depot-rescue",
                             category: .depot,
-                            title: "Rescue & BIOS",
+                            title: "System Rescue & BIOS",
+                            shortTitle: "Rescue & BIOS",
                             colloquial: "SystemRescue, GParted, Memtest, UBCD",
                             sfSymbol: "cross.case.fill"
                         )
@@ -473,34 +476,39 @@ struct KroutonMainWorkspaceView: View {
                             id: "depot-linux",
                             category: .depot,
                             title: "Live Linux & BSD",
+                            shortTitle: "Linux & BSD",
                             colloquial: "Ubuntu, Fedora, Debian, FreeBSD, Arch",
                             sfSymbol: "terminal.fill"
                         )
                         taskRowButton(
                             id: "depot-vintage",
                             category: .depot,
-                            title: "Vintage Mac",
+                            title: "Vintage Mac & Apple",
+                            shortTitle: "Vintage Mac",
                             colloquial: "Mac OS 9.2.2, System 7.5, A/UX, AHT",
                             sfSymbol: "desktopcomputer"
                         )
                         taskRowButton(
                             id: "depot-homebrew",
                             category: .depot,
-                            title: "Console ROMs",
+                            title: "Console Homebrew & ROMs",
+                            shortTitle: "Console ROMs",
                             colloquial: "Swiss GC, FreeDVDBoot PS2, 240p Suite",
                             sfSymbol: "gamecontroller.fill"
                         )
                         taskRowButton(
                             id: "depot-coverdiscs",
                             category: .depot,
-                            title: "Cover Discs",
+                            title: "90s Cover Discs & Scene",
+                            shortTitle: "Cover Discs",
                             colloquial: "MacAddict, PC Gamer, NextGen, Scene.org",
                             sfSymbol: "sparkles.tv.fill"
                         )
                         taskRowButton(
                             id: "depot-retropc",
                             category: .depot,
-                            title: "Retro PC & DOS",
+                            title: "Retro PC, DOS & Alt OS",
+                            shortTitle: "Retro PC",
                             colloquial: "FreeDOS 1.4, Haiku, BeOS R5, OS/2, IRIX",
                             sfSymbol: "cpu.fill"
                         )
@@ -518,6 +526,7 @@ struct KroutonMainWorkspaceView: View {
                             id: "copy-duplicate",
                             category: .copy,
                             title: "Duplicate Disc",
+                            shortTitle: "Duplicate",
                             colloquial: "Fit-to-Disc DVD-9 / BD Shrink",
                             badge: "1:1 / Fit",
                             sfSymbol: "doc.on.doc.fill"
@@ -526,6 +535,7 @@ struct KroutonMainWorkspaceView: View {
                             id: "copy-rip-audio",
                             category: .copy,
                             title: "Rip Audio CD",
+                            shortTitle: "Rip Audio",
                             colloquial: "ALAC, AAC, FLAC + AccurateRip",
                             badge: "Extract",
                             sfSymbol: "waveform.badge.plus"
@@ -534,6 +544,7 @@ struct KroutonMainWorkspaceView: View {
                             id: "copy-rip-video",
                             category: .copy,
                             title: "Extract Video Disc",
+                            shortTitle: "Rip Video",
                             colloquial: "Hardware H.265 / HEVC Passthrough",
                             badge: "H.265",
                             sfSymbol: "film.stack"
@@ -549,7 +560,8 @@ struct KroutonMainWorkspaceView: View {
                         taskRowButton(
                             id: "label-auto",
                             category: .label,
-                            title: "Auto Label",
+                            title: "Automatic Disc Label",
+                            shortTitle: "Auto Label",
                             colloquial: "Artwork Lookup + Hole Avoidance",
                             badge: "120mm",
                             sfSymbol: "wand.and.stars"
@@ -557,7 +569,8 @@ struct KroutonMainWorkspaceView: View {
                         taskRowButton(
                             id: "label-manual",
                             category: .label,
-                            title: "Manual Label",
+                            title: "Manual Disc Label",
+                            shortTitle: "Manual Label",
                             colloquial: "120mm / 18mm Canvas Studio",
                             badge: "Custom",
                             sfSymbol: "printer.dotmatrix.fill"
@@ -570,7 +583,9 @@ struct KroutonMainWorkspaceView: View {
         .background(Color(NSColor.controlBackgroundColor))
     }
 
-    private func taskRowButton(id: String, category: TaskMasterCategory, title: String, colloquial: String, badge: String = "", sfSymbol: String) -> some View {
+    private func taskRowButton(id: String, category: TaskMasterCategory, title: String,
+        shortTitle: String? = nil, colloquial: String, badge: String = "", sfSymbol: String) -> some View {
+        let effectiveTitle = (leftColumnLiveWidth < 238) ? (shortTitle ?? title) : title
         let isSelected = (store.selectedTaskID == id)
         return Button {
             store.selectedCategory = category
@@ -592,7 +607,7 @@ struct KroutonMainWorkspaceView: View {
                 )
 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(KroutonL10n.tr(title))
+                    Text(KroutonL10n.tr(effectiveTitle))
                         .font(.system(size: store.sidebarIconSize.titleFontSize, weight: .semibold))
                         .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
                         .lineLimit(1)
@@ -2857,44 +2872,101 @@ struct KroutonMainWorkspaceView: View {
                     Divider()
                 }
 
-                HStack(spacing: 14) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "opticaldisc")
-                            .foregroundStyle(store.activeAccent)
-                        Text(KroutonL10n.tr("Disc Title:"))
-                            .font(.caption.bold())
-                        TextField("KROUTON_DISC", text: $store.discVolumeTitle)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 165)
+                ViewThatFits(in: .horizontal) {
+                    // 1. Wide Horizontal Bar
+                    HStack(spacing: 12) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "opticaldisc")
+                                .foregroundStyle(store.activeAccent)
+                            Text(KroutonL10n.tr("Disc Title:"))
+                                .font(.caption.bold())
+                                .lineLimit(1)
+                            TextField("KROUTON_DISC", text: $store.discVolumeTitle)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 145)
+                        }
+                        .fixedSize(horizontal: true, vertical: false)
+
+                        if activeSpec.id == "data-udf-modern" {
+                            Label("Pure UDF 2.60 (Files >4 GiB up to 128 GB)", systemImage: "checkmark.seal.fill")
+                                .font(.caption.bold())
+                                .foregroundStyle(.green)
+                                .lineLimit(1)
+                        } else if isAppleOnly {
+                            Toggle(KroutonL10n.tr("Preserve macOS Extended Attributes (xattr) & Resource Forks"), isOn: $preserveMacExtendedAttributes)
+                                .toggleStyle(.checkbox)
+                                .font(.caption.bold())
+                                .lineLimit(1)
+                        } else if isRetro83 {
+                            Toggle(KroutonL10n.tr("Enforce Strict 8.3 Uppercase Filenames (DOS / Win95 / System 7)"), isOn: $enforce8Dot3RetroCompatibility)
+                                .toggleStyle(.checkbox)
+                                .font(.caption.bold())
+                                .lineLimit(1)
+                        } else {
+                            Label("4-Way Universal Bridge (macOS HFS+ • Windows Joliet/UDF • Linux Rock Ridge)", systemImage: "globe")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+
+                        Spacer(minLength: 4)
+
+                        if !isRetro83 {
+                            Toggle(KroutonL10n.tr("Customize Finder Layout"), isOn: $enableCustomFinderLayoutTab)
+                                .toggleStyle(.checkbox)
+                                .font(.caption)
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                                .onChange(of: enableCustomFinderLayoutTab) { _, enabled in
+                                    activeDataWorkspaceTab = enabled ? 1 : 0
+                                }
+                        }
                     }
 
-                    if activeSpec.id == "data-udf-modern" {
-                        Label("Pure UDF 2.60 (Files >4 GiB up to 128 GB • Modern macOS, Windows & Linux)", systemImage: "checkmark.seal.fill")
-                            .font(.caption.bold())
-                            .foregroundStyle(.green)
-                    } else if isAppleOnly {
-                        Toggle(KroutonL10n.tr("Preserve macOS Extended Attributes (xattr), Resource Forks & Finder Tags"), isOn: $preserveMacExtendedAttributes)
-                            .toggleStyle(.checkbox)
-                            .font(.caption.bold())
-                    } else if isRetro83 {
-                        Toggle(KroutonL10n.tr("Enforce Strict 8.3 Uppercase Filenames (DOS 6.22 / Win 3.1 / Win95 / System 7 Safe)"), isOn: $enforce8Dot3RetroCompatibility)
-                            .toggleStyle(.checkbox)
-                            .font(.caption.bold())
-                    } else {
-                        Label("4-Way Universal Bridge: Mounts on macOS (HFS+), Windows (Joliet/UDF) & Linux (Rock Ridge)", systemImage: "globe")
-                            .font(.caption.bold())
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Spacer()
-
-                    if !isRetro83 {
-                        Toggle(KroutonL10n.tr("Customize Finder Layout"), isOn: $enableCustomFinderLayoutTab)
-                            .toggleStyle(.checkbox)
-                            .font(.caption)
-                            .onChange(of: enableCustomFinderLayoutTab) { _, enabled in
-                                activeDataWorkspaceTab = enabled ? 1 : 0
+                    // 2. Narrow Stacked Fallback (Zero Vertical Word-Towers!)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "opticaldisc")
+                                .foregroundStyle(store.activeAccent)
+                            Text(KroutonL10n.tr("Disc Title:"))
+                                .font(.caption.bold())
+                                .lineLimit(1)
+                            TextField("KROUTON_DISC", text: $store.discVolumeTitle)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(maxWidth: 180)
+                            Spacer()
+                            if !isRetro83 {
+                                Toggle(KroutonL10n.tr("Finder Layout"), isOn: $enableCustomFinderLayoutTab)
+                                    .toggleStyle(.checkbox)
+                                    .font(.caption)
+                                    .lineLimit(1)
+                                    .onChange(of: enableCustomFinderLayoutTab) { _, enabled in
+                                        activeDataWorkspaceTab = enabled ? 1 : 0
+                                    }
                             }
+                        }
+
+                        if activeSpec.id == "data-udf-modern" {
+                            Label("Pure UDF 2.60 (Files >4 GiB up to 128 GB)", systemImage: "checkmark.seal.fill")
+                                .font(.caption.bold())
+                                .foregroundStyle(.green)
+                                .lineLimit(1)
+                        } else if isAppleOnly {
+                            Toggle(KroutonL10n.tr("Preserve macOS xattr & Resource Forks"), isOn: $preserveMacExtendedAttributes)
+                                .toggleStyle(.checkbox)
+                                .font(.caption.bold())
+                                .lineLimit(1)
+                        } else if isRetro83 {
+                            Toggle(KroutonL10n.tr("Enforce 8.3 Uppercase Filenames"), isOn: $enforce8Dot3RetroCompatibility)
+                                .toggleStyle(.checkbox)
+                                .font(.caption.bold())
+                                .lineLimit(1)
+                        } else {
+                            Label("4-Way Bridge: macOS (HFS+), Windows (UDF) & Linux (Rock Ridge)", systemImage: "globe")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
                     }
                 }
             }
