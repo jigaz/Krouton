@@ -690,10 +690,7 @@ struct KroutonMainWorkspaceView: View {
                 RoundedRectangle(cornerRadius: 7)
                     .fill(isSelected ? store.activeAccent : Color.clear)
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: 7)
-                    .stroke(store.a11yIncreaseContrast && isSelected ? Color.primary : Color.clear, lineWidth: 1.5)
-            )
+            .overlay(RoundedRectangle(cornerRadius: 7).stroke(store.a11yIncreaseContrast && isSelected ? Color.primary : Color.clear, lineWidth: 1.5))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -1260,10 +1257,7 @@ struct KroutonMainWorkspaceView: View {
         }
         .frame(height: 184)
         .fixedSize(horizontal: false, vertical: true)
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(isStaged ? Color.green.opacity(0.75) : store.activeAccent.opacity(0.55), lineWidth: 1.5)
-        )
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(isStaged ? Color.green.opacity(0.75) : store.activeAccent.opacity(0.55), lineWidth: 1.5))
     }
 
     private func depotAppStoreCard(for item: DepotCatalogItem, isSelectedInHero: Bool) -> some View {
@@ -1288,10 +1282,7 @@ struct KroutonMainWorkspaceView: View {
                             )
                         )
                         .frame(width: 40, height: 40)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 11)
-                                .stroke(Color.white.opacity(isSelectedInHero ? 0.45 : 0.18), lineWidth: 1)
-                        )
+                        .overlay(RoundedRectangle(cornerRadius: 11).stroke(Color.white.opacity(isSelectedInHero ? 0.45 : 0.18), lineWidth: 1))
 
                     Image(systemName: item.sfSymbol)
                         .font(.system(size: 17, weight: .bold))
@@ -1370,10 +1361,7 @@ struct KroutonMainWorkspaceView: View {
                         .background(isStaged ? Color.green : (item.isDownloaded ? pillAccent : Color.primary.opacity(0.12)))
                         .foregroundStyle(isStaged ? Color.black : (item.isDownloaded ? store.activeOnAccentText : pillAccent))
                         .clipShape(Capsule())
-                        .overlay(
-                            Capsule()
-                                .stroke(isStaged ? Color.clear : store.activeAccent.opacity(0.5), lineWidth: 1)
-                        )
+                        .overlay(Capsule().stroke(isStaged ? Color.clear : store.activeAccent.opacity(0.5), lineWidth: 1))
                         .fixedSize(horizontal: true, vertical: false)
                     }
                     .buttonStyle(.plain)
@@ -3922,10 +3910,7 @@ struct KroutonMainWorkspaceView: View {
         .padding(12)
         .background(Color(NSColor.windowBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(store.activeAccent.opacity(0.35), lineWidth: 1)
-        )
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(store.activeAccent.opacity(0.35), lineWidth: 1))
     }
 
     private func cardActionTitle(for kind: DestinationOutputKind) -> String {
@@ -4709,7 +4694,6 @@ struct KroutonMasteringReportSheet: View {
     }
 }
 
-
 // MARK: - Step 2B & 2C: Per-Burner Auto-Hiding Inline Mini Phase Scope & High-Detail Floating Window
 struct InlineMiniPhaseScopeView: View {
     let telemetry: DrivePhaseScopeTelemetry
@@ -5190,7 +5174,6 @@ struct FloatingPhaseScopeWindowView: View {
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.08), lineWidth: 1))
     }
 }
-
 
 // MARK: - Format Classification Extension for Adaptive Central Workspaces
 extension DiscFormatSpec {

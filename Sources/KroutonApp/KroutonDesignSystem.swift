@@ -57,10 +57,7 @@ struct KroutonHarmonizedPillModifier: ViewModifier {
             .background(
                 Capsule()
                     .fill(color.opacity(prominent ? KroutonDesign.Opacity.activeFill : KroutonDesign.Opacity.badgeFill))
-                    .overlay(
-                        Capsule()
-                            .strokeBorder(color.opacity(KroutonDesign.Opacity.badgeBorder), lineWidth: KroutonDesign.Stroke.hairline)
-                    )
+                    .overlay(Capsule().strokeBorder(color.opacity(KroutonDesign.Opacity.badgeBorder), lineWidth: KroutonDesign.Stroke.hairline))
             )
             .foregroundStyle(color)
     }

@@ -183,7 +183,6 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
     }
 }
 
-
 // MARK: - Sprint 3: WaveBurner Red Book CD-DA & Car-Safe MP3 Models
 public enum AudioTransitionStyle: String, CaseIterable, Identifiable, Sendable {
     case standard2s = "2.0s Standard Pre-Gap"
@@ -362,7 +361,6 @@ public final class RedBookAuditionEngine: ObservableObject {
         }
     }
 }
-
 
 // MARK: - Sprint 3 Part 2: UltraISO / PowerISO Bootable Sector 17 El Torito & Apple Partition Map Inspector
 public enum BootableImageInspector {
@@ -2087,8 +2085,6 @@ public final class DriveManager: ObservableObject {
         activeJobPhase = "Operation Aborted by User"
     }
 
-
-
     // MARK: - UltraISO / PowerISO .BIN/.CUE (2,352 B/sector) <-> .ISO (2,048 B/sector) Sector Converter
     public func convertBinAndIsoSectorImage(sourceURL: URL) async -> (outputURL: URL?, report: BurnCompletionReport) {
         let lower = sourceURL.lastPathComponent.lowercased()
@@ -2343,7 +2339,6 @@ public final class DriveManager: ObservableObject {
         )
     }
 }
-
 
 // MARK: - Universal Media Decoder & Hardware Acceleration Engine (Hardware & Software Stream Engine)
 
@@ -2615,7 +2610,6 @@ public enum UniversalMediaDecoderEngine {
     }
 }
 
-
 // MARK: - StagedFileEntry Bootability & .BIN/.CUE <-> .ISO Conversion UI Helpers
 extension StagedFileEntry {
     public var conversionTargetLabel: String {
@@ -2627,7 +2621,6 @@ extension StagedFileEntry {
         }
     }
 }
-
 
 // MARK: - Live Disc Image Sector Hex/ASCII Reader & CryptoKit SHA-256 Engine
 extension BootableImageInspector {

@@ -68,7 +68,6 @@ public enum AppAppearanceMode: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-
 public enum SanitySeverity: String, Sendable {
     case criticalOverburn
     case warning4GBNoUDF
@@ -1024,7 +1023,6 @@ public final class KroutonStateStore: ObservableObject {
     public init() {}
 }
 
-
 // MARK: - Functional Icon & Widget Style Renderer (Default / Dark / Clear / Tinted)
 public struct KroutonStyledIconBadge: View {
     public let sfSymbol: String
@@ -1076,10 +1074,7 @@ public struct KroutonStyledIconBadge: View {
                             endPoint: .bottom
                         )
                     )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: size * 0.28)
-                            .stroke(tintColor.opacity(0.45), lineWidth: 1)
-                    )
+                    .overlay(RoundedRectangle(cornerRadius: size * 0.28).stroke(tintColor.opacity(0.45), lineWidth: 1))
                 Image(systemName: sfSymbol)
                     .font(.system(size: symbolSize, weight: .semibold))
                     .foregroundStyle(tintColor)
@@ -1087,10 +1082,7 @@ public struct KroutonStyledIconBadge: View {
             case .clear:
                 RoundedRectangle(cornerRadius: size * 0.28)
                     .fill(Color.primary.opacity(0.08))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: size * 0.28)
-                            .stroke(isSelectedRow ? onAccentText.opacity(0.6) : Color.primary.opacity(0.24), lineWidth: 1)
-                    )
+                    .overlay(RoundedRectangle(cornerRadius: size * 0.28).stroke(isSelectedRow ? onAccentText.opacity(0.6) : Color.primary.opacity(0.24), lineWidth: 1))
                 Image(systemName: sfSymbol)
                     .font(.system(size: symbolSize, weight: .semibold))
                     .foregroundStyle(isSelectedRow ? onAccentText : .primary)
@@ -1098,10 +1090,7 @@ public struct KroutonStyledIconBadge: View {
             case .tinted:
                 RoundedRectangle(cornerRadius: size * 0.28)
                     .fill(tintColor.opacity(isSelectedRow ? 0.30 : 0.16))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: size * 0.28)
-                            .stroke(tintColor.opacity(0.55), lineWidth: 1)
-                    )
+                    .overlay(RoundedRectangle(cornerRadius: size * 0.28).stroke(tintColor.opacity(0.55), lineWidth: 1))
                 Image(systemName: sfSymbol)
                     .font(.system(size: symbolSize, weight: .semibold))
                     .foregroundStyle(isSelectedRow ? onAccentText : tintColor)
@@ -1110,7 +1099,6 @@ public struct KroutonStyledIconBadge: View {
         .frame(width: size, height: size)
     }
 }
-
 
 // MARK: - Global Bundle.module .lproj Localization Resolver (Accessible from any View or Struct)
 public enum KroutonL10n {
@@ -1132,7 +1120,6 @@ public enum KroutonL10n {
         return Bundle.module.localizedString(forKey: key, value: key, table: "Localizable")
     }
 }
-
 
 // MARK: - DepotCatalogItem CAD Blueprint & Volume Structure Schematic Helpers
 extension DepotCatalogItem {
@@ -1218,7 +1205,6 @@ extension DepotCatalogItem {
     }
 }
 
-
 // MARK: - Strict Per-Format File Type Compatibility & OpenPanel UTType Rules
 extension DiscFormatSpec {
     /// Returns the exact lowercase file extensions allowed for this optical format.
@@ -1265,7 +1251,6 @@ extension DiscFormatSpec {
     }
 }
 
-
 // MARK: - Concise Left-Sidebar Display Names (Used ONLY when Left Column is Skinny)
 extension DiscFormatSpec {
     public var shortDisplayName: String {
@@ -1300,7 +1285,6 @@ extension DiscFormatSpec {
         return technicalName
     }
 }
-
 
 // MARK: - Apple Silicon Hardware-Accelerated Verification Bridge
 extension KroutonStateStore {

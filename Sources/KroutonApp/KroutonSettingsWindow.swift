@@ -99,10 +99,7 @@ public struct KroutonSettingsWindowView: View {
                                     RoundedRectangle(cornerRadius: 7)
                                         .fill(isSelected ? store.activeAccent : Color.clear)
                                 )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 7)
-                                        .stroke(store.a11yIncreaseContrast && isSelected ? Color.primary : Color.clear, lineWidth: 1.5)
-                                )
+                                .overlay(RoundedRectangle(cornerRadius: 7).stroke(store.a11yIncreaseContrast && isSelected ? Color.primary : Color.clear, lineWidth: 1.5))
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
@@ -257,10 +254,7 @@ public struct KroutonSettingsWindowView: View {
                                                 LinearGradient(colors: [Color(white: 0.14), Color(white: 0.08)], startPoint: .top, endPoint: .bottom)))
                                             )
                                             .frame(width: 44, height: 38)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 9)
-                                                    .stroke(store.iconWidgetStyle == style ? store.activeAccent : Color.secondary.opacity(0.3), lineWidth: store.iconWidgetStyle == style ? 2.5 : 1.0)
-                                            )
+                                            .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.iconWidgetStyle == style ? store.activeAccent : Color.secondary.opacity(0.3), lineWidth: store.iconWidgetStyle == style ? 2.5 : 1.0))
                                         Image(systemName: "opticaldisc.fill")
                                             .font(.system(size: 18, weight: .semibold))
                                             .foregroundStyle(style == .tinted ? store.activeAccent : .white)
@@ -531,10 +525,7 @@ public struct KroutonSettingsWindowView: View {
             }
             .tableStyle(.inset(alternatesRowBackgrounds: true))
             .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-            )
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 1))
         }
     }
 
@@ -1085,10 +1076,7 @@ public struct KroutonSettingsWindowView: View {
             .padding(14)
             .background(Color(NSColor.controlBackgroundColor))
             .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-            )
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 1))
         }
     }
 
@@ -1104,10 +1092,7 @@ public struct KroutonSettingsWindowView: View {
             .padding(.vertical, 6)
             .background(isSelected ? store.activeAccent.opacity(0.22) : Color(NSColor.windowBackgroundColor))
             .clipShape(Capsule())
-            .overlay(
-                Capsule()
-                    .stroke(isSelected ? store.activeAccent : Color.secondary.opacity(0.3), lineWidth: isSelected ? 1.5 : 1.0)
-            )
+            .overlay(Capsule().stroke(isSelected ? store.activeAccent : Color.secondary.opacity(0.3), lineWidth: isSelected ? 1.5 : 1.0))
         }
         .buttonStyle(.plain)
     }
@@ -1189,10 +1174,7 @@ struct KroutonDualHarmonySwitch: View {
                         Circle()
                             .fill(isOn ? secondaryColor : primaryColor)
                             .frame(width: 18, height: 18)
-                            .overlay(
-                                Circle()
-                                    .strokeBorder(Color.white.opacity(0.90), lineWidth: 1.4)
-                            )
+                            .overlay(Circle().strokeBorder(Color.white.opacity(0.90), lineWidth: 1.4))
                             .shadow(color: (isOn ? secondaryColor : primaryColor).opacity(0.55), radius: 4, x: 0, y: 1)
                         if !isOn { Spacer(minLength: 0) }
                     }
