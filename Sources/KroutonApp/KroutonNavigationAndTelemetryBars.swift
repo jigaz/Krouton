@@ -186,6 +186,7 @@ extension KroutonMainWorkspaceView {
                 .padding(10)
             }
         }
+        .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
         .background(Color(NSColor.controlBackgroundColor))
     }
 
@@ -259,8 +260,10 @@ extension KroutonMainWorkspaceView {
             .frame(height: 7)
         }
         .padding(10)
+        .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.14) : Color.clear)
         .background(Color(NSColor.controlBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.32) : Color.clear, lineWidth: 1))
         .accessibilityLabel(String(format: "Disc capacity %.1f percent full", ratio * 100.0))
     }
 
@@ -414,9 +417,9 @@ extension KroutonMainWorkspaceView {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 7)
-                    .background(Color.green.opacity(0.11))
+                    .background(store.uiSecondaryAccent.opacity(0.12))
                     .clipShape(RoundedRectangle(cornerRadius: 9))
-                    .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.green.opacity(0.40), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.uiSecondaryAccent.opacity(0.42), lineWidth: 1))
                 }
 
                 // Row 4: Sub-Library Grid Header
@@ -646,6 +649,7 @@ extension KroutonMainWorkspaceView {
                     systemImage: "arrow.right.doc.on.clipboard"
                 )
                 .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : Color.secondary)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 Spacer(minLength: 4)
@@ -732,6 +736,7 @@ extension KroutonMainWorkspaceView {
             }
             .padding(14)
         }
+        .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
         .background(Color(NSColor.controlBackgroundColor))
     }
 }

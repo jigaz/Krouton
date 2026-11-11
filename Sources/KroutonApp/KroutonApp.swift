@@ -406,14 +406,8 @@ struct KroutonMainWorkspaceView: View {
             }
         }
         .frame(minWidth: 820, idealWidth: 1360, minHeight: 640, idealHeight: 860)
-        .background(
-            ZStack {
-                Color(NSColor.windowBackgroundColor)
-                if store.tintWindowWithWallpaper {
-                    store.activeAccent.opacity(0.06).ignoresSafeArea()
-                }
-            }
-        )
+        .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
+        .background(Color(NSColor.windowBackgroundColor))
         .preferredColorScheme(store.appearanceMode.colorScheme)
         .environment(\.locale, store.activeLocale)
         .tint(store.activeAccent)
@@ -468,6 +462,7 @@ struct KroutonMainWorkspaceView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+        .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.14) : Color.clear)
         .background(.ultraThinMaterial)
     }
 

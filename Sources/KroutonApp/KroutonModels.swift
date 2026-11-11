@@ -303,9 +303,10 @@ public struct DestinationQueueItem: Identifiable, Hashable, Sendable {
 
 @MainActor
 public final class KroutonStateStore: ObservableObject {
-    @Published var enableSecondaryAccentUITints: Bool = UserDefaults.standard.bool(forKey: "krouton.harmonyEnabledDefaultOffV3") {
+    @Published public var enableSecondaryAccentUITints: Bool = false {
         didSet {
-            UserDefaults.standard.set(enableSecondaryAccentUITints, forKey: "krouton.harmonyEnabledDefaultOffV3")
+            UserDefaults.standard.set(enableSecondaryAccentUITints, forKey: "krouton.harmonyOffByDefaultV4")
+            tintWindowWithWallpaper = enableSecondaryAccentUITints
             objectWillChange.send()
         }
     }
