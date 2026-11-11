@@ -5343,59 +5343,78 @@ struct DepotBlueprintArtStudioView: View {
                 drawCADNode(rightCenter, handle: CGPoint(x: cx + 68, y: cy - 52))
 
             } else if key.contains("debian") || key.contains("ubuntu") || key.contains("tails") {
-                // --- 2. DEBIAN (1:1 Calligraphic Open Swirl + Inner Chin Notch & Brush Shards) ---
-                // Outer & Inner Logarithmic Bezier Envelope reproducing the exact Debian open spiral
-                var outerPts: [CGPoint] = []
-                var innerPts: [CGPoint] = []
-                let steps = 85
-                for i in 0...steps {
-                    let t = Double(i) / Double(steps)
-                    // Angle sweeps from inner curl (1.1 rad) out to bottom-right tail (7.85 rad)
-                    let theta = 1.15 + t * 6.70
-                    let baseR = 8.5 * exp(0.305 * theta)
-                    // Taper thickness to 0 at both the inner tip and the outer tail, thickest at top-left
-                    let envelope = sin(t * .pi)
-                    let thickness = 18.0 * pow(envelope, 0.72) * (1.0 + 0.25 * sin(theta * 2.0))
-
-                    let rOut = baseR + thickness * 0.55
-                    let rIn  = max(2.0, baseR - thickness * 0.45)
-
-                    let ox = cx - 6 + CGFloat(cos(theta) * rOut)
-                    let oy = cy - 10 + CGFloat(sin(theta) * rOut)
-                    let ix = cx - 6 + CGFloat(cos(theta + 0.06) * rIn)
-                    let iy = cy - 10 + CGFloat(sin(theta + 0.06) * rIn)
-
-                    outerPts.append(CGPoint(x: ox, y: oy))
-                    innerPts.append(CGPoint(x: ix, y: iy))
+                // --- 2. DEBIAN (Exact 28-Curve Calligraphic Brushstroke Swirl + Inner Chin Notch & Shards) ---
+                let s: CGFloat = 1.18
+                func pt(_ dx: CGFloat, _ dy: CGFloat) -> CGPoint {
+                    CGPoint(x: cx + dx * s, y: cy + dy * s)
                 }
 
+                // Main Calligraphic Swirl Body (Outer rim with authentic dry-brush notches -> Inner spiral wall)
                 var swirl = Path()
-                if let first = outerPts.first {
-                    swirl.move(to: first)
-                    for pt in outerPts.dropFirst() { swirl.addLine(to: pt) }
-                    for pt in innerPts.reversed() { swirl.addLine(to: pt) }
-                    swirl.closeSubpath()
-                }
+                swirl.move(to: pt(26, -14)) // Inner upper-right tip of the curl
+                // Inner curl sweeping counter-clockwise (up -> left -> down -> right)
+                swirl.addCurve(to: pt(-24, -18), control1: pt(14, -36), control2: pt(-14, -36))
+                swirl.addCurve(to: pt(-12, 26),  control1: pt(-34, -2),  control2: pt(-30, 18))
+                swirl.addCurve(to: pt(34, 8),    control1: pt(4, 34),    control2: pt(26, 26))
+                // Sweeping up the right outer wall toward the top crown
+                swirl.addCurve(to: pt(12, -56),  control1: pt(48, -14),  control2: pt(38, -46))
+                // Top-left broad brushstroke belly
+                swirl.addCurve(to: pt(-62, -16), control1: pt(-18, -68), control2: pt(-54, -48))
+                // Left outer wall sweeping down into the long tapering bottom tail
+                swirl.addCurve(to: pt(-48, 52),  control1: pt(-72, 12),  control2: pt(-64, 36))
+                swirl.addCurve(to: pt(-8, 86),   control1: pt(-36, 68),  control2: pt(-22, 80))
+                // Sharp bottom tail tip!
+                swirl.addLine(to: pt(-18, 76))
+                // Returning along the inner edge of the outer wall (with brushstroke feather steps)
+                swirl.addCurve(to: pt(-52, 18),  control1: pt(-38, 60),  control2: pt(-50, 40))
+                swirl.addCurve(to: pt(-38, -36), control1: pt(-54, -8),  control2: pt(-48, -26))
+                swirl.addCurve(to: pt(22, -40),  control1: pt(-20, -52), control2: pt(8, -52))
+                swirl.addCurve(to: pt(46, 6),    control1: pt(38, -26),  control2: pt(48, -8))
+                swirl.addCurve(to: pt(-10, 38),  control1: pt(42, 28),   control2: pt(14, 42))
+                // Authentic Debian double-feathered bottom-inner curl tail
+                swirl.addCurve(to: pt(-34, 4),   control1: pt(-26, 34),  control2: pt(-36, 20))
+                swirl.addCurve(to: pt(-14, -28), control1: pt(-32, -12), control2: pt(-24, -24))
+                swirl.addCurve(to: pt(26, -14),  control1: pt(-2, -32),  control2: pt(16, -26))
+                swirl.closeSubpath()
+
                 context.fill(swirl, with: .color(accentFill))
-                context.stroke(swirl, with: .color(accentStroke), lineWidth: 2.0)
+                context.stroke(swirl, with: .color(accentStroke), style: StrokeStyle(lineWidth: 2.2, lineJoin: .round))
 
-                // Characteristic Debian calligraphic brush-splatter shards & inner filament arc
-                var filament = Path()
-                filament.addArc(center: CGPoint(x: cx - 4, y: cy - 8), radius: 27, startAngle: .degrees(25), endAngle: .degrees(195), clockwise: false)
-                context.stroke(filament, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.2, lineCap: .round))
+                // Detached Inner Brush Shards (The 3 signature marks inside the eye of the Debian swirl!)
+                var innerShards = Path()
+                // Bottom-center chin dash
+                innerShards.move(to: pt(2, 15))
+                innerShards.addLine(to: pt(13, 14))
+                innerShards.addLine(to: pt(9, 18))
+                innerShards.closeSubpath()
+                // Lower-right crescent fleck
+                innerShards.move(to: pt(19, 10))
+                innerShards.addQuadCurve(to: pt(25, 2), control: pt(24, 8))
+                innerShards.addLine(to: pt(21, 9))
+                innerShards.closeSubpath()
+                // Mid-right vertical fleck
+                innerShards.move(to: pt(27, -4))
+                innerShards.addLine(to: pt(29, -9))
+                innerShards.addLine(to: pt(26, -7))
+                innerShards.closeSubpath()
+                context.fill(innerShards, with: .color(primaryStroke))
 
-                // Detached dry-brush vector shards around the outer rim (just like the reference SVG!)
-                for (ang, dist, len) in [(0.45, 34.0, 9.0), (0.85, 36.0, 7.0), (2.75, 58.0, 14.0), (3.55, 76.0, 12.0)] {
-                    var shard = Path()
-                    let sx = cx - 6 + CGFloat(cos(ang) * dist)
-                    let sy = cy - 10 + CGFloat(sin(ang) * dist)
-                    shard.move(to: CGPoint(x: sx, y: sy))
-                    shard.addLine(to: CGPoint(x: sx + CGFloat(-sin(ang) * len), y: sy + CGFloat(cos(ang) * len * 0.6)))
-                    shard.addLine(to: CGPoint(x: sx + CGFloat(cos(ang) * 3.5), y: sy + CGFloat(sin(ang) * 3.5)))
-                    shard.closeSubpath()
-                    context.fill(shard, with: .color(primaryStroke))
+                // Outer Dry-Brush Splatter Notches along Top, Right & Left Rim
+                for (x0, y0, x1, y1, x2, y2) in [
+                    (-68.0, -14.0, -72.0, -22.0, -65.0, -19.0),
+                    (-2.0, -62.0, 12.0, -64.0, 4.0, -58.0),
+                    (48.0, -18.0, 54.0, -8.0, 46.0, -10.0),
+                    (44.0, 22.0, 38.0, 32.0, 40.0, 20.0),
+                    (-26.0, 26.0, -16.0, 40.0, -24.0, 32.0)
+                ] {
+                    var notch = Path()
+                    notch.move(to: pt(CGFloat(x0), CGFloat(y0)))
+                    notch.addLine(to: pt(CGFloat(x1), CGFloat(y1)))
+                    notch.addLine(to: pt(CGFloat(x2), CGFloat(y2)))
+                    notch.closeSubpath()
+                    context.fill(notch, with: .color(primaryStroke))
                 }
-                drawCADNode(CGPoint(x: cx - 58, y: cy - 46), handle: CGPoint(x: cx - 92, y: cy - 68))
+                drawCADNode(pt(-38, -36), handle: pt(-72, -56))
 
             } else if key.contains("sgi") || key.contains("irix") {
                 // --- 3. SGI (1:1 Isometric 6-Facet Interlocking Tubular Cube Logo) ---
@@ -5585,6 +5604,181 @@ struct DepotBlueprintArtStudioView: View {
                 context.stroke(rightFoot, with: .color(accentStroke), lineWidth: 2.2)
 
                 drawCADNode(CGPoint(x: cx + 58, y: cy + 26), handle: CGPoint(x: cx + 84, y: cy + 8))
+
+            } else if key.contains("xbox") {
+                // --- 5. XBOX (1:1 4-Wedge Spherical Cutout Geometry from Xbox_Logo.svg) ---
+                let R: CGFloat = 84.0
+                func xpt(_ nx: CGFloat, _ ny: CGFloat) -> CGPoint {
+                    CGPoint(x: cx + nx * R, y: cy + ny * R)
+                }
+
+                // 1) Top Spherical Crown Wedge (Between upper-left and upper-right X-cuts)
+                var topWedge = Path()
+                topWedge.addArc(center: CGPoint(x: cx, y: cy), radius: R, startAngle: .degrees(-124), endAngle: .degrees(-56), clockwise: false)
+                topWedge.addQuadCurve(to: xpt(0.0, -0.52), control: xpt(0.26, -0.70))
+                topWedge.addQuadCurve(to: xpt(-0.56, -0.83), control: xpt(-0.26, -0.70))
+                topWedge.closeSubpath()
+                context.fill(topWedge, with: .color(primaryFill))
+                context.stroke(topWedge, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.2, lineJoin: .round))
+
+                // 2) Left Spherical Cheek Wedge
+                var leftWedge = Path()
+                leftWedge.addArc(center: CGPoint(x: cx, y: cy), radius: R, startAngle: .degrees(146), endAngle: .degrees(-136), clockwise: false)
+                leftWedge.addQuadCurve(to: xpt(-0.30, -0.22), control: xpt(-0.50, -0.52))
+                leftWedge.addQuadCurve(to: xpt(-0.83, 0.56), control: xpt(-0.62, 0.14))
+                leftWedge.closeSubpath()
+                context.fill(leftWedge, with: .color(primaryFill))
+                context.stroke(leftWedge, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.2, lineJoin: .round))
+
+                // 3) Right Spherical Cheek Wedge
+                var rightWedge = Path()
+                rightWedge.addArc(center: CGPoint(x: cx, y: cy), radius: R, startAngle: .degrees(-44), endAngle: .degrees(34), clockwise: false)
+                rightWedge.addQuadCurve(to: xpt(0.30, -0.22), control: xpt(0.62, 0.14))
+                rightWedge.addQuadCurve(to: xpt(0.72, -0.69), control: xpt(0.50, -0.52))
+                rightWedge.closeSubpath()
+                context.fill(rightWedge, with: .color(primaryFill))
+                context.stroke(rightWedge, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.2, lineJoin: .round))
+
+                // 4) Large Bottom Spherical Base Wedge (Rising to the central apex below the X-intersection)
+                var botWedge = Path()
+                botWedge.addArc(center: CGPoint(x: cx, y: cy), radius: R, startAngle: .degrees(46), endAngle: .degrees(134), clockwise: false)
+                botWedge.addQuadCurve(to: xpt(0.0, 0.04), control: xpt(-0.46, 0.34))
+                botWedge.addQuadCurve(to: xpt(0.69, 0.72), control: xpt(0.46, 0.34))
+                botWedge.closeSubpath()
+                context.fill(botWedge, with: .color(accentFill))
+                context.stroke(botWedge, with: .color(accentStroke), style: StrokeStyle(lineWidth: 2.4, lineJoin: .round))
+
+                // Precision CAD Construction Circle around the Sphere
+                context.stroke(
+                    Path(ellipseIn: CGRect(x: cx - R, y: cy - R, width: R * 2, height: R * 2)),
+                    with: .color(faintStroke),
+                    style: StrokeStyle(lineWidth: 0.9, dash: [6, 4])
+                )
+                drawCADNode(xpt(0.0, 0.04), handle: xpt(0.38, -0.18))
+
+            } else if key.contains("ps1") || key.contains("ps2") || key.contains("playstation") || key.contains("freedvd") || key.contains("unirom") {
+                // --- 6. PLAYSTATION (1:1 Standing 3D 'P' + Perspective Floor 'S' Ribbon in Strict Two-Tone) ---
+                let s: CGFloat = 1.05
+                func ppt(_ dx: CGFloat, _ dy: CGFloat) -> CGPoint {
+                    CGPoint(x: cx + dx * s, y: cy + dy * s)
+                }
+
+                // 1) Perspective Floor 'S' (Drawn first so the vertical 'P' stands in front of it!)
+                // Back-left upper loop of the 'S' emerging from behind the 'P' stem
+                var sBackLoop = Path()
+                sBackLoop.move(to: ppt(-18, 8))
+                sBackLoop.addLine(to: ppt(-78, 30))
+                sBackLoop.addCurve(to: ppt(-82, 58), control1: ppt(-104, 40), control2: ppt(-104, 52))
+                sBackLoop.addLine(to: ppt(-18, 36))
+                sBackLoop.closeSubpath()
+                context.fill(sBackLoop, with: .color(primaryFill))
+                context.stroke(sBackLoop, with: .color(primaryStroke), lineWidth: 2.0)
+
+                // Diagonal center spine of the 'S' passing behind/under the 'P' out to the right loop
+                var sRightLoop = Path()
+                sRightLoop.move(to: ppt(8, 22))
+                sRightLoop.addLine(to: ppt(76, -2))
+                sRightLoop.addCurve(to: ppt(84, 30), control1: ppt(108, -12), control2: ppt(112, 18))
+                sRightLoop.addLine(to: ppt(8, 58))
+                sRightLoop.closeSubpath()
+                context.fill(sRightLoop, with: .color(primaryFill))
+                context.stroke(sRightLoop, with: .color(primaryStroke), lineWidth: 2.0)
+
+                // Front-bottom diagonal crossbar of the 'S' connecting right loop to front-left tip
+                var sFrontBar = Path()
+                sFrontBar.move(to: ppt(8, 42))
+                sFrontBar.addLine(to: ppt(58, 24))
+                sFrontBar.addLine(to: ppt(84, 30))
+                sFrontBar.addLine(to: ppt(8, 58))
+                sFrontBar.closeSubpath()
+                context.fill(sFrontBar, with: .color(accentFill.opacity(0.65)))
+                context.stroke(sFrontBar, with: .color(accentStroke), lineWidth: 1.8)
+
+                // 2) Tall Standing 3D 'P' Monolith (With angled perspective roof, inner D-slot & base bevel)
+                var pMain = Path()
+                pMain.move(to: ppt(-22, -88)) // Top-left peak
+                pMain.addLine(to: ppt(26, -70)) // Slanted top roof into the P bowl
+                pMain.addCurve(to: ppt(26, 8), control1: ppt(68, -54), control2: ppt(68, 4))
+                pMain.addLine(to: ppt(10, 4))
+                pMain.addLine(to: ppt(10, -48))
+                pMain.addCurve(to: ppt(2, -52), control1: ppt(10, -56), control2: ppt(2, -58))
+                pMain.addLine(to: ppt(2, 74)) // Right edge of vertical stem
+                pMain.addLine(to: ppt(-10, 82)) // Bottom 3D corner apex
+                pMain.addLine(to: ppt(-22, 74)) // Left edge of vertical stem
+                pMain.closeSubpath()
+
+                context.fill(pMain, with: .color(accentFill))
+                context.stroke(pMain, with: .color(accentStroke), style: StrokeStyle(lineWidth: 2.4, lineJoin: .round))
+
+                // 3D Right-Side Extrusion Line on the vertical stem
+                var pBevel = Path()
+                pBevel.move(to: ppt(-10, -83))
+                pBevel.addLine(to: ppt(-10, 82))
+                context.stroke(pBevel, with: .color(primaryStroke.opacity(0.80)), lineWidth: 1.6)
+                drawCADNode(ppt(56, -32), handle: ppt(82, -54))
+
+            } else if key.contains("dream") || key.contains("sega") || key.contains("saturn") || key.contains("240p") {
+                // --- 7. SEGA INLINE DOUBLE-STRIPE LOGOTYPE + SATURN DOUBLE-RINGED PLANET ---
+                // 1) Saturn Planet & Back-to-Front Double Swooshes on Upper Right
+                let px = cx + 32, py = cy - 28
+                let pR: CGFloat = 42
+                let planetRect = CGRect(x: px - pR, y: py - pR, width: pR * 2, height: pR * 2)
+                context.fill(Path(ellipseIn: planetRect), with: .color(primaryFill))
+                context.stroke(Path(ellipseIn: planetRect), with: .color(primaryStroke), lineWidth: 2.2)
+
+                // Sweeping Double Saturn Rings Tilted at -22 Degrees
+                for (rRx, rRy, yOff, isOuter) in [(88.0, 22.0, -4.0, true), (72.0, 17.0, 6.0, false)] {
+                    var ringArc = Path()
+                    // Front arc sweeping across the face of the planet + hook around the right/left tips
+                    for deg in stride(from: -35.0, through: 215.0, by: 5.0) {
+                        let rad = deg * .pi / 180.0
+                        let x0 = CGFloat(cos(rad) * rRx)
+                        let y0 = CGFloat(sin(rad) * rRy) + CGFloat(yOff)
+                        // Rotate by -20 degrees
+                        let rot = -20.0 * .pi / 180.0
+                        let rx = px + x0 * CGFloat(cos(rot)) - y0 * CGFloat(sin(rot))
+                        let ry = py + x0 * CGFloat(sin(rot)) + y0 * CGFloat(cos(rot))
+                        if deg == -35.0 { ringArc.move(to: CGPoint(x: rx, y: ry)) }
+                        else { ringArc.addLine(to: CGPoint(x: rx, y: ry)) }
+                    }
+                    context.stroke(
+                        ringArc,
+                        with: .color(isOuter ? accentStroke : primaryStroke),
+                        style: StrokeStyle(lineWidth: isOuter ? 6.5 : 4.5, lineCap: .round)
+                    )
+                }
+
+                // 2) Authentic SEGA Concentric Double-Ribbon 'S' & 'E' Monogram on Lower-Left
+                //    (Drawn using triple-pass parallel strokes: 18pt outer -> 6pt inner gap -> 2pt center hairline!)
+                func drawSegaDoubleRibbon(_ path: Path, color: Color) {
+                    context.stroke(path, with: .color(color.opacity(0.30)), style: StrokeStyle(lineWidth: 20, lineCap: .butt, lineJoin: .round))
+                    context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: 15, lineCap: .butt, lineJoin: .round))
+                    context.stroke(path, with: .color(Color.black.opacity(0.88)), style: StrokeStyle(lineWidth: 4.5, lineCap: .butt, lineJoin: .round))
+                }
+
+                var segaS = Path()
+                let sx = cx - 64, sy = cy + 28
+                segaS.move(to: CGPoint(x: sx + 26, y: sy - 28))
+                segaS.addLine(to: CGPoint(x: sx - 8, y: sy - 28))
+                segaS.addArc(center: CGPoint(x: sx - 8, y: sy - 14), radius: 14, startAngle: .degrees(-90), endAngle: .degrees(90), clockwise: true)
+                segaS.addLine(to: CGPoint(x: sx + 8, y: sy))
+                segaS.addArc(center: CGPoint(x: sx + 8, y: sy + 14), radius: 14, startAngle: .degrees(-90), endAngle: .degrees(90), clockwise: false)
+                segaS.addLine(to: CGPoint(x: sx - 26, y: sy + 28))
+                drawSegaDoubleRibbon(segaS, color: primaryStroke)
+
+                var segaE = Path()
+                let ex = cx + 2, ey = cy + 28
+                segaE.move(to: CGPoint(x: ex + 26, y: ey - 28))
+                segaE.addLine(to: CGPoint(x: ex - 4, y: ey - 28))
+                segaE.addArc(center: CGPoint(x: ex - 4, y: ey - 10), radius: 18, startAngle: .degrees(-90), endAngle: .degrees(180), clockwise: true)
+                segaE.addLine(to: CGPoint(x: ex - 22, y: ey + 10))
+                segaE.addArc(center: CGPoint(x: ex - 4, y: ey + 10), radius: 18, startAngle: .degrees(180), endAngle: .degrees(90), clockwise: true)
+                segaE.addLine(to: CGPoint(x: ex + 26, y: ey + 28))
+                segaE.move(to: CGPoint(x: ex - 16, y: ey))
+                segaE.addLine(to: CGPoint(x: ex + 18, y: ey))
+                drawSegaDoubleRibbon(segaE, color: accentStroke)
+
+                drawCADNode(CGPoint(x: px + 68, y: py - 24), handle: CGPoint(x: px + 96, y: py - 42))
 
             } else {
                 // --- 5. QUAKE II GOLD-STANDARD BENCHMARK (Razor Crescent + Twin Flared Spikes) ---
