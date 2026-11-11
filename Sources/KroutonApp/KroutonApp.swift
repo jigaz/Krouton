@@ -5225,9 +5225,12 @@ struct DepotBlueprintArtStudioView: View {
     let isNarrow: Bool
 
     var body: some View {
+        let secondary = accent.perceptualSplitComplement
+        let occludeBacking = accent.blueprintOccludeBacking
+
         Canvas { context, size in
             // =========================================================================
-            // 1. ARCHITECTURAL CAD SUB-GRID & TWO-TONE QUAKE-II PALETTE SETUP
+            // 1. ARCHITECTURAL CAD SUB-GRID & PERCEPTUAL SPLIT-COMPLEMENTARY PALETTE
             // =========================================================================
             let step: CGFloat = 18
             var grid = Path()
@@ -5239,25 +5242,25 @@ struct DepotBlueprintArtStudioView: View {
                 grid.move(to: CGPoint(x: 0, y: y))
                 grid.addLine(to: CGPoint(x: size.width, y: y))
             }
-            context.stroke(grid, with: .color(Color.cyan.opacity(0.04)), lineWidth: 0.5)
+            context.stroke(grid, with: .color(secondary.opacity(0.045)), lineWidth: 0.5)
 
             // Focal anchor zoomed & positioned so macro-cropped art bleeds off top/right/bottom
             let cx: CGFloat = isNarrow ? size.width * 0.79 : size.width * 0.62
             let cy: CGFloat = size.height * 0.53
 
-            // Strict Two-Tone Quake-II Palette (Matches active theme + cyan blueprint)
-            let primaryStroke = Color.cyan
-            let primaryFill   = Color.cyan.opacity(0.28)
+            // Dynamic Two-Tone Palette (Active Swatch + Perceptual Split-Complementary Secondary)
+            let primaryStroke = secondary
+            let primaryFill   = secondary.opacity(0.28)
             let accentStroke  = accent
             let accentFill    = accent.opacity(0.42)
-            let faintStroke   = Color.cyan.opacity(0.18)
+            let faintStroke   = secondary.opacity(0.18)
 
             // Ambient radial glow behind the artwork
             let glowR: CGFloat = 185
             context.fill(
                 Path(ellipseIn: CGRect(x: cx - glowR, y: cy - glowR, width: glowR * 2, height: glowR * 2)),
                 with: .radialGradient(
-                    Gradient(colors: [accent.opacity(0.32), Color.cyan.opacity(0.12), Color.clear]),
+                    Gradient(colors: [accent.opacity(0.32), secondary.opacity(0.14), Color.clear]),
                     center: CGPoint(x: cx, y: cy),
                     startRadius: 6,
                     endRadius: glowR
@@ -5275,9 +5278,9 @@ struct DepotBlueprintArtStudioView: View {
             func drawCADNode(_ pt: CGPoint, handle: CGPoint) {
                 var ln = Path()
                 ln.move(to: pt); ln.addLine(to: handle)
-                context.stroke(ln, with: .color(Color.cyan.opacity(0.55)), lineWidth: 0.9)
+                context.stroke(ln, with: .color(primaryStroke.opacity(0.55)), lineWidth: 0.9)
                 let sq = CGRect(x: pt.x - 3, y: pt.y - 3, width: 6, height: 6)
-                context.fill(Path(sq), with: .color(Color.cyan))
+                context.fill(Path(sq), with: .color(primaryStroke))
                 context.stroke(Path(sq), with: .color(accent), lineWidth: 1.2)
                 let cr = CGRect(x: handle.x - 2.5, y: handle.y - 2.5, width: 5, height: 5)
                 context.fill(Path(ellipseIn: cr), with: .color(accent))
@@ -5420,7 +5423,6 @@ struct DepotBlueprintArtStudioView: View {
                 // --- 3. SGI (1:1 Isometric 6-Facet Interlocking Tubular Cube Logo) ---
                 // Exact 30-degree isometric basis vectors for the 6 SGI cube limbs
                 let R: CGFloat = 88.0
-                let tubeW: CGFloat = 15.0
                 // Six outer hexagonal vertices (0=TopLeft, 1=TopRight, 2=MidRight, 3=BotRight, 4=BotLeft, 5=MidLeft)
                 let angles: [Double] = [-120, -60, 0, 60, 120, 180]
                 for i in 0..<6 {
@@ -5616,7 +5618,7 @@ struct DepotBlueprintArtStudioView: View {
                     CGPoint(x: cx + nx * R, y: cy + ny * R)
                 }
 
-                let occludeDark = Color(red: 0.03, green: 0.07, blue: 0.13)
+                let occludeDark = occludeBacking
                 func drawOccludedWedge(_ path: Path, fill: Color, stroke: Color, lineWidth: CGFloat = 2.3) {
                     context.fill(path, with: .color(occludeDark))
                     context.fill(path, with: .color(fill))
@@ -5932,7 +5934,7 @@ struct DepotBlueprintArtStudioView: View {
                 }
 
                 // Opaque dark blueprint backing color so foreground limbs cleanly occlude background lines!
-                let occludeDark = Color(red: 0.03, green: 0.07, blue: 0.13)
+                let occludeDark = occludeBacking
 
                 // Helper: Draws a filled + stroked closed shape with opaque backing so lines behind it never bleed through
                 func drawOccludedLayer(_ path: Path, fill: Color, stroke: Color, lineWidth: CGFloat = 2.2) {
@@ -6330,7 +6332,7 @@ struct DepotBlueprintArtStudioView: View {
                     CGPoint(x: cx + dx * s, y: (cy + 10.0) + dy * s)
                 }
 
-                let occludeDark = Color(red: 0.03, green: 0.07, blue: 0.13)
+                let occludeDark = occludeBacking
 
                 func drawOccluded(_ path: Path, fill: Color, stroke: Color, lineWidth: CGFloat = 2.2) {
                     context.fill(path, with: .color(occludeDark))
@@ -6734,5 +6736,94 @@ struct DepotBlueprintArtStudioView: View {
             )
         )
         .drawingGroup(opaque: false, colorMode: .extendedLinear)
+    }
+}
+
+
+// MARK: - Perceptual Split-Complementary + Warm/Cool Polarity Color Engine (CGColor / P3)
+extension Color {
+    /// Computes a luminance-normalized split-complementary secondary color using CGColor/NSColor math.
+    var perceptualSplitComplement: Color {
+        let nsColor = NSColor(self).usingColorSpace(.sRGB) ?? NSColor.systemCyan
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        nsColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+
+        var h: CGFloat = 0, s: CGFloat = 0, v: CGFloat = 0
+        nsColor.getHue(&h, saturation: &s, brightness: &v, alpha: &a)
+        let hueDeg = h * 360.0
+
+        // 1. Monochrome / Achromatic Guard (e.g. Graphite / Silver / White swatches)
+        if s < 0.08 {
+            // Pair bright silver-white with machined titanium-ice
+            let targetV: CGFloat = v > 0.72 ? 0.56 : 0.90
+            let cg = CGColor(srgbRed: targetV * 0.94, green: targetV * 0.97, blue: targetV, alpha: 1.0)
+            return Color(cgColor: cg)
+        }
+
+        // 2. Warm / Cool Polarity Split-Complementary Rotation
+        let targetHueDeg: CGFloat
+        var targetSat: CGFloat
+        var targetBri: CGFloat
+
+        if hueDeg <= 72.0 || hueDeg >= 325.0 {
+            // WARM SWATCH (Toasted Brown, Red, Orange, Gold, Rose) -> Cool Blueprint Cyan / Azure (192°..206°)
+            let warmOffset = (hueDeg >= 325.0) ? (hueDeg - 360.0) : hueDeg
+            targetHueDeg = 192.0 + (warmOffset / 72.0) * 14.0
+            targetSat = 0.84
+            targetBri = 0.96
+        } else if hueDeg > 72.0 && hueDeg < 162.0 {
+            // GREEN / EMERALD SWATCH -> Deep Cyber Cerulean / Ice Blue (198°..214°)
+            let t = (hueDeg - 72.0) / 90.0
+            targetHueDeg = 198.0 + t * 16.0
+            targetSat = 0.82
+            targetBri = 0.96
+        } else if hueDeg >= 162.0 && hueDeg <= 265.0 {
+            // COOL SWATCH (Laser Blue, Cyan, Teal, Indigo) -> Warm Split-Complement Amber / Copper / Gold (36°..46°)
+            let t = (hueDeg - 162.0) / 103.0
+            targetHueDeg = 36.0 + t * 10.0
+            targetSat = 0.86
+            targetBri = 0.98
+        } else {
+            // PURPLE / VIOLET / MAGENTA SWATCH (265°..325°) -> Electric Ice Cyan (186°..196°)
+            let t = (hueDeg - 265.0) / 60.0
+            targetHueDeg = 186.0 + t * 10.0
+            targetSat = 0.82
+            targetBri = 0.96
+        }
+
+        // 3. Convert to RGB & Enforce Perceived Luminance Floor (Rec. 709 Y = 0.2126R + 0.7152G + 0.0722B)
+        let candidate = NSColor(
+            hue: (targetHueDeg.truncatingRemainder(dividingBy: 360.0)) / 360.0,
+            saturation: targetSat,
+            brightness: targetBri,
+            alpha: 1.0
+        ).usingColorSpace(.sRGB) ?? NSColor.systemCyan
+
+        var cr: CGFloat = 0, cg: CGFloat = 0, cb: CGFloat = 0, ca: CGFloat = 0
+        candidate.getRed(&cr, green: &cg, blue: &cb, alpha: &ca)
+
+        let lum = 0.2126 * cr + 0.7152 * cg + 0.0722 * cb
+        let minLum: CGFloat = 0.54
+        if lum < minLum {
+            let boost = min(1.0, (minLum - lum) * 0.85)
+            cr = min(1.0, cr + boost * 0.75)
+            cg = min(1.0, cg + boost * 0.90)
+            cb = min(1.0, cb + boost)
+        }
+
+        if let p3Space = CGColorSpace(name: CGColorSpace.displayP3),
+           let cgColor = CGColor(colorSpace: p3Space, components: [cr, cg, cb, 1.0]) {
+            return Color(cgColor: cgColor)
+        }
+        return Color(red: cr, green: cg, blue: cb)
+    }
+
+    /// Deep blueprint occlusion backing subtly tinted by the active harmony hue
+    var blueprintOccludeBacking: Color {
+        let nsColor = NSColor(self.perceptualSplitComplement).usingColorSpace(.sRGB) ?? NSColor.systemCyan
+        var h: CGFloat = 0, s: CGFloat = 0, v: CGFloat = 0, a: CGFloat = 0
+        nsColor.getHue(&h, saturation: &s, brightness: &v, alpha: &a)
+        let darkNS = NSColor(hue: h, saturation: min(s, 0.72), brightness: 0.12, alpha: 1.0).usingColorSpace(.sRGB) ?? NSColor.black
+        return Color(cgColor: darkNS.cgColor)
     }
 }
