@@ -1300,3 +1300,17 @@ extension DiscFormatSpec {
         return technicalName
     }
 }
+
+
+// MARK: - Apple Silicon Hardware-Accelerated Verification Bridge
+extension KroutonStateStore {
+    /// Offloads large ISO/BIN/CHD SHA-256 verification to Apple Silicon CryptoKit AMX units via KroutonHardwareAccelerator.
+    public func verifyDiscImageHardwareAccelerated(url: URL, completion: @escaping @Sendable (String?) -> Void) {
+        Task.detached(priority: .userInitiated) {
+            let digest = try? await KroutonHardwareAccelerator.shared.computeFileSHA256Hex(at: url)
+            await MainActor.run {
+                completion(digest)
+            }
+        }
+    }
+}
