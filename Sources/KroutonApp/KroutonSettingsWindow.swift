@@ -250,14 +250,21 @@ public struct KroutonSettingsWindowView: View {
                                             .fill(
                                                 style == .defaultStyle ? LinearGradient(colors: [store.activeAccent, store.activeAccent.opacity(0.65)], startPoint: .topLeading, endPoint: .bottomTrailing) :
                                                 (style == .dark ? LinearGradient(colors: [Color(white: 0.16), Color(white: 0.08)], startPoint: .top, endPoint: .bottom) :
-                                                (style == .clear ? LinearGradient(colors: [Color.white.opacity(0.18), Color.white.opacity(0.05)], startPoint: .top, endPoint: .bottom) :
-                                                LinearGradient(colors: [Color(white: 0.15), Color(white: 0.08)], startPoint: .topLeading, endPoint: .bottomTrailing)))
+                                                (style == .clear ? LinearGradient(colors: [Color.primary.opacity(0.12), Color.primary.opacity(0.04)], startPoint: .top, endPoint: .bottom) :
+                                                (store.resolvedColorScheme == .light
+                                                    ? LinearGradient(colors: [Color(white: 0.98), Color(white: 0.93)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                                    : LinearGradient(colors: [Color(white: 0.15), Color(white: 0.08)], startPoint: .topLeading, endPoint: .bottomTrailing))))
                                             )
                                             .overlay(
                                                 Group {
                                                     if style == .tinted && store.enableSecondaryAccentUITints {
+                                                        let pid = store.selectedAccentIndex >= 0 ? store.selectedAccentIndex : store.multicolorPresetID(forTaskID: store.selectedTaskID, category: store.selectedCategory)
+                                                        let brightHarmony = KroutonStateStore.secondaryHarmonyForPresetID(pid, scheme: .dark)
                                                         RoundedRectangle(cornerRadius: 9)
-                                                            .fill(store.activeSecondaryAccent.opacity(0.28))
+                                                            .fill(store.resolvedColorScheme == .light ? brightHarmony.opacity(0.40) : store.activeSecondaryAccent.opacity(0.28))
+                                                    } else if style == .tinted && store.resolvedColorScheme == .light {
+                                                        RoundedRectangle(cornerRadius: 9)
+                                                            .fill(store.activeAccent.opacity(0.15))
                                                     }
                                                 }
                                             )
@@ -267,13 +274,13 @@ public struct KroutonSettingsWindowView: View {
                                                     .stroke(
                                                         store.iconWidgetStyle == style
                                                             ? store.uiSecondaryAccent
-                                                            : (style == .tinted && store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.50) : Color.secondary.opacity(0.3)),
+                                                            : (style == .tinted && store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.55) : Color.primary.opacity(0.18)),
                                                         lineWidth: store.iconWidgetStyle == style ? 2.5 : 1.0
                                                     )
                                             )
                                         Image(systemName: "opticaldisc.fill")
                                             .font(.system(size: 18, weight: .semibold))
-                                            .foregroundStyle(style == .tinted ? store.activeAccent : .white)
+                                            .foregroundStyle(style == .tinted ? store.activeAccent : (style == .clear ? Color.primary : .white))
                                     }
                                     Text(KroutonL10n.tr(style.rawValue))
                                         .font(.system(size: 10, weight: store.iconWidgetStyle == style ? .bold : .regular))
