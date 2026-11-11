@@ -279,7 +279,7 @@ extension KroutonMainWorkspaceView {
                 HStack(spacing: 10) {
                     KroutonStyledIconBadge(
                         sfSymbol: heroItem.sfSymbol,
-                        tintColor: store.activeAccent,
+                        tintColor: store.iconWidgetStyle == .tinted ? store.uiSecondaryAccent : store.activeAccent,
                         style: store.iconWidgetStyle,
                         size: 28,
                         symbolSize: 14
@@ -462,7 +462,7 @@ extension KroutonMainWorkspaceView {
                     HStack(spacing: 8) {
                         KroutonStyledIconBadge(
                             sfSymbol: activeSpec.sfSymbol,
-                            tintColor: store.activeAccent,
+                            tintColor: store.iconWidgetStyle == .tinted ? store.uiSecondaryAccent : store.activeAccent,
                             style: store.iconWidgetStyle,
                             size: 28,
                             symbolSize: 15

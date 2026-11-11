@@ -80,7 +80,7 @@ public struct KroutonSettingsWindowView: View {
                                 HStack(spacing: 10) {
                                     KroutonStyledIconBadge(
                                         sfSymbol: pane.sfSymbol,
-                                        tintColor: store.activeAccent,
+                                        tintColor: store.iconWidgetStyle == .tinted ? store.uiSecondaryAccent : store.activeAccent,
                                         style: store.iconWidgetStyle,
                                         isSelectedRow: isSelected,
                                         onAccentText: store.activeOnAccentText,
@@ -254,10 +254,10 @@ public struct KroutonSettingsWindowView: View {
                                                 LinearGradient(colors: [Color(white: 0.14), Color(white: 0.08)], startPoint: .top, endPoint: .bottom)))
                                             )
                                             .frame(width: 44, height: 38)
-                                            .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.iconWidgetStyle == style ? store.activeAccent : Color.secondary.opacity(0.3), lineWidth: store.iconWidgetStyle == style ? 2.5 : 1.0))
+                                            .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.iconWidgetStyle == style ? store.uiSecondaryAccent : (style == .tinted && store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.45) : Color.secondary.opacity(0.3)), lineWidth: store.iconWidgetStyle == style ? 2.5 : 1.0))
                                         Image(systemName: "opticaldisc.fill")
                                             .font(.system(size: 18, weight: .semibold))
-                                            .foregroundStyle(style == .tinted ? store.activeAccent : .white)
+                                            .foregroundStyle(style == .tinted ? store.uiSecondaryAccent : .white)
                                     }
                                     Text(KroutonL10n.tr(style.rawValue))
                                         .font(.system(size: 10, weight: store.iconWidgetStyle == style ? .bold : .regular))
