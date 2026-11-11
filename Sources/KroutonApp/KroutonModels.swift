@@ -302,11 +302,13 @@ public struct DestinationQueueItem: Identifiable, Hashable, Sendable {
 
 @MainActor
 public final class KroutonStateStore: ObservableObject {
-    @Published var enableSecondaryAccentUITints: Bool = (UserDefaults.standard.object(forKey: "krouton.enableSecondaryAccentUITints") as? Bool) ?? true {
+    @Published var enableSecondaryAccentUITints: Bool = (UserDefaults.standard.object(forKey: "krouton.harmonyTintV2") as? Bool) ?? false {
         didSet {
-            UserDefaults.standard.set(enableSecondaryAccentUITints, forKey: "krouton.enableSecondaryAccentUITints")
+            UserDefaults.standard.set(enableSecondaryAccentUITints, forKey: "krouton.harmonyTintV2")
+            objectWillChange.send()
         }
     }
+    
     @Published public var appearanceMode: AppAppearanceMode = .auto
     @Published public var selectedAccentIndex: Int = 8 // Default: Toasted Krouton Brown
     // macOS System Settings Theme & Window Extensions

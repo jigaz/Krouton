@@ -1087,7 +1087,7 @@ struct KroutonMainWorkspaceView: View {
                 )
 
             // 2. Multi-Layer Isometric & Pixel-Matrix CAD Blueprint Art Studio
-            DepotBlueprintArtStudioView(item: item, accent: store.activeAccent, isNarrow: isNarrow, useHarmony: store.enableSecondaryAccentUITints)
+            DepotBlueprintArtStudioView(item: item, accent: store.activeAccent, isNarrow: isNarrow, useHarmony: store.enableSecondaryAccentUITints).id("\(item.id)-\(store.enableSecondaryAccentUITints)")
                 .clipShape(RoundedRectangle(cornerRadius: 14))
 
             // 3. Foreground Layout: Left Info Column + Open Vector Showcase + Right Schematic Box
@@ -5231,7 +5231,7 @@ struct DepotBlueprintArtStudioView: View {
 
     var body: some View {
         let secondary = useHarmony ? accent.perceptualSplitComplement : accent
-        let occludeBacking = accent.blueprintOccludeBacking
+        let occludeBacking = useHarmony ? accent.blueprintOccludeBacking : Color(red: 0.05, green: 0.06, blue: 0.08)
 
         Canvas { context, size in
             // =========================================================================

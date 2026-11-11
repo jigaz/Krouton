@@ -150,6 +150,7 @@ public struct KroutonSettingsWindowView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
             .background(Color(NSColor.windowBackgroundColor))
         }
         .frame(minWidth: 980, idealWidth: 1120, minHeight: 600, idealHeight: 720)
@@ -216,10 +217,10 @@ public struct KroutonSettingsWindowView: View {
 
                         HStack(alignment: .center, spacing: 12) {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Window & UI Harmony Tint")
+                                Text("Window & UI Harmony")
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : Color.primary)
-                                Text("Left uses Primary Swatch only • Right tints windows with Primary & accents UI pills/buttons with Secondary Harmony")
+                                Text("Tint windows & UI accents with secondary harmony color")
                                     .font(.system(size: 11))
                                     .foregroundStyle(.secondary)
                             }
