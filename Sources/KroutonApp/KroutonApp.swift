@@ -1273,7 +1273,7 @@ struct KroutonMainWorkspaceView: View {
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    isStaged ? Color.green : (isSelectedInHero ? store.activeAccent : store.activeAccent.opacity(0.80)),
+                                    isStaged ? Color.green : (isSelectedInHero ? pillAccent : store.activeAccent.opacity(0.80)),
                                     (isStaged ? Color.green : store.activeAccent).opacity(0.45)
                                 ],
                                 startPoint: .topLeading,
