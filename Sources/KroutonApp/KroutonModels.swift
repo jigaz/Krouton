@@ -31,7 +31,7 @@ public struct AccentColorPreset: Identifiable, Hashable, Sendable {
         // 3: Green
         AccentColorPreset(id: 3, swatchColor: Color.green, darkAccent: Color(red: 0.18, green: 0.78, blue: 0.36), lightAccent: Color(red: 0.12, green: 0.62, blue: 0.26), darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
         // 4: Cyan / Teal
-        AccentColorPreset(id: 4, swatchColor: Color.cyan, darkAccent: Color(red: 0.16, green: 0.74, blue: 0.88), lightAccent: Color(red: 0.04, green: 0.54, blue: 0.68), darkOnAccentText: Color.black.opacity(0.88), lightOnAccentText: .white, isMonochrome: false),
+        AccentColorPreset(id: 4, swatchColor: Color(red: 0.08, green: 0.82, blue: 0.68), darkAccent: Color(red: 0.08, green: 0.82, blue: 0.68), lightAccent: Color(red: 0.05, green: 0.68, blue: 0.55), darkOnAccentText: Color.black.opacity(0.88), lightOnAccentText: .white, isMonochrome: false),
         // 5: 405nm Laser Blue
         AccentColorPreset(id: 5, swatchColor: Color.blue, darkAccent: Color.blue, lightAccent: Color(red: 0.0, green: 0.40, blue: 0.88), darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
         // 6: Studio Slate Blue (Default)

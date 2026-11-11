@@ -122,19 +122,19 @@ extension Color {
                 return p3(0.56, 0.78, 1.00)
             }
 
-            // 4. OSCILLOSCOPE GREEN (Hue 78°..164°) -> Electric Cerulean Blue
-            if hueDeg >= 78.0 && hueDeg < 164.0 {
+            // 4. OSCILLOSCOPE GREEN (Hue 78°..148°) -> Electric Cerulean Blue
+            if hueDeg >= 78.0 && hueDeg < 148.0 {
                 return p3(0.20, 0.68, 1.00)
             }
 
-            // 5. CAD TEAL / SKY CYAN (Hue 164°..202°) -> Teenage-Engineering Safety Orange
-            if hueDeg >= 164.0 && hueDeg < 202.0 {
-                return p3(1.00, 0.55, 0.14)
+            // 5. ANALOG SEAFOAM TEAL (Hue 148°..195°) -> Laser Lemon / High-Vis Citron
+            if hueDeg >= 148.0 && hueDeg < 195.0 {
+                return p3(0.98, 0.94, 0.32)
             }
 
-            // 6. LASER COBALT BLUE (Hue 202°..216°) -> Cyber Orchid / Neon Heliotrope
-            if hueDeg >= 202.0 && hueDeg < 216.0 {
-                return p3(0.92, 0.46, 1.00)
+            // 6. LASER COBALT BLUE (Hue 195°..216°) -> Warm Ivory / Rich Cream
+            if hueDeg >= 195.0 && hueDeg < 216.0 {
+                return p3(1.00, 0.96, 0.84)
             }
 
             // 7. SLATE INDIGO / STEEL BLUE (Hue 216°..238°) -> Cyber Hot Berry / Electric Magenta
@@ -183,12 +183,42 @@ extension Color {
 
 // MARK: - KroutonStateStore Secondary Accent Harmony Extension
 extension KroutonStateStore {
+    private static func p3Color(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat) -> Color {
+        if let space = CGColorSpace(name: CGColorSpace.displayP3),
+           let cg = CGColor(colorSpace: space, components: [r, g, b, 1.0]) {
+            return Color(cgColor: cg)
+        }
+        return Color(red: r, green: g, blue: b)
+    }
+
+    /// Deterministic Display-P3 Secondary Harmony lookup by exact Swatch ID (0..9),
+    /// eliminating any sRGB/P3 hue-boundary ambiguity between adjacent blue/teal swatches.
+    public static func secondaryHarmonyForPresetID(_ id: Int) -> Color {
+        switch id {
+        case 0:  return p3Color(0.78, 0.50, 1.00) // #2 Laser Crimson     -> Electric Amethyst
+        case 1:  return p3Color(0.72, 1.00, 0.18) // #3 Vibrant Tangerine -> Acid Chartreuse
+        case 2:  return p3Color(0.56, 0.78, 1.00) // #4 Solar Gold        -> Arctic Periwinkle
+        case 3:  return p3Color(0.20, 0.68, 1.00) // #5 Oscilloscope Green-> Electric Cerulean
+        case 4:  return p3Color(0.98, 0.94, 0.32) // #6 Analog Seafoam    -> Laser Lemon
+        case 5:  return p3Color(1.00, 0.96, 0.84) // #7 Laser Cobalt Blue -> Warm Ivory / Rich Cream
+        case 6:  return p3Color(0.98, 0.36, 0.76) // #8 Studio Slate Blue -> Cyber Hot Berry
+        case 7:  return p3Color(0.26, 0.99, 0.88) // #9 Synth Violet      -> Phosphor Cyber Mint
+        case 8:  return p3Color(0.98, 0.87, 0.68) // #10 Toasted Brown    -> Champagne Almond
+        case 9:  return p3Color(0.98, 0.99, 1.00) // #11 Titanium Mono    -> Stark Pure White
+        default: return p3Color(0.98, 0.36, 0.76)
+        }
+    }
+
     var activeSecondaryAccent: Color {
-        activeAccent.perceptualSplitComplement
+        if selectedAccentIndex >= 0 && selectedAccentIndex <= 9 {
+            return Self.secondaryHarmonyForPresetID(selectedAccentIndex)
+        }
+        // When Multicolor (-1) is selected, resolve the active task's preset ID directly
+        return activeAccent.perceptualSplitComplement
     }
 
     var uiSecondaryAccent: Color {
-        enableSecondaryAccentUITints ? activeAccent.perceptualSplitComplement : activeAccent
+        enableSecondaryAccentUITints ? activeSecondaryAccent : activeAccent
     }
 
     /// Cached window surface tint that blends 12% of the Primary Swatch when Harmony is enabled
