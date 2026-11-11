@@ -303,6 +303,7 @@ public struct DestinationQueueItem: Identifiable, Hashable, Sendable {
 
 @MainActor
 public final class KroutonStateStore: ObservableObject {
+    public static weak var shared: KroutonStateStore?
     @Published public var enableSecondaryAccentUITints: Bool = false {
         didSet {
             UserDefaults.standard.set(enableSecondaryAccentUITints, forKey: "krouton.harmonyOffByDefaultV4")
@@ -1021,12 +1022,12 @@ public final class KroutonStateStore: ObservableObject {
         stagedFiles.removeAll()
     }
 
-    public init() {}
+    public init() {
+        Self.shared = self}
 }
 
 // MARK: - Functional Icon & Widget Style Renderer (Default / Dark / Clear / Tinted)
 public struct KroutonStyledIconBadge: View {
-    @EnvironmentObject var store: KroutonStateStore
     public let sfSymbol: String
     public let tintColor: Color
     public let style: IconWidgetStyleMode
@@ -1054,17 +1055,19 @@ public struct KroutonStyledIconBadge: View {
     }
 
     public var body: some View {
-        let useHarmonyBg = (style == .tinted && store.enableSecondaryAccentUITints)
-        let harmonyColor = store.activeSecondaryAccent
+        let activeStore = KroutonStateStore.shared
+        let useHarmonyBg = (style == .tinted && (activeStore?.enableSecondaryAccentUITints ?? false))
+        let harmonyColor = activeStore?.activeSecondaryAccent ?? tintColor.perceptualSplitComplement
+        let isLight = (activeStore?.resolvedColorScheme == .light)
 
         ZStack {
             RoundedRectangle(cornerRadius: size * 0.26, style: .continuous)
-                .fill(badgeBackgroundGradient(useHarmonyBg: useHarmonyBg, harmonyColor: harmonyColor))
+                .fill(badgeBackgroundGradient)
                 .overlay(
                     Group {
                         if useHarmonyBg {
                             RoundedRectangle(cornerRadius: size * 0.26, style: .continuous)
-                                .fill(harmonyColor.opacity(store.resolvedColorScheme == .light ? 0.24 : 0.28))
+                                .fill(harmonyColor.opacity(isLight ? 0.24 : 0.28))
                         }
                     }
                 )
@@ -1085,7 +1088,7 @@ public struct KroutonStyledIconBadge: View {
         }
     }
 
-    private func badgeBackgroundGradient(useHarmonyBg: Bool, harmonyColor: Color) -> LinearGradient {
+    private var badgeBackgroundGradient: LinearGradient {
         switch style {
         case .defaultStyle:
             if isSelectedRow {
@@ -1113,7 +1116,6 @@ public struct KroutonStyledIconBadge: View {
                 endPoint: .bottom
             )
         case .tinted:
-            // Base dark charcoal studio tile (layered with `harmonyColor.opacity(0.28)` above when Harmony is ON!)
             return LinearGradient(
                 colors: [Color(white: 0.15), Color(white: 0.08)],
                 startPoint: .topLeading,
@@ -1125,7 +1127,7 @@ public struct KroutonStyledIconBadge: View {
     private var symbolForeground: Color {
         switch style {
         case .defaultStyle:
-            return isSelectedRow ? onAccentText : onAccentText
+            return onAccentText
         case .dark:
             return .white
         case .clear:
