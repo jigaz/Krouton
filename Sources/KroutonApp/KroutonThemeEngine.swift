@@ -104,17 +104,17 @@ extension Color {
                 return Color(cgColor: CGColor(srgbRed: pr, green: pg, blue: pb, alpha: 1.0))
             }
 
-                        // 1. TITANIUM / MONOCHROME (Low Saturation) -> Stark Pure White
+                                    // 1. TITANIUM / MONOCHROME (Low Saturation) -> Stark Pure White
             if s < 0.14 {
                 return v > 0.88 ? p3(0.60, 0.65, 0.72) : p3(0.98, 0.99, 1.00)
             }
 
             // 2. TOASTED KROUTON BROWN vs. VIBRANT TANGERINE / ORANGE (Hue 14°..42°)
             //    - Toasted Brown (s < 0.72 or v < 0.78) -> Champagne Almond Cream
-            //    - Vibrant Orange (s >= 0.72, v >= 0.78) -> Royal Ultramarine Blue
+            //    - Vibrant Tangerine / Orange (s >= 0.72, v >= 0.78) -> Electric Cyber Lime / Acid Chartreuse
             if hueDeg >= 14.0 && hueDeg < 42.0 {
                 let isEarthyBrown = (s < 0.72) || (v < 0.78)
-                return isEarthyBrown ? p3(0.98, 0.87, 0.68) : p3(0.32, 0.62, 1.00)
+                return isEarthyBrown ? p3(0.98, 0.87, 0.68) : p3(0.72, 1.00, 0.18)
             }
 
             // 3. SOLAR GOLD / AMBER (Hue 42°..78°) -> Arctic Periwinkle / Cool Ice Blue
@@ -132,9 +132,9 @@ extension Color {
                 return p3(1.00, 0.55, 0.14)
             }
 
-            // 6. LASER COBALT BLUE (Hue 202°..216°) -> Sunburst Amber / Warm Gold
+            // 6. LASER COBALT BLUE (Hue 202°..216°) -> Cyber Orchid / Neon Heliotrope
             if hueDeg >= 202.0 && hueDeg < 216.0 {
-                return p3(1.00, 0.84, 0.28)
+                return p3(0.92, 0.46, 1.00)
             }
 
             // 7. SLATE INDIGO / STEEL BLUE (Hue 216°..238°) -> Cyber Hot Berry / Electric Magenta
