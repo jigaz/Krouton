@@ -248,7 +248,7 @@ extension KroutonMainWorkspaceView {
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.primary.opacity(0.08))
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(isOverburn ? Color.red : store.activeAccent)
+                        .fill(isOverburn ? AnyShapeStyle(Color.red) : (store.enableSecondaryAccentUITints ? AnyShapeStyle(LinearGradient(colors: [store.activeAccent, store.activeSecondaryAccent], startPoint: .leading, endPoint: .trailing)) : AnyShapeStyle(store.activeAccent)))
                         .frame(width: max(4, geo.size.width * ratio))
                     Rectangle()
                         .fill(Color.yellow.opacity(0.65))

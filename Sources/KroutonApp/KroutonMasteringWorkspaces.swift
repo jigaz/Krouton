@@ -355,7 +355,7 @@ extension KroutonMainWorkspaceView {
                                     }
                                     .padding(8)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(Color.black.opacity(0.24))
+                                    .background(ZStack { Color.black.opacity(0.24); store.sidebarTintOverlay })
                                     .overlay(Rectangle().stroke(Color.primary.opacity(0.12), lineWidth: 1))
 
                                     VStack(alignment: .leading, spacing: 2) {
@@ -369,7 +369,7 @@ extension KroutonMainWorkspaceView {
                                     }
                                     .padding(8)
                                     .frame(width: 235, alignment: .leading)
-                                    .background(Color.black.opacity(0.24))
+                                    .background(ZStack { Color.black.opacity(0.24); store.sidebarTintOverlay })
                                     .overlay(Rectangle().stroke(Color.primary.opacity(0.12), lineWidth: 1))
                                 }
 
@@ -440,7 +440,7 @@ extension KroutonMainWorkspaceView {
                                     }
                                 }
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .background(Color.black.opacity(0.32))
+                                .background(ZStack { Color.black.opacity(0.32); store.sidebarTintOverlay })
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.14), lineWidth: 1))
                             }
@@ -704,7 +704,7 @@ extension KroutonMainWorkspaceView {
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 6)
-                            .background(Color.black.opacity(0.18))
+                            .background(ZStack { Color.black.opacity(0.18); store.sidebarTintOverlay })
                             Divider()
 
                             ScrollView {
@@ -927,7 +927,7 @@ extension KroutonMainWorkspaceView {
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 6)
-                        .background(Color.black.opacity(0.18))
+                        .background(ZStack { Color.black.opacity(0.18); store.sidebarTintOverlay })
                         Divider()
 
                         ScrollView {
@@ -1137,7 +1137,7 @@ extension KroutonMainWorkspaceView {
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 6)
-                        .background(Color.black.opacity(0.18))
+                        .background(ZStack { Color.black.opacity(0.18); store.sidebarTintOverlay })
                         Divider()
 
                         ScrollView {
@@ -1300,7 +1300,7 @@ extension KroutonMainWorkspaceView {
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 6)
-                        .background(Color.black.opacity(0.18))
+                        .background(ZStack { Color.black.opacity(0.18); store.sidebarTintOverlay })
                         Divider()
 
                         ScrollView {
@@ -1413,7 +1413,7 @@ extension KroutonMainWorkspaceView {
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 6)
-                        .background(Color.black.opacity(0.18))
+                        .background(ZStack { Color.black.opacity(0.18); store.sidebarTintOverlay })
                         Divider()
 
                         ScrollView {

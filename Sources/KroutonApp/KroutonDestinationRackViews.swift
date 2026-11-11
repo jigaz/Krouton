@@ -98,7 +98,7 @@ extension KroutonMainWorkspaceView {
                         .background(
                             isFloatingOpen
                                 ? (store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent)
-                                : (isInlineVisible ? Color.green : Color.green.opacity(0.16))
+                                : (isInlineVisible ? Color.green : store.uiSecondaryAccent.opacity(0.18))
                         )
                         .foregroundStyle(
                             (isFloatingOpen || isInlineVisible) ? Color.black.opacity(0.9) : Color.green
@@ -315,8 +315,8 @@ extension KroutonMainWorkspaceView {
                         }
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.green.opacity(0.18))
-                        .foregroundStyle(.green)
+                        .background(store.uiSecondaryAccent.opacity(0.18))
+                        .foregroundStyle(store.uiSecondaryAccent)
                         .clipShape(Capsule())
                         .help("Hands-Free Duplication: Auto-ejects finished disc and starts next burn \(store.autoLoadCountdownSeconds)s after a fresh blank disc is inserted")
                     }
@@ -372,7 +372,7 @@ extension KroutonMainWorkspaceView {
                     .padding(8)
                     .background(Color.green.opacity(0.10))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.green.opacity(0.35), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(store.uiSecondaryAccent.opacity(0.38), lineWidth: 1))
                 }
             } else if item.kind == .networkBurner {
                 Text(item.hardwareOrPath)
@@ -381,7 +381,7 @@ extension KroutonMainWorkspaceView {
                     Circle().fill(Color.green).frame(width: 7, height: 7)
                     Text(KroutonL10n.tr("LAN Node Online • 256 MB Ring Buffer"))
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(store.uiSecondaryAccent)
                     Spacer()
                 }
             } else if item.kind == .discImage {

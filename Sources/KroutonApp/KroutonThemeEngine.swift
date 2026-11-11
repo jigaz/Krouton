@@ -206,4 +206,24 @@ extension KroutonStateStore {
             return Color(nsColor: blended)
         }
     }
+
+    /// Direct SwiftUI overlay tint matching KroutonSettingsWindow (0.11 opacity of activeAccent when Harmony is ON)
+    var mainPanelTintOverlay: Color {
+        enableSecondaryAccentUITints ? activeAccent.opacity(0.11) : Color.clear
+    }
+
+    /// Subtle darker tint for sidebars and header/footer bars when Harmony is ON
+    var sidebarTintOverlay: Color {
+        enableSecondaryAccentUITints ? activeAccent.opacity(0.085) : Color.clear
+    }
+
+    /// Card background fill that picks up a subtle primary/secondary tint when Harmony is ON
+    var harmonizedCardFill: Color {
+        enableSecondaryAccentUITints ? activeAccent.opacity(0.07) : Color.primary.opacity(0.04)
+    }
+
+    /// Card border stroke that shifts to Secondary Harmony when Harmony is ON
+    var harmonizedCardBorder: Color {
+        enableSecondaryAccentUITints ? activeSecondaryAccent.opacity(0.28) : Color.primary.opacity(0.08)
+    }
 }
