@@ -46,7 +46,7 @@ extension KroutonMainWorkspaceView {
             // Top Row: Output Kind Picker + Scope Toggle/Dock Button + (Conditional) Eject + Remove Card
             HStack(spacing: 6) {
                 Image(systemName: item.kind.sfSymbol)
-                    .foregroundStyle(store.activeAccent)
+                    .foregroundStyle(store.uiSecondaryAccent)
 
                 Picker("", selection: Binding(
                     get: { item.kind },
@@ -97,11 +97,11 @@ extension KroutonMainWorkspaceView {
                         .padding(.vertical, 3)
                         .background(
                             isFloatingOpen
-                                ? (store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent)
-                                : (isInlineVisible ? Color.green : store.uiSecondaryAccent.opacity(0.18))
+                                ? (store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.uiSecondaryAccent)
+                                : (isInlineVisible ? store.uiSecondaryAccent : store.uiSecondaryAccent.opacity(0.18))
                         )
                         .foregroundStyle(
-                            (isFloatingOpen || isInlineVisible) ? Color.black.opacity(0.9) : Color.green
+                            (isFloatingOpen || isInlineVisible) ? Color.black.opacity(0.9) : store.uiSecondaryAccent
                         )
                         .clipShape(Capsule())
                     }
@@ -185,7 +185,7 @@ extension KroutonMainWorkspaceView {
                         }
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
-                        .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
+                        .background(store.enableSecondaryAccentUITints ? store.uiSecondaryAccent.opacity(0.11) : Color.clear)
             .background(Color(NSColor.controlBackgroundColor))
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.primary.opacity(0.12), lineWidth: 1))
@@ -199,7 +199,7 @@ extension KroutonMainWorkspaceView {
                             } label: {
                                 HStack(spacing: 5) {
                                     Circle()
-                                        .fill(activeDrive.isMediaPresent ? Color.green : Color.secondary)
+                                        .fill(activeDrive.isMediaPresent ? store.uiSecondaryAccent : Color.secondary)
                                         .frame(width: 7, height: 7)
                                     Text(activeDrive.statusBadgeText)
                                         .font(.system(size: 10, weight: .semibold))
@@ -209,8 +209,8 @@ extension KroutonMainWorkspaceView {
                                 }
                                 .padding(.horizontal, 9)
                                 .padding(.vertical, 4)
-                                .background((activeDrive.isMediaPresent ? Color.green : Color.secondary).opacity(0.15))
-                                .foregroundStyle(activeDrive.isMediaPresent ? .green : .secondary)
+                                .background((activeDrive.isMediaPresent ? store.uiSecondaryAccent : Color.secondary).opacity(0.15))
+                                .foregroundStyle(activeDrive.isMediaPresent ? store.uiSecondaryAccent : .secondary)
                                 .clipShape(Capsule())
                             }
                             .buttonStyle(.plain)
@@ -220,7 +220,7 @@ extension KroutonMainWorkspaceView {
                                 get: { activeDiscPopoverCardID == cardID },
                                 set: { if !$0 { activeDiscPopoverCardID = nil } }
                             ), arrowEdge: .leading) {
-                                DiscMediaInspectorPopover(drive: activeDrive, accent: store.activeAccent)
+                                DiscMediaInspectorPopover(drive: activeDrive, accent: store.uiSecondaryAccent)
                             }
 
                             if canErase {
@@ -238,12 +238,14 @@ extension KroutonMainWorkspaceView {
                                             .lineLimit(1)
                                     }
                                     .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(store.uiSecondaryAccent)
                                 }
                                 .menuStyle(.borderlessButton)
+                                .tint(store.uiSecondaryAccent)
                                 .fixedSize()
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
-                                .background(store.activeAccent.opacity(0.16))
+                                .background(store.uiSecondaryAccent.opacity(0.16))
                                 .clipShape(Capsule())
                                 .help("Erase rewritable disc in \(activeDrive.displayName)")
                             }
@@ -283,7 +285,7 @@ extension KroutonMainWorkspaceView {
                         HStack(spacing: 4) {
                             Image(systemName: item.copiesToBurn > 1 ? "square.stack.3d.up.fill" : "doc.on.doc")
                                 .font(.system(size: 10))
-                                .foregroundStyle(item.copiesToBurn > 1 ? store.activeAccent : .secondary)
+                                .foregroundStyle(item.copiesToBurn > 1 ? store.uiSecondaryAccent : .secondary)
                             Text(item.copiesToBurn > 1 ? "Batch: \(item.copiesToBurn) Copies" : "Copies: 1")
                                 .font(.system(size: 11, weight: item.copiesToBurn > 1 ? .bold : .regular, design: .monospaced))
                         }
@@ -301,8 +303,8 @@ extension KroutonMainWorkspaceView {
                         }
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent).opacity(0.16))
-                        .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent))
+                        .background((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.uiSecondaryAccent).opacity(0.16))
+                        .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.uiSecondaryAccent))
                         .clipShape(Capsule())
                         .help("MMC Bitsetting Active: Stamps DVD+R / DVD+R DL lead-in Book Type as DVD-ROM (0x00)")
                     }
@@ -328,7 +330,7 @@ extension KroutonMainWorkspaceView {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 6) {
                             Image(systemName: batchSt.countdownSecondsRemaining != nil ? "timer" : "opticaldisc.fill")
-                                .foregroundStyle(batchSt.countdownSecondsRemaining != nil ? .orange : .green)
+                                .foregroundStyle(batchSt.countdownSecondsRemaining != nil ? .orange : store.uiSecondaryAccent)
                             Text(batchSt.statusMessage)
                                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.primary)
@@ -349,7 +351,7 @@ extension KroutonMainWorkspaceView {
                                         .font(.system(size: 9, weight: .bold))
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 3)
-                                        .background(store.activeAccent)
+                                        .background(store.uiSecondaryAccent)
                                         .foregroundStyle(store.activeOnAccentText)
                                         .clipShape(Capsule())
                                 }
@@ -371,7 +373,7 @@ extension KroutonMainWorkspaceView {
                         }
                     }
                     .padding(8)
-                    .background(Color.green.opacity(0.10))
+                    .background(store.uiSecondaryAccent.opacity(0.10))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(store.uiSecondaryAccent.opacity(0.38), lineWidth: 1))
                 }
@@ -379,7 +381,7 @@ extension KroutonMainWorkspaceView {
                 Text(item.hardwareOrPath)
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                 HStack(spacing: 5) {
-                    Circle().fill(Color.green).frame(width: 7, height: 7)
+                    Circle().fill(store.uiSecondaryAccent).frame(width: 7, height: 7)
                     Text(KroutonL10n.tr("LAN Node Online • 256 MB Ring Buffer"))
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
                         .foregroundStyle(store.uiSecondaryAccent)
@@ -445,7 +447,7 @@ extension KroutonMainWorkspaceView {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 5)
-                    .background(store.activeAccent)
+                    .background(store.uiSecondaryAccent)
                     .foregroundStyle(store.activeOnAccentText)
                     .clipShape(Capsule())
                 }
@@ -459,17 +461,17 @@ extension KroutonMainWorkspaceView {
             if item.kind == .physicalBurner,
                let scopeTel = scopeTel,
                isInlineVisible {
-                InlineMiniPhaseScopeView(telemetry: scopeTel, accent: store.activeAccent) {
+                InlineMiniPhaseScopeView(telemetry: scopeTel, accent: store.uiSecondaryAccent) {
                     KroutonWindowManager.shared.openFloatingPhaseScopeWindow(driveID: activeCardDriveID)
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .padding(12)
-        .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
+        .background(store.enableSecondaryAccentUITints ? store.uiSecondaryAccent.opacity(0.11) : Color.clear)
             .background(Color(NSColor.windowBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(store.activeAccent.opacity(0.35), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(store.uiSecondaryAccent.opacity(0.35), lineWidth: 1))
     }
 
     func runTargetDestination(_ target: DestinationQueueItem) async {

@@ -454,7 +454,7 @@ extension KroutonMainWorkspaceView {
                     VStack(spacing: 12) {
                         Image(systemName: "opticaldisc.fill")
                             .font(.system(size: 46))
-                            .foregroundStyle(store.activeAccent.opacity(0.85))
+                            .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
                         Text(KroutonL10n.tr("Drop a Disc Image (.ISO, .DMG, .BIN/.CUE, .CDR, .IMG, or .TOAST) to Launch the Sector & Hex Inspector"))
                             .font(.headline)
                         Text(KroutonL10n.tr("Displays radial track geometry, live LBA 0/16/17/256 hexadecimal sector dumps, El Torito / APM boot records, and 1-Click .BIN <-> .ISO framing conversion."))
@@ -671,7 +671,7 @@ extension KroutonMainWorkspaceView {
                         VStack(spacing: 10) {
                             Image(systemName: "folder.badge.plus")
                                 .font(.system(size: 34))
-                                .foregroundStyle(store.activeAccent.opacity(0.85))
+                                .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
                             Text(KroutonL10n.tr("Drag & Drop Files or Folders Here to Author a New Data Disc"))
                                 .font(.headline)
                             Text(isUniversalHybrid
@@ -892,7 +892,7 @@ extension KroutonMainWorkspaceView {
                     VStack(spacing: 10) {
                         Image(systemName: "waveform.circle.fill")
                             .font(.system(size: 36))
-                            .foregroundStyle(store.activeAccent.opacity(0.85))
+                            .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
                         Text(KroutonL10n.tr("Drop Any Audio Format (WAV, AIFF, FLAC, ALAC, APE, WavPack, DSD .DSF/.DFF, Opus, Ogg, AC-3, DTS, MP3, M4A)"))
                             .font(.headline)
                         Text(KroutonL10n.tr("Krouton decodes all audio to 44.1 kHz / 16-bit Stereo PCM on disk before burning (Zero Underrun Guarantee)."))
@@ -1107,7 +1107,7 @@ extension KroutonMainWorkspaceView {
                     VStack(spacing: 10) {
                         Image(systemName: "film.circle.fill")
                             .font(.system(size: 36))
-                            .foregroundStyle(store.activeAccent.opacity(0.85))
+                            .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
                         Text(KroutonL10n.tr("Drop Any Video or Container (MKV, M2TS, MP4, MOV ProRes, AV1, HEVC 10-Bit, WebM, AVI, VOB, WMV, VC-1, VIDEO_TS, BDMV)"))
                             .font(.headline)
                         Text(KroutonL10n.tr("Author standalone set-top player discs with AC-3 / DTS audio, chapter markers, and 32 KB IFO/BUP ECC sector padding."))
@@ -1271,7 +1271,7 @@ extension KroutonMainWorkspaceView {
                     VStack(spacing: 10) {
                         Image(systemName: "music.note.list")
                             .font(.system(size: 36))
-                            .foregroundStyle(store.activeAccent.opacity(0.85))
+                            .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
                         Text(KroutonL10n.tr("Drop MP3, FLAC, M4A, or Album Folders to Build a Car-Safe Audio Disc"))
                             .font(.headline)
                         Text(KroutonL10n.tr("Automatically numbers files in raw FAT/ISO directory order and strips hidden macOS resource forks so car stereos never freeze."))
@@ -1387,7 +1387,7 @@ extension KroutonMainWorkspaceView {
                     VStack(spacing: 10) {
                         Image(systemName: "gamecontroller.fill")
                             .font(.system(size: 36))
-                            .foregroundStyle(store.activeAccent.opacity(0.85))
+                            .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
                         Text(KroutonL10n.tr("Drop Console Disc Image (.CUE + .BIN, .ISO, .GCM, .RVZ, .WBFS, or .DVD)"))
                             .font(.headline)
                         Text(KroutonL10n.tr("Krouton verifies 2,352-byte Mode 2 XA sector headers, System Area boot licenses, and Dual-Layer XGD break offsets."))

@@ -525,7 +525,7 @@ public struct KroutonSettingsWindowView: View {
             }
             .tableStyle(.inset(alternatesRowBackgrounds: true))
             .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.30) : Color.primary.opacity(0.08), lineWidth: 1))
         }
     }
 
@@ -1076,7 +1076,7 @@ public struct KroutonSettingsWindowView: View {
             .padding(14)
             .background(Color(NSColor.controlBackgroundColor))
             .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.30) : Color.primary.opacity(0.08), lineWidth: 1))
         }
     }
 
@@ -1090,9 +1090,9 @@ public struct KroutonSettingsWindowView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(isSelected ? store.activeAccent.opacity(0.22) : Color(NSColor.windowBackgroundColor))
+            .background(isSelected ? store.uiSecondaryAccent.opacity(0.22) : Color(NSColor.windowBackgroundColor))
             .clipShape(Capsule())
-            .overlay(Capsule().stroke(isSelected ? store.activeAccent : Color.secondary.opacity(0.3), lineWidth: isSelected ? 1.5 : 1.0))
+            .overlay(Capsule().stroke(isSelected ? store.uiSecondaryAccent : Color.secondary.opacity(0.3), lineWidth: isSelected ? 1.5 : 1.0))
         }
         .buttonStyle(.plain)
     }

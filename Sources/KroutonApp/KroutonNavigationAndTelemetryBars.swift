@@ -40,7 +40,7 @@ extension KroutonMainWorkspaceView {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(KroutonL10n.tr("BURN"))
                             .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.90) : Color.secondary)
                             .padding(.horizontal, 10)
 
                         ForEach(store.discFormats.filter { $0.showInTaskChooser }) { fmt in
@@ -59,7 +59,7 @@ extension KroutonMainWorkspaceView {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(KroutonL10n.tr("DISC IMAGE DEPOT"))
                             .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.90) : .secondary)
+                            .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.90) : Color.secondary)
                             .padding(.horizontal, 10)
 
                         taskRowButton(
@@ -125,7 +125,7 @@ extension KroutonMainWorkspaceView {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(KroutonL10n.tr("COPY"))
                             .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.90) : Color.secondary)
                             .padding(.horizontal, 10)
 
                         taskRowButton(
@@ -222,7 +222,7 @@ extension KroutonMainWorkspaceView {
                     Text(String(format: "%.1f%%", ratio * 100.0))
                         .font(KroutonDesign.Typography.telemetryMono)
                         .contentTransition(.numericText())
-                        .foregroundStyle(isOverburn ? .red : store.activeAccent)
+                        .foregroundStyle(isOverburn ? Color.red : store.uiSecondaryAccent)
                         .lineLimit(1)
                 }
 
@@ -239,7 +239,7 @@ extension KroutonMainWorkspaceView {
                     Spacer(minLength: 4)
                     Text(String(format: "%.1f%%", ratio * 100.0))
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .foregroundStyle(isOverburn ? .red : store.activeAccent)
+                        .foregroundStyle(isOverburn ? Color.red : store.uiSecondaryAccent)
                         .lineLimit(1)
                 }
             }
@@ -470,12 +470,12 @@ extension KroutonMainWorkspaceView {
                         Text(activeSpec.technicalName)
                             .font(.title3.bold())
                         Text(activeSpec.colloquialName)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : Color.secondary)
                     }
                     Text("Spec: \(activeSpec.bookOrFileSystem) • Laser: \(activeSpec.laserType) • Launched: \(activeSpec.launchYear) • Source: \(activeSpec.sourceSupport)")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.82) : Color.secondary)
                 }
                 Spacer()
 
