@@ -1510,8 +1510,7 @@ struct DepotBlueprintArtStudioView: View {
                     .init(color: .black.opacity(0.88), location: 0.88),
                     .init(color: .clear, location: 1.00)
                 ],
-                startPoint: .leading,
-                endPoint: .trailing
+                startPoint: .leading, endPoint: .trailing
             )
             .mask(
                 LinearGradient(
@@ -1521,8 +1520,7 @@ struct DepotBlueprintArtStudioView: View {
                         .init(color: .black, location: 0.86),
                         .init(color: .clear, location: 1.00)
                     ],
-                    startPoint: .top,
-                    endPoint: .bottom
+                    startPoint: .top, endPoint: .bottom
                 )
             )
         )
