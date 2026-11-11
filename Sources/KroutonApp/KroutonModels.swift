@@ -310,7 +310,7 @@ public final class KroutonStateStore: ObservableObject {
             objectWillChange.send()
         }
     }
-    
+
     @Published public var appearanceMode: AppAppearanceMode = .auto
     @Published public var selectedAccentIndex: Int = 8 // Default: Toasted Krouton Brown
     // macOS System Settings Theme & Window Extensions

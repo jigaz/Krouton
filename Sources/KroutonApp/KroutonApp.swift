@@ -239,7 +239,7 @@ struct KroutonMainWorkspaceView: View {
     @State private var verifyImageSHA256BeforeBurn: Bool = true
     @State private var inspectedImageLBA: Int = 17
     @State private var computedImageSHA256: String = ""
-    @State private var imageActionStatusBanner: String = "" 
+    @State private var imageActionStatusBanner: String = ""
 
     private var primarySelectedDrive: OpticalDriveDevice? {
         if let firstBurnerCard = store.destinationQueue.first(where: { $0.kind == .physicalBurner }),
