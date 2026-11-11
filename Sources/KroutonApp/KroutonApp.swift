@@ -5606,55 +5606,150 @@ struct DepotBlueprintArtStudioView: View {
                 drawCADNode(CGPoint(x: cx + 58, y: cy + 26), handle: CGPoint(x: cx + 84, y: cy + 8))
 
             } else if key.contains("xbox") {
-                // --- 5. XBOX (1:1 4-Wedge Spherical Cutout Geometry from Xbox_Logo.svg) ---
-                let R: CGFloat = 84.0
+                // --- 5. XBOX V2 (1:1 Exact SVG Spherical Wedge & Tapered X-Groove Reconstruction) ---
+                // Normalized on a unit circle (R = 88pt) matching Xbox_Logo.svg:
+                // - Upper X-intersection sits high at y = -0.28R
+                // - Lower X-crotch apex sits at y = -0.02R with a rounded fillet
+                // - Side cheek wedges taper to razor-sharp tips at +52 degrees (bottom-right) and +128 degrees (bottom-left)
+                let R: CGFloat = 88.0
                 func xpt(_ nx: CGFloat, _ ny: CGFloat) -> CGPoint {
                     CGPoint(x: cx + nx * R, y: cy + ny * R)
                 }
 
-                // 1) Top Spherical Crown Wedge (Between upper-left and upper-right X-cuts)
-                var topWedge = Path()
-                topWedge.addArc(center: CGPoint(x: cx, y: cy), radius: R, startAngle: .degrees(-124), endAngle: .degrees(-56), clockwise: false)
-                topWedge.addQuadCurve(to: xpt(0.0, -0.52), control: xpt(0.26, -0.70))
-                topWedge.addQuadCurve(to: xpt(-0.56, -0.83), control: xpt(-0.26, -0.70))
-                topWedge.closeSubpath()
-                context.fill(topWedge, with: .color(primaryFill))
-                context.stroke(topWedge, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.2, lineJoin: .round))
+                let occludeDark = Color(red: 0.03, green: 0.07, blue: 0.13)
+                func drawOccludedWedge(_ path: Path, fill: Color, stroke: Color, lineWidth: CGFloat = 2.3) {
+                    context.fill(path, with: .color(occludeDark))
+                    context.fill(path, with: .color(fill))
+                    context.stroke(path, with: .color(stroke), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+                }
 
-                // 2) Left Spherical Cheek Wedge
-                var leftWedge = Path()
-                leftWedge.addArc(center: CGPoint(x: cx, y: cy), radius: R, startAngle: .degrees(146), endAngle: .degrees(-136), clockwise: false)
-                leftWedge.addQuadCurve(to: xpt(-0.30, -0.22), control: xpt(-0.50, -0.52))
-                leftWedge.addQuadCurve(to: xpt(-0.83, 0.56), control: xpt(-0.62, 0.14))
-                leftWedge.closeSubpath()
-                context.fill(leftWedge, with: .color(primaryFill))
-                context.stroke(leftWedge, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.2, lineJoin: .round))
-
-                // 3) Right Spherical Cheek Wedge
-                var rightWedge = Path()
-                rightWedge.addArc(center: CGPoint(x: cx, y: cy), radius: R, startAngle: .degrees(-44), endAngle: .degrees(34), clockwise: false)
-                rightWedge.addQuadCurve(to: xpt(0.30, -0.22), control: xpt(0.62, 0.14))
-                rightWedge.addQuadCurve(to: xpt(0.72, -0.69), control: xpt(0.50, -0.52))
-                rightWedge.closeSubpath()
-                context.fill(rightWedge, with: .color(primaryFill))
-                context.stroke(rightWedge, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.2, lineJoin: .round))
-
-                // 4) Large Bottom Spherical Base Wedge (Rising to the central apex below the X-intersection)
-                var botWedge = Path()
-                botWedge.addArc(center: CGPoint(x: cx, y: cy), radius: R, startAngle: .degrees(46), endAngle: .degrees(134), clockwise: false)
-                botWedge.addQuadCurve(to: xpt(0.0, 0.04), control: xpt(-0.46, 0.34))
-                botWedge.addQuadCurve(to: xpt(0.69, 0.72), control: xpt(0.46, 0.34))
-                botWedge.closeSubpath()
-                context.fill(botWedge, with: .color(accentFill))
-                context.stroke(botWedge, with: .color(accentStroke), style: StrokeStyle(lineWidth: 2.4, lineJoin: .round))
-
-                // Precision CAD Construction Circle around the Sphere
+                // Subtle Outer Construction Sphere Ring & Crosshair
                 context.stroke(
                     Path(ellipseIn: CGRect(x: cx - R, y: cy - R, width: R * 2, height: R * 2)),
                     with: .color(faintStroke),
                     style: StrokeStyle(lineWidth: 0.9, dash: [6, 4])
                 )
-                drawCADNode(xpt(0.0, 0.04), handle: xpt(0.38, -0.18))
+
+                // =====================================================================
+                // 1. TOP SPHERICAL CROWN WEDGE (Shallow cap between the upper X-cuts)
+                //    Outer rim sweeps from -123° (top-left) to -57° (top-right),
+                //    inner V-edges curve down to the upper X-apex at (0.0, -0.44)
+                // =====================================================================
+                var topCrown = Path()
+                topCrown.addArc(
+                    center: CGPoint(x: cx, y: cy),
+                    radius: R,
+                    startAngle: .degrees(-123),
+                    endAngle: .degrees(-57),
+                    clockwise: false
+                )
+                // Right inner curve of top wedge sweeping down-left to the upper apex
+                topCrown.addCurve(
+                    to: xpt(0.0, -0.44),
+                    control1: xpt(0.38, -0.74),
+                    control2: xpt(0.18, -0.58)
+                )
+                // Left inner curve sweeping back up-left to -123° (-0.545, -0.839)
+                topCrown.addCurve(
+                    to: xpt(-0.545, -0.839),
+                    control1: xpt(-0.18, -0.58),
+                    control2: xpt(-0.38, -0.74)
+                )
+                topCrown.closeSubpath()
+                drawOccludedWedge(topCrown, fill: primaryFill, stroke: primaryStroke, lineWidth: 2.3)
+
+                // =====================================================================
+                // 2. LEFT SPHERICAL CHEEK WEDGE (Crescent wing tapering to a sharp lower-left tip)
+                //    Outer rim sweeps from +129° (lower-left sharp tip) clockwise up to -142° (upper-left shoulder)
+                // =====================================================================
+                var leftCheek = Path()
+                leftCheek.addArc(
+                    center: CGPoint(x: cx, y: cy),
+                    radius: R,
+                    startAngle: .degrees(129),
+                    endAngle: .degrees(-142),
+                    clockwise: false
+                )
+                // Upper-left inner cut slanting down-right to the left X-waist vertex (-0.23, -0.22)
+                leftCheek.addCurve(
+                    to: xpt(-0.23, -0.22),
+                    control1: xpt(-0.62, -0.52),
+                    control2: xpt(-0.42, -0.38)
+                )
+                // Long sweeping concave lower-left blade edge tapering all the way to the sharp tip at +129° (-0.629, +0.777)
+                leftCheek.addCurve(
+                    to: xpt(-0.629, 0.777),
+                    control1: xpt(-0.48, 0.08),
+                    control2: xpt(-0.64, 0.44)
+                )
+                leftCheek.closeSubpath()
+                drawOccludedWedge(leftCheek, fill: primaryFill, stroke: primaryStroke, lineWidth: 2.3)
+
+                // =====================================================================
+                // 3. RIGHT SPHERICAL CHEEK WEDGE (Symmetric crescent wing tapering to lower-right tip)
+                //    Outer rim sweeps from -38° (upper-right shoulder) clockwise down to +51° (lower-right sharp tip)
+                // =====================================================================
+                var rightCheek = Path()
+                rightCheek.addArc(
+                    center: CGPoint(x: cx, y: cy),
+                    radius: R,
+                    startAngle: .degrees(-38),
+                    endAngle: .degrees(51),
+                    clockwise: false
+                )
+                // Long sweeping concave lower-right blade edge rising up-left to the right X-waist vertex (+0.23, -0.22)
+                rightCheek.addCurve(
+                    to: xpt(0.23, -0.22),
+                    control1: xpt(0.64, 0.44),
+                    control2: xpt(0.48, 0.08)
+                )
+                // Upper-right inner cut slanting up-right back to -38° (+0.788, -0.616)
+                rightCheek.addCurve(
+                    to: xpt(0.788, -0.616),
+                    control1: xpt(0.42, -0.38),
+                    control2: xpt(0.62, -0.52)
+                )
+                rightCheek.closeSubpath()
+                drawOccludedWedge(rightCheek, fill: primaryFill, stroke: primaryStroke, lineWidth: 2.3)
+
+                // =====================================================================
+                // 4. LARGE BOTTOM SPHERICAL BASE WEDGE (Highlighted in Accent!)
+                //    Outer rim sweeps along bottom from +59° (bottom-right) to +121° (bottom-left),
+                //    rising along two sweeping convex arcs to the rounded central apex at (0.0, -0.02)
+                // =====================================================================
+                var bottomBase = Path()
+                bottomBase.addArc(
+                    center: CGPoint(x: cx, y: cy),
+                    radius: R,
+                    startAngle: .degrees(59),
+                    endAngle: .degrees(121),
+                    clockwise: false
+                )
+                // Left inner wall of bottom wedge curving up-right to the rounded central apex
+                bottomBase.addCurve(
+                    to: xpt(-0.04, 0.00),
+                    control1: xpt(-0.46, 0.56),
+                    control2: xpt(-0.26, 0.22)
+                )
+                // Rounded central apex fillet at the heart of the X
+                bottomBase.addQuadCurve(
+                    to: xpt(0.04, 0.00),
+                    control: xpt(0.0, -0.04)
+                )
+                // Right inner wall of bottom wedge curving down-right back to +59° (+0.515, +0.857)
+                bottomBase.addCurve(
+                    to: xpt(0.515, 0.857),
+                    control1: xpt(0.26, 0.22),
+                    control2: xpt(0.46, 0.56)
+                )
+                bottomBase.closeSubpath()
+                drawOccludedWedge(bottomBase, fill: accentFill, stroke: accentStroke, lineWidth: 2.5)
+
+                // Subtle Inner 3D Spherical Contour Highlight inside the Bottom & Side Wedges
+                var innerContour = Path()
+                innerContour.move(to: xpt(-0.38, 0.72))
+                innerContour.addQuadCurve(to: xpt(0.38, 0.72), control: xpt(0.0, 0.86))
+                context.stroke(innerContour, with: .color(primaryStroke.opacity(0.55)), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
 
             } else if key.contains("ps1") || key.contains("ps2") || key.contains("playstation") || key.contains("freedvd") || key.contains("unirom") {
                 // --- 6. PLAYSTATION (1:1 Exact SVG Coordinate Reconstruction of Standing 'P' + Slotted Floor 'S') ---
