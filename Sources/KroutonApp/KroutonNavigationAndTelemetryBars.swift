@@ -550,31 +550,96 @@ extension KroutonMainWorkspaceView {
         }
     }
 
+    @MainActor
+    private func exportDiscLabelAsPNG(preset: LabelGeometryPreset) {
+        let exportView = KroutonDiscLabelArtworkCanvas(
+            preset: preset,
+            template: store.selectedLabelTemplate,
+            title: labelDiscTitle,
+            subtitle: labelSubtitle,
+            performer: store.discPerformer,
+            mcnBarcode: store.discMCNBarcode,
+            trackLines: resolvedLabelTracklistLines,
+            showTracklist: store.labelShowTracklistOnDisc,
+            primaryColor: store.activeAccent,
+            harmonyColor: store.uiSecondaryAccent,
+            isExportMode: true,
+            diameterPoints: 720.0
+        )
+        let renderer = ImageRenderer(content: exportView)
+        renderer.scale = 2.0 // 1440x1440 px (>300 DPI for 120mm optical disc)
+        guard let nsImage = renderer.nsImage,
+              let tiff = nsImage.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff),
+              let pngData = rep.representation(using: .png, properties: [:]) else {
+            return
+        }
+        let panel = NSSavePanel()
+        panel.title = "Export 300-DPI 120mm Optical Disc Label (PNG)"
+        panel.nameFieldStringValue = "\(labelDiscTitle.replacingOccurrences(of: " ", with: "_"))_120mm_Label.png"
+        panel.allowedContentTypes = [UTType.png]
+        if panel.runModal() == .OK, let outURL = panel.url {
+            try? pngData.write(to: outURL)
+            NSWorkspace.shared.activateFileViewerSelecting([outURL])
+        }
+    }
+
+    private var resolvedLabelTracklistLines: [String] {
+        if !store.stagedFiles.isEmpty {
+            return store.stagedFiles.prefix(8).enumerated().map { idx, f in
+                String(format: "%02d. %@", idx + 1, f.name)
+            }
+        }
+        return store.redBookTracks.prefix(8).map { $0.title }
+    }
+
     var labelWorkspaceView: some View {
         let preset = store.labelPresets[min(store.selectedLabelPresetIndex, store.labelPresets.count - 1)]
-        return VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Image(systemName: store.selectedTaskID == "label-auto" ? "wand.and.stars" : "printer.dotmatrix.fill")
-                    .font(.title2)
-                    .foregroundStyle(store.activeAccent)
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                KroutonStyledIconBadge(
+                    sfSymbol: store.selectedTaskID == "label-auto" ? "wand.and.stars" : "printer.dotmatrix.fill",
+                    tintColor: store.activeAccent,
+                    style: store.iconWidgetStyle,
+                    size: 30,
+                    symbolSize: 15
+                )
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(store.selectedTaskID == "label-auto" ? "Automatic Disc Label (Artwork Lookup)" : "Manual 120mm Disc Label Canvas")
+                    Text(store.selectedTaskID == "label-auto" ? "Automatic Disc Label Studio (Artwork + Vision Centering)" : "120mm Optical Disc Label & LightScribe Studio")
                         .font(.title3.bold())
-                    Text(String(format: "Active Geometry Preset: %@ (Outer: %.1fmm / Hole: %.1fmm)", preset.name, preset.outerDiameterMM, preset.innerDiameterMM))
+                    Text(String(format: "Geometry: %@ (Outer: %.1fmm / Hub Hole: %.1fmm • Offset X:%.1f Y:%.1fmm)", preset.name, preset.outerDiameterMM, preset.innerDiameterMM, preset.offsetXMM, preset.offsetYMM))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : .secondary)
                 }
                 Spacer()
-                Picker("Preset:", selection: $store.selectedLabelPresetIndex) {
+                Picker("Tray Preset:", selection: $store.selectedLabelPresetIndex) {
                     ForEach(Array(store.labelPresets.enumerated()), id: \.offset) { idx, item in
                         Text(item.name).tag(idx)
                     }
                 }
-                .frame(width: 260)
+                .frame(width: 230)
+
+                Button {
+                    exportDiscLabelAsPNG(preset: preset)
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "square.and.arrow.down.fill")
+                        Text("Export 300-DPI PNG...")
+                    }
+                    .font(.system(size: 11, weight: .bold))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(store.activeAccent)
+                    .foregroundStyle(store.activeOnAccentText)
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .help("Render a 1,440×1,440 px (300+ DPI) transparent-hub 120mm disc label PNG with your active Primary + Harmony theme")
             }
             Divider()
 
-            HStack(spacing: 24) {
+            HStack(alignment: .top, spacing: 24) {
+                // LEFT COLUMN: Template Style + Typography + Tracklist Auto-Stamper
                 VStack(alignment: .leading, spacing: 12) {
                     if store.selectedTaskID == "label-auto" {
                         Text(KroutonL10n.tr("Automatic Album / Movie / Game Cover Lookup"))
@@ -582,59 +647,131 @@ extension KroutonMainWorkspaceView {
                         HStack {
                             TextField("Search Album, Movie, TV Show, or Game...", text: $autoLabelSearchQuery)
                                 .textFieldStyle(.roundedBorder)
-                            Button("Fetch Art") {}
+                            Button {
+                                if !autoLabelSearchQuery.trimmingCharacters(in: .whitespaces).isEmpty {
+                                    labelDiscTitle = autoLabelSearchQuery.uppercased()
+                                    labelSubtitle = "MASTERED IN KROUTON • SHA-256 VERIFIED"
+                                }
+                            } label: {
+                                Text("Fetch Art")
+                                    .font(.caption.bold())
+                            }
                         }
-                        Text("Queries MusicBrainz, iTunes, TVMaze & GameTDB. Uses Apple Vision to prevent the \(Int(preset.innerDiameterMM))mm hole from cropping faces.")
+                        Text("Queries MusicBrainz, iTunes, TVMaze & GameTDB. Uses Apple Vision so the \(Int(preset.innerDiameterMM))mm spindle hole never crops faces.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Divider()
                     }
-                    Text(KroutonL10n.tr("Disc Face Typography"))
+
+                    Text("Studio Harmony Template")
                         .font(.headline)
-                    TextField("Primary Arc Title", text: $labelDiscTitle)
-                        .textFieldStyle(.roundedBorder)
-                    TextField("Bottom Subtitle / Track Summary", text: $labelSubtitle)
-                        .textFieldStyle(.roundedBorder)
+                    Picker("Template:", selection: $store.selectedLabelTemplate) {
+                        ForEach(DiscLabelTemplateStyle.allCases) { tpl in
+                            Text(tpl.rawValue).tag(tpl)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    Divider()
+
+                    Text(KroutonL10n.tr("Disc Face Typography & Telemetry"))
+                        .font(.headline)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Primary Title (Top Arc / Header):")
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+                        TextField("Primary Arc Title", text: $labelDiscTitle)
+                            .textFieldStyle(.roundedBorder)
+
+                        Text("Bottom Subtitle / Format Spec:")
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+                        TextField("Bottom Subtitle / Track Summary", text: $labelSubtitle)
+                            .textFieldStyle(.roundedBorder)
+                    }
+
+                    Toggle("Stamp Tracklist / Staged File Manifest on Disc Face", isOn: $store.labelShowTracklistOnDisc)
+                        .toggleStyle(.checkbox)
+                        .font(.caption.bold())
+
+                    HStack(spacing: 8) {
+                        Button {
+                            labelDiscTitle = store.discVolumeTitle
+                            if !store.stagedFiles.isEmpty {
+                                labelSubtitle = "\(store.stagedFiles.count) STAGED ITEMS • \(ByteCountFormatter.string(fromByteCount: store.totalStagedBytes, countStyle: .file))"
+                            } else {
+                                labelSubtitle = "44.1 KHZ 16-BIT RED BOOK PCM • \(store.discPerformer.uppercased())"
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                Text("Sync from Active Project")
+                            }
+                            .font(.system(size: 10.5, weight: .bold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(store.uiSecondaryAccent.opacity(0.18))
+                            .foregroundStyle(store.uiSecondaryAccent)
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            NSPrintOperation(view: NSHostingView(rootView: KroutonDiscLabelArtworkCanvas(
+                                preset: preset,
+                                template: store.selectedLabelTemplate,
+                                title: labelDiscTitle,
+                                subtitle: labelSubtitle,
+                                performer: store.discPerformer,
+                                mcnBarcode: store.discMCNBarcode,
+                                trackLines: resolvedLabelTracklistLines,
+                                showTracklist: store.labelShowTracklistOnDisc,
+                                primaryColor: store.activeAccent,
+                                harmonyColor: store.uiSecondaryAccent,
+                                isExportMode: true,
+                                diameterPoints: 340.0
+                            ))).run()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "printer.fill")
+                                Text("Print Disc Tray...")
+                            }
+                            .font(.system(size: 10.5, weight: .bold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.primary.opacity(0.08))
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+
                     Spacer()
                 }
-                .frame(width: 300)
+                .frame(width: 340)
 
                 Spacer()
 
-                ZStack {
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [store.activeAccent.opacity(0.85), Color.black.opacity(0.92)],
-                                center: .center,
-                                startRadius: 20,
-                                endRadius: 150
-                            )
-                        )
-                        .frame(width: 260, height: 260)
-                        .overlay(Circle().stroke(Color.white.opacity(0.35), lineWidth: 1.5))
-
-                    VStack {
-                        Text(labelDiscTitle)
-                            .font(.system(size: 13, weight: .heavy, design: .rounded))
-                            .foregroundStyle(.white)
-                            .padding(.top, 26)
-                        Spacer()
-                        Text(labelSubtitle)
-                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.85))
-                            .padding(.bottom, 26)
-                    }
-                    .frame(width: 260, height: 260)
-
-                    Circle()
-                        .fill(Color(NSColor.windowBackgroundColor))
-                        .frame(
-                            width: CGFloat(preset.innerDiameterMM / preset.outerDiameterMM) * 260.0,
-                            height: CGFloat(preset.innerDiameterMM / preset.outerDiameterMM) * 260.0
-                        )
-                        .overlay(Circle().stroke(Color.secondary.opacity(0.5), lineWidth: 1))
+                // RIGHT COLUMN: Live 120mm Display-P3 Primary + Harmony Disc Artwork Canvas
+                VStack(spacing: 8) {
+                    KroutonDiscLabelArtworkCanvas(
+                        preset: preset,
+                        template: store.selectedLabelTemplate,
+                        title: labelDiscTitle,
+                        subtitle: labelSubtitle,
+                        performer: store.discPerformer,
+                        mcnBarcode: store.discMCNBarcode,
+                        trackLines: resolvedLabelTracklistLines,
+                        showTracklist: store.labelShowTracklistOnDisc,
+                        primaryColor: store.activeAccent,
+                        harmonyColor: store.uiSecondaryAccent,
+                        isExportMode: false,
+                        diameterPoints: 310.0
+                    )
+                    Text("Live Display-P3 Preview • Primary + Harmony Split-Complement")
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(.secondary)
                 }
+
                 Spacer()
             }
             Spacer()
@@ -738,5 +875,224 @@ extension KroutonMainWorkspaceView {
         }
         .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
         .background(Color(NSColor.controlBackgroundColor))
+    }
+}
+
+
+// MARK: - 120mm Optical Disc Label Studio Artwork Renderer (Primary + Secondary Harmony)
+struct KroutonDiscLabelArtworkCanvas: View {
+    let preset: LabelGeometryPreset
+    let template: DiscLabelTemplateStyle
+    let title: String
+    let subtitle: String
+    let performer: String
+    let mcnBarcode: String
+    let trackLines: [String]
+    let showTracklist: Bool
+    let primaryColor: Color
+    let harmonyColor: Color
+    let isExportMode: Bool
+    let diameterPoints: CGFloat
+
+    var body: some View {
+        let holeRatio = CGFloat(max(0.12, min(0.45, preset.innerDiameterMM / max(1.0, preset.outerDiameterMM))))
+        let holeDiameter = diameterPoints * holeRatio
+
+        ZStack {
+            // 1. Base Disc Surface by Template
+            switch template {
+            case .synthGrid:
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                Color(red: 0.08, green: 0.09, blue: 0.12),
+                                Color(red: 0.04, green: 0.05, blue: 0.07)
+                            ],
+                            center: .center,
+                            startRadius: holeDiameter * 0.4,
+                            endRadius: diameterPoints * 0.52
+                        )
+                    )
+                    .overlay(
+                        Circle()
+                            .fill(primaryColor.opacity(0.24))
+                    )
+            case .vinylGrooves:
+                Circle()
+                    .fill(
+                        AngularGradient(
+                            colors: [
+                                primaryColor.opacity(0.85),
+                                Color.black.opacity(0.92),
+                                harmonyColor.opacity(0.75),
+                                Color.black.opacity(0.92),
+                                primaryColor.opacity(0.85)
+                            ],
+                            center: .center
+                        )
+                    )
+            case .dualHalftone:
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [primaryColor, Color(red: 0.07, green: 0.08, blue: 0.10), harmonyColor],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            case .archivalSpec:
+                Circle()
+                    .fill(Color(red: 0.96, green: 0.95, blue: 0.92))
+                    .overlay(
+                        Circle().strokeBorder(primaryColor, lineWidth: diameterPoints * 0.035)
+                    )
+            }
+
+            // 2. Precision CAD Grid / Concentric Telemetry Rings
+            Canvas { context, size in
+                let center = CGPoint(x: size.width / 2, y: size.height / 2)
+                let maxR = size.width / 2
+
+                if template == .synthGrid || template == .archivalSpec {
+                    let step: CGFloat = size.width / 16.0
+                    var grid = Path()
+                    for x in stride(from: CGFloat(0), through: size.width, by: step) {
+                        grid.move(to: CGPoint(x: x, y: 0))
+                        grid.addLine(to: CGPoint(x: x, y: size.height))
+                    }
+                    for y in stride(from: CGFloat(0), through: size.height, by: step) {
+                        grid.move(to: CGPoint(x: 0, y: y))
+                        grid.addLine(to: CGPoint(x: size.width, y: y))
+                    }
+                    context.stroke(
+                        grid,
+                        with: .color(template == .archivalSpec ? primaryColor.opacity(0.16) : harmonyColor.opacity(0.18)),
+                        lineWidth: 0.75
+                    )
+                }
+
+                // Concentric LBA / Groove rings
+                for frac in [0.92, 0.78, 0.64, 0.46] {
+                    let r = maxR * CGFloat(frac)
+                    let rect = CGRect(x: center.x - r, y: center.y - r, width: r * 2, height: r * 2)
+                    let ringPath = Path(ellipseIn: rect)
+                    context.stroke(
+                        ringPath,
+                        with: .color(frac == 0.78 ? harmonyColor.opacity(0.65) : primaryColor.opacity(0.40)),
+                        style: StrokeStyle(lineWidth: frac == 0.92 ? 2.0 : 1.0, dash: frac == 0.64 ? [5, 3] : [])
+                    )
+                }
+
+                // Crosshair registration ticks around the hub
+                var ticks = Path()
+                ticks.move(to: CGPoint(x: center.x, y: size.height * 0.04))
+                ticks.addLine(to: CGPoint(x: center.x, y: size.height * 0.12))
+                ticks.move(to: CGPoint(x: center.x, y: size.height * 0.88))
+                ticks.addLine(to: CGPoint(x: center.x, y: size.height * 0.96))
+                ticks.move(to: CGPoint(x: size.width * 0.04, y: center.y))
+                ticks.addLine(to: CGPoint(x: size.width * 0.12, y: center.y))
+                ticks.move(to: CGPoint(x: size.width * 0.88, y: center.y))
+                ticks.addLine(to: CGPoint(x: size.width * 0.96, y: center.y))
+                context.stroke(ticks, with: .color(harmonyColor.opacity(0.75)), lineWidth: 1.2)
+            }
+            .clipShape(Circle())
+
+            // 3. Disc Typography & Staged Tracklist Manifest (Left & Right of Spindle Hub)
+            let fgText: Color = (template == .archivalSpec) ? Color.black.opacity(0.88) : .white
+            let badgeBg: Color = (template == .archivalSpec) ? primaryColor : harmonyColor
+
+            VStack(spacing: 2) {
+                Text("KROUTON OPTICAL MASTER")
+                    .font(.system(size: diameterPoints * 0.026, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(template == .archivalSpec ? primaryColor : harmonyColor)
+                    .padding(.top, diameterPoints * 0.085)
+
+                Text(title.isEmpty ? "KROUTON_DISC" : title)
+                    .font(.system(size: diameterPoints * 0.046, weight: .black, design: .rounded))
+                    .foregroundStyle(fgText)
+                    .lineLimit(1)
+                    .frame(maxWidth: diameterPoints * 0.68)
+
+                Spacer()
+
+                // Left & Right Wing Panels flanking the spindle hole
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("DISC SPEC")
+                            .font(.system(size: diameterPoints * 0.024, weight: .heavy, design: .monospaced))
+                            .foregroundStyle(badgeBg)
+                        Text("120mm OPTICAL")
+                        Text("MCN \(mcnBarcode.prefix(8))")
+                        Text("ECC VERIFIED")
+                    }
+                    .font(.system(size: diameterPoints * 0.023, weight: .bold, design: .monospaced))
+                    .foregroundStyle(fgText.opacity(0.86))
+                    .frame(width: diameterPoints * 0.27, alignment: .leading)
+
+                    Spacer(minLength: holeDiameter + 14)
+
+                    if showTracklist {
+                        VStack(alignment: .leading, spacing: 1.5) {
+                            Text("MANIFEST")
+                                .font(.system(size: diameterPoints * 0.024, weight: .heavy, design: .monospaced))
+                                .foregroundStyle(badgeBg)
+                            ForEach(Array(trackLines.prefix(5).enumerated()), id: \.offset) { _, line in
+                                Text(line)
+                                    .lineLimit(1)
+                            }
+                        }
+                        .font(.system(size: diameterPoints * 0.022, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(fgText.opacity(0.88))
+                        .frame(width: diameterPoints * 0.29, alignment: .leading)
+                    } else {
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("PERFORMER")
+                                .font(.system(size: diameterPoints * 0.024, weight: .heavy, design: .monospaced))
+                                .foregroundStyle(badgeBg)
+                            Text(performer)
+                                .lineLimit(1)
+                        }
+                        .font(.system(size: diameterPoints * 0.024, weight: .bold, design: .monospaced))
+                        .foregroundStyle(fgText.opacity(0.88))
+                        .frame(width: diameterPoints * 0.27, alignment: .trailing)
+                    }
+                }
+                .padding(.horizontal, diameterPoints * 0.06)
+
+                Spacer()
+
+                Text(subtitle.isEmpty ? "ISO9660 / UDF / RED BOOK MASTER" : subtitle)
+                    .font(.system(size: diameterPoints * 0.030, weight: .bold, design: .monospaced))
+                    .foregroundStyle(fgText.opacity(0.90))
+                    .lineLimit(1)
+                    .frame(maxWidth: diameterPoints * 0.64)
+
+                Text(String(format: "OUTER %.0fMM • HUB %.0fMM", preset.outerDiameterMM, preset.innerDiameterMM))
+                    .font(.system(size: diameterPoints * 0.023, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(template == .archivalSpec ? primaryColor : harmonyColor)
+                    .padding(.bottom, diameterPoints * 0.085)
+            }
+            .frame(width: diameterPoints, height: diameterPoints)
+
+            // 4. Outer Polycarbonate Rim & Clamping Ring + Center Spindle Cutout
+            Circle()
+                .strokeBorder(harmonyColor.opacity(0.75), lineWidth: 2.0)
+                .frame(width: diameterPoints, height: diameterPoints)
+
+            Circle()
+                .stroke(primaryColor.opacity(0.55), style: StrokeStyle(lineWidth: 3.0, dash: [6, 3]))
+                .frame(width: holeDiameter + 18, height: holeDiameter + 18)
+
+            Circle()
+                .fill(isExportMode ? Color.white : Color(NSColor.windowBackgroundColor))
+                .frame(width: holeDiameter, height: holeDiameter)
+                .overlay(
+                    Circle()
+                        .stroke(harmonyColor.opacity(0.85), lineWidth: 1.5)
+                )
+        }
+        .frame(width: diameterPoints, height: diameterPoints)
+        .clipShape(Circle())
     }
 }

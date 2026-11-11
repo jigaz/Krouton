@@ -341,7 +341,6 @@ public struct KroutonSettingsWindowView: View {
                     .frame(width: 140)
                 }
                 Divider()
-                Divider()
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(KroutonL10n.tr("Application Language (Live UI Localization)"))

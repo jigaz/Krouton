@@ -139,15 +139,35 @@ public enum FolderColorMode: String, CaseIterable, Identifiable, Sendable {
     case graphite = "Space Gray"
     public var id: String { rawValue }
 
+    @MainActor
     public func resolvedFolderColor(accent: Color) -> Color {
+        let store = KroutonStateStore.shared
         switch self {
-        case .automatic, .accentTinted: return accent
-        case .secondaryHarmony: return accent.perceptualSplitComplement
-        case .classicAqua: return Color(red: 0.22, green: 0.64, blue: 0.96)
-        case .amberGold: return Color.orange
-        case .graphite: return Color.secondary
+        case .automatic:
+            if let store, store.enableSecondaryAccentUITints {
+                return store.activeSecondaryAccent
+            }
+            return accent
+        case .accentTinted:
+            return accent
+        case .secondaryHarmony:
+            return store?.activeSecondaryAccent ?? accent.perceptualSplitComplement
+        case .classicAqua:
+            return Color(red: 0.22, green: 0.64, blue: 0.96)
+        case .amberGold:
+            return Color.orange
+        case .graphite:
+            return Color.secondary
         }
     }
+}
+
+public enum DiscLabelTemplateStyle: String, CaseIterable, Identifiable, Sendable {
+    case synthGrid     = "Synth Technical Grid"
+    case vinylGrooves  = "Concentric Studio Rings"
+    case dualHalftone  = "Split-Harmony Radial"
+    case archivalSpec  = "Minimalist Archival Spec"
+    public var id: String { rawValue }
 }
 
 public enum KroutonLanguage: String, CaseIterable, Identifiable, Sendable {
@@ -304,37 +324,96 @@ public struct DestinationQueueItem: Identifiable, Hashable, Sendable {
 @MainActor
 public final class KroutonStateStore: ObservableObject {
     public static weak var shared: KroutonStateStore?
+    private var isHydratingPreferences: Bool = false
+
     @Published public var enableSecondaryAccentUITints: Bool = false {
         didSet {
-            UserDefaults.standard.set(enableSecondaryAccentUITints, forKey: "krouton.harmonyOffByDefaultV4")
+            guard !isHydratingPreferences else { return }
+            UserDefaults.standard.set(enableSecondaryAccentUITints, forKey: "krouton.pref.harmonyEnabled")
             tintWindowWithWallpaper = enableSecondaryAccentUITints
             objectWillChange.send()
         }
     }
 
-    @Published public var appearanceMode: AppAppearanceMode = .auto
-    @Published public var selectedAccentIndex: Int = 8 // Default: Toasted Krouton Brown
+    @Published public var appearanceMode: AppAppearanceMode = .auto {
+        didSet {
+            guard !isHydratingPreferences else { return }
+            UserDefaults.standard.set(appearanceMode.rawValue, forKey: "krouton.pref.appearanceMode")
+        }
+    }
+    @Published public var selectedAccentIndex: Int = 8 {
+        didSet {
+            guard !isHydratingPreferences else { return }
+            UserDefaults.standard.set(selectedAccentIndex, forKey: "krouton.pref.selectedAccentIndex")
+        }
+    }
     // macOS System Settings Theme & Window Extensions
-    @Published public var iconWidgetStyle: IconWidgetStyleMode = .defaultStyle
-    @Published public var folderColorMode: FolderColorMode = .automatic
-    @Published public var sidebarIconSize: SidebarIconSizeMode = .medium
+    @Published public var iconWidgetStyle: IconWidgetStyleMode = .defaultStyle {
+        didSet {
+            guard !isHydratingPreferences else { return }
+            UserDefaults.standard.set(iconWidgetStyle.rawValue, forKey: "krouton.pref.iconWidgetStyle")
+        }
+    }
+    @Published public var folderColorMode: FolderColorMode = .automatic {
+        didSet {
+            guard !isHydratingPreferences else { return }
+            UserDefaults.standard.set(folderColorMode.rawValue, forKey: "krouton.pref.folderColorMode")
+        }
+    }
+    @Published public var sidebarIconSize: SidebarIconSizeMode = .medium {
+        didSet {
+            guard !isHydratingPreferences else { return }
+            UserDefaults.standard.set(sidebarIconSize.rawValue, forKey: "krouton.pref.sidebarIconSize")
+        }
+    }
+    @Published public var selectedLabelTemplate: DiscLabelTemplateStyle = .synthGrid {
+        didSet {
+            guard !isHydratingPreferences else { return }
+            UserDefaults.standard.set(selectedLabelTemplate.rawValue, forKey: "krouton.pref.labelTemplate")
+        }
+    }
+    @Published public var labelShowTracklistOnDisc: Bool = true
     @Published public var tintWindowWithWallpaper: Bool = false
     // Accessibility & VoiceOver Support
     @Published public var appLanguage: KroutonLanguage = .english {
-        didSet { KroutonL10n.activeISOCode = appLanguage.isoCode }
+        didSet {
+            KroutonL10n.activeISOCode = appLanguage.isoCode
+            guard !isHydratingPreferences else { return }
+            UserDefaults.standard.set(appLanguage.rawValue, forKey: "krouton.pref.appLanguage")
+        }
     }
     @Published public var voiceOverSpokenTelemetry: Bool = true
     @Published public var a11yIncreaseContrast: Bool = false
     @Published public var a11yDifferentiateWithoutColor: Bool = true
     @Published public var a11yReduceMotion: Bool = false
-    @Published public var rememberLastTaskOnLaunch: Bool = true
-    @Published public var useBase10Units: Bool = true
+    @Published public var rememberLastTaskOnLaunch: Bool = true {
+        didSet {
+            guard !isHydratingPreferences else { return }
+            UserDefaults.standard.set(rememberLastTaskOnLaunch, forKey: "krouton.pref.rememberLastTask")
+        }
+    }
+    @Published public var useBase10Units: Bool = true {
+        didSet {
+            guard !isHydratingPreferences else { return }
+            UserDefaults.standard.set(useBase10Units, forKey: "krouton.pref.useBase10Units")
+        }
+    }
     @Published public var scratchDiskPath: String = "~/Library/Caches/app.krouton.staging"
     @Published public var autoPurgeScratch: Bool = true
 
     @Published public var selectedSettingsPane: KroutonSettingsCategory = .general
-    @Published public var selectedCategory: TaskMasterCategory = .burn
-    @Published public var selectedTaskID: String = "data-hybrid"
+    @Published public var selectedCategory: TaskMasterCategory = .burn {
+        didSet {
+            guard !isHydratingPreferences, rememberLastTaskOnLaunch else { return }
+            UserDefaults.standard.set(selectedCategory.rawValue, forKey: "krouton.pref.lastCategory")
+        }
+    }
+    @Published public var selectedTaskID: String = "data-hybrid" {
+        didSet {
+            guard !isHydratingPreferences, rememberLastTaskOnLaunch else { return }
+            UserDefaults.standard.set(selectedTaskID, forKey: "krouton.pref.lastTaskID")
+        }
+    }
     @Published public var bitsetVendorProfile: String = "Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)"
     @Published public var autoLoadNextDiscBatchMode: Bool = true
     @Published public var autoLoadCountdownSeconds: Int = 5
@@ -1023,7 +1102,63 @@ public final class KroutonStateStore: ObservableObject {
     }
 
     public init() {
-        Self.shared = self}
+        Self.shared = self
+        hydratePreferencesFromUserDefaults()
+    }
+
+    private func hydratePreferencesFromUserDefaults() {
+        isHydratingPreferences = true
+        defer { isHydratingPreferences = false }
+        let defaults = UserDefaults.standard
+
+        if defaults.object(forKey: "krouton.pref.selectedAccentIndex") != nil {
+            selectedAccentIndex = defaults.integer(forKey: "krouton.pref.selectedAccentIndex")
+        }
+        if defaults.object(forKey: "krouton.pref.harmonyEnabled") != nil {
+            enableSecondaryAccentUITints = defaults.bool(forKey: "krouton.pref.harmonyEnabled")
+            tintWindowWithWallpaper = enableSecondaryAccentUITints
+        }
+        if let rawApp = defaults.string(forKey: "krouton.pref.appearanceMode"),
+           let mode = AppAppearanceMode(rawValue: rawApp) {
+            appearanceMode = mode
+        }
+        if let rawStyle = defaults.string(forKey: "krouton.pref.iconWidgetStyle"),
+           let style = IconWidgetStyleMode(rawValue: rawStyle) {
+            iconWidgetStyle = style
+        }
+        if let rawFolder = defaults.string(forKey: "krouton.pref.folderColorMode"),
+           let fMode = FolderColorMode(rawValue: rawFolder) {
+            folderColorMode = fMode
+        }
+        if let rawSize = defaults.string(forKey: "krouton.pref.sidebarIconSize"),
+           let sSize = SidebarIconSizeMode(rawValue: rawSize) {
+            sidebarIconSize = sSize
+        }
+        if let rawTpl = defaults.string(forKey: "krouton.pref.labelTemplate"),
+           let tpl = DiscLabelTemplateStyle(rawValue: rawTpl) {
+            selectedLabelTemplate = tpl
+        }
+        if let rawLang = defaults.string(forKey: "krouton.pref.appLanguage"),
+           let lang = KroutonLanguage(rawValue: rawLang) {
+            appLanguage = lang
+            KroutonL10n.activeISOCode = lang.isoCode
+        }
+        if defaults.object(forKey: "krouton.pref.useBase10Units") != nil {
+            useBase10Units = defaults.bool(forKey: "krouton.pref.useBase10Units")
+        }
+        if defaults.object(forKey: "krouton.pref.rememberLastTask") != nil {
+            rememberLastTaskOnLaunch = defaults.bool(forKey: "krouton.pref.rememberLastTask")
+        }
+        if rememberLastTaskOnLaunch {
+            if let rawCat = defaults.string(forKey: "krouton.pref.lastCategory"),
+               let cat = TaskMasterCategory(rawValue: rawCat) {
+                selectedCategory = cat
+            }
+            if let lastTask = defaults.string(forKey: "krouton.pref.lastTaskID"), !lastTask.isEmpty {
+                selectedTaskID = lastTask
+            }
+        }
+    }
 }
 
 // MARK: - Functional Icon & Widget Style Renderer (Default / Dark / Clear / Tinted)

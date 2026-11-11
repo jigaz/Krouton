@@ -755,8 +755,8 @@ struct FloatingPhaseScopeWindowView: View {
             }
 
             HStack(spacing: 18) {
-                legendItem(color: .green, label: "Actual Speed (X / KB/s)", isDashed: false)
-                legendItem(color: .cyan, label: "Target P-CAV Envelope", isDashed: true)
+                legendItem(color: store.enableSecondaryAccentUITints ? store.activeAccent : .green, label: "Actual Speed (X / KB/s)", isDashed: false)
+                legendItem(color: store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : .cyan, label: "Target P-CAV Envelope", isDashed: true)
                 legendItem(color: .yellow, label: "Spindle Velocity (RPM)", isDashed: false)
                 legendItem(color: .purple, label: "Hardware Buffer Fill (%)", isDashed: false)
                 legendItem(color: .red, label: "Radial LBA Playhead (mm)", isDashed: false)

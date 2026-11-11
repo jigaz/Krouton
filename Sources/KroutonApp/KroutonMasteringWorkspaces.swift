@@ -214,7 +214,7 @@ extension KroutonMainWorkspaceView {
                                                         colors: [
                                                             Color.black.opacity(0.9),
                                                             store.activeAccent.opacity(0.28),
-                                                            Color.cyan.opacity(0.18),
+                                                            store.uiSecondaryAccent.opacity(0.24),
                                                             store.activeAccent.opacity(0.38),
                                                             Color.black.opacity(0.85)
                                                         ],
@@ -228,7 +228,7 @@ extension KroutonMainWorkspaceView {
 
                                             // Outer Lead-Out Ring
                                             Circle()
-                                                .stroke(Color.orange.opacity(0.55), style: StrokeStyle(lineWidth: 3, dash: [5, 3]))
+                                                .stroke(store.uiSecondaryAccent.opacity(0.75), style: StrokeStyle(lineWidth: 3, dash: [5, 3]))
                                                 .frame(width: 174, height: 174)
 
                                             // User Data Zone Ring (LBA 32..End)
@@ -239,7 +239,7 @@ extension KroutonMainWorkspaceView {
                                             // Boot Catalog & PVD Ring (LBA 16..31) — Highlights when LBA 16/17 inspected!
                                             Circle()
                                                 .stroke(
-                                                    (inspectedImageLBA == 16 || inspectedImageLBA == 17) ? Color.green : Color.cyan.opacity(0.75),
+                                                    (inspectedImageLBA == 16 || inspectedImageLBA == 17) ? Color.green : store.uiSecondaryAccent.opacity(0.85),
                                                     lineWidth: (inspectedImageLBA == 16 || inspectedImageLBA == 17) ? 6 : 4
                                                 )
                                                 .frame(width: 96, height: 96)
@@ -283,7 +283,7 @@ extension KroutonMainWorkspaceView {
                                                 Spacer()
                                             }
                                             HStack {
-                                                Rectangle().fill(Color.orange).frame(width: 8, height: 8)
+                                                Rectangle().fill(store.uiSecondaryAccent).frame(width: 8, height: 8)
                                                 Text("LEAD-OUT     : PMA / TOC / Session Closure")
                                                 Spacer()
                                             }

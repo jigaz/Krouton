@@ -16,7 +16,10 @@ struct DepotBlueprintArtStudioView: View {
     var useHarmony: Bool = true
 
     var body: some View {
-        let secondary = useHarmony ? accent.perceptualSplitComplement : accent
+        let activeStore = KroutonStateStore.shared
+        let presetID = activeStore?.selectedAccentIndex ?? 6
+        let effectiveID = presetID >= 0 ? presetID : (activeStore.map { $0.multicolorPresetID(forTaskID: $0.selectedTaskID, category: $0.selectedCategory) } ?? 6)
+        let secondary = useHarmony ? KroutonStateStore.secondaryHarmonyForPresetID(effectiveID, scheme: .dark) : accent
         let occludeBacking = useHarmony ? accent.blueprintOccludeBacking : Color(red: 0.05, green: 0.06, blue: 0.08)
 
         Canvas { context, size in
