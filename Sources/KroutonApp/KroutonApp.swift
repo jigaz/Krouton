@@ -1026,188 +1026,9 @@ struct KroutonMainWorkspaceView: View {
                     )
                 )
 
-            // 2. Vector Blueprint Art Canvas (Tux Penguin, Classic Mac System 7 Icons, MacAddict + Doom 3D, DOS/TempleOS, Gamepad, Radar)
-            Canvas { context, size in
-                // Fine 18px CAD Engineering Grid
-                let step: CGFloat = 18
-                var grid = Path()
-                var gx: CGFloat = 0
-                while gx <= size.width {
-                    grid.move(to: CGPoint(x: gx, y: 0))
-                    grid.addLine(to: CGPoint(x: gx, y: size.height))
-                    gx += step
-                }
-                var gy: CGFloat = 0
-                while gy <= size.height {
-                    grid.move(to: CGPoint(x: 0, y: gy))
-                    grid.addLine(to: CGPoint(x: size.width, y: gy))
-                    gy += step
-                }
-                context.stroke(grid, with: .color(Color.cyan.opacity(0.065)), lineWidth: 0.5)
-
-                // Blueprint Dimension Lines & Open Showcase Zone on the Right
-                let artX: CGFloat = isNarrow ? size.width * 0.78 : size.width * 0.64
-                let artY: CGFloat = size.height * 0.50
-                let cyanLine = Color.cyan.opacity(0.38)
-                let accentLine = store.activeAccent.opacity(0.48)
-                let faintCyan = Color.cyan.opacity(0.16)
-
-                // Outer Blueprint Calibration Ring in the Open Showcase Zone
-                let outerRing = CGRect(x: artX - 74, y: artY - 74, width: 148, height: 148)
-                context.stroke(Path(ellipseIn: outerRing), with: .color(faintCyan), style: StrokeStyle(lineWidth: 0.9, dash: [6, 4]))
-
-                if item.channel.contains("Live Linux") || item.id.contains("linux") || item.id.contains("ubuntu") || item.id.contains("fedora") || item.id.contains("debian") || item.id.contains("arch") {
-                    // === VECTOR ART 1: LINUX TUX PENGUIN + KERNEL NODE GRAPH ===
-                    var tux = Path()
-                    // Head & Body Torso
-                    tux.addEllipse(in: CGRect(x: artX - 24, y: artY - 56, width: 48, height: 42))
-                    tux.addEllipse(in: CGRect(x: artX - 34, y: artY - 22, width: 68, height: 74))
-                    // Inner Belly Oval
-                    tux.addEllipse(in: CGRect(x: artX - 22, y: artY - 12, width: 44, height: 54))
-                    // Left & Right Flippers
-                    tux.move(to: CGPoint(x: artX - 32, y: artY - 12))
-                    tux.addQuadCurve(to: CGPoint(x: artX - 42, y: artY + 28), control: CGPoint(x: artX - 52, y: artY + 6))
-                    tux.addLine(to: CGPoint(x: artX - 30, y: artY + 22))
-                    tux.move(to: CGPoint(x: artX + 32, y: artY - 12))
-                    tux.addQuadCurve(to: CGPoint(x: artX + 42, y: artY + 28), control: CGPoint(x: artX + 52, y: artY + 6))
-                    tux.addLine(to: CGPoint(x: artX + 30, y: artY + 22))
-                    // Eyes
-                    tux.addEllipse(in: CGRect(x: artX - 13, y: artY - 44, width: 9, height: 11))
-                    tux.addEllipse(in: CGRect(x: artX + 4, y: artY - 44, width: 9, height: 11))
-                    // Beak Triangle
-                    tux.move(to: CGPoint(x: artX - 11, y: artY - 30))
-                    tux.addLine(to: CGPoint(x: artX + 11, y: artY - 30))
-                    tux.addLine(to: CGPoint(x: artX, y: artY - 21))
-                    tux.closeSubpath()
-                    // Webbed Feet
-                    tux.addRoundedRect(in: CGRect(x: artX - 28, y: artY + 46, width: 22, height: 11), cornerSize: CGSize(width: 4, height: 4))
-                    tux.addRoundedRect(in: CGRect(x: artX + 6, y: artY + 46, width: 22, height: 11), cornerSize: CGSize(width: 4, height: 4))
-                    context.stroke(tux, with: .color(cyanLine), lineWidth: 1.6)
-
-                    // BSD Daemon Trident / Kernel Nodes on the side
-                    var nodes = Path()
-                    for pt in [CGPoint(x: artX - 72, y: artY - 35), CGPoint(x: artX - 64, y: artY + 25), CGPoint(x: artX + 68, y: artY - 30)] {
-                        nodes.addEllipse(in: CGRect(x: pt.x - 5, y: pt.y - 5, width: 10, height: 10))
-                        nodes.move(to: pt)
-                        nodes.addLine(to: CGPoint(x: artX, y: artY))
-                    }
-                    context.stroke(nodes, with: .color(accentLine), lineWidth: 1.1)
-
-                } else if item.channel.contains("Vintage Apple") || item.id.contains("mac") {
-                    // === VECTOR ART 2: CLASSIC MAC OS SYSTEM 7 HAPPY MAC + TRASH CAN + BOMB DIALOG ===
-                    var mac = Path()
-                    // Compact Macintosh SE / Classic Bezel
-                    mac.addRoundedRect(in: CGRect(x: artX - 58, y: artY - 58, width: 82, height: 98), cornerSize: CGSize(width: 6, height: 6))
-                    mac.addRoundedRect(in: CGRect(x: artX - 48, y: artY - 46, width: 62, height: 46), cornerSize: CGSize(width: 4, height: 4))
-                    mac.addRect(CGRect(x: artX - 10, y: artY + 14, width: 24, height: 4))
-                    // Susan Kare Happy Mac Picasso Nose & Smile
-                    mac.move(to: CGPoint(x: artX - 28, y: artY - 34)); mac.addLine(to: CGPoint(x: artX - 28, y: artY - 28))
-                    mac.move(to: CGPoint(x: artX - 6, y: artY - 34)); mac.addLine(to: CGPoint(x: artX - 6, y: artY - 28))
-                    mac.move(to: CGPoint(x: artX - 17, y: artY - 34)); mac.addLine(to: CGPoint(x: artX - 20, y: artY - 20)); mac.addLine(to: CGPoint(x: artX - 14, y: artY - 20))
-                    mac.move(to: CGPoint(x: artX - 28, y: artY - 14))
-                    mac.addQuadCurve(to: CGPoint(x: artX - 6, y: artY - 14), control: CGPoint(x: artX - 17, y: artY - 6))
-                    context.stroke(mac, with: .color(cyanLine), lineWidth: 1.6)
-
-                    // Classic System 7 Fluted Trash Can Icon
-                    var trash = Path()
-                    let tx = artX + 42, ty = artY - 10
-                    trash.addRect(CGRect(x: tx, y: ty, width: 32, height: 42))
-                    trash.addRect(CGRect(x: tx - 3, y: ty - 6, width: 38, height: 6))
-                    trash.addRect(CGRect(x: tx + 10, y: ty - 11, width: 12, height: 5))
-                    for ridge in [7.0, 16.0, 25.0] {
-                        trash.move(to: CGPoint(x: tx + ridge, y: ty + 6))
-                        trash.addLine(to: CGPoint(x: tx + ridge, y: ty + 36))
-                    }
-                    // Classic System 7 Bomb Icon above Trash
-                    trash.addEllipse(in: CGRect(x: tx + 4, y: ty - 46, width: 22, height: 22))
-                    trash.move(to: CGPoint(x: tx + 22, y: ty - 44))
-                    trash.addQuadCurve(to: CGPoint(x: tx + 32, y: ty - 54), control: CGPoint(x: tx + 28, y: ty - 52))
-                    context.stroke(trash, with: .color(accentLine), lineWidth: 1.4)
-
-                } else if item.channel.contains("Cover Discs") || item.id.contains("macaddict") || item.id.contains("pcgamer") {
-                    // === VECTOR ART 3: MACADDICT CD-ROM MASCOT + DOOM 3D RAYCAST CORRIDOR ===
-                    var doom = Path()
-                    let r1 = CGRect(x: artX - 78, y: artY - 54, width: 156, height: 108)
-                    let r2 = CGRect(x: artX - 46, y: artY - 32, width: 92, height: 64)
-                    let r3 = CGRect(x: artX - 20, y: artY - 14, width: 40, height: 28)
-                    doom.addRect(r1); doom.addRect(r2); doom.addRect(r3)
-                    doom.move(to: CGPoint(x: r1.minX, y: r1.minY)); doom.addLine(to: CGPoint(x: r3.minX, y: r3.minY))
-                    doom.move(to: CGPoint(x: r1.maxX, y: r1.minY)); doom.addLine(to: CGPoint(x: r3.maxX, y: r3.minY))
-                    doom.move(to: CGPoint(x: r1.minX, y: r1.maxY)); doom.addLine(to: CGPoint(x: r3.minX, y: r3.maxY))
-                    doom.move(to: CGPoint(x: r1.maxX, y: r1.maxY)); doom.addLine(to: CGPoint(x: r3.maxX, y: r3.maxY))
-                    context.stroke(doom, with: .color(cyanLine), lineWidth: 1.3)
-
-                    // MacAddict Spinning CD-ROM Head Emblem in the center of the corridor
-                    var discGuy = Path()
-                    discGuy.addEllipse(in: CGRect(x: artX - 28, y: artY - 28, width: 56, height: 56))
-                    discGuy.addEllipse(in: CGRect(x: artX - 8, y: artY - 8, width: 16, height: 16))
-                    // Cool 90s Shades on the CD Mascot
-                    discGuy.addRect(CGRect(x: artX - 20, y: artY - 14, width: 16, height: 8))
-                    discGuy.addRect(CGRect(x: artX + 4, y: artY - 14, width: 16, height: 8))
-                    discGuy.move(to: CGPoint(x: artX - 4, y: artY - 10)); discGuy.addLine(to: CGPoint(x: artX + 4, y: artY - 10))
-                    context.stroke(discGuy, with: .color(accentLine), lineWidth: 1.6)
-
-                } else if item.channel.contains("Console") {
-                    // === VECTOR ART 4: GAMECUBE / PS2 OPTICAL PICKUP + ISOMETRIC CONTROLLER ===
-                    var pad = Path()
-                    // Controller Body Outline
-                    pad.addRoundedRect(in: CGRect(x: artX - 64, y: artY - 34, width: 128, height: 68), cornerSize: CGSize(width: 24, height: 24))
-                    // D-Pad Left
-                    pad.addRect(CGRect(x: artX - 46, y: artY - 6, width: 28, height: 10))
-                    pad.addRect(CGRect(x: artX - 37, y: artY - 15, width: 10, height: 28))
-                    // Action Buttons Right (A/B/X/Y or Triangle/Circle/X/Square)
-                    for bpt in [CGPoint(x: artX + 36, y: artY - 14), CGPoint(x: artX + 36, y: artY + 12), CGPoint(x: artX + 22, y: artY - 1), CGPoint(x: artX + 50, y: artY - 1)] {
-                        pad.addEllipse(in: CGRect(x: bpt.x - 5, y: bpt.y - 5, width: 10, height: 10))
-                    }
-                    // Analog Sticks
-                    pad.addEllipse(in: CGRect(x: artX - 20, y: artY + 8, width: 16, height: 16))
-                    pad.addEllipse(in: CGRect(x: artX + 4, y: artY + 8, width: 16, height: 16))
-                    context.stroke(pad, with: .color(cyanLine), lineWidth: 1.5)
-
-                    // Mini-DVD / GD-ROM Ring
-                    let ring = CGRect(x: artX - 48, y: artY - 48, width: 96, height: 96)
-                    context.stroke(Path(ellipseIn: ring), with: .color(accentLine), style: StrokeStyle(lineWidth: 1.2, dash: [5, 3]))
-
-                } else if item.channel.contains("Retro PC") || item.id.contains("templeos") || item.id.contains("freedos") {
-                    // === VECTOR ART 5: MS-DOS C:\> CRT + TEMPLEOS SWORD/SUNBURST + 3.5" FLOPPY ===
-                    var retro = Path()
-                    let crt = CGRect(x: artX - 66, y: artY - 46, width: 88, height: 68)
-                    retro.addRoundedRect(in: crt, cornerSize: CGSize(width: 5, height: 5))
-                    // CRT Stand
-                    retro.addRect(CGRect(x: artX - 36, y: artY + 22, width: 28, height: 8))
-                    retro.addRect(CGRect(x: artX - 50, y: artY + 30, width: 56, height: 6))
-                    // DOS Prompt Chevron `C:\>`
-                    retro.move(to: CGPoint(x: crt.minX + 12, y: crt.minY + 16))
-                    retro.addLine(to: CGPoint(x: crt.minX + 20, y: crt.minY + 22))
-                    retro.addLine(to: CGPoint(x: crt.minX + 12, y: crt.minY + 28))
-                    retro.addRect(CGRect(x: crt.minX + 25, y: crt.minY + 24, width: 10, height: 3))
-                    context.stroke(retro, with: .color(cyanLine), lineWidth: 1.5)
-
-                    // 3.5-inch Floppy Disk + TempleOS Sunburst Rays on Right
-                    var flop = Path()
-                    let flRect = CGRect(x: artX + 32, y: artY - 36, width: 54, height: 58)
-                    flop.addRect(flRect)
-                    flop.addRect(CGRect(x: flRect.minX + 12, y: flRect.minY, width: 28, height: 18))
-                    flop.addRect(CGRect(x: flRect.minX + 8, y: flRect.minY + 28, width: 38, height: 24))
-                    context.stroke(flop, with: .color(accentLine), lineWidth: 1.4)
-                } else {
-                    // === VECTOR ART 6: SYSTEM RESCUE PLATTER RADAR + ECG WAVEFORM ===
-                    for r in [24.0, 46.0, 68.0] {
-                        let cRect = CGRect(x: artX - r, y: artY - r, width: r * 2, height: r * 2)
-                        context.stroke(Path(ellipseIn: cRect), with: .color(cyanLine), style: StrokeStyle(lineWidth: 1.2, dash: r == 46.0 ? [5, 3] : []))
-                    }
-                    var ecg = Path()
-                    ecg.move(to: CGPoint(x: artX - 75, y: artY))
-                    ecg.addLine(to: CGPoint(x: artX - 28, y: artY))
-                    ecg.addLine(to: CGPoint(x: artX - 18, y: artY - 34))
-                    ecg.addLine(to: CGPoint(x: artX - 4, y: artY + 38))
-                    ecg.addLine(to: CGPoint(x: artX + 10, y: artY - 18))
-                    ecg.addLine(to: CGPoint(x: artX + 22, y: artY))
-                    ecg.addLine(to: CGPoint(x: artX + 75, y: artY))
-                    context.stroke(ecg, with: .color(accentLine), lineWidth: 1.8)
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+            // 2. Multi-Layer Isometric & Pixel-Matrix CAD Blueprint Art Studio
+            DepotBlueprintArtStudioView(item: item, accent: store.activeAccent, isNarrow: isNarrow)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
 
             // 3. Foreground Layout: Left Info Column + Open Vector Showcase + Right Schematic Box
             HStack(alignment: .center, spacing: 12) {
@@ -5334,5 +5155,352 @@ extension StagedFileEntry {
             .filter { $0.isLetter || $0.isNumber || $0 == "_" }
             .prefix(8)
         return ext.isEmpty ? String(base) : "\(base).\(ext)"
+    }
+}
+
+
+// MARK: - Multi-Layer Isometric & Pixel-Matrix CAD Blueprint Hero Art Studio
+struct DepotBlueprintArtStudioView: View {
+    let item: DepotCatalogItem
+    let accent: Color
+    let isNarrow: Bool
+
+    var body: some View {
+        Canvas { context, size in
+            // 1. Hierarchical CAD Engineering Grid (12pt Sub-Grid + 48pt Major Grid + Crosshairs)
+            let subStep: CGFloat = 12
+            var subGrid = Path()
+            var sx: CGFloat = 0
+            while sx <= size.width {
+                subGrid.move(to: CGPoint(x: sx, y: 0))
+                subGrid.addLine(to: CGPoint(x: sx, y: size.height))
+                sx += subStep
+            }
+            var sy: CGFloat = 0
+            while sy <= size.height {
+                subGrid.move(to: CGPoint(x: 0, y: sy))
+                subGrid.addLine(to: CGPoint(x: size.width, y: sy))
+                sy += subStep
+            }
+            context.stroke(subGrid, with: .color(Color.cyan.opacity(0.045)), lineWidth: 0.5)
+
+            let majStep: CGFloat = 48
+            var majGrid = Path()
+            var mx: CGFloat = 0
+            while mx <= size.width {
+                majGrid.move(to: CGPoint(x: mx, y: 0))
+                majGrid.addLine(to: CGPoint(x: mx, y: size.height))
+                mx += majStep
+            }
+            var my: CGFloat = 0
+            while my <= size.height {
+                majGrid.move(to: CGPoint(x: 0, y: my))
+                majGrid.addLine(to: CGPoint(x: size.width, y: my))
+                my += majStep
+            }
+            context.stroke(majGrid, with: .color(Color.cyan.opacity(0.10)), lineWidth: 0.7)
+
+            // Registration Crosshairs across the Blueprint Plane
+            var crosshairs = Path()
+            for cxGrid in stride(from: majStep, to: size.width, by: majStep * 2) {
+                for cyGrid in stride(from: majStep, to: size.height, by: majStep) {
+                    crosshairs.move(to: CGPoint(x: cxGrid - 4, y: cyGrid))
+                    crosshairs.addLine(to: CGPoint(x: cxGrid + 4, y: cyGrid))
+                    crosshairs.move(to: CGPoint(x: cxGrid, y: cyGrid - 4))
+                    crosshairs.addLine(to: CGPoint(x: cxGrid, y: cyGrid + 4))
+                }
+            }
+            context.stroke(crosshairs, with: .color(Color.white.opacity(0.20)), lineWidth: 0.8)
+
+            // Focal coordinate for the Hero Showcase Artwork
+            let cx: CGFloat = isNarrow ? size.width * 0.78 : size.width * 0.58
+            let cy: CGFloat = size.height * 0.52
+
+            // 2. Ambient Radial Spotlight & Outer Precision Degree Vernier Ring
+            let glowRect = CGRect(x: cx - 125, y: cy - 125, width: 250, height: 250)
+            context.fill(
+                Path(ellipseIn: glowRect),
+                with: .radialGradient(
+                    Gradient(colors: [accent.opacity(0.26), Color.cyan.opacity(0.10), Color.clear]),
+                    center: CGPoint(x: cx, y: cy),
+                    startRadius: 6,
+                    endRadius: 125
+                )
+            )
+
+            let outerRingR: CGFloat = 82
+            let innerRingR: CGFloat = 68
+            context.stroke(
+                Path(ellipseIn: CGRect(x: cx - outerRingR, y: cy - outerRingR, width: outerRingR * 2, height: outerRingR * 2)),
+                with: .color(Color.cyan.opacity(0.22)),
+                style: StrokeStyle(lineWidth: 1.0, dash: [8, 4, 2, 4])
+            )
+            context.stroke(
+                Path(ellipseIn: CGRect(x: cx - innerRingR, y: cy - innerRingR, width: innerRingR * 2, height: innerRingR * 2)),
+                with: .color(accent.opacity(0.28)),
+                lineWidth: 0.8
+            )
+
+            // Degree Tick Marks around the Outer Calibration Ring
+            var ticks = Path()
+            for deg in stride(from: 0.0, to: 360.0, by: 15.0) {
+                let rad = deg * .pi / 180.0
+                let r1: CGFloat = (Int(deg) % 45 == 0) ? outerRingR - 6 : outerRingR - 3
+                let r2: CGFloat = outerRingR + 2
+                ticks.move(to: CGPoint(x: cx + cos(rad) * r1, y: cy + sin(rad) * r1))
+                ticks.addLine(to: CGPoint(x: cx + cos(rad) * r2, y: cy + sin(rad) * r2))
+            }
+            context.stroke(ticks, with: .color(Color.cyan.opacity(0.30)), lineWidth: 0.8)
+
+            // Helper to draw authentic pixel-matrix art (1 = cyan, 2 = accent, 3 = white)
+            func drawPixelMatrix(_ rows: [String], origin: CGPoint, pixelSize: CGFloat) {
+                var p1 = Path()
+                var p2 = Path()
+                var p3 = Path()
+                for (rIdx, row) in rows.enumerated() {
+                    for (cIdx, ch) in row.enumerated() {
+                        guard ch != "." && ch != " " else { continue }
+                        let rect = CGRect(
+                            x: origin.x + CGFloat(cIdx) * pixelSize,
+                            y: origin.y + CGFloat(rIdx) * pixelSize,
+                            width: pixelSize - 0.6,
+                            height: pixelSize - 0.6
+                        )
+                        if ch == "1" { p1.addRect(rect) }
+                        else if ch == "2" { p2.addRect(rect) }
+                        else if ch == "3" { p3.addRect(rect) }
+                    }
+                }
+                context.fill(p1, with: .color(Color.cyan.opacity(0.85)))
+                context.fill(p2, with: .color(accent.opacity(0.92)))
+                context.fill(p3, with: .color(Color.white.opacity(0.92)))
+            }
+
+            // Helper to draw CAD leader callout lines + monospaced coordinate labels
+            func drawCallout(from pt: CGPoint, elbow: CGPoint, endX: CGFloat, text: String) {
+                var leader = Path()
+                leader.move(to: pt)
+                leader.addLine(to: elbow)
+                leader.addLine(to: CGPoint(x: endX, y: elbow.y))
+                context.stroke(leader, with: .color(Color.cyan.opacity(0.65)), lineWidth: 1.0)
+                context.fill(Path(ellipseIn: CGRect(x: pt.x - 2.5, y: pt.y - 2.5, width: 5, height: 5)), with: .color(accent))
+                let labelText = Text(text).font(.system(size: 8, weight: .bold, design: .monospaced)).foregroundColor(Color.cyan)
+                let alignX: CGFloat = endX > elbow.x ? endX + 4 : endX - 4
+                let anchor: UnitPoint = endX > elbow.x ? .leading : .trailing
+                context.draw(labelText, at: CGPoint(x: alignX, y: elbow.y), anchor: anchor)
+            }
+
+            // 3. Thematic Multi-Layer Artwork per Channel / Disc Content
+            if item.channel.contains("Vintage Apple") || item.id.contains("mac") {
+                // === SCENE A: SUSAN KARE SYSTEM 7 PIXEL MATRIX + ISOMETRIC MAC SE & TRASH CAN ===
+                let macRect = CGRect(x: cx - 64, y: cy - 52, width: 64, height: 82)
+                var mac3D = Path()
+                mac3D.addRoundedRect(in: macRect, cornerSize: CGSize(width: 5, height: 5))
+                mac3D.move(to: CGPoint(x: macRect.maxX, y: macRect.minY + 4))
+                mac3D.addLine(to: CGPoint(x: macRect.maxX + 18, y: macRect.minY - 8))
+                mac3D.addLine(to: CGPoint(x: macRect.maxX + 18, y: macRect.maxY - 12))
+                mac3D.addLine(to: CGPoint(x: macRect.maxX, y: macRect.maxY - 2))
+                context.fill(Path(roundedRect: macRect, cornerSize: CGSize(width: 5, height: 5)), with: .color(Color.cyan.opacity(0.10)))
+                context.stroke(mac3D, with: .color(Color.cyan.opacity(0.78)), lineWidth: 1.5)
+
+                let crt = CGRect(x: macRect.minX + 8, y: macRect.minY + 8, width: 48, height: 36)
+                context.fill(Path(roundedRect: crt, cornerSize: CGSize(width: 3, height: 3)), with: .color(Color.black.opacity(0.65)))
+                context.stroke(Path(roundedRect: crt, cornerSize: CGSize(width: 3, height: 3)), with: .color(accent.opacity(0.85)), lineWidth: 1.2)
+                context.fill(Path(CGRect(x: macRect.minX + 28, y: macRect.minY + 54, width: 22, height: 3.5)), with: .color(Color.cyan))
+
+                let happyMacPixels = [
+                    "..11........11..",
+                    "..11...33...11..",
+                    ".......33.......",
+                    "......33........",
+                    "......3333......",
+                    "................",
+                    "..22........22..",
+                    "...2222222222..."
+                ]
+                drawPixelMatrix(happyMacPixels, origin: CGPoint(x: crt.minX + 6, y: crt.minY + 8), pixelSize: 2.2)
+
+                let trashPixels = [
+                    "....11111111....",
+                    "..111111111111..",
+                    "..333333333333..",
+                    "...11.11.11.11..",
+                    "...11.33.11.33..",
+                    "...11.33.11.33..",
+                    "...11.33.11.33..",
+                    "...11.33.11.33..",
+                    "...11.33.11.33..",
+                    "...11.33.11.33..",
+                    "...11.11.11.11..",
+                    "...11111111111.."
+                ]
+                drawPixelMatrix(trashPixels, origin: CGPoint(x: cx + 24, y: cy - 34), pixelSize: 3.4)
+
+                if !isNarrow {
+                    drawCallout(from: CGPoint(x: macRect.minX + 12, y: macRect.minY + 12), elbow: CGPoint(x: cx - 78, y: cy - 58), endX: cx - 102, text: "HFS APM BLK 1")
+                    drawCallout(from: CGPoint(x: cx + 44, y: cy + 12), elbow: CGPoint(x: cx + 66, y: cy + 38), endX: cx + 88, text: "SYS 7.x RSRC FORK")
+                }
+
+            } else if item.channel.contains("Live Linux") || item.id.contains("linux") || item.id.contains("bsd") {
+                // === SCENE B: PIXEL-MATRIX TUX PENGUIN + ISOMETRIC 3-TIER KERNEL STACK ===
+                for (layerIdx, yOff) in [(-28.0, "RING 0: VMLINUZ"), (0.0, "INITRAMFS / VFS"), (28.0, "UEFI / EL TORITO")].enumerated() {
+                    let ly = cy + CGFloat(yOff.0)
+                    var slab = Path()
+                    slab.move(to: CGPoint(x: cx - 74, y: ly))
+                    slab.addLine(to: CGPoint(x: cx - 34, y: ly - 16))
+                    slab.addLine(to: CGPoint(x: cx + 6, y: ly))
+                    slab.addLine(to: CGPoint(x: cx - 34, y: ly + 16))
+                    slab.closeSubpath()
+                    context.fill(slab, with: .color(layerIdx == 0 ? accent.opacity(0.28) : Color.cyan.opacity(0.14)))
+                    context.stroke(slab, with: .color(layerIdx == 0 ? accent : Color.cyan.opacity(0.75)), lineWidth: 1.3)
+                }
+
+                let tuxMatrix = [
+                    ".....111111.....",
+                    "...1111111111...",
+                    "..111331133111..",
+                    "..111331133111..",
+                    "..111122221111..",
+                    "...1122222211...",
+                    "..111333333111..",
+                    ".11133333333111.",
+                    "1113333333333111",
+                    "1113333333333111",
+                    "11.3333333333.11",
+                    "...1333333331...",
+                    "....11333311....",
+                    "..22221..12222..",
+                    ".22222....22222."
+                ]
+                drawPixelMatrix(tuxMatrix, origin: CGPoint(x: cx + 14, y: cy - 38), pixelSize: 3.3)
+
+                if !isNarrow {
+                    drawCallout(from: CGPoint(x: cx - 34, y: cy - 44), elbow: CGPoint(x: cx - 58, y: cy - 64), endX: cx - 88, text: "ELF64 KERNEL")
+                    drawCallout(from: CGPoint(x: cx + 42, y: cy + 18), elbow: CGPoint(x: cx + 64, y: cy + 42), endX: cx + 86, text: "SQUASHFS ROOT")
+                }
+
+            } else if item.channel.contains("Cover Discs") || item.id.contains("macaddict") || item.id.contains("pcgamer") {
+                // === SCENE C: 3D DOOM WAD RAYCAST WIREFRAME + SPINNING IRIDESCENT CD-ROM MASCOT ===
+                let rOuter = CGRect(x: cx - 76, y: cy - 52, width: 152, height: 104)
+                let rMid   = CGRect(x: cx - 44, y: cy - 30, width: 88, height: 60)
+                let rInner = CGRect(x: cx - 18, y: cy - 12, width: 36, height: 24)
+
+                var leftWall = Path()
+                leftWall.move(to: CGPoint(x: rOuter.minX, y: rOuter.minY))
+                leftWall.addLine(to: CGPoint(x: rInner.minX, y: rInner.minY))
+                leftWall.addLine(to: CGPoint(x: rInner.minX, y: rInner.maxY))
+                leftWall.addLine(to: CGPoint(x: rOuter.minX, y: rOuter.maxY))
+                leftWall.closeSubpath()
+                context.fill(leftWall, with: .color(Color.cyan.opacity(0.08)))
+
+                var corridor = Path()
+                corridor.addRect(rOuter); corridor.addRect(rMid); corridor.addRect(rInner)
+                corridor.move(to: CGPoint(x: rOuter.minX, y: rOuter.minY)); corridor.addLine(to: CGPoint(x: rInner.minX, y: rInner.minY))
+                corridor.move(to: CGPoint(x: rOuter.maxX, y: rOuter.minY)); corridor.addLine(to: CGPoint(x: rInner.maxX, y: rInner.minY))
+                corridor.move(to: CGPoint(x: rOuter.minX, y: rOuter.maxY)); corridor.addLine(to: CGPoint(x: rInner.minX, y: rInner.maxY))
+                corridor.move(to: CGPoint(x: rOuter.maxX, y: rOuter.maxY)); corridor.addLine(to: CGPoint(x: rInner.maxX, y: rInner.maxY))
+                context.stroke(corridor, with: .color(Color.cyan.opacity(0.65)), lineWidth: 1.3)
+
+                let cdR: CGFloat = 32
+                let cdRect = CGRect(x: cx - cdR, y: cy - cdR, width: cdR * 2, height: cdR * 2)
+                context.fill(Path(ellipseIn: cdRect), with: .color(Color.black.opacity(0.75)))
+                context.stroke(Path(ellipseIn: cdRect), with: .color(accent), lineWidth: 2.0)
+                context.stroke(Path(ellipseIn: CGRect(x: cx - 9, y: cy - 9, width: 18, height: 18)), with: .color(Color.cyan), lineWidth: 1.4)
+
+                let shadesPixels = [
+                    "33333333333333",
+                    "322223..322223",
+                    ".3333....3333.",
+                    "..............",
+                    "..1111111111..",
+                    "...11111111..."
+                ]
+                drawPixelMatrix(shadesPixels, origin: CGPoint(x: cx - 21, y: cy - 12), pixelSize: 3.0)
+
+                if !isNarrow {
+                    drawCallout(from: CGPoint(x: cx - 56, y: cy - 38), elbow: CGPoint(x: cx - 78, y: cy - 58), endX: cx - 98, text: "BSP 3D ENGINE")
+                    drawCallout(from: CGPoint(x: cx + 28, y: cy + 20), elbow: CGPoint(x: cx + 58, y: cy + 44), endX: cx + 84, text: "CD-ROM XA TRACK")
+                }
+
+            } else if item.channel.contains("Console") {
+                // === SCENE D: OPTICAL PICKUP LASER LENS SCHEMATIC + PIXEL ARCADE / GAMEPAD ===
+                let sledRect = CGRect(x: cx - 68, y: cy - 38, width: 58, height: 76)
+                context.fill(Path(roundedRect: sledRect, cornerSize: CGSize(width: 6, height: 6)), with: .color(Color.cyan.opacity(0.10)))
+                context.stroke(Path(roundedRect: sledRect, cornerSize: CGSize(width: 6, height: 6)), with: .color(Color.cyan.opacity(0.80)), lineWidth: 1.4)
+                let lensCenter = CGPoint(x: sledRect.midX, y: sledRect.midY - 8)
+                context.fill(Path(ellipseIn: CGRect(x: lensCenter.x - 16, y: lensCenter.y - 16, width: 32, height: 32)), with: .color(accent.opacity(0.30)))
+                context.stroke(Path(ellipseIn: CGRect(x: lensCenter.x - 16, y: lensCenter.y - 16, width: 32, height: 32)), with: .color(accent), lineWidth: 1.6)
+                context.fill(Path(ellipseIn: CGRect(x: lensCenter.x - 5, y: lensCenter.y - 5, width: 10, height: 10)), with: .color(Color.white))
+
+                let arcadeMatrix = [
+                    "..1111111111..",
+                    ".111111111111.",
+                    "11.33.1111.22.",
+                    "1.3333.11.2222",
+                    "11.33.1111.22.",
+                    "11111111111111",
+                    ".1111....1111.",
+                    "..11......11.."
+                ]
+                drawPixelMatrix(arcadeMatrix, origin: CGPoint(x: cx + 8, y: cy - 22), pixelSize: 4.0)
+
+                if !isNarrow {
+                    drawCallout(from: lensCenter, elbow: CGPoint(x: cx - 64, y: cy - 58), endX: cx - 92, text: "650nm / 780nm PICKUP")
+                    drawCallout(from: CGPoint(x: cx + 36, y: cy + 14), elbow: CGPoint(x: cx + 62, y: cy + 40), endX: cx + 88, text: "BOOT SECTOR RING")
+                }
+
+            } else if item.channel.contains("Retro PC") || item.id.contains("freedos") || item.id.contains("templeos") {
+                // === SCENE E: IBM PC CRT TERMINAL (`A:\>`) + DIP-16 BIOS EEPROM CHIP ===
+                let crtBox = CGRect(x: cx - 72, y: cy - 44, width: 84, height: 64)
+                context.fill(Path(roundedRect: crtBox, cornerSize: CGSize(width: 5, height: 5)), with: .color(Color.black.opacity(0.75)))
+                context.stroke(Path(roundedRect: crtBox, cornerSize: CGSize(width: 5, height: 5)), with: .color(Color.cyan.opacity(0.85)), lineWidth: 1.5)
+                context.draw(Text("A:\\>BOOT.SYS").font(.system(size: 8.5, weight: .bold, design: .monospaced)).foregroundColor(.green), at: CGPoint(x: crtBox.minX + 8, y: crtBox.minY + 14), anchor: .leading)
+                context.draw(Text("640K BASE OK").font(.system(size: 7.5, weight: .semibold, design: .monospaced)).foregroundColor(.cyan), at: CGPoint(x: crtBox.minX + 8, y: crtBox.minY + 28), anchor: .leading)
+                context.draw(Text("EL TORITO IO").font(.system(size: 7.5, weight: .semibold, design: .monospaced)).foregroundColor(accent), at: CGPoint(x: crtBox.minX + 8, y: crtBox.minY + 42), anchor: .leading)
+
+                let icRect = CGRect(x: cx + 26, y: cy - 36, width: 36, height: 68)
+                context.fill(Path(roundedRect: icRect, cornerSize: CGSize(width: 3, height: 3)), with: .color(Color.cyan.opacity(0.14)))
+                context.stroke(Path(roundedRect: icRect, cornerSize: CGSize(width: 3, height: 3)), with: .color(accent), lineWidth: 1.5)
+                var pins = Path()
+                for py in stride(from: icRect.minY + 8, to: icRect.maxY - 4, by: 10) {
+                    pins.addRect(CGRect(x: icRect.minX - 6, y: py, width: 6, height: 4))
+                    pins.addRect(CGRect(x: icRect.maxX, y: py, width: 6, height: 4))
+                }
+                context.fill(pins, with: .color(Color.cyan.opacity(0.85)))
+
+                if !isNarrow {
+                    drawCallout(from: CGPoint(x: crtBox.minX + 20, y: crtBox.minY), elbow: CGPoint(x: cx - 68, y: cy - 58), endX: cx - 94, text: "INT 13h EMULATION")
+                    drawCallout(from: CGPoint(x: icRect.maxX, y: icRect.midY), elbow: CGPoint(x: cx + 74, y: cy + 36), endX: cx + 92, text: "EEPROM BIOS IMAGE")
+                }
+
+            } else {
+                // === SCENE F: SYSTEM RESCUE SECTOR RADAR + MULTI-TRACK PARTITION OSCILLOSCOPE ===
+                for r in [18.0, 34.0, 50.0] {
+                    let rect = CGRect(x: cx - r, y: cy - r, width: r * 2, height: r * 2)
+                    context.stroke(Path(ellipseIn: rect), with: .color(Color.cyan.opacity(0.65)), lineWidth: 1.3)
+                }
+                var wedge = Path()
+                wedge.move(to: CGPoint(x: cx, y: cy))
+                wedge.addArc(center: CGPoint(x: cx, y: cy), radius: 50, startAngle: .degrees(-45), endAngle: .degrees(15), clockwise: false)
+                wedge.closeSubpath()
+                context.fill(wedge, with: .color(accent.opacity(0.42)))
+                context.stroke(wedge, with: .color(accent), lineWidth: 1.5)
+
+                var pulse = Path()
+                pulse.move(to: CGPoint(x: cx - 72, y: cy + 34))
+                pulse.addLine(to: CGPoint(x: cx - 24, y: cy + 34))
+                pulse.addLine(to: CGPoint(x: cx - 14, y: cy + 8))
+                pulse.addLine(to: CGPoint(x: cx - 2, y: cy + 52))
+                pulse.addLine(to: CGPoint(x: cx + 10, y: cy + 18))
+                pulse.addLine(to: CGPoint(x: cx + 20, y: cy + 34))
+                pulse.addLine(to: CGPoint(x: cx + 72, y: cy + 34))
+                context.stroke(pulse, with: .color(Color.green), lineWidth: 1.8)
+
+                if !isNarrow {
+                    drawCallout(from: CGPoint(x: cx + 28, y: cy - 18), elbow: CGPoint(x: cx + 54, y: cy - 52), endX: cx + 82, text: "GPT / ZFS / APFS")
+                    drawCallout(from: CGPoint(x: cx - 32, y: cy + 34), elbow: CGPoint(x: cx - 56, y: cy + 56), endX: cx - 86, text: "DDRESCUE LBA MAP")
+                }
+            }
+        }
     }
 }
