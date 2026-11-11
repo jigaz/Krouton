@@ -304,7 +304,6 @@ public struct KroutonSettingsWindowView: View {
                     .frame(width: 140)
                 }
                 Divider()
-                Toggle(KroutonL10n.tr("Tint window background with wallpaper / active accent color"), isOn: $store.tintWindowWithWallpaper)
                 Divider()
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
