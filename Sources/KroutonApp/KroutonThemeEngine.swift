@@ -104,19 +104,17 @@ extension Color {
                 return Color(cgColor: CGColor(srgbRed: pr, green: pg, blue: pb, alpha: 1.0))
             }
 
-            // 1. TITANIUM / MONOCHROME (Low Saturation) -> Stark Pure White
+                        // 1. TITANIUM / MONOCHROME (Low Saturation) -> Stark Pure White
             if s < 0.14 {
                 return v > 0.88 ? p3(0.60, 0.65, 0.72) : p3(0.98, 0.99, 1.00)
             }
 
-            // 2. TOASTED KROUTON BROWN vs. VIBRANT TANGERINE (Hue 16°..42°)
-            if hueDeg >= 16.0 && hueDeg < 42.0 {
-                let isEarthyBrown = (s < 0.82) || (v < 0.88) || (r - g < 0.36)
-                if isEarthyBrown {
-                    return p3(0.98, 0.87, 0.68)
-                } else {
-                    return p3(0.36, 0.60, 1.00)
-                }
+            // 2. TOASTED KROUTON BROWN vs. VIBRANT TANGERINE / ORANGE (Hue 14°..42°)
+            //    - Toasted Brown (s < 0.72 or v < 0.78) -> Champagne Almond Cream
+            //    - Vibrant Orange (s >= 0.72, v >= 0.78) -> Royal Ultramarine Blue
+            if hueDeg >= 14.0 && hueDeg < 42.0 {
+                let isEarthyBrown = (s < 0.72) || (v < 0.78)
+                return isEarthyBrown ? p3(0.98, 0.87, 0.68) : p3(0.32, 0.62, 1.00)
             }
 
             // 3. SOLAR GOLD / AMBER (Hue 42°..78°) -> Arctic Periwinkle / Cool Ice Blue
@@ -129,24 +127,24 @@ extension Color {
                 return p3(0.20, 0.68, 1.00)
             }
 
-            // 5. CAD TEAL / AQUA & LIGHT SKY BLUE (Hue 164°..214°) -> Safety Orange
-            if (hueDeg >= 164.0 && hueDeg < 214.0) || (hueDeg >= 164.0 && hueDeg < 226.0 && s < 0.76 && v > 0.88) {
+            // 5. CAD TEAL / SKY CYAN (Hue 164°..202°) -> Teenage-Engineering Safety Orange
+            if hueDeg >= 164.0 && hueDeg < 202.0 {
                 return p3(1.00, 0.55, 0.14)
             }
 
-            // 6. LASER COBALT BLUE (Hue 214°..242°) -> Cyber Hot Berry / Electric Magenta
-            if hueDeg >= 214.0 && hueDeg < 242.0 {
+            // 6. LASER COBALT BLUE (Hue 202°..216°) -> Sunburst Amber / Warm Gold
+            if hueDeg >= 202.0 && hueDeg < 216.0 {
+                return p3(1.00, 0.84, 0.28)
+            }
+
+            // 7. SLATE INDIGO / STEEL BLUE (Hue 216°..238°) -> Cyber Hot Berry / Electric Magenta
+            if hueDeg >= 216.0 && hueDeg < 238.0 {
                 return p3(0.98, 0.36, 0.76)
             }
 
-            // 7. DEEP INDIGO / NAVY (Hue 242°..264°) -> Phosphor Aquamarine / Cyber Mint
-            if hueDeg >= 242.0 && hueDeg < 264.0 {
+            // 8. SYNTH VIOLET / PURPLE (Hue 238°..305°) -> Phosphor Aquamarine / Cyber Mint
+            if hueDeg >= 238.0 && hueDeg < 305.0 {
                 return p3(0.26, 0.99, 0.88)
-            }
-
-            // 8. SYNTH VIOLET / PURPLE (Hue 264°..305°) -> Sunburst Amber
-            if hueDeg >= 264.0 && hueDeg < 305.0 {
-                return p3(1.00, 0.84, 0.28)
             }
 
             // 9. COVER-DISC MAGENTA / PINK (Hue 305°..344°) -> Electric Sky Cyan
@@ -154,12 +152,11 @@ extension Color {
                 return p3(0.24, 0.92, 0.98)
             }
 
-            // 10. LASER CRIMSON / RED (Hue 344°..360° or 0°..16°) -> Electric Amethyst
+            // 10. LASER CRIMSON / RED (Hue 344°..360° or 0°..14°) -> Electric Amethyst / Lavender Violet
             return p3(0.78, 0.50, 1.00)
         }
     }
 
-    /// Cached deep blueprint occlusion backing subtly tinted by the active swatch & secondary color
     var blueprintOccludeBacking: Color {
         KroutonColorHarmonyLUT.shared.cachedBacking(for: self) {
             let nsPrimary = NSColor(self).usingColorSpace(.sRGB) ?? NSColor.systemBrown
