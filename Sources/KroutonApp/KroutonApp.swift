@@ -2164,7 +2164,7 @@ struct KroutonMainWorkspaceView: View {
                         Divider()
 
                         ScrollView {
-                            VStack(spacing: 0) {
+                            LazyVStack(spacing: 0) {
                                 ForEach(store.stagedFiles) { entry in
                                     let ext = entry.url.pathExtension.lowercased()
                                     let modeBadge = (ext == "bin" || ext == "cue") ? "RAW 2,352 B/sec (Mode 2 XA)" : "2,048 B/sec (UDF/ISO/XDVDFS)"
@@ -2956,7 +2956,7 @@ struct KroutonMainWorkspaceView: View {
                             Divider()
 
                             ScrollView {
-                                VStack(spacing: 0) {
+                                LazyVStack(spacing: 0) {
                                     ForEach(store.stagedFiles) { entry in
                                         HStack(spacing: 12) {
                                             Image(systemName: entry.isDirectory ? "folder.fill" : "doc.fill")
