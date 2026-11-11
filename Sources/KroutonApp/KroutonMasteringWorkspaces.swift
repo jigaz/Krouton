@@ -80,7 +80,7 @@ extension KroutonMainWorkspaceView {
                         HStack(alignment: .center, spacing: 12) {
                             KroutonStyledIconBadge(
                                 sfSymbol: "opticaldisc.fill",
-                                tintColor: store.iconWidgetStyle == .tinted ? store.uiSecondaryAccent : store.activeAccent,
+                                tintColor: store.activeAccent,
                                 style: store.iconWidgetStyle,
                                 size: 38,
                                 symbolSize: 20

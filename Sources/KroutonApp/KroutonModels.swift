@@ -1026,13 +1026,14 @@ public final class KroutonStateStore: ObservableObject {
 
 // MARK: - Functional Icon & Widget Style Renderer (Default / Dark / Clear / Tinted)
 public struct KroutonStyledIconBadge: View {
+    @EnvironmentObject var store: KroutonStateStore
     public let sfSymbol: String
     public let tintColor: Color
     public let style: IconWidgetStyleMode
-    public let isSelectedRow: Bool
-    public let onAccentText: Color
-    public let size: CGFloat
-    public let symbolSize: CGFloat
+    public var isSelectedRow: Bool = false
+    public var onAccentText: Color = .white
+    public var size: CGFloat = 24
+    public var symbolSize: CGFloat = 13
 
     public init(
         sfSymbol: String,
@@ -1053,51 +1054,86 @@ public struct KroutonStyledIconBadge: View {
     }
 
     public var body: some View {
+        let useHarmonyBg = (style == .tinted && store.enableSecondaryAccentUITints)
+        let harmonyColor = store.activeSecondaryAccent
+
         ZStack {
-            switch style {
-            case .defaultStyle:
-                RoundedRectangle(cornerRadius: size * 0.28)
-                    .fill(
-                        isSelectedRow
-                            ? AnyShapeStyle(onAccentText.opacity(0.22))
-                            : AnyShapeStyle(LinearGradient(colors: [tintColor, tintColor.opacity(0.72)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    )
-                Image(systemName: sfSymbol)
-                    .font(.system(size: symbolSize, weight: .semibold))
-                    .foregroundStyle(isSelectedRow ? onAccentText : .white)
-
-            case .dark:
-                RoundedRectangle(cornerRadius: size * 0.28)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(red: 0.14, green: 0.15, blue: 0.18), Color(red: 0.07, green: 0.08, blue: 0.10)],
-                            startPoint: .top,
-                            endPoint: .bottom
+            RoundedRectangle(cornerRadius: size * 0.26, style: .continuous)
+                .fill(badgeBackgroundGradient(useHarmonyBg: useHarmonyBg, harmonyColor: harmonyColor))
+                .overlay(
+                    Group {
+                        if useHarmonyBg {
+                            RoundedRectangle(cornerRadius: size * 0.26, style: .continuous)
+                                .fill(harmonyColor.opacity(store.resolvedColorScheme == .light ? 0.24 : 0.28))
+                        }
+                    }
+                )
+                .frame(width: size, height: size)
+                .overlay(
+                    RoundedRectangle(cornerRadius: size * 0.26, style: .continuous)
+                        .stroke(
+                            useHarmonyBg
+                                ? harmonyColor.opacity(0.55)
+                                : (isSelectedRow ? Color.white.opacity(0.28) : Color.primary.opacity(0.12)),
+                            lineWidth: useHarmonyBg ? 1.2 : 0.8
                         )
-                    )
-                    .overlay(RoundedRectangle(cornerRadius: size * 0.28).stroke(tintColor.opacity(0.45), lineWidth: 1))
-                Image(systemName: sfSymbol)
-                    .font(.system(size: symbolSize, weight: .semibold))
-                    .foregroundStyle(tintColor)
+                )
 
-            case .clear:
-                RoundedRectangle(cornerRadius: size * 0.28)
-                    .fill(Color.primary.opacity(0.08))
-                    .overlay(RoundedRectangle(cornerRadius: size * 0.28).stroke(isSelectedRow ? onAccentText.opacity(0.6) : Color.primary.opacity(0.24), lineWidth: 1))
-                Image(systemName: sfSymbol)
-                    .font(.system(size: symbolSize, weight: .semibold))
-                    .foregroundStyle(isSelectedRow ? onAccentText : .primary)
-
-            case .tinted:
-                RoundedRectangle(cornerRadius: size * 0.28)
-                    .fill(tintColor.opacity(isSelectedRow ? 0.30 : 0.16))
-                    .overlay(RoundedRectangle(cornerRadius: size * 0.28).stroke(tintColor.opacity(0.55), lineWidth: 1))
-                Image(systemName: sfSymbol)
-                    .font(.system(size: symbolSize, weight: .semibold))
-                    .foregroundStyle(isSelectedRow ? onAccentText : tintColor)
-            }
+            Image(systemName: sfSymbol)
+                .font(.system(size: symbolSize, weight: .semibold))
+                .foregroundStyle(symbolForeground)
         }
-        .frame(width: size, height: size)
+    }
+
+    private func badgeBackgroundGradient(useHarmonyBg: Bool, harmonyColor: Color) -> LinearGradient {
+        switch style {
+        case .defaultStyle:
+            if isSelectedRow {
+                return LinearGradient(
+                    colors: [Color.white.opacity(0.24), Color.white.opacity(0.10)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+            return LinearGradient(
+                colors: [tintColor, tintColor.opacity(0.72)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .dark:
+            return LinearGradient(
+                colors: [Color(white: 0.18), Color(white: 0.09)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        case .clear:
+            return LinearGradient(
+                colors: [Color.primary.opacity(0.14), Color.primary.opacity(0.05)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        case .tinted:
+            // Base dark charcoal studio tile (layered with `harmonyColor.opacity(0.28)` above when Harmony is ON!)
+            return LinearGradient(
+                colors: [Color(white: 0.15), Color(white: 0.08)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+
+    private var symbolForeground: Color {
+        switch style {
+        case .defaultStyle:
+            return isSelectedRow ? onAccentText : onAccentText
+        case .dark:
+            return .white
+        case .clear:
+            return isSelectedRow ? onAccentText : .primary
+        case .tinted:
+            // Primary icon element stays the Primary accent color!
+            return tintColor
+        }
     }
 }
 
