@@ -5854,6 +5854,281 @@ struct DepotBlueprintArtStudioView: View {
 
                 drawCADNode(CGPoint(x: px + 68, y: py - 24), handle: CGPoint(x: px + 96, y: py - 42))
 
+            } else if key.contains("wii") || key.contains("gc") || key.contains("gamecube") || key.contains("swiss") || key.contains("nintendo") || key.contains("mario") || item.channel.contains("Console") {
+                // --- 8. JUMPING MARIO (1:1 High-Density 180-Curve Line-Art Reconstruction from Reference) ---
+                // Scaled & positioned so the raised fist and lower boot bleed into the top/bottom gradient fade!
+                let s: CGFloat = 1.12
+                func mpt(_ dx: CGFloat, _ dy: CGFloat) -> CGPoint {
+                    CGPoint(x: cx + dx * s, y: cy + dy * s)
+                }
+
+                // =====================================================================
+                // 1. RAISED LEFT ARM SLEEVE & GLOVED FIST (PUNCHING UP ON TOP-LEFT)
+                // =====================================================================
+                var leftSleeve = Path()
+                leftSleeve.move(to: mpt(-55, -52)) // Left outer sleeve below wrist cuff
+                leftSleeve.addCurve(to: mpt(-49, -3),  control1: mpt(-54, -34), control2: mpt(-51, -16))
+                leftSleeve.addCurve(to: mpt(-61, 20),  control1: mpt(-53, 5),   control2: mpt(-58, 13))
+                leftSleeve.addLine(to: mpt(-36, -6))   // Shoulder / collar seam
+                leftSleeve.addLine(to: mpt(-32, -50))  // Inner sleeve edge along cap
+                leftSleeve.closeSubpath()
+                context.fill(leftSleeve, with: .color(accentFill.opacity(0.55)))
+                context.stroke(leftSleeve, with: .color(accentStroke), style: StrokeStyle(lineWidth: 2.2, lineJoin: .round))
+
+                // Puff Wrist Cuff Ring
+                var leftCuff = Path()
+                leftCuff.move(to: mpt(-58, -56))
+                leftCuff.addCurve(to: mpt(-27, -53), control1: mpt(-48, -48), control2: mpt(-35, -48))
+                leftCuff.addCurve(to: mpt(-30, -60), control1: mpt(-24, -55), control2: mpt(-25, -59))
+                leftCuff.addCurve(to: mpt(-58, -62), control1: mpt(-38, -55), control2: mpt(-49, -56))
+                leftCuff.addCurve(to: mpt(-58, -56), control1: mpt(-61, -60), control2: mpt(-61, -57))
+                leftCuff.closeSubpath()
+                context.fill(leftCuff, with: .color(primaryFill))
+                context.stroke(leftCuff, with: .color(primaryStroke), lineWidth: 2.2)
+
+                // Raised Gloved Fist Silhouette (4 Scalloped Knuckles + Tucked Thumb)
+                var raisedFist = Path()
+                raisedFist.move(to: mpt(-55, -60))
+                // Left outer edge of hand rising to pinky/ring/middle/index knuckles
+                raisedFist.addCurve(to: mpt(-57, -79), control1: mpt(-58, -66), control2: mpt(-58, -73))
+                raisedFist.addCurve(to: mpt(-49, -91), control1: mpt(-56, -85), control2: mpt(-53, -89))
+                raisedFist.addCurve(to: mpt(-36, -96), control1: mpt(-45, -95), control2: mpt(-41, -96))
+                raisedFist.addCurve(to: mpt(-24, -92), control1: mpt(-31, -96), control2: mpt(-27, -95))
+                raisedFist.addCurve(to: mpt(-19, -82), control1: mpt(-20, -89), control2: mpt(-18, -85))
+                // Thumb knuckle bulging out on right
+                raisedFist.addCurve(to: mpt(-15, -69), control1: mpt(-14, -80), control2: mpt(-13, -74))
+                raisedFist.addCurve(to: mpt(-27, -56), control1: mpt(-17, -63), control2: mpt(-22, -59))
+                raisedFist.closeSubpath()
+                context.fill(raisedFist, with: .color(primaryFill))
+                context.stroke(raisedFist, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.4, lineJoin: .round))
+
+                // Interior Finger Separation Creases & Curled Thumb Line inside Raised Fist
+                var fistDetails = Path()
+                // Thumb curl
+                fistDetails.move(to: mpt(-19, -82))
+                fistDetails.addCurve(to: mpt(-35, -75), control1: mpt(-24, -82), control2: mpt(-32, -80))
+                fistDetails.addCurve(to: mpt(-42, -82), control1: mpt(-39, -73), control2: mpt(-43, -77))
+                fistDetails.addCurve(to: mpt(-34, -89), control1: mpt(-42, -86), control2: mpt(-38, -88))
+                // Finger knuckle dividers
+                fistDetails.move(to: mpt(-49, -91)); fistDetails.addCurve(to: mpt(-42, -82), control1: mpt(-46, -88), control2: mpt(-44, -85))
+                fistDetails.move(to: mpt(-36, -96)); fistDetails.addCurve(to: mpt(-31, -84), control1: mpt(-33, -92), control2: mpt(-32, -88))
+                fistDetails.move(to: mpt(-24, -92)); fistDetails.addCurve(to: mpt(-23, -81), control1: mpt(-23, -88), control2: mpt(-23, -84))
+                // Palm crease arc
+                fistDetails.move(to: mpt(-44, -67))
+                fistDetails.addQuadCurve(to: mpt(-25, -66), control: mpt(-34, -62))
+                context.stroke(fistDetails, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 1.9, lineCap: .round))
+
+                // =====================================================================
+                // 2. DOMED CAP, CURVED VISOR BRIM & CIRCULAR 'M' EMBLEM BADGE
+                // =====================================================================
+                var capDome = Path()
+                capDome.move(to: mpt(-32, -50))
+                capDome.addCurve(to: mpt(12, -79), control1: mpt(-26, -70), control2: mpt(-8, -80))
+                capDome.addCurve(to: mpt(41, -43), control1: mpt(30, -78), control2: mpt(42, -62))
+                capDome.addCurve(to: mpt(35, -31), control1: mpt(41, -37), control2: mpt(39, -33))
+                // Visor bottom arch across forehead
+                capDome.addCurve(to: mpt(-28, -42), control1: mpt(24, -54), control2: mpt(-12, -58))
+                capDome.closeSubpath()
+                context.fill(capDome, with: .color(accentFill))
+                context.stroke(capDome, with: .color(accentStroke), style: StrokeStyle(lineWidth: 2.4, lineJoin: .round))
+
+                // Lower Visor Brim Lip
+                var visorBrim = Path()
+                visorBrim.move(to: mpt(-31, -46))
+                visorBrim.addCurve(to: mpt(36, -34), control1: mpt(-12, -63), control2: mpt(22, -59))
+                visorBrim.addCurve(to: mpt(30, -27), control1: mpt(37, -30), control2: mpt(34, -27))
+                visorBrim.addCurve(to: mpt(-29, -38), control1: mpt(18, -49), control2: mpt(-10, -52))
+                visorBrim.closeSubpath()
+                context.fill(visorBrim, with: .color(primaryFill))
+                context.stroke(visorBrim, with: .color(primaryStroke), lineWidth: 2.1)
+
+                // Circular / Oval 'M' Emblem on Front of Cap
+                var emblemOval = Path()
+                emblemOval.move(to: mpt(2, -64))
+                emblemOval.addCurve(to: mpt(29, -59), control1: mpt(8, -75), control2: mpt(25, -72))
+                emblemOval.addCurve(to: mpt(2, -64),  control1: mpt(31, -49), control2: mpt(-1, -53))
+                context.fill(emblemOval, with: .color(primaryFill))
+                context.stroke(emblemOval, with: .color(primaryStroke), lineWidth: 2.0)
+
+                // The 'M' Glyph inside Cap Emblem
+                var capM = Path()
+                capM.move(to: mpt(6, -59))
+                capM.addLine(to: mpt(12, -68))
+                capM.addLine(to: mpt(16, -62))
+                capM.addLine(to: mpt(22, -67))
+                capM.addLine(to: mpt(24, -56))
+                context.stroke(capM, with: .color(accentStroke), style: StrokeStyle(lineWidth: 2.8, lineCap: .round, lineJoin: .round))
+
+                // =====================================================================
+                // 3. HEAD CONTOUR, EAR, EYEBROWS, EYES, BULBOUS NOSE & SCALLOPED MUSTACHE
+                // =====================================================================
+                // Face Outline + Right Ear
+                var faceOutline = Path()
+                faceOutline.move(to: mpt(-29, -38))
+                faceOutline.addCurve(to: mpt(-31, -8),  control1: mpt(-33, -28), control2: mpt(-33, -18))
+                faceOutline.addCurve(to: mpt(-3, 5),    control1: mpt(-29, 2),   control2: mpt(-16, 6))
+                faceOutline.addCurve(to: mpt(22, -7),   control1: mpt(8, 4),    control2: mpt(17, 0))
+                // Right Ear lobe sticking out on right of head
+                faceOutline.addCurve(to: mpt(34, -10),  control1: mpt(26, -5),   control2: mpt(31, -6))
+                faceOutline.addCurve(to: mpt(35, -27),  control1: mpt(38, -15),  control2: mpt(38, -23))
+                context.stroke(faceOutline, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.2, lineCap: .round))
+
+                // Inner Ear Spiral Detail & Sideburns
+                var earAndBrows = Path()
+                earAndBrows.move(to: mpt(29, -22))
+                earAndBrows.addQuadCurve(to: mpt(28, -13), control: mpt(33, -17))
+                // Left Eyebrow Arch
+                earAndBrows.move(to: mpt(-21, -43))
+                earAndBrows.addQuadCurve(to: mpt(-4, -42), control: mpt(-12, -50))
+                // Right Eyebrow Arch
+                earAndBrows.move(to: mpt(12, -39))
+                earAndBrows.addQuadCurve(to: mpt(25, -31), control: mpt(20, -43))
+                context.stroke(earAndBrows, with: .color(accentStroke), style: StrokeStyle(lineWidth: 3.2, lineCap: .round))
+
+                // Left & Right Concentric Eyes (Outer Sclera + Iris + Pupil)
+                let leftEyeRect  = CGRect(x: cx - 19 * s, y: cy - 41 * s, width: 13 * s, height: 17 * s)
+                let rightEyeRect = CGRect(x: cx + 7 * s,  y: cy - 37 * s, width: 13 * s, height: 17 * s)
+                context.stroke(Path(ellipseIn: leftEyeRect),  with: .color(primaryStroke), lineWidth: 2.0)
+                context.stroke(Path(ellipseIn: rightEyeRect), with: .color(primaryStroke), lineWidth: 2.0)
+                context.fill(Path(ellipseIn: leftEyeRect.insetBy(dx: 3.5 * s, dy: 4.0 * s)),  with: .color(primaryStroke))
+                context.fill(Path(ellipseIn: rightEyeRect.insetBy(dx: 3.5 * s, dy: 4.0 * s)), with: .color(primaryStroke))
+
+                // Iconic 6-Scallop Mustache Silhouette (Drawn before nose so nose overlaps the top bridge!)
+                var mustache = Path()
+                mustache.move(to: mpt(-24, -27)) // Left top tip of mustache
+                mustache.addCurve(to: mpt(-28, -18), control1: mpt(-28, -25), control2: mpt(-30, -21))
+                // Scallop 1 (Far left)
+                mustache.addCurve(to: mpt(-20, -12), control1: mpt(-27, -14), control2: mpt(-24, -12))
+                // Scallop 2 (Mid left)
+                mustache.addCurve(to: mpt(-9, -8),   control1: mpt(-18, -9),  control2: mpt(-13, -7))
+                // Scallop 3 (Center left)
+                mustache.addCurve(to: mpt(2, -8),    control1: mpt(-5, -6),   control2: mpt(-1, -6))
+                // Scallop 4 (Center right)
+                mustache.addCurve(to: mpt(14, -9),   control1: mpt(6, -6),    control2: mpt(11, -6))
+                // Scallop 5 (Far right)
+                mustache.addCurve(to: mpt(23, -15),  control1: mpt(18, -9),   control2: mpt(22, -11))
+                mustache.addCurve(to: mpt(21, -23),  control1: mpt(25, -18),  control2: mpt(24, -21))
+                // Upper edge tucking under the nose
+                mustache.addCurve(to: mpt(-24, -27), control1: mpt(8, -16),   control2: mpt(-10, -18))
+                mustache.closeSubpath()
+                context.fill(mustache, with: .color(accentFill))
+                context.stroke(mustache, with: .color(accentStroke), style: StrokeStyle(lineWidth: 2.4, lineJoin: .round))
+
+                // Large Bulbous Oval Nose (Overlapping Eyes & Mustache)
+                var nose = Path()
+                nose.addEllipse(in: CGRect(x: cx - 13 * s, y: cy - 31 * s, width: 28 * s, height: 21 * s))
+                context.fill(nose, with: .color(primaryFill))
+                context.stroke(nose, with: .color(primaryStroke), lineWidth: 2.5)
+
+                // Open Smiling Mouth + Tongue Arch beneath Mustache
+                var mouth = Path()
+                mouth.move(to: mpt(-15, -9))
+                mouth.addCurve(to: mpt(7, -8),   control1: mpt(-14, 2), control2: mpt(4, 2))
+                mouth.move(to: mpt(-10, -3))
+                mouth.addQuadCurve(to: mpt(3, -3), control: mpt(-3, -6))
+                context.stroke(mouth, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.0, lineCap: .round))
+
+                // =====================================================================
+                // 4. OVERALL STRAPS, BUTTONS, TORSO & BENT RIGHT FIST
+                // =====================================================================
+                // Left Overall Strap & Button
+                var leftStrap = Path()
+                leftStrap.move(to: mpt(-30, -3))
+                leftStrap.addLine(to: mpt(-49, 20))
+                leftStrap.addLine(to: mpt(-41, 27))
+                leftStrap.addLine(to: mpt(-29, 24))
+                leftStrap.addLine(to: mpt(-24, 2))
+                leftStrap.closeSubpath()
+                context.fill(leftStrap, with: .color(primaryFill))
+                context.stroke(leftStrap, with: .color(primaryStroke), lineWidth: 2.1)
+                context.fill(Path(ellipseIn: CGRect(x: cx - 44 * s, y: cy + 12 * s, width: 12 * s, height: 12 * s)), with: .color(accentStroke))
+
+                // Right Overall Strap & Button
+                var rightStrap = Path()
+                rightStrap.move(to: mpt(0, 5))
+                rightStrap.addLine(to: mpt(-1, 28))
+                rightStrap.addLine(to: mpt(11, 29))
+                rightStrap.addLine(to: mpt(10, 6))
+                rightStrap.closeSubpath()
+                context.fill(rightStrap, with: .color(primaryFill))
+                context.stroke(rightStrap, with: .color(primaryStroke), lineWidth: 2.1)
+                context.fill(Path(ellipseIn: CGRect(x: cx - 0.5 * s, y: cy + 16 * s, width: 11 * s, height: 12 * s)), with: .color(accentStroke))
+
+                // Bent Right Gloved Fist (Clenched at Chest Level on Right)
+                var rightFist = Path()
+                rightFist.move(to: mpt(24, -1))
+                rightFist.addCurve(to: mpt(48, -3), control1: mpt(31, -8),  control2: mpt(42, -8))
+                rightFist.addCurve(to: mpt(55, 22), control1: mpt(56, 3),   control2: mpt(58, 15))
+                rightFist.addCurve(to: mpt(32, 29), control1: mpt(50, 29),  control2: mpt(40, 31))
+                rightFist.addCurve(to: mpt(21, 14), control1: mpt(25, 26),  control2: mpt(21, 20))
+                rightFist.closeSubpath()
+                context.fill(rightFist, with: .color(primaryFill))
+                context.stroke(rightFist, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.3, lineJoin: .round))
+
+                // Right Fist Finger Ridges & Wrist Cuff
+                var rFistLines = Path()
+                rFistLines.move(to: mpt(24, -1))
+                rFistLines.addCurve(to: mpt(34, 15), control1: mpt(34, 0), control2: mpt(37, 9))
+                rFistLines.move(to: mpt(37, 6));  rFistLines.addLine(to: mpt(50, 5))
+                rFistLines.move(to: mpt(37, 14)); rFistLines.addLine(to: mpt(52, 13))
+                rFistLines.move(to: mpt(36, 21)); rFistLines.addLine(to: mpt(49, 21))
+                // Cuff arc
+                rFistLines.move(to: mpt(18, 11))
+                rFistLines.addCurve(to: mpt(35, 34), control1: mpt(19, 24), control2: mpt(26, 33))
+                context.stroke(rFistLines, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 1.9, lineCap: .round))
+
+                // =====================================================================
+                // 5. TORSO BELT, RAISED RIGHT KNEE, KICKED RIGHT BOOT & EXTENDED LEFT LEG
+                // =====================================================================
+                var torsoAndLegs = Path()
+                // Left hip & belt seam
+                torsoAndLegs.move(to: mpt(-61, 20))
+                torsoAndLegs.addCurve(to: mpt(-20, 42), control1: mpt(-52, 31), control2: mpt(-36, 40))
+                torsoAndLegs.move(to: mpt(-62, 26))
+                torsoAndLegs.addCurve(to: mpt(-21, 47), control1: mpt(-52, 37), control2: mpt(-36, 45))
+                // Left outer leg dropping down to the bottom boot cuff
+                torsoAndLegs.move(to: mpt(-62, 26))
+                torsoAndLegs.addCurve(to: mpt(-39, 78), control1: mpt(-64, 46), control2: mpt(-52, 65))
+                // Inner crotch & inner left leg
+                torsoAndLegs.move(to: mpt(-32, 57))
+                torsoAndLegs.addLine(to: mpt(-12, 58))
+                torsoAndLegs.move(to: mpt(-20, 58))
+                torsoAndLegs.addLine(to: mpt(-15, 72))
+                // Raised Right Knee Arch
+                torsoAndLegs.move(to: mpt(-20, 42))
+                torsoAndLegs.addCurve(to: mpt(28, 39), control1: mpt(-10, 18), control2: mpt(14, 19))
+                context.stroke(torsoAndLegs, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
+
+                // Kicked-Up Right Boot (Foreground Lower-Right with Thick Treaded Sole & Heel)
+                var rightBoot = Path()
+                rightBoot.move(to: mpt(-5, 62))
+                rightBoot.addCurve(to: mpt(42, 42), control1: mpt(4, 42),  control2: mpt(24, 34))
+                rightBoot.addCurve(to: mpt(49, 68), control1: mpt(52, 47), control2: mpt(54, 59))
+                rightBoot.addCurve(to: mpt(10, 79), control1: mpt(42, 78), control2: mpt(24, 83))
+                rightBoot.addCurve(to: mpt(-5, 62), control1: mpt(0, 76),  control2: mpt(-6, 69))
+                rightBoot.closeSubpath()
+                context.fill(rightBoot, with: .color(accentFill))
+                context.stroke(rightBoot, with: .color(accentStroke), style: StrokeStyle(lineWidth: 2.4, lineJoin: .round))
+
+                // Boot Sole Arch & Heel Block inside Kicked Right Boot
+                var bootSole = Path()
+                bootSole.move(to: mpt(-2, 69))
+                bootSole.addCurve(to: mpt(48, 62), control1: mpt(12, 53), control2: mpt(34, 52))
+                bootSole.move(to: mpt(2, 72))
+                bootSole.addLine(to: mpt(27, 78))
+                context.stroke(bootSole, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.0, lineCap: .round))
+
+                // Extended Lower Left Boot (Bottom-Left)
+                var leftBoot = Path()
+                leftBoot.move(to: mpt(-40, 76))
+                leftBoot.addCurve(to: mpt(-13, 69), control1: mpt(-32, 77), control2: mpt(-20, 74))
+                leftBoot.addCurve(to: mpt(-12, 95), control1: mpt(-6, 78),  control2: mpt(-6, 89))
+                leftBoot.addCurve(to: mpt(-37, 94), control1: mpt(-18, 99), control2: mpt(-31, 99))
+                leftBoot.addCurve(to: mpt(-40, 76), control1: mpt(-41, 89), control2: mpt(-41, 82))
+                leftBoot.closeSubpath()
+                context.fill(leftBoot, with: .color(accentFill.opacity(0.65)))
+                context.stroke(leftBoot, with: .color(accentStroke), lineWidth: 2.2)
+
             } else {
                 // --- 5. QUAKE II GOLD-STANDARD BENCHMARK (Razor Crescent + Twin Flared Spikes) ---
                 var crescent = Path()
