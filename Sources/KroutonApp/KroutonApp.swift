@@ -6742,7 +6742,12 @@ struct DepotBlueprintArtStudioView: View {
 
 // MARK: - Perceptual Split-Complementary + Warm/Cool Polarity Color Engine (CGColor / P3)
 extension Color {
-    /// Computes a luminance-normalized split-complementary secondary color using CGColor/NSColor math.
+    /// Maps each Krouton appearance swatch to its own unique Display-P3 secondary color:
+    /// - Titanium / Monochrome -> Pure Crisp White
+    /// - Toasted Brown -> Warm Caramel / Espresso Tan (Brown-on-Brown two-tone)
+    /// - Green -> Electric Cobalt / Cerulean Blue
+    /// - Light Blue / Cyan -> Vibrant Teenage-Engineering Orange
+    /// - Every other swatch -> Its own distinct, non-repeating P3 secondary color
     var perceptualSplitComplement: Color {
         let nsColor = NSColor(self).usingColorSpace(.sRGB) ?? NSColor.systemCyan
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
@@ -6752,78 +6757,92 @@ extension Color {
         nsColor.getHue(&h, saturation: &s, brightness: &v, alpha: &a)
         let hueDeg = h * 360.0
 
-        // 1. Monochrome / Achromatic Guard (e.g. Graphite / Silver / White swatches)
-        if s < 0.08 {
-            // Pair bright silver-white with machined titanium-ice
-            let targetV: CGFloat = v > 0.72 ? 0.56 : 0.90
-            let cg = CGColor(srgbRed: targetV * 0.94, green: targetV * 0.97, blue: targetV, alpha: 1.0)
-            return Color(cgColor: cg)
+        func p3(_ pr: CGFloat, _ pg: CGFloat, _ pb: CGFloat) -> Color {
+            if let space = CGColorSpace(name: CGColorSpace.displayP3),
+               let cg = CGColor(colorSpace: space, components: [pr, pg, pb, 1.0]) {
+                return Color(cgColor: cg)
+            }
+            return Color(cgColor: CGColor(srgbRed: pr, green: pg, blue: pb, alpha: 1.0))
         }
 
-        // 2. Warm / Cool Polarity Split-Complementary Rotation
-        let targetHueDeg: CGFloat
-        var targetSat: CGFloat
-        var targetBri: CGFloat
-
-        if hueDeg <= 72.0 || hueDeg >= 325.0 {
-            // WARM SWATCH (Toasted Brown, Red, Orange, Gold, Rose) -> Cool Blueprint Cyan / Azure (192°..206°)
-            let warmOffset = (hueDeg >= 325.0) ? (hueDeg - 360.0) : hueDeg
-            targetHueDeg = 192.0 + (warmOffset / 72.0) * 14.0
-            targetSat = 0.84
-            targetBri = 0.96
-        } else if hueDeg > 72.0 && hueDeg < 162.0 {
-            // GREEN / EMERALD SWATCH -> Deep Cyber Cerulean / Ice Blue (198°..214°)
-            let t = (hueDeg - 72.0) / 90.0
-            targetHueDeg = 198.0 + t * 16.0
-            targetSat = 0.82
-            targetBri = 0.96
-        } else if hueDeg >= 162.0 && hueDeg <= 265.0 {
-            // COOL SWATCH (Laser Blue, Cyan, Teal, Indigo) -> Warm Split-Complement Amber / Copper / Gold (36°..46°)
-            let t = (hueDeg - 162.0) / 103.0
-            targetHueDeg = 36.0 + t * 10.0
-            targetSat = 0.86
-            targetBri = 0.98
-        } else {
-            // PURPLE / VIOLET / MAGENTA SWATCH (265°..325°) -> Electric Ice Cyan (186°..196°)
-            let t = (hueDeg - 265.0) / 60.0
-            targetHueDeg = 186.0 + t * 10.0
-            targetSat = 0.82
-            targetBri = 0.96
+        // 1. TITANIUM / MONOCHROME (Low Saturation) -> Pure Crisp White (or Machined Titanium if swatch is pure white)
+        if s < 0.12 {
+            return v > 0.88 ? p3(0.62, 0.66, 0.72) : p3(0.98, 0.99, 1.00)
         }
 
-        // 3. Convert to RGB & Enforce Perceived Luminance Floor (Rec. 709 Y = 0.2126R + 0.7152G + 0.0722B)
-        let candidate = NSColor(
-            hue: (targetHueDeg.truncatingRemainder(dividingBy: 360.0)) / 360.0,
-            saturation: targetSat,
-            brightness: targetBri,
-            alpha: 1.0
-        ).usingColorSpace(.sRGB) ?? NSColor.systemCyan
-
-        var cr: CGFloat = 0, cg: CGFloat = 0, cb: CGFloat = 0, ca: CGFloat = 0
-        candidate.getRed(&cr, green: &cg, blue: &cb, alpha: &ca)
-
-        let lum = 0.2126 * cr + 0.7152 * cg + 0.0722 * cb
-        let minLum: CGFloat = 0.54
-        if lum < minLum {
-            let boost = min(1.0, (minLum - lum) * 0.85)
-            cr = min(1.0, cr + boost * 0.75)
-            cg = min(1.0, cg + boost * 0.90)
-            cb = min(1.0, cb + boost)
+        // 2. TOASTED KROUTON BROWN vs. VIBRANT ORANGE (Hue 17°..40°)
+        //    Brown has lower saturation/brightness (or warm earthy R/G/B ratios) compared to neon orange.
+        if hueDeg >= 17.0 && hueDeg < 40.0 {
+            let isEarthyBrown = (s < 0.78) || (v < 0.86) || (r - g < 0.34)
+            if isEarthyBrown {
+                // BROWN -> Secondary Warm Toasted Caramel / Champagne Bronze (Distinct lighter/warmer brownish tone!)
+                return p3(0.91, 0.73, 0.50)
+            } else {
+                // VIBRANT ORANGE -> Deep Ultramarine / Royal Indigo
+                return p3(0.42, 0.56, 1.00)
+            }
         }
 
-        if let p3Space = CGColorSpace(name: CGColorSpace.displayP3),
-           let cgColor = CGColor(colorSpace: p3Space, components: [cr, cg, cb, 1.0]) {
-            return Color(cgColor: cgColor)
+        // 3. GOLD / AMBER / YELLOW (Hue 40°..78°) -> Electric Amethyst / Royal Violet
+        if hueDeg >= 40.0 && hueDeg < 78.0 {
+            return p3(0.76, 0.46, 1.00)
         }
-        return Color(red: cr, green: cg, blue: cb)
+
+        // 4. GREEN / EMERALD (Hue 78°..162°) -> Electric Cobalt / Cerulean Blue (Locked!)
+        if hueDeg >= 78.0 && hueDeg < 162.0 {
+            return p3(0.20, 0.68, 1.00)
+        }
+
+        // 5. TEAL / AQUA (Hue 162°..184°) -> Warm Coral / Salmon Pink
+        if hueDeg >= 162.0 && hueDeg < 184.0 {
+            return p3(1.00, 0.50, 0.54)
+        }
+
+        // 6. LIGHT BLUE / CYAN / SKY (Hue 184°..220°) -> Vibrant Safety Orange (Locked!)
+        if hueDeg >= 184.0 && hueDeg < 220.0 {
+            return p3(1.00, 0.56, 0.15)
+        }
+
+        // 7. DEEP BLUE / INDIGO / NAVY (Hue 220°..262°) -> Warm Champagne Gold / Laser Yellow
+        if hueDeg >= 220.0 && hueDeg < 262.0 {
+            return p3(1.00, 0.85, 0.30)
+        }
+
+        // 8. PURPLE / VIOLET (Hue 262°..305°) -> Cyber Chartreuse / Acid Lime
+        if hueDeg >= 262.0 && hueDeg < 305.0 {
+            return p3(0.68, 0.98, 0.28)
+        }
+
+        // 9. MAGENTA / PINK / ROSE (Hue 305°..344°) -> Electric Sky Cyan
+        if hueDeg >= 305.0 && hueDeg < 344.0 {
+            return p3(0.24, 0.92, 0.98)
+        }
+
+        // 10. RED / CRIMSON (Hue 344°..360° or 0°..17°) -> Cool Phosphor Seafoam / Mint
+        return p3(0.34, 0.96, 0.78)
     }
 
-    /// Deep blueprint occlusion backing subtly tinted by the active harmony hue
+    /// Deep blueprint occlusion backing subtly tinted by the active swatch & its unique secondary color
     var blueprintOccludeBacking: Color {
-        let nsColor = NSColor(self.perceptualSplitComplement).usingColorSpace(.sRGB) ?? NSColor.systemCyan
-        var h: CGFloat = 0, s: CGFloat = 0, v: CGFloat = 0, a: CGFloat = 0
-        nsColor.getHue(&h, saturation: &s, brightness: &v, alpha: &a)
-        let darkNS = NSColor(hue: h, saturation: min(s, 0.72), brightness: 0.12, alpha: 1.0).usingColorSpace(.sRGB) ?? NSColor.black
+        let nsPrimary = NSColor(self).usingColorSpace(.sRGB) ?? NSColor.systemBrown
+        var h1: CGFloat = 0, s1: CGFloat = 0, v1: CGFloat = 0, a1: CGFloat = 0
+        nsPrimary.getHue(&h1, saturation: &s1, brightness: &v1, alpha: &a1)
+
+        // Titanium / Monochrome gets a clean charcoal-slate backing
+        if s1 < 0.12 {
+            return Color(cgColor: CGColor(srgbRed: 0.08, green: 0.09, blue: 0.11, alpha: 1.0))
+        }
+
+        // Brown gets a deep roasted espresso-mahogany backing so brown-on-brown feels super cohesive!
+        let hueDeg = h1 * 360.0
+        if hueDeg >= 17.0 && hueDeg < 40.0 && ((s1 < 0.78) || (v1 < 0.86)) {
+            return Color(cgColor: CGColor(srgbRed: 0.13, green: 0.09, blue: 0.06, alpha: 1.0))
+        }
+
+        let nsSec = NSColor(self.perceptualSplitComplement).usingColorSpace(.sRGB) ?? NSColor.systemCyan
+        var h2: CGFloat = 0, s2: CGFloat = 0, v2: CGFloat = 0, a2: CGFloat = 0
+        nsSec.getHue(&h2, saturation: &s2, brightness: &v2, alpha: &a2)
+        let darkNS = NSColor(hue: h2, saturation: min(s2, 0.68), brightness: 0.12, alpha: 1.0).usingColorSpace(.sRGB) ?? NSColor.black
         return Color(cgColor: darkNS.cgColor)
     }
 }
