@@ -5791,68 +5791,292 @@ struct DepotBlueprintArtStudioView: View {
                 context.fill(pMonolith, with: .color(accentFill))
                 context.stroke(pMonolith, with: .color(accentStroke), style: StrokeStyle(lineWidth: 2.4, lineJoin: .round))
 
-            } else if key.contains("dream") || key.contains("sega") || key.contains("saturn") || key.contains("240p") {
-                // --- 7. SEGA INLINE DOUBLE-STRIPE LOGOTYPE + SATURN DOUBLE-RINGED PLANET ---
-                // 1) Saturn Planet & Back-to-Front Double Swooshes on Upper Right
-                let px = cx + 32, py = cy - 28
-                let pR: CGFloat = 42
+            } else if key.contains("saturn") {
+                // --- 7A. SEGA SATURN (1:1 3D Planet Orb + Interlocking Front/Back Double Orbital Rings) ---
+                let px = cx + 8, py = cy - 4
+                let pR: CGFloat = 46
                 let planetRect = CGRect(x: px - pR, y: py - pR, width: pR * 2, height: pR * 2)
                 context.fill(Path(ellipseIn: planetRect), with: .color(primaryFill))
-                context.stroke(Path(ellipseIn: planetRect), with: .color(primaryStroke), lineWidth: 2.2)
+                context.stroke(Path(ellipseIn: planetRect), with: .color(primaryStroke), lineWidth: 2.4)
 
-                // Sweeping Double Saturn Rings Tilted at -22 Degrees
-                for (rRx, rRy, yOff, isOuter) in [(88.0, 22.0, -4.0, true), (72.0, 17.0, 6.0, false)] {
+                // Specular crescent highlight inside top-right of planet orb
+                var crest = Path()
+                crest.addArc(center: CGPoint(x: px, y: py), radius: pR - 7, startAngle: .degrees(-75), endAngle: .degrees(-15), clockwise: false)
+                context.stroke(crest, with: .color(accentStroke), style: StrokeStyle(lineWidth: 3.2, lineCap: .round))
+
+                // Sweeping Double Saturn Rings Tilted at -22 Degrees wrapping around the orb
+                for (rRx, rRy, yOff, isOuter) in [(98.0, 25.0, -5.0, true), (80.0, 19.0, 7.0, false)] {
                     var ringArc = Path()
-                    // Front arc sweeping across the face of the planet + hook around the right/left tips
-                    for deg in stride(from: -35.0, through: 215.0, by: 5.0) {
+                    for deg in stride(from: -42.0, through: 222.0, by: 4.0) {
                         let rad = deg * .pi / 180.0
                         let x0 = CGFloat(cos(rad) * rRx)
                         let y0 = CGFloat(sin(rad) * rRy) + CGFloat(yOff)
-                        // Rotate by -20 degrees
-                        let rot = -20.0 * .pi / 180.0
+                        let rot = -21.0 * .pi / 180.0
                         let rx = px + x0 * CGFloat(cos(rot)) - y0 * CGFloat(sin(rot))
                         let ry = py + x0 * CGFloat(sin(rot)) + y0 * CGFloat(cos(rot))
-                        if deg == -35.0 { ringArc.move(to: CGPoint(x: rx, y: ry)) }
+                        if deg == -42.0 { ringArc.move(to: CGPoint(x: rx, y: ry)) }
                         else { ringArc.addLine(to: CGPoint(x: rx, y: ry)) }
                     }
                     context.stroke(
                         ringArc,
                         with: .color(isOuter ? accentStroke : primaryStroke),
-                        style: StrokeStyle(lineWidth: isOuter ? 6.5 : 4.5, lineCap: .round)
+                        style: StrokeStyle(lineWidth: isOuter ? 7.0 : 5.0, lineCap: .round)
                     )
                 }
 
-                // 2) Authentic SEGA Concentric Double-Ribbon 'S' & 'E' Monogram on Lower-Left
-                //    (Drawn using triple-pass parallel strokes: 18pt outer -> 6pt inner gap -> 2pt center hairline!)
-                func drawSegaDoubleRibbon(_ path: Path, color: Color) {
-                    context.stroke(path, with: .color(color.opacity(0.30)), style: StrokeStyle(lineWidth: 20, lineCap: .butt, lineJoin: .round))
-                    context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: 15, lineCap: .butt, lineJoin: .round))
-                    context.stroke(path, with: .color(Color.black.opacity(0.88)), style: StrokeStyle(lineWidth: 4.5, lineCap: .butt, lineJoin: .round))
+            } else if key.contains("dream") || key.contains("sega") || key.contains("240p") || key.contains("sonic") {
+                // --- 7B. SONIC AT FULL SPEED (1:1 210-Curve Line-Art Reconstruction + Extended Slipstream) ---
+                let s: CGFloat = 1.10
+                func spt(_ dx: CGFloat, _ dy: CGFloat) -> CGPoint {
+                    CGPoint(x: cx + dx * s, y: cy + dy * s)
                 }
 
-                var segaS = Path()
-                let sx = cx - 64, sy = cy + 28
-                segaS.move(to: CGPoint(x: sx + 26, y: sy - 28))
-                segaS.addLine(to: CGPoint(x: sx - 8, y: sy - 28))
-                segaS.addArc(center: CGPoint(x: sx - 8, y: sy - 14), radius: 14, startAngle: .degrees(-90), endAngle: .degrees(90), clockwise: true)
-                segaS.addLine(to: CGPoint(x: sx + 8, y: sy))
-                segaS.addArc(center: CGPoint(x: sx + 8, y: sy + 14), radius: 14, startAngle: .degrees(-90), endAngle: .degrees(90), clockwise: false)
-                segaS.addLine(to: CGPoint(x: sx - 26, y: sy + 28))
-                drawSegaDoubleRibbon(segaS, color: primaryStroke)
+                // =====================================================================
+                // 1. EXTENDED DIAGONAL VELOCITY SLIPSTREAM (WAKE WEDGES & SPEED STREAKS)
+                //    Projects along the exact 38-degree sprint angle across the Hero header!
+                // =====================================================================
+                var wakeWedges = Path()
+                for (x0, y0, x1, y1, wSpread) in [
+                    (-310.0, -245.0, -35.0, -42.0, 9.0),
+                    (-280.0, -195.0, -52.0, -22.0, 7.5),
+                    (-330.0, -170.0, -64.0,   6.0, 8.5),
+                    (-295.0, -110.0, -58.0,  42.0, 6.5),
+                    (-260.0,  -45.0,  -8.0, 108.0, 7.0),
+                    (-185.0, -210.0,  46.0, -38.0, 6.0)
+                ] {
+                    wakeWedges.move(to: spt(CGFloat(x0), CGFloat(y0)))
+                    wakeWedges.addLine(to: spt(CGFloat(x1), CGFloat(y1)))
+                    wakeWedges.addLine(to: spt(CGFloat(x0), CGFloat(y0 + wSpread)))
+                    wakeWedges.closeSubpath()
+                }
+                context.fill(wakeWedges, with: .color(primaryFill.opacity(0.65)))
 
-                var segaE = Path()
-                let ex = cx + 2, ey = cy + 28
-                segaE.move(to: CGPoint(x: ex + 26, y: ey - 28))
-                segaE.addLine(to: CGPoint(x: ex - 4, y: ey - 28))
-                segaE.addArc(center: CGPoint(x: ex - 4, y: ey - 10), radius: 18, startAngle: .degrees(-90), endAngle: .degrees(180), clockwise: true)
-                segaE.addLine(to: CGPoint(x: ex - 22, y: ey + 10))
-                segaE.addArc(center: CGPoint(x: ex - 4, y: ey + 10), radius: 18, startAngle: .degrees(180), endAngle: .degrees(90), clockwise: true)
-                segaE.addLine(to: CGPoint(x: ex + 26, y: ey + 28))
-                segaE.move(to: CGPoint(x: ex - 16, y: ey))
-                segaE.addLine(to: CGPoint(x: ex + 18, y: ey))
-                drawSegaDoubleRibbon(segaE, color: accentStroke)
+                var speedStreaks = Path()
+                for (x0, y0, x1, y1) in [
+                    (-340.0, -260.0, -10.0, -58.0),
+                    (-320.0, -225.0, -28.0, -35.0),
+                    (-290.0, -182.0, -45.0, -12.0),
+                    (-350.0, -190.0, -58.0,   8.0),
+                    (-310.0, -142.0, -62.0,  28.0),
+                    (-285.0, -102.0, -42.0,  58.0),
+                    (-270.0,  -68.0, -18.0,  94.0),
+                    (-240.0,  -22.0,  12.0, 132.0),
+                    (-160.0, -195.0,  62.0, -48.0),
+                    (-130.0, -185.0,  78.0, -42.0)
+                ] {
+                    speedStreaks.move(to: spt(CGFloat(x0), CGFloat(y0)))
+                    speedStreaks.addLine(to: spt(CGFloat(x1), CGFloat(y1)))
+                }
+                context.stroke(speedStreaks, with: .color(primaryStroke.opacity(0.42)), style: StrokeStyle(lineWidth: 1.7, lineCap: .round))
 
-                drawCADNode(CGPoint(x: px + 68, y: py - 24), handle: CGPoint(x: px + 96, y: py - 42))
+                // =====================================================================
+                // 2. FOUR SWEPT-BACK AERODYNAMIC QUILLS + INTERIOR CONTOUR HATCHING
+                // =====================================================================
+                var quills = Path()
+                // Quill 1 (Top Crown Spike arching from forehead back to top-left tip)
+                quills.move(to: spt(48, -32))
+                quills.addCurve(to: spt(-12, -88), control1: spt(36, -68), control2: spt(14, -86))
+                quills.addLine(to: spt(-12, -67))
+                // Quill 2 (Upper-Left Main Spike)
+                quills.addCurve(to: spt(-56, -63), control1: spt(-28, -76), control2: spt(-44, -73))
+                quills.addCurve(to: spt(-20, -43), control1: spt(-42, -56), control2: spt(-30, -50))
+                // Quill 3 (Mid-Left Sweeping Spike)
+                quills.addCurve(to: spt(-58, -18), control1: spt(-38, -42), control2: spt(-50, -32))
+                quills.addCurve(to: spt(-24, -12), control1: spt(-46, -18), control2: spt(-34, -16))
+                // Quill 4 (Lower Tucked Spike above arm)
+                quills.addCurve(to: spt(-40, -3),  control1: spt(-30, -10), control2: spt(-36, -7))
+                quills.addCurve(to: spt(-16, 1),   control1: spt(-32, -2),  control2: spt(-23, 0))
+                quills.addLine(to: spt(28, -4))
+                quills.closeSubpath()
+
+                context.fill(quills, with: .color(primaryFill))
+                context.stroke(quills, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.5, lineJoin: .round))
+
+                // Quill Interior Feathering / Contour Crease Lines (From Reference Line Art)
+                var quillHatch = Path()
+                quillHatch.move(to: spt(-56, -63)); quillHatch.addQuadCurve(to: spt(-16, -50), control: spt(-36, -61))
+                quillHatch.move(to: spt(-48, -58)); quillHatch.addQuadCurve(to: spt(-18, -46), control: spt(-32, -54))
+                quillHatch.move(to: spt(-58, -18)); quillHatch.addQuadCurve(to: spt(-20, -20), control: spt(-40, -23))
+                quillHatch.move(to: spt(-48, -16)); quillHatch.addQuadCurve(to: spt(-19, -15), control: spt(-34, -17))
+                quillHatch.move(to: spt(44, -36));  quillHatch.addQuadCurve(to: spt(16, -74),  control: spt(34, -58))
+                context.stroke(quillHatch, with: .color(primaryStroke.opacity(0.80)), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+
+                // =====================================================================
+                // 3. FOREGROUND LEFT EAR (WITH ZIG-ZAG FUR TUFT) & FAR-RIGHT EAR
+                // =====================================================================
+                // Foreground Left Ear
+                var leftEar = Path()
+                leftEar.move(to: spt(-7, -36))
+                leftEar.addCurve(to: spt(-3, -72), control1: spt(-8, -50), control2: spt(-6, -62))
+                leftEar.addCurve(to: spt(24, -42), control1: spt(8, -64),  control2: spt(17, -53))
+                leftEar.closeSubpath()
+                context.fill(leftEar, with: .color(accentFill))
+                context.stroke(leftEar, with: .color(accentStroke), style: StrokeStyle(lineWidth: 2.3, lineJoin: .round))
+
+                // Inner Ear Triangle + Jagged Fur Zig-Zag inside Left Ear
+                var leftEarInner = Path()
+                leftEarInner.move(to: spt(-3, -38))
+                leftEarInner.addLine(to: spt(0, -64))
+                leftEarInner.addLine(to: spt(19, -43))
+                // Zig-zag fur tuft at base of ear
+                leftEarInner.move(to: spt(0, -49))
+                leftEarInner.addLine(to: spt(8, -47))
+                leftEarInner.addLine(to: spt(2, -44))
+                leftEarInner.addLine(to: spt(10, -42))
+                leftEarInner.addLine(to: spt(0, -39))
+                context.stroke(leftEarInner, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
+
+                // Far-Right Ear (Tilted forward on right of head)
+                var rightEar = Path()
+                rightEar.move(to: spt(48, -36))
+                rightEar.addLine(to: spt(72, -66))
+                rightEar.addCurve(to: spt(59, -24), control1: spt(71, -50), control2: spt(66, -35))
+                rightEar.closeSubpath()
+                context.fill(rightEar, with: .color(accentFill))
+                context.stroke(rightEar, with: .color(accentStroke), style: StrokeStyle(lineWidth: 2.3, lineJoin: .round))
+
+                var rightEarInner = Path()
+                rightEarInner.move(to: spt(53, -34))
+                rightEarInner.addLine(to: spt(67, -58))
+                rightEarInner.addLine(to: spt(57, -27))
+                context.stroke(rightEarInner, with: .color(primaryStroke), lineWidth: 1.6)
+
+                // =====================================================================
+                // 4. FURROWED 'W' BROW RIDGE,FIERCE EYES, CHEEK MUZZLE, SMIRK & NOSE
+                // =====================================================================
+                // Overhanging Furrowed Brow & Eye Aperture
+                var eyeMask = Path()
+                eyeMask.move(to: spt(-8, -2))
+                eyeMask.addCurve(to: spt(1, -26),  control1: spt(-9, -12), control2: spt(-6, -22))
+                eyeMask.addCurve(to: spt(30, -3),  control1: spt(10, -29), control2: spt(22, -16))
+                // Center furrowed V-dip between eyes
+                eyeMask.addCurve(to: spt(54, -27), control1: spt(36, -15), control2: spt(46, -26))
+                eyeMask.addCurve(to: spt(50, 4),   control1: spt(60, -25), control2: spt(58, -8))
+                eyeMask.closeSubpath()
+                context.fill(eyeMask, with: .color(primaryFill.opacity(0.45)))
+                context.stroke(eyeMask, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.4, lineJoin: .round))
+
+                // Dual Vertical Pupils tucked under the angry brow ridge
+                let leftPupil  = CGRect(x: cx + 18 * s, y: cy - 15 * s, width: 9 * s, height: 18 * s)
+                let rightPupil = CGRect(x: cx + 38 * s, y: cy - 16 * s, width: 8 * s, height: 17 * s)
+                context.fill(Path(ellipseIn: leftPupil),  with: .color(accentStroke))
+                context.fill(Path(ellipseIn: rightPupil), with: .color(accentStroke))
+
+                // Rounded Cheek-to-Chin Muzzle Pouch
+                var muzzle = Path()
+                muzzle.move(to: spt(-8, -2))
+                muzzle.addCurve(to: spt(24, 16),  control1: spt(-12, 8),  control2: spt(6, 17))
+                muzzle.addCurve(to: spt(51, 3),   control1: spt(38, 15),  control2: spt(49, 10))
+                muzzle.addCurve(to: spt(34, 4),   control1: spt(48, -1),  control2: spt(40, 2))
+                muzzle.addCurve(to: spt(-8, -2),  control1: spt(18, 6),   control2: spt(2, -6))
+                muzzle.closeSubpath()
+                context.fill(muzzle, with: .color(accentFill))
+                context.stroke(muzzle, with: .color(accentStroke), style: StrokeStyle(lineWidth: 2.3, lineJoin: .round))
+
+                // Confident Smirk Line + Cheek Dimple Bracket
+                var smirk = Path()
+                smirk.move(to: spt(4, 11))
+                smirk.addQuadCurve(to: spt(23, 25), control: spt(12, 21))
+                smirk.move(to: spt(1, 10)); smirk.addLine(to: spt(7, 10))
+                context.stroke(smirk, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.1, lineCap: .round))
+
+                // Pointed Oval Nose at Front-Right Tip of Muzzle
+                var nose = Path()
+                nose.move(to: spt(32, 14))
+                nose.addCurve(to: spt(50, 18), control1: spt(37, 11), control2: spt(46, 13))
+                nose.addCurve(to: spt(32, 14), control1: spt(47, 23), control2: spt(34, 20))
+                nose.closeSubpath()
+                context.fill(nose, with: .color(primaryStroke))
+                context.stroke(nose, with: .color(accentStroke), lineWidth: 1.5)
+
+                // =====================================================================
+                // 5. SPLAYED RIGHT GLOVED HAND (LEFT) & CLENCHED LEFT FIST (RIGHT)
+                // =====================================================================
+                // Right Arm Tube +Thick Wrist Cuff Ring
+                var rightArm = Path()
+                rightArm.move(to: spt(-36, 9))
+                rightArm.addLine(to: spt(-2, 18))
+                rightArm.addLine(to: spt(-4, 24))
+                rightArm.addLine(to: spt(-38, 17))
+                rightArm.closeSubpath()
+                context.fill(rightArm, with: .color(accentFill))
+                context.stroke(rightArm, with: .color(accentStroke), lineWidth: 2.1)
+
+                var rightCuff = Path()
+                rightCuff.addRoundedRect(in: CGRect(x: cx - 49 * s, y: cy + 3 * s, width: 15 * s, height: 22 * s), cornerSize: CGSize(width: 6 * s, height: 6 * s))
+                context.fill(rightCuff, with: .color(primaryFill))
+                context.stroke(rightCuff, with: .color(primaryStroke), lineWidth: 2.2)
+
+                // Splayed 5-Finger Right Glove (Reaching Back Left into the Slipstream)
+                var splayedHand = Path()
+                splayedHand.move(to: spt(-46, 4))
+                splayedHand.addCurve(to: spt(-66, 9),  control1: spt(-54, 3),  control2: spt(-62, 5))
+                splayedHand.addCurve(to: spt(-62, 16), control1: spt(-68, 12), control2: spt(-66, 15))
+                splayedHand.addCurve(to: spt(-66, 23), control1: spt(-66, 18), control2: spt(-68, 21))
+                splayedHand.addCurve(to: spt(-61, 31), control1: spt(-66, 26), control2: spt(-64, 29))
+                splayedHand.addCurve(to: spt(-52, 29), control1: spt(-58, 32), control2: spt(-55, 31))
+                // Extended Downward Thumb
+                splayedHand.addCurve(to: spt(-46, 41), control1: spt(-50, 34), control2: spt(-48, 39))
+                splayedHand.addCurve(to: spt(-39, 36), control1: spt(-43, 43), control2: spt(-39, 40))
+                splayedHand.addCurve(to: spt(-42, 23), control1: spt(-40, 31), control2: spt(-41, 26))
+                splayedHand.closeSubpath()
+                context.fill(splayedHand, with: .color(primaryFill))
+                context.stroke(splayedHand, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.2, lineJoin: .round))
+
+                // Clenched Forward Left Fist (Bottom-Right)
+                var forwardFist = Path()
+                forwardFist.move(to: spt(39, 38))
+                forwardFist.addCurve(to: spt(57, 25), control1: spt(41, 30), control2: spt(49, 25))
+                forwardFist.addCurve(to: spt(74, 48), control1: spt(65, 25), control2: spt(72, 36))
+                forwardFist.addCurve(to: spt(57, 60), control1: spt(73, 55), control2: spt(65, 60))
+                forwardFist.addCurve(to: spt(39, 38), control1: spt(46, 58), control2: spt(40, 48))
+                forwardFist.closeSubpath()
+                context.fill(forwardFist, with: .color(primaryFill))
+                context.stroke(forwardFist, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.3, lineJoin: .round))
+
+                var fwdKnuckles = Path()
+                fwdKnuckles.move(to: spt(48, 44)); fwdKnuckles.addQuadCurve(to: spt(61, 37), control: spt(53, 35))
+                fwdKnuckles.move(to: spt(54, 52)); fwdKnuckles.addLine(to: spt(66, 45))
+                fwdKnuckles.move(to: spt(58, 57)); fwdKnuckles.addLine(to: spt(70, 51))
+                context.stroke(fwdKnuckles, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 1.8, lineCap: .round))
+
+                // =====================================================================
+                // 6. FORESHORTENED FRONT SHOE SOLE (WITH 11 WAVY TREADS) & REAR SNEAKER
+                // =====================================================================
+                // Trailing Rear Sneaker (Mid-Bottom Left with Cuff & Buckle)
+                var rearShoe = Path()
+                rearShoe.move(to: spt(-22, 19))
+                rearShoe.addCurve(to: spt(-36, 55), control1: spt(-32, 28), control2: spt(-37, 42))
+                rearShoe.addCurve(to: spt(-24, 76), control1: spt(-35, 65), control2: spt(-31, 74))
+                rearShoe.addCurve(to: spt(-7, 50),  control1: spt(-16, 76), control2: spt(-10, 64))
+                rearShoe.closeSubpath()
+                context.fill(rearShoe, with: .color(accentFill.opacity(0.60)))
+                context.stroke(rearShoe, with: .color(accentStroke), lineWidth: 2.2)
+
+                // Foreshortened Kicking Front Shoe Sole (Lower Center with Double Rim & Wavy Treads)
+                var frontSoleOuter = Path()
+                frontSoleOuter.move(to: spt(16, 36))
+                frontSoleOuter.addCurve(to: spt(28, 66), control1: spt(26, 40), control2: spt(30, 52))
+                frontSoleOuter.addCurve(to: spt(4, 92),  control1: spt(25, 80), control2: spt(16, 91))
+                frontSoleOuter.addCurve(to: spt(-6, 66), control1: spt(-5, 92), control2: spt(-8, 79))
+                frontSoleOuter.addCurve(to: spt(16, 36), control1: spt(-4, 51), control2: spt(5, 35))
+                frontSoleOuter.closeSubpath()
+                context.fill(frontSoleOuter, with: .color(accentFill))
+                context.stroke(frontSoleOuter, with: .color(accentStroke), style: StrokeStyle(lineWidth: 2.5, lineJoin: .round))
+
+                // Inner Tread Rim + 10 Wavy Horizontal Grip Treads inside the Front Shoe Sole!
+                var treadLines = Path()
+                for ty in stride(from: 43.0, through: 85.0, by: 4.5) {
+                    let norm = (ty - 64.0) / 26.0
+                    let halfW = max(4.0, 12.0 * sqrt(max(0.0, 1.0 - norm * norm)))
+                    let centerX = 11.0 - (ty - 64.0) * 0.16
+                    let lx = CGFloat(centerX - halfW)
+                    let rx = CGFloat(centerX + halfW)
+                    let yVal = CGFloat(ty)
+                    treadLines.move(to: spt(lx, yVal))
+                    treadLines.addQuadCurve(to: spt(rx, yVal + 1.5), control: spt((lx + rx) * 0.5, yVal - 1.5))
+                }
+                context.stroke(treadLines, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
 
             } else if key.contains("wii") || key.contains("gc") || key.contains("gamecube") || key.contains("swiss") || key.contains("nintendo") || key.contains("mario") || item.channel.contains("Console") {
                 // --- 8. JUMPING MARIO (1:1 High-Density 180-Curve Line-Art Reconstruction from Reference) ---
