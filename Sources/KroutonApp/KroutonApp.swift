@@ -5657,65 +5657,139 @@ struct DepotBlueprintArtStudioView: View {
                 drawCADNode(xpt(0.0, 0.04), handle: xpt(0.38, -0.18))
 
             } else if key.contains("ps1") || key.contains("ps2") || key.contains("playstation") || key.contains("freedvd") || key.contains("unirom") {
-                // --- 6. PLAYSTATION (1:1 Standing 3D 'P' + Perspective Floor 'S' Ribbon in Strict Two-Tone) ---
-                let s: CGFloat = 1.05
+                // --- 6. PLAYSTATION (1:1 Exact SVG Coordinate Reconstruction of Standing 'P' + Slotted Floor 'S') ---
+                let scale: CGFloat = 1.08
                 func ppt(_ dx: CGFloat, _ dy: CGFloat) -> CGPoint {
-                    CGPoint(x: cx + dx * s, y: cy + dy * s)
+                    CGPoint(x: cx + dx * scale, y: cy + dy * scale)
                 }
 
-                // 1) Perspective Floor 'S' (Drawn first so the vertical 'P' stands in front of it!)
-                // Back-left upper loop of the 'S' emerging from behind the 'P' stem
-                var sBackLoop = Path()
-                sBackLoop.move(to: ppt(-18, 8))
-                sBackLoop.addLine(to: ppt(-78, 30))
-                sBackLoop.addCurve(to: ppt(-82, 58), control1: ppt(-104, 40), control2: ppt(-104, 52))
-                sBackLoop.addLine(to: ppt(-18, 36))
-                sBackLoop.closeSubpath()
-                context.fill(sBackLoop, with: .color(primaryFill))
-                context.stroke(sBackLoop, with: .color(primaryStroke), lineWidth: 2.0)
+                // =====================================================================
+                // A. LEFT HALF OF THE FLOOR 'S' (Emerges from behind the left edge of 'P')
+                //    Features the outer U-curve AND the inner negative-space slot!
+                // =====================================================================
+                var sLeft = Path()
+                // 1. Top-back edge emerging from behind 'P' at x = -24, slanting down-left
+                sLeft.move(to: ppt(-24, 6))
+                sLeft.addLine(to: ppt(-82, 28))
+                // 2. Outer left U-turn curve (Yellow end-cap in reference)
+                sLeft.addCurve(
+                    to: ppt(-80, 66),
+                    control1: ppt(-112, 39),
+                    control2: ppt(-110, 58)
+                )
+                // 3. Front-bottom edge of left loop returning to 'P' at x = -24
+                sLeft.addCurve(
+                    to: ppt(-24, 58),
+                    control1: ppt(-58, 72),
+                    control2: ppt(-38, 64)
+                )
+                // 4. Step up along the hidden 'P' boundary into the inner negative-space slot
+                sLeft.addLine(to: ppt(-24, 45))
+                sLeft.addLine(to: ppt(-58, 57))
+                // 5. Inner round U-cap of the left negative-space slot!
+                sLeft.addCurve(
+                    to: ppt(-65, 45),
+                    control1: ppt(-72, 62),
+                    control2: ppt(-76, 49)
+                )
+                // 6. Upper inner wall of the left slot returning to 'P' at x = -24
+                sLeft.addLine(to: ppt(-24, 30))
+                sLeft.closeSubpath()
 
-                // Diagonal center spine of the 'S' passing behind/under the 'P' out to the right loop
-                var sRightLoop = Path()
-                sRightLoop.move(to: ppt(8, 22))
-                sRightLoop.addLine(to: ppt(76, -2))
-                sRightLoop.addCurve(to: ppt(84, 30), control1: ppt(108, -12), control2: ppt(112, 18))
-                sRightLoop.addLine(to: ppt(8, 58))
-                sRightLoop.closeSubpath()
-                context.fill(sRightLoop, with: .color(primaryFill))
-                context.stroke(sRightLoop, with: .color(primaryStroke), lineWidth: 2.0)
+                context.fill(sLeft, with: .color(primaryFill))
+                context.stroke(sLeft, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.0, lineJoin: .round))
 
-                // Front-bottom diagonal crossbar of the 'S' connecting right loop to front-left tip
-                var sFrontBar = Path()
-                sFrontBar.move(to: ppt(8, 42))
-                sFrontBar.addLine(to: ppt(58, 24))
-                sFrontBar.addLine(to: ppt(84, 30))
-                sFrontBar.addLine(to: ppt(8, 58))
-                sFrontBar.closeSubpath()
-                context.fill(sFrontBar, with: .color(accentFill.opacity(0.65)))
-                context.stroke(sFrontBar, with: .color(accentStroke), lineWidth: 1.8)
+                // Isometric color-band seam lines across the left 'S' wing (matching the Yellow/Teal/Blue divisions)
+                var sLeftSeams = Path()
+                sLeftSeams.move(to: ppt(-82, 28)); sLeftSeams.addLine(to: ppt(-65, 45))
+                sLeftSeams.move(to: ppt(-58, 57)); sLeftSeams.addLine(to: ppt(-36, 65))
+                sLeftSeams.move(to: ppt(-40, 12)); sLeftSeams.addLine(to: ppt(-24, 18))
+                context.stroke(sLeftSeams, with: .color(primaryStroke.opacity(0.65)), lineWidth: 1.4)
 
-                // 2) Tall Standing 3D 'P' Monolith (With angled perspective roof, inner D-slot & base bevel)
-                var pMain = Path()
-                pMain.move(to: ppt(-22, -88)) // Top-left peak
-                pMain.addLine(to: ppt(26, -70)) // Slanted top roof into the P bowl
-                pMain.addCurve(to: ppt(26, 8), control1: ppt(68, -54), control2: ppt(68, 4))
-                pMain.addLine(to: ppt(10, 4))
-                pMain.addLine(to: ppt(10, -48))
-                pMain.addCurve(to: ppt(2, -52), control1: ppt(10, -56), control2: ppt(2, -58))
-                pMain.addLine(to: ppt(2, 74)) // Right edge of vertical stem
-                pMain.addLine(to: ppt(-10, 82)) // Bottom 3D corner apex
-                pMain.addLine(to: ppt(-22, 74)) // Left edge of vertical stem
-                pMain.closeSubpath()
+                // =====================================================================
+                // B. RIGHT HALF OF THE FLOOR 'S' (Emerges from the right edge of 'P' at x = +8)
+                //    Features the sweeping right U-turn AND the inner negative-space slot!
+                // =====================================================================
+                var sRight = Path()
+                // 1. Upper-left edge starting at the 'P' stem (x = +8, y = +18) sweeping out to the right U-turn
+                sRight.move(to: ppt(8, 18))
+                sRight.addCurve(
+                    to: ppt(84, 12),
+                    control1: ppt(32, 9),
+                    control2: ppt(62, 6)
+                )
+                // 2. Outer right U-turn curve (Blue loop in reference)
+                sRight.addCurve(
+                    to: ppt(86, 50),
+                    control1: ppt(114, 18),
+                    control2: ppt(114, 40)
+                )
+                // 3. Long front-bottom straight edge slanting down-left all the way back to the bottom of 'P' (x = +8, y = +79)
+                sRight.addLine(to: ppt(8, 79))
+                // 4. Step up along the 'P' stem to the bottom of the right negative-space slot (x = +8, y = +55)
+                sRight.addLine(to: ppt(8, 55))
+                sRight.addLine(to: ppt(62, 35))
+                // 5. Inner round U-cap of the right negative-space slot!
+                sRight.addCurve(
+                    to: ppt(55, 23),
+                    control1: ppt(76, 30),
+                    control2: ppt(70, 18)
+                )
+                // 6. Upper inner wall of the right slot returning to the 'P' stem (x = +8, y = +40)
+                sRight.addLine(to: ppt(8, 40))
+                sRight.closeSubpath()
 
-                context.fill(pMain, with: .color(accentFill))
-                context.stroke(pMain, with: .color(accentStroke), style: StrokeStyle(lineWidth: 2.4, lineJoin: .round))
+                context.fill(sRight, with: .color(primaryFill))
+                context.stroke(sRight, with: .color(primaryStroke), style: StrokeStyle(lineWidth: 2.0, lineJoin: .round))
 
-                // 3D Right-Side Extrusion Line on the vertical stem
-                var pBevel = Path()
-                pBevel.move(to: ppt(-10, -83))
-                pBevel.addLine(to: ppt(-10, 82))
-                context.stroke(pBevel, with: .color(primaryStroke.opacity(0.80)), lineWidth: 1.6)
-                drawCADNode(ppt(56, -32), handle: ppt(82, -54))
+                // Highlight the front-bottom triangular end-cap & isometric seam lines on the right 'S' wing
+                var sRightCap = Path()
+                sRightCap.move(to: ppt(8, 55))
+                sRightCap.addLine(to: ppt(38, 68))
+                sRightCap.addLine(to: ppt(8, 79))
+                sRightCap.closeSubpath()
+                context.fill(sRightCap, with: .color(accentFill.opacity(0.55)))
+
+                var sRightSeams = Path()
+                sRightSeams.move(to: ppt(8, 55));  sRightSeams.addLine(to: ppt(38, 68))
+                sRightSeams.move(to: ppt(8, 18));  sRightSeams.addLine(to: ppt(44, 31))
+                sRightSeams.move(to: ppt(46, 39)); sRightSeams.addLine(to: ppt(86, 50))
+                context.stroke(sRightSeams, with: .color(primaryStroke.opacity(0.65)), lineWidth: 1.4)
+
+                // =====================================================================
+                // C. TALL STANDING 3D 'P' MONOLITH (Clean Flat Isometric Plane — No Extra Split Line!)
+                // =====================================================================
+                var pMonolith = Path()
+                // 1. Top-left peak (-24, -88)
+                pMonolith.move(to: ppt(-24, -88))
+                // 2. Slanted roof sweeping down-right into the outer bowl curve
+                pMonolith.addLine(to: ppt(22, -70))
+                pMonolith.addCurve(
+                    to: ppt(64, -10),
+                    control1: ppt(50, -59),
+                    control2: ppt(64, -36)
+                )
+                // 3. Lower curve of the 'P' bowl tucking back in to x = +20
+                pMonolith.addCurve(
+                    to: ppt(20, 8),
+                    control1: ppt(64, 14),
+                    control2: ppt(42, 16)
+                )
+                // 4. Vertical inner wall of the 'P' bowl rising straight up to the rounded slot arch
+                pMonolith.addLine(to: ppt(20, -43))
+                pMonolith.addCurve(
+                    to: ppt(8, -46),
+                    control1: ppt(20, -52),
+                    control2: ppt(8, -54)
+                )
+                // 5. Right vertical edge of the main stem dropping straight down to the bottom-right corner (8, 82)
+                pMonolith.addLine(to: ppt(8, 82))
+                // 6. Isometric slanted bottom base slanting up-left to (-24, 70)
+                pMonolith.addLine(to: ppt(-24, 70))
+                pMonolith.closeSubpath()
+
+                context.fill(pMonolith, with: .color(accentFill))
+                context.stroke(pMonolith, with: .color(accentStroke), style: StrokeStyle(lineWidth: 2.4, lineJoin: .round))
 
             } else if key.contains("dream") || key.contains("sega") || key.contains("saturn") || key.contains("240p") {
                 // --- 7. SEGA INLINE DOUBLE-STRIPE LOGOTYPE + SATURN DOUBLE-RINGED PLANET ---
