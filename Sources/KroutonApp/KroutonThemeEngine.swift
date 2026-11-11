@@ -134,7 +134,7 @@ extension Color {
 
             // 6. LASER COBALT BLUE (Hue 195°..216°) -> Warm Ivory / Rich Cream
             if hueDeg >= 195.0 && hueDeg < 216.0 {
-                return p3(1.00, 0.96, 0.84)
+                return p3(1.00, 0.48, 0.08)
             }
 
             // 7. SLATE INDIGO / STEEL BLUE (Hue 216°..238°) -> Cyber Hot Berry / Electric Magenta
@@ -200,7 +200,7 @@ extension KroutonStateStore {
         case 2:  return p3Color(0.56, 0.78, 1.00) // #4 Solar Gold        -> Arctic Periwinkle
         case 3:  return p3Color(0.20, 0.68, 1.00) // #5 Oscilloscope Green-> Electric Cerulean
         case 4:  return p3Color(0.98, 0.94, 0.32) // #6 Analog Seafoam    -> Laser Lemon
-        case 5:  return p3Color(1.00, 0.96, 0.84) // #7 Laser Cobalt Blue -> Warm Ivory / Rich Cream
+        case 5:  return p3Color(1.00, 0.48, 0.08) // #7 405nm Laser Cobalt Blue -> Teenage Fluorescent Orange
         case 6:  return p3Color(0.98, 0.36, 0.76) // #8 Studio Slate Blue -> Cyber Hot Berry
         case 7:  return p3Color(0.26, 0.99, 0.88) // #9 Synth Violet      -> Phosphor Cyber Mint
         case 8:  return p3Color(0.98, 0.87, 0.68) // #10 Toasted Brown    -> Champagne Almond
