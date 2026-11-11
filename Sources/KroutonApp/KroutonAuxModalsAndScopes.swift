@@ -551,127 +551,243 @@ struct InlineMiniPhaseScopeView: View {
     let onPopOut: () -> Void
 
     var body: some View {
-        Button {
-            onPopOut()
-        } label: {
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(Color.green)
-                        .frame(width: 6, height: 6)
-                    Text(KroutonL10n.tr("PHASE SCOPE"))
-                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                        .foregroundStyle(.green)
-                    Spacer()
-                    Text(String(format: "%.1fx (%.0f KB/s)", telemetry.currentSpeedX, telemetry.currentSpeedKBs))
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.green)
-                    Text(KroutonL10n.tr("•"))
-                        .foregroundStyle(.secondary)
-                    Text("\(telemetry.currentSpindleRPM) RPM")
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.yellow)
-                    Image(systemName: "arrow.up.left.and.arrow.down.right")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(.secondary)
-                }
+        let store = KroutonStateStore.shared
+        let isLight = (store?.resolvedColorScheme == .light)
+        let useHarmony = (store?.enableSecondaryAccentUITints ?? false)
+        let primaryColor = store?.activeAccent ?? accent
+        let harmonyColor = useHarmony ? (store?.activeSecondaryAccent ?? accent) : primaryColor
+        let presetID = store?.selectedAccentIndex ?? 6
+        let effectiveID = presetID >= 0 ? presetID : (store.map { $0.multicolorPresetID(forTaskID: $0.selectedTaskID, category: $0.selectedCategory) } ?? 6)
+        let brightHarmony = useHarmony ? KroutonStateStore.secondaryHarmonyForPresetID(effectiveID, scheme: .dark) : primaryColor
+        let rpmColor = isLight ? Color(.displayP3, red: 0.76, green: 0.46, blue: 0.00) : Color(.displayP3, red: 1.00, green: 0.84, blue: 0.28)
 
-                ZStack {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color(red: 0.02, green: 0.03, blue: 0.07))
-
-                    Canvas { context, size in
-                        let cols = 8
-                        let rows = 4
-                        let gridColor = Color(red: 0.08, green: 0.18, blue: 0.72).opacity(0.75)
-
-                        for c in 0...cols {
-                            let x = size.width * CGFloat(c) / CGFloat(cols)
-                            var p = Path()
-                            p.move(to: CGPoint(x: x, y: 0))
-                            p.addLine(to: CGPoint(x: x, y: size.height))
-                            context.stroke(p, with: .color(gridColor), lineWidth: 0.6)
-                        }
-                        for r in 0...rows {
-                            let y = size.height * CGFloat(r) / CGFloat(rows)
-                            var p = Path()
-                            p.move(to: CGPoint(x: 0, y: y))
-                            p.addLine(to: CGPoint(x: size.width, y: y))
-                            context.stroke(p, with: .color(gridColor), lineWidth: 0.6)
-                        }
-
-                        let samples = telemetry.samples
-                        if samples.count > 1 {
-                            let maxScaleX: Double = 24.0
-                            let maxScaleRPM: Double = 6000.0
-
-                            var speedArea = Path()
-                            var speedPath = Path()
-                            var rpmPath = Path()
-
-                            for (idx, s) in samples.enumerated() {
-                                let x = size.width * CGFloat(min(1.0, max(0.0, s.progressFraction)))
-                                let ySpeed = size.height * (1.0 - CGFloat(min(1.0, s.speedMultiplierX / maxScaleX)))
-                                let yRPM = size.height * (1.0 - CGFloat(min(1.0, s.spindleRPM / maxScaleRPM)))
-
-                                if idx == 0 {
-                                    speedArea.move(to: CGPoint(x: x, y: size.height))
-                                    speedArea.addLine(to: CGPoint(x: x, y: ySpeed))
-                                    speedPath.move(to: CGPoint(x: x, y: ySpeed))
-                                    rpmPath.move(to: CGPoint(x: x, y: yRPM))
-                                } else {
-                                    speedArea.addLine(to: CGPoint(x: x, y: ySpeed))
-                                    speedPath.addLine(to: CGPoint(x: x, y: ySpeed))
-                                    rpmPath.addLine(to: CGPoint(x: x, y: yRPM))
-                                }
-                            }
-
-                            if let last = samples.last {
-                                let lastX = size.width * CGFloat(min(1.0, max(0.0, last.progressFraction)))
-                                speedArea.addLine(to: CGPoint(x: lastX, y: size.height))
-                                speedArea.closeSubpath()
-
-                                context.fill(
-                                    speedArea,
-                                    with: .linearGradient(
-                                        Gradient(colors: [Color.green.opacity(0.32), Color.green.opacity(0.02)]),
-                                        startPoint: CGPoint(x: 0, y: 0),
-                                        endPoint: CGPoint(x: 0, y: size.height)
-                                    )
-                                )
-
-                                context.stroke(rpmPath, with: .color(.yellow), lineWidth: 1.3)
-                                context.stroke(speedPath, with: .color(.green), lineWidth: 1.8)
-
-                                var cursorPath = Path()
-                                cursorPath.move(to: CGPoint(x: lastX, y: 0))
-                                cursorPath.addLine(to: CGPoint(x: lastX, y: size.height))
-                                context.stroke(cursorPath, with: .color(.red), lineWidth: 1.2)
-                            }
-                        }
-                    }
-                    .padding(3)
-                }
-                .frame(height: 68)
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.blue.opacity(0.45), lineWidth: 1))
-
-                HStack {
-                    Text("LBA \(telemetry.currentSectorLBA) / \(telemetry.totalSectorsLBA)")
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(String(format: "r = %.1f mm • Click to Pop Out", telemetry.radialMillimeters))
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundStyle(Color.cyan)
-                }
+        VStack(alignment: .leading, spacing: 5) {
+            // Top Micro Telemetry Header
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(telemetry.isActive ? primaryColor : harmonyColor)
+                    .frame(width: 6, height: 6)
+                    .shadow(color: primaryColor.opacity(isLight ? 0.0 : 0.75), radius: 3)
+                Text("PHASE SCOPE")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(useHarmony ? harmonyColor : primaryColor)
+                Spacer()
+                Text(String(format: "%.1fx (%.0f KB/s)", telemetry.currentSpeedX, telemetry.currentSpeedKBs))
+                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                    .foregroundStyle(primaryColor)
+                Text("•")
+                    .foregroundStyle(.secondary)
+                Text("\(telemetry.currentSpindleRPM) RPM")
+                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                    .foregroundStyle(rpmColor)
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.system(size: 8.5, weight: .bold))
+                    .foregroundStyle(useHarmony ? harmonyColor : .secondary)
             }
-            .padding(8)
-            .background(Color(NSColor.controlBackgroundColor))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.green.opacity(0.30), lineWidth: 1))
+
+            // Metal GPU-Accelerated Mini Scope Canvas (4-Mode Adaptive)
+            ZStack {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(
+                        isLight
+                            ? LinearGradient(
+                                colors: [
+                                    Color(red: 0.96, green: 0.97, blue: 0.99),
+                                    Color(red: 0.92, green: 0.94, blue: 0.97)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            : LinearGradient(
+                                colors: [
+                                    Color(red: 0.02, green: 0.03, blue: 0.06),
+                                    Color(red: 0.04, green: 0.06, blue: 0.11)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        primaryColor.opacity(isLight ? 0.08 : 0.16),
+                                        Color.clear,
+                                        harmonyColor.opacity(isLight ? 0.10 : 0.18)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+
+                Canvas { context, size in
+                    let cols = 8
+                    let rows = 4
+                    let gridColor = (useHarmony ? harmonyColor : primaryColor).opacity(isLight ? 0.18 : 0.24)
+
+                    for c in 0...cols {
+                        let x = size.width * CGFloat(c) / CGFloat(cols)
+                        var p = Path()
+                        p.move(to: CGPoint(x: x, y: 0))
+                        p.addLine(to: CGPoint(x: x, y: size.height))
+                        context.stroke(p, with: .color(gridColor), lineWidth: c % 2 == 0 ? 0.7 : 0.4)
+                    }
+                    for r in 0...rows {
+                        let y = size.height * CGFloat(r) / CGFloat(rows)
+                        var p = Path()
+                        p.move(to: CGPoint(x: 0, y: y))
+                        p.addLine(to: CGPoint(x: size.width, y: y))
+                        context.stroke(p, with: .color(gridColor), lineWidth: r % 2 == 0 ? 0.7 : 0.4)
+                    }
+
+                    let maxScaleX: Double = 24.0
+                    let maxScaleRPM: Double = 6000.0
+
+                    // Target P-CAV Envelope (Dashed Harmony Reference)
+                    var targetCurve = Path()
+                    for step in 0...40 {
+                        let frac = Double(step) / 40.0
+                        let theoX = 4.2 + (11.8 * pow(frac, 0.78))
+                        let x = size.width * CGFloat(frac)
+                        let y = size.height * (1.0 - CGFloat(min(1.0, theoX / maxScaleX)))
+                        if step == 0 { targetCurve.move(to: CGPoint(x: x, y: y)) }
+                        else { targetCurve.addLine(to: CGPoint(x: x, y: y)) }
+                    }
+                    context.stroke(
+                        targetCurve,
+                        with: .color((useHarmony ? harmonyColor : (isLight ? Color.secondary : Color.white)).opacity(0.60)),
+                        style: StrokeStyle(lineWidth: 1.1, dash: [4, 3])
+                    )
+
+                    let samples = telemetry.samples
+                    if samples.count > 1, let last = samples.last {
+                        var speedArea = Path()
+                        var speedLine = Path()
+                        var rpmLine = Path()
+                        var bufArea = Path()
+
+                        for (idx, s) in samples.enumerated() {
+                            let x = size.width * CGFloat(min(1.0, max(0.0, s.progressFraction)))
+                            let ySpeed = size.height * (1.0 - CGFloat(min(1.0, s.speedMultiplierX / maxScaleX)))
+                            let yRPM = size.height * (1.0 - CGFloat(min(1.0, s.spindleRPM / maxScaleRPM)))
+                            let bufNorm = 0.95 + 0.04 * sin(s.progressFraction * 28.0)
+                            let yBuf = size.height * (1.0 - CGFloat(0.18 * bufNorm))
+
+                            if idx == 0 {
+                                speedArea.move(to: CGPoint(x: x, y: size.height))
+                                speedArea.addLine(to: CGPoint(x: x, y: ySpeed))
+                                speedLine.move(to: CGPoint(x: x, y: ySpeed))
+                                rpmLine.move(to: CGPoint(x: x, y: yRPM))
+                                bufArea.move(to: CGPoint(x: x, y: size.height))
+                                bufArea.addLine(to: CGPoint(x: x, y: yBuf))
+                            } else {
+                                speedArea.addLine(to: CGPoint(x: x, y: ySpeed))
+                                speedLine.addLine(to: CGPoint(x: x, y: ySpeed))
+                                rpmLine.addLine(to: CGPoint(x: x, y: yRPM))
+                                bufArea.addLine(to: CGPoint(x: x, y: yBuf))
+                            }
+                        }
+
+                        let lastX = size.width * CGFloat(min(1.0, max(0.0, last.progressFraction)))
+                        speedArea.addLine(to: CGPoint(x: lastX, y: size.height))
+                        speedArea.closeSubpath()
+                        bufArea.addLine(to: CGPoint(x: lastX, y: size.height))
+                        bufArea.closeSubpath()
+
+                        // Buffer Fill Ribbon
+                        context.fill(
+                            bufArea,
+                            with: .linearGradient(
+                                Gradient(colors: [
+                                    (isLight ? brightHarmony : harmonyColor).opacity(isLight ? 0.35 : 0.28),
+                                    primaryColor.opacity(0.05)
+                                ]),
+                                startPoint: CGPoint(x: 0, y: size.height * 0.80),
+                                endPoint: CGPoint(x: 0, y: size.height)
+                            )
+                        )
+
+                        // Speed Curtain Fill
+                        context.fill(
+                            speedArea,
+                            with: .linearGradient(
+                                Gradient(colors: [
+                                    primaryColor.opacity(isLight ? 0.26 : 0.38),
+                                    harmonyColor.opacity(isLight ? 0.08 : 0.12),
+                                    Color.clear
+                                ]),
+                                startPoint: CGPoint(x: 0, y: 0),
+                                endPoint: CGPoint(x: 0, y: size.height)
+                            )
+                        )
+
+                        // RPM Trace
+                        context.stroke(rpmLine, with: .color(rpmColor), lineWidth: 1.35)
+
+                        // Phosphor Bloom + Core Speed Beam
+                        if !isLight {
+                            context.stroke(
+                                speedLine,
+                                with: .linearGradient(
+                                    Gradient(colors: [primaryColor.opacity(0.35), harmonyColor.opacity(0.35)]),
+                                    startPoint: CGPoint(x: 0, y: 0),
+                                    endPoint: CGPoint(x: size.width, y: 0)
+                                ),
+                                lineWidth: 4.8
+                            )
+                        }
+                        context.stroke(
+                            speedLine,
+                            with: .linearGradient(
+                                Gradient(colors: [primaryColor, useHarmony ? harmonyColor : primaryColor]),
+                                startPoint: CGPoint(x: 0, y: 0),
+                                endPoint: CGPoint(x: size.width, y: 0)
+                            ),
+                            lineWidth: 2.0
+                        )
+
+                        // Radial Playhead Cursor
+                        var cursor = Path()
+                        cursor.move(to: CGPoint(x: lastX, y: 0))
+                        cursor.addLine(to: CGPoint(x: lastX, y: size.height))
+                        context.stroke(cursor, with: .color(useHarmony ? harmonyColor : primaryColor), lineWidth: 1.4)
+                    }
+                }
+                .drawingGroup(opaque: false, colorMode: .extendedLinear)
+            }
+            .frame(height: 62)
+            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .stroke((useHarmony ? harmonyColor : primaryColor).opacity(isLight ? 0.45 : 0.55), lineWidth: 1)
+            )
+
+            HStack {
+                Text("LBA \(telemetry.currentSectorLBA) / \(telemetry.totalSectorsLBA)")
+                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(String(format: "r = %.1f mm • Click to Pop Out", telemetry.radialMillimeters))
+                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(useHarmony ? harmonyColor : primaryColor)
+            }
         }
-        .buttonStyle(.plain)
-        .help("Click to pop out the high-detail Floating Phase Scope window for this burner")
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(useHarmony ? primaryColor.opacity(isLight ? 0.06 : 0.09) : Color.primary.opacity(0.03))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .stroke((useHarmony ? harmonyColor : primaryColor).opacity(0.28), lineWidth: 1)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 9))
+        .onTapGesture {
+            onPopOut()
+        }
+        .help("Click anywhere on the mini Phase Scope to pop out the full hardware telemetry analyzer")
     }
 }
 
@@ -692,8 +808,30 @@ struct FloatingPhaseScopeWindowView: View {
         )
     }
 
+        private enum ScopeChannelBadgeKind {
+        case speedAndPCAV
+        case spindleRPM
+        case laserDiode
+        case playheadCursor
+        case bufferRibbon
+        case servoCrosshair
+    }
+
     var body: some View {
+        let drive = driveManager.availableDrives.first(where: { $0.id == driveID })
+        let isLight = (store.resolvedColorScheme == .light)
+        let useHarmony = store.enableSecondaryAccentUITints
+        let primaryColor = store.activeAccent
+        let harmonyColor = store.uiSecondaryAccent
+        let presetID = store.selectedAccentIndex
+        let effectiveID = presetID >= 0 ? presetID : store.multicolorPresetID(forTaskID: store.selectedTaskID, category: store.selectedCategory)
+        let brightHarmony = useHarmony ? KroutonStateStore.secondaryHarmonyForPresetID(effectiveID, scheme: .dark) : primaryColor
+        let rpmColor = isLight ? Color(.displayP3, red: 0.76, green: 0.46, blue: 0.00) : Color(.displayP3, red: 1.00, green: 0.84, blue: 0.28)
+        let playheadColor = useHarmony ? harmonyColor : (isLight ? Color(.displayP3, red: 0.85, green: 0.18, blue: 0.24) : Color(.displayP3, red: 1.00, green: 0.36, blue: 0.42))
+        let pcavColor = useHarmony ? harmonyColor : (isLight ? Color.secondary : Color.white.opacity(0.82))
+
         VStack(alignment: .leading, spacing: 14) {
+            // 1. TOP INSTRUMENT HEADER BAR (No cluttered legend row underneath!)
             HStack(spacing: 12) {
                 OpticalDiscArtworkView(
                     mediaType: drive?.mediaType ?? "CD-RW",
@@ -705,13 +843,14 @@ struct FloatingPhaseScopeWindowView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 8) {
                         Circle()
-                            .fill(telemetry.isActive ? Color.green : Color.secondary)
+                            .fill(telemetry.isActive ? primaryColor : harmonyColor)
                             .frame(width: 8, height: 8)
+                            .shadow(color: primaryColor.opacity(isLight ? 0.0 : 0.8), radius: 4)
                         Text("PHASE SCOPE — \(drive?.displayName ?? telemetry.driveName)")
                             .font(.system(size: 16, weight: .heavy, design: .rounded))
                         Text("• \(telemetry.phaseTitle)")
-                            .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(store.activeAccent)
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .foregroundStyle(useHarmony ? harmonyColor : primaryColor)
                     }
                     Text("Firmware \(drive?.firmware ?? "1.0") • \(drive?.interconnect ?? "USB") Bus • \(drive?.bsdDeviceNode ?? "/dev/rdisk") • Media: \(drive?.statusBadgeText ?? "Ready")")
                         .font(.system(size: 11, design: .monospaced))
@@ -727,11 +866,11 @@ struct FloatingPhaseScopeWindowView: View {
                         Image(systemName: "waveform.path.ecg")
                         Text(KroutonL10n.tr("Run Calibration Sweep"))
                     }
-                    .font(.system(size: 11, weight: .semibold))
-                    .padding(.horizontal, 12)
+                    .font(.system(size: 11, weight: .bold))
+                    .padding(.horizontal, 13)
                     .padding(.vertical, 6)
-                    .background(Color.green.opacity(0.18))
-                    .foregroundStyle(.green)
+                    .background(primaryColor)
+                    .foregroundStyle(store.activeOnAccentText)
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -743,45 +882,62 @@ struct FloatingPhaseScopeWindowView: View {
                         Image(systemName: "arrow.down.right.and.arrow.up.left")
                         Text(KroutonL10n.tr("Dock Inline"))
                     }
-                    .font(.system(size: 11, weight: .semibold))
-                    .padding(.horizontal, 12)
+                    .font(.system(size: 11, weight: .bold))
+                    .padding(.horizontal, 13)
                     .padding(.vertical, 6)
-                    .background(store.activeAccent.opacity(0.18))
-                    .foregroundStyle(store.activeAccent)
+                    .background(harmonyColor.opacity(0.18))
+                    .foregroundStyle(harmonyColor)
                     .clipShape(Capsule())
+                    .overlay(Capsule().stroke(harmonyColor.opacity(0.42), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
                 .help("Close floating window and return the Phase Scope to the inline burner card")
             }
 
-            HStack(spacing: 18) {
-                legendItem(color: store.enableSecondaryAccentUITints ? store.activeAccent : .green, label: "Actual Speed (X / KB/s)", isDashed: false)
-                legendItem(color: store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : .cyan, label: "Target P-CAV Envelope", isDashed: true)
-                legendItem(color: .yellow, label: "Spindle Velocity (RPM)", isDashed: false)
-                legendItem(color: .purple, label: "Hardware Buffer Fill (%)", isDashed: false)
-                legendItem(color: .red, label: "Radial LBA Playhead (mm)", isDashed: false)
-                Spacer()
-                Text(String(format: "Radial Position: r = %.2f mm / 58.00 mm", telemetry.radialMillimeters))
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(Color.cyan)
-            }
-            .padding(.horizontal, 4)
-
+            // 2. METAL GPU-ACCELERATED DISPLAY-P3 OSCILLOSCOPE CANVAS (4-Mode Adaptive)
             ZStack {
-                RoundedRectangle(cornerRadius: 10)
+                // Base Screen Surface: Deep CRT Obsidian in Dark Mode, Technical Drafting Plotter Paper in Light Mode
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(
-                        LinearGradient(
-                            colors: [Color(red: 0.01, green: 0.02, blue: 0.05), Color(red: 0.03, green: 0.05, blue: 0.11)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+                        isLight
+                            ? LinearGradient(
+                                colors: [
+                                    Color(red: 0.965, green: 0.972, blue: 0.988),
+                                    Color(red: 0.925, green: 0.938, blue: 0.968)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            : LinearGradient(
+                                colors: [
+                                    Color(red: 0.018, green: 0.024, blue: 0.048),
+                                    Color(red: 0.032, green: 0.045, blue: 0.088)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                    )
+                    .overlay(
+                        // Diagonal Display-P3 Dual-Corner Vignette Wash (Primary Top-Left -> Harmony Bottom-Right)
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        primaryColor.opacity(isLight ? 0.08 : 0.18),
+                                        Color.clear,
+                                        (useHarmony ? harmonyColor : primaryColor).opacity(isLight ? 0.10 : 0.20)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
                     )
 
                 Canvas { context, size in
                     let cols = 16
                     let rows = 8
-                    let majorGrid = Color(red: 0.10, green: 0.22, blue: 0.78).opacity(0.65)
-                    let minorGrid = Color(red: 0.08, green: 0.16, blue: 0.55).opacity(0.32)
+                    let majorGrid = (useHarmony ? harmonyColor : primaryColor).opacity(isLight ? 0.22 : 0.34)
+                    let minorGrid = primaryColor.opacity(isLight ? 0.10 : 0.14)
 
                     for c in 0...cols {
                         let x = size.width * CGFloat(c) / CGFloat(cols)
@@ -798,9 +954,20 @@ struct FloatingPhaseScopeWindowView: View {
                         context.stroke(p, with: .color(r % 2 == 0 ? majorGrid : minorGrid), lineWidth: r % 2 == 0 ? 0.9 : 0.5)
                     }
 
+                    // Center Optical Crosshair Sub-Ticks along Midline
+                    let midY = size.height * 0.5
+                    var ticks = Path()
+                    for t in 0...64 {
+                        let tx = size.width * CGFloat(t) / 64.0
+                        ticks.move(to: CGPoint(x: tx, y: midY - 2.5))
+                        ticks.addLine(to: CGPoint(x: tx, y: midY + 2.5))
+                    }
+                    context.stroke(ticks, with: .color(majorGrid), lineWidth: 0.6)
+
                     let maxScaleX: Double = 24.0
                     let maxScaleRPM: Double = 6000.0
 
+                    // Target P-CAV Envelope (Dashed Reference Curve)
                     var targetCurve = Path()
                     for step in 0...60 {
                         let frac = Double(step) / 60.0
@@ -815,8 +982,8 @@ struct FloatingPhaseScopeWindowView: View {
                     }
                     context.stroke(
                         targetCurve,
-                        with: .color(Color.cyan.opacity(0.55)),
-                        style: StrokeStyle(lineWidth: 1.4, dash: [6, 4])
+                        with: .color(pcavColor.opacity(isLight ? 0.72 : 0.68)),
+                        style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])
                     )
 
                     let samples = telemetry.samples
@@ -826,6 +993,7 @@ struct FloatingPhaseScopeWindowView: View {
                         var rpmArea = Path()
                         var rpmLine = Path()
                         var bufferArea = Path()
+                        var bufferTopEdge = Path()
 
                         for (idx, s) in samples.enumerated() {
                             let x = size.width * CGFloat(min(1.0, max(0.0, s.progressFraction)))
@@ -845,6 +1013,7 @@ struct FloatingPhaseScopeWindowView: View {
 
                                 bufferArea.move(to: CGPoint(x: x, y: size.height))
                                 bufferArea.addLine(to: CGPoint(x: x, y: yBuf))
+                                bufferTopEdge.move(to: CGPoint(x: x, y: yBuf))
                             } else {
                                 speedArea.addLine(to: CGPoint(x: x, y: ySpeed))
                                 speedLine.addLine(to: CGPoint(x: x, y: ySpeed))
@@ -853,11 +1022,13 @@ struct FloatingPhaseScopeWindowView: View {
                                 rpmLine.addLine(to: CGPoint(x: x, y: yRPM))
 
                                 bufferArea.addLine(to: CGPoint(x: x, y: yBuf))
+                                bufferTopEdge.addLine(to: CGPoint(x: x, y: yBuf))
                             }
                         }
 
                         if let last = samples.last {
                             let lastX = size.width * CGFloat(min(1.0, max(0.0, last.progressFraction)))
+                            let lastYSpeed = size.height * (1.0 - CGFloat(min(1.0, last.speedMultiplierX / maxScaleX)))
                             speedArea.addLine(to: CGPoint(x: lastX, y: size.height))
                             speedArea.closeSubpath()
 
@@ -867,147 +1038,279 @@ struct FloatingPhaseScopeWindowView: View {
                             bufferArea.addLine(to: CGPoint(x: lastX, y: size.height))
                             bufferArea.closeSubpath()
 
+                            // 1. Hardware Buffer Liquid Ribbon + Meniscus Line
                             context.fill(
                                 bufferArea,
                                 with: .linearGradient(
-                                    Gradient(colors: [Color.purple.opacity(0.30), Color.purple.opacity(0.05)]),
+                                    Gradient(colors: [
+                                        (isLight ? brightHarmony : harmonyColor).opacity(isLight ? 0.36 : 0.32),
+                                        primaryColor.opacity(isLight ? 0.08 : 0.05)
+                                    ]),
                                     startPoint: CGPoint(x: 0, y: size.height * 0.82),
                                     endPoint: CGPoint(x: 0, y: size.height)
                                 )
                             )
+                            context.stroke(bufferTopEdge, with: .color(harmonyColor.opacity(0.65)), lineWidth: 1.1)
 
+                            // 2. Spindle RPM Area & Analog Gold Trace
                             context.fill(
                                 rpmArea,
                                 with: .linearGradient(
-                                    Gradient(colors: [Color.yellow.opacity(0.16), Color.yellow.opacity(0.01)]),
+                                    Gradient(colors: [rpmColor.opacity(isLight ? 0.14 : 0.16), rpmColor.opacity(0.01)]),
                                     startPoint: CGPoint(x: 0, y: 0),
                                     endPoint: CGPoint(x: 0, y: size.height)
                                 )
                             )
+                            if !isLight {
+                                context.stroke(rpmLine, with: .color(rpmColor.opacity(0.28)), lineWidth: 4.5)
+                            }
+                            context.stroke(rpmLine, with: .color(rpmColor), lineWidth: 1.9)
 
+                            // 3. Actual Speed Area Curtain + Multi-Pass Phosphor Bloom + Gradient Core Beam
                             context.fill(
                                 speedArea,
                                 with: .linearGradient(
-                                    Gradient(colors: [Color.green.opacity(0.38), Color.green.opacity(0.02)]),
+                                    Gradient(colors: [
+                                        primaryColor.opacity(isLight ? 0.25 : 0.38),
+                                        harmonyColor.opacity(isLight ? 0.10 : 0.14),
+                                        Color.clear
+                                    ]),
                                     startPoint: CGPoint(x: 0, y: 0),
                                     endPoint: CGPoint(x: 0, y: size.height)
                                 )
                             )
 
-                            context.stroke(rpmLine, with: .color(.yellow), lineWidth: 1.8)
-                            context.stroke(speedLine, with: .color(.green), lineWidth: 2.4)
+                            let beamGradient = Gradient(colors: [primaryColor, useHarmony ? harmonyColor : primaryColor])
+                            if !isLight {
+                                context.stroke(
+                                    speedLine,
+                                    with: .linearGradient(
+                                        Gradient(colors: [primaryColor.opacity(0.34), harmonyColor.opacity(0.34)]),
+                                        startPoint: CGPoint(x: 0, y: 0),
+                                        endPoint: CGPoint(x: size.width, y: 0)
+                                    ),
+                                    lineWidth: 7.5
+                                )
+                            }
+                            context.stroke(
+                                speedLine,
+                                with: .linearGradient(
+                                    beamGradient,
+                                    startPoint: CGPoint(x: 0, y: 0),
+                                    endPoint: CGPoint(x: size.width, y: 0)
+                                ),
+                                lineWidth: 2.7
+                            )
 
+                            // 4. Radial LBA Playhead Laser Bar + Active Intersection Node
                             var cursorPath = Path()
                             cursorPath.move(to: CGPoint(x: lastX, y: 0))
                             cursorPath.addLine(to: CGPoint(x: lastX, y: size.height))
-                            context.stroke(cursorPath, with: .color(.red), lineWidth: 1.6)
+                            if !isLight {
+                                context.stroke(cursorPath, with: .color(playheadColor.opacity(0.32)), lineWidth: 5.0)
+                            }
+                            context.stroke(cursorPath, with: .color(playheadColor), lineWidth: 1.6)
+
+                            let headRect = CGRect(x: lastX - 4.0, y: lastYSpeed - 4.0, width: 8.0, height: 8.0)
+                            context.fill(Path(ellipseIn: headRect), with: .color(isLight ? primaryColor : .white))
+                            context.stroke(Path(ellipseIn: headRect), with: .color(harmonyColor), lineWidth: 2.0)
                         }
                     }
                 }
+                .drawingGroup(opaque: false, colorMode: .extendedLinear)
                 .padding(8)
 
+                // Subtle Corner Scale Telemetry Callouts Inside the Bezel
                 VStack {
                     HStack {
-                        Text(KroutonL10n.tr("24.0x (Max Scale)"))
-                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(.green.opacity(0.85))
+                        Text(KroutonL10n.tr("24.0x MAX THROUGHPUT"))
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundStyle(primaryColor)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 2.5)
+                            .background((isLight ? Color.white : Color.black).opacity(0.55))
+                            .clipShape(Capsule())
                         Spacer()
-                        Text(KroutonL10n.tr("6,000 RPM"))
-                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(.yellow.opacity(0.85))
+                        Text(KroutonL10n.tr("6,000 RPM SERVO CEILING"))
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundStyle(rpmColor)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 2.5)
+                            .background((isLight ? Color.white : Color.black).opacity(0.55))
+                            .clipShape(Capsule())
                     }
                     Spacer()
                     HStack {
                         Text(KroutonL10n.tr("Inner Hub (r = 24.0 mm • LBA 0)"))
-                            .font(.system(size: 10, design: .monospaced))
+                            .font(.system(size: 10, weight: .medium, design: .monospaced))
                             .foregroundStyle(.secondary)
                         Spacer()
-                        Text("Hardware Buffer Ribbon: \(Int(telemetry.bufferFillPercent))% Armed")
-                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(.purple)
+                        Text("FIFO Buffer Ribbon: \(Int(telemetry.bufferFillPercent))% Armed")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundStyle(harmonyColor)
                         Spacer()
                         Text(KroutonL10n.tr("Outer Rim (r = 58.0 mm • Lead-Out)"))
-                            .font(.system(size: 10, design: .monospaced))
+                            .font(.system(size: 10, weight: .medium, design: .monospaced))
                             .foregroundStyle(.secondary)
                     }
                 }
                 .padding(14)
             }
-            .frame(minHeight: 250, maxHeight: .infinity)
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.blue.opacity(0.50), lineWidth: 1.2))
+            .frame(minHeight: 275, maxHeight: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [primaryColor.opacity(0.65), harmonyColor.opacity(0.65)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+            )
 
+            // 3. INTEGRATED 6-CHANNEL TELEMETRY + LEGEND STRIP CARDS
             LazyVGrid(columns: [
                 GridItem(.flexible(), spacing: 10),
                 GridItem(.flexible(), spacing: 10),
                 GridItem(.flexible(), spacing: 10)
             ], spacing: 10) {
-                telemetryTile(
+                telemetryChannelTile(
                     title: "LIVE / PEAK THROUGHPUT",
+                    legendLabel: "SPEED + P-CAV",
+                    badgeKind: .speedAndPCAV,
                     primary: String(format: "%.1fx (%.0f KB/s)", telemetry.currentSpeedX, telemetry.currentSpeedKBs),
-                    secondary: String(format: "Avg %.1fx • Peak %.1fx", telemetry.averageSpeedX, telemetry.peakSpeedX),
-                    color: .green
+                    secondary: String(format: "Avg %.1fx • Peak %.1fx • Target P-CAV", telemetry.averageSpeedX, telemetry.peakSpeedX),
+                    color: primaryColor,
+                    secondaryColor: pcavColor
                 )
-                telemetryTile(
+                telemetryChannelTile(
                     title: "SPINDLE MOTOR & STRATEGY",
+                    legendLabel: "RPM TRACE",
+                    badgeKind: .spindleRPM,
                     primary: "\(telemetry.currentSpindleRPM) RPM",
                     secondary: "\(telemetry.writeStrategyText) • Angular Servo Locked",
-                    color: .yellow
+                    color: rpmColor,
+                    secondaryColor: harmonyColor
                 )
-                telemetryTile(
+                telemetryChannelTile(
                     title: "LASER POWER & WAVELENGTH",
+                    legendLabel: "OPC DIODE",
+                    badgeKind: .laserDiode,
                     primary: telemetry.laserWavelengthText,
                     secondary: String(format: "Active OPC Power: %.1f mW", telemetry.isActive ? 14.8 + (telemetry.progressFraction * 4.2) : 0.0),
-                    color: .orange
+                    color: primaryColor,
+                    secondaryColor: harmonyColor
                 )
-                telemetryTile(
-                    title: "RADIAL TRACKING & LBA",
+                telemetryChannelTile(
+                    title: "RADIAL TRACKING & PLAYHEAD",
+                    legendLabel: String(format: "r = %.2f mm", telemetry.radialMillimeters),
+                    badgeKind: .playheadCursor,
                     primary: "LBA \(telemetry.currentSectorLBA) / \(telemetry.totalSectorsLBA)",
-                    secondary: String(format: "Radius r = %.2f mm (%.1f%%)", telemetry.radialMillimeters, telemetry.progressFraction * 100.0),
-                    color: .cyan
+                    secondary: String(format: "Radius %.2f / 58.00 mm (%.1f%%)", telemetry.radialMillimeters, telemetry.progressFraction * 100.0),
+                    color: playheadColor,
+                    secondaryColor: harmonyColor
                 )
-                telemetryTile(
+                telemetryChannelTile(
                     title: "DRIVE FIFO RING BUFFER",
+                    legendLabel: "RIBBON FILL",
+                    badgeKind: .bufferRibbon,
                     primary: String(format: "%.0f%% Full (Zero Underruns)", telemetry.bufferFillPercent),
                     secondary: "Hardware BURN-Proof / SuperLink Active",
-                    color: .purple
+                    color: harmonyColor,
+                    secondaryColor: primaryColor
                 )
-                telemetryTile(
+                telemetryChannelTile(
                     title: "SERVO JITTER & ELAPSED",
+                    legendLabel: "PHASE LOCK",
+                    badgeKind: .servoCrosshair,
                     primary: String(format: "Jitter: %.2f%% (C1/C2 Clear)", telemetry.isActive ? 4.8 + (telemetry.progressFraction * 0.7) : 0.0),
                     secondary: String(format: "Elapsed Time: %02d:%02d", telemetry.elapsedSeconds / 60, telemetry.elapsedSeconds % 60),
-                    color: .primary
+                    color: useHarmony ? harmonyColor : .primary,
+                    secondaryColor: primaryColor
                 )
             }
         }
         .padding(18)
-        .frame(minWidth: 740, idealWidth: 780, minHeight: 490, idealHeight: 540)
+        .frame(minWidth: 740, idealWidth: 800, minHeight: 500, idealHeight: 560)
+        .background(store.mainPanelTintOverlay)
         .background(Color(NSColor.windowBackgroundColor))
         .preferredColorScheme(store.appearanceMode.colorScheme)
         .environment(\.locale, store.activeLocale)
         .tint(store.activeAccent)
     }
 
-    func legendItem(color: Color, label: String, isDashed: Bool) -> some View {
-        HStack(spacing: 6) {
-            if isDashed {
-                HStack(spacing: 2) {
-                    Rectangle().fill(color).frame(width: 6, height: 2.5)
-                    Rectangle().fill(color).frame(width: 6, height: 2.5)
+    @ViewBuilder
+    private func channelLegendSwatch(kind: ScopeChannelBadgeKind, color: Color, secondaryColor: Color) -> some View {
+        switch kind {
+        case .speedAndPCAV:
+            HStack(spacing: 4) {
+                Capsule()
+                    .fill(LinearGradient(colors: [color, secondaryColor], startPoint: .leading, endPoint: .trailing))
+                    .frame(width: 14, height: 3.5)
+                HStack(spacing: 1.5) {
+                    Rectangle().fill(secondaryColor).frame(width: 4, height: 2)
+                    Rectangle().fill(secondaryColor).frame(width: 4, height: 2)
                 }
-            } else {
-                Rectangle().fill(color).frame(width: 14, height: 2.5)
             }
-            Text(label)
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
+        case .spindleRPM:
+            Capsule()
+                .fill(color)
+                .frame(width: 16, height: 3)
+        case .laserDiode:
+            Circle()
+                .fill(color)
+                .frame(width: 7, height: 7)
+        case .playheadCursor:
+            ZStack {
+                Rectangle()
+                    .fill(color)
+                    .frame(width: 2.5, height: 11)
+                Circle()
+                    .stroke(secondaryColor, lineWidth: 1.5)
+                    .frame(width: 6, height: 6)
+            }
+        case .bufferRibbon:
+            RoundedRectangle(cornerRadius: 2)
+                .fill(LinearGradient(colors: [color.opacity(0.85), secondaryColor.opacity(0.35)], startPoint: .top, endPoint: .bottom))
+                .frame(width: 14, height: 8)
+                .overlay(Rectangle().fill(color).frame(height: 1.5), alignment: .top)
+        case .servoCrosshair:
+            Image(systemName: "scope")
+                .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(color)
         }
     }
 
-    func telemetryTile(title: String, primary: String, secondary: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(title)
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundStyle(.secondary)
+    private func telemetryChannelTile(
+        title: String,
+        legendLabel: String,
+        badgeKind: ScopeChannelBadgeKind,
+        primary: String,
+        secondary: String,
+        color: Color,
+        secondaryColor: Color
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Text(title)
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                HStack(spacing: 4) {
+                    channelLegendSwatch(kind: badgeKind, color: color, secondaryColor: secondaryColor)
+                    Text(legendLabel)
+                        .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(color)
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(color.opacity(0.12))
+                .clipShape(Capsule())
+            }
             Text(primary)
                 .font(.system(size: 13, weight: .bold, design: .monospaced))
                 .foregroundStyle(color)
@@ -1019,9 +1322,13 @@ struct FloatingPhaseScopeWindowView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
+        .background(store.harmonizedCardFill)
         .background(Color(NSColor.controlBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .stroke(store.harmonizedCardBorder, lineWidth: 1)
+        )
     }
 }
 
