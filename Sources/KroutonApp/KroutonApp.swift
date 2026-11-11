@@ -940,6 +940,7 @@ struct KroutonMainWorkspaceView: View {
                                         .font(.system(size: 9))
                                 }
                                 Text("Archive.org API")
+                                .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : Color.primary)
                                     .font(.system(size: 9.5, weight: .bold))
                                     .lineLimit(1)
                             }
@@ -1086,7 +1087,7 @@ struct KroutonMainWorkspaceView: View {
                 )
 
             // 2. Multi-Layer Isometric & Pixel-Matrix CAD Blueprint Art Studio
-            DepotBlueprintArtStudioView(item: item, accent: store.activeAccent, isNarrow: isNarrow)
+            DepotBlueprintArtStudioView(item: item, accent: store.activeAccent, isNarrow: isNarrow, useHarmony: store.enableSecondaryAccentUITints)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
 
             // 3. Foreground Layout: Left Info Column + Open Vector Showcase + Right Schematic Box
@@ -5226,9 +5227,10 @@ struct DepotBlueprintArtStudioView: View {
     let item: DepotCatalogItem
     let accent: Color
     let isNarrow: Bool
+    var useHarmony: Bool = true
 
     var body: some View {
-        let secondary = accent.perceptualSplitComplement
+        let secondary = useHarmony ? accent.perceptualSplitComplement : accent
         let occludeBacking = accent.blueprintOccludeBacking
 
         Canvas { context, size in
@@ -6855,15 +6857,7 @@ extension Color {
 
 // MARK: - KroutonStateStore Secondary Accent Harmony Extension
 extension KroutonStateStore {
-    var enableSecondaryAccentUITints: Bool {
-        get {
-            (UserDefaults.standard.object(forKey: "krouton.enableSecondaryAccentUITints") as? Bool) ?? true
-        }
-        set {
-            objectWillChange.send()
-            UserDefaults.standard.set(newValue, forKey: "krouton.enableSecondaryAccentUITints")
-        }
-    }
+    
 
     var activeSecondaryAccent: Color {
         activeAccent.perceptualSplitComplement
