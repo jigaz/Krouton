@@ -1262,6 +1262,9 @@ struct KroutonMainWorkspaceView: View {
     private func depotAppStoreCard(for item: DepotCatalogItem, isSelectedInHero: Bool) -> some View {
         let isStaged = (store.stagedDepotItemID == item.id && !store.stagedFiles.isEmpty)
         let activeProgress = store.depotDownloadProgress[item.id]
+        let useHarmony = store.enableSecondaryAccentUITints
+        let pillAccent: Color = useHarmony ? store.activeSecondaryAccent : store.activeAccent
+        let bootStdColor: Color = (isSelectedInHero && useHarmony) ? store.activeSecondaryAccent.opacity(0.90) : Color.secondary
 
         return VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 10) {
@@ -1324,8 +1327,8 @@ struct KroutonMainWorkspaceView: View {
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                     Text(item.bootStandard)
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 9, weight: isSelectedInHero ? .semibold : .regular, design: .monospaced))
+                        .foregroundStyle(bootStdColor)
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -6742,14 +6745,18 @@ struct DepotBlueprintArtStudioView: View {
 
 // MARK: - Perceptual Split-Complementary + Warm/Cool Polarity Color Engine (CGColor / P3)
 extension Color {
-    /// Maps each Krouton appearance swatch to its own distinct Display-P3 secondary color:
-    /// - Titanium / Monochrome -> Pure Crisp White
-    /// - Toasted Brown -> Bright Champagne Almond / Pale Tan (High-contrast two-tone brown!)
-    /// - Red -> Cool Arctic Periwinkle / Ice Blue (Zero Christmas-tree green!)
-    /// - Green -> Electric Cobalt / Cerulean Blue
-    /// - Teal / Aqua-Blue -> Electric Cyber Magenta / Berry
-    /// - Light Blue / Sky -> Vibrant Teenage-Engineering Safety Orange
-    /// - Deep Blue / Indigo -> Electric Spring Turquoise / Cyber Mint
+    /// Maps each Krouton appearance swatch to its dedicated Display-P3 secondary harmony color:
+    /// - Titanium / Monochrome -> Stark Pure White
+    /// - Toasted Brown         -> Champagne Almond / Pale Cream Tan
+    /// - Vibrant Tangerine     -> Royal Ultramarine
+    /// - Solar Gold / Amber    -> Arctic Periwinkle / Ice Blue
+    /// - Oscilloscope Green    -> Electric Cerulean Blue
+    /// - CAD Teal & Light Blue -> Teenage-Engineering Safety Orange
+    /// - Laser Cobalt Blue     -> Cyber Hot Berry / Electric Magenta
+    /// - Deep Indigo / Navy    -> Phosphor Aquamarine / Cyber Mint
+    /// - Synth Violet / Purple -> Sunburst Amber
+    /// - Cover-Disc Magenta    -> Electric Sky Cyan
+    /// - Laser Crimson / Red   -> Electric Amethyst / Lavender Violet
     var perceptualSplitComplement: Color {
         let nsColor = NSColor(self).usingColorSpace(.sRGB) ?? NSColor.systemCyan
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
@@ -6767,61 +6774,60 @@ extension Color {
             return Color(cgColor: CGColor(srgbRed: pr, green: pg, blue: pb, alpha: 1.0))
         }
 
-        // 1. TITANIUM / MONOCHROME (Low Saturation) -> Pure Crisp White
+        // 1. TITANIUM / MONOCHROME (Low Saturation) -> Stark Pure White
         if s < 0.14 {
             return v > 0.88 ? p3(0.60, 0.65, 0.72) : p3(0.98, 0.99, 1.00)
         }
 
-        // 2. TOASTED KROUTON BROWN vs. VIBRANT ORANGE (Hue 16°..42°)
+        // 2. TOASTED KROUTON BROWN vs. VIBRANT TANGERINE (Hue 16°..42°)
         if hueDeg >= 16.0 && hueDeg < 42.0 {
             let isEarthyBrown = (s < 0.82) || (v < 0.88) || (r - g < 0.36)
             if isEarthyBrown {
-                // BROWN -> High-Contrast Pale Toasted Almond / Warm Cream Tan (Dramatic lightness & warmth delta!)
+                // TOASTED BROWN -> Champagne Almond / Warm Cream Tan
                 return p3(0.98, 0.87, 0.68)
             } else {
-                // VIBRANT ORANGE -> Deep Ultramarine / Royal Cobalt
+                // VIBRANT TANGERINE -> Royal Ultramarine
                 return p3(0.36, 0.60, 1.00)
             }
         }
 
-        // 3. GOLD / AMBER / YELLOW (Hue 42°..78°) -> Electric Amethyst / Lavender Violet
+        // 3. SOLAR GOLD / AMBER (Hue 42°..78°) -> Arctic Periwinkle / Cool Ice Blue
         if hueDeg >= 42.0 && hueDeg < 78.0 {
-            return p3(0.78, 0.50, 1.00)
+            return p3(0.56, 0.78, 1.00)
         }
 
-        // 4. GREEN / EMERALD (Hue 78°..164°) -> Electric Cobalt / Cerulean Blue (Locked!)
+        // 4. OSCILLOSCOPE GREEN (Hue 78°..164°) -> Electric Cerulean Blue
         if hueDeg >= 78.0 && hueDeg < 164.0 {
             return p3(0.20, 0.68, 1.00)
         }
 
-        // 5. BLUE FAMILY SPLIT INTO 3 COMPLETELY DIFFERENT DIRECTIONS:
-        //    5A. TEAL / AQUA / CYAN-BLUE (Hue 164°..195°) -> Electric Cyber Magenta / Hot Berry
-        if hueDeg >= 164.0 && hueDeg < 195.0 {
-            return p3(0.98, 0.36, 0.76)
-        }
-
-        //    5B. LIGHT BLUE / SKY / AZURE (Hue 195°..216°, or high-brightness blue) -> Teenage-Engineering Orange (Locked!)
-        if (hueDeg >= 195.0 && hueDeg < 216.0) || (hueDeg >= 195.0 && hueDeg < 228.0 && s < 0.78 && v > 0.88) {
+        // 5. CAD TEAL / AQUA & LIGHT SKY BLUE (Hue 164°..214°) -> Teenage-Engineering Safety Orange
+        if (hueDeg >= 164.0 && hueDeg < 214.0) || (hueDeg >= 164.0 && hueDeg < 226.0 && s < 0.76 && v > 0.88) {
             return p3(1.00, 0.55, 0.14)
         }
 
-        //    5C. DEEP BLUE / COBALT / INDIGO (Hue 216°..262°) -> Electric Cyber Mint / Spring Turquoise
-        if hueDeg >= 216.0 && hueDeg < 262.0 {
-            return p3(0.22, 0.98, 0.76)
+        // 6. LASER COBALT BLUE (Hue 214°..242°) -> Cyber Hot Berry / Electric Magenta
+        if hueDeg >= 214.0 && hueDeg < 242.0 {
+            return p3(0.98, 0.36, 0.76)
         }
 
-        // 6. PURPLE / VIOLET (Hue 262°..305°) -> Warm Sunburst Gold / Amber
-        if hueDeg >= 262.0 && hueDeg < 305.0 {
+        // 7. DEEP INDIGO / NAVY (Hue 242°..264°) -> Phosphor Aquamarine / Cyber Mint
+        if hueDeg >= 242.0 && hueDeg < 264.0 {
+            return p3(0.26, 0.99, 0.88)
+        }
+
+        // 8. SYNTH VIOLET / PURPLE (Hue 264°..305°) -> Sunburst Amber
+        if hueDeg >= 264.0 && hueDeg < 305.0 {
             return p3(1.00, 0.84, 0.28)
         }
 
-        // 7. MAGENTA / PINK / ROSE (Hue 305°..344°) -> Electric Sky Cyan
+        // 9. COVER-DISC MAGENTA / PINK (Hue 305°..344°) -> Electric Sky Cyan
         if hueDeg >= 305.0 && hueDeg < 344.0 {
             return p3(0.24, 0.92, 0.98)
         }
 
-        // 8. RED / CRIMSON (Hue 344°..360° or 0°..16°) -> Cool Arctic Periwinkle / Ice Blue (Zero green!)
-        return p3(0.56, 0.78, 1.00)
+        // 10. LASER CRIMSON / RED (Hue 344°..360° or 0°..16°) -> Electric Amethyst / Lavender Violet
+        return p3(0.78, 0.50, 1.00)
     }
 
     /// Deep blueprint occlusion backing subtly tinted by the active swatch & its unique secondary color
@@ -6834,7 +6840,6 @@ extension Color {
             return Color(cgColor: CGColor(srgbRed: 0.08, green: 0.09, blue: 0.11, alpha: 1.0))
         }
 
-        // Deep Roasted Espresso backing for Brown so the Primary Brown & Secondary Cream-Tan pop!
         let hueDeg = h1 * 360.0
         if hueDeg >= 16.0 && hueDeg < 42.0 && ((s1 < 0.82) || (v1 < 0.88)) {
             return Color(cgColor: CGColor(srgbRed: 0.09, green: 0.055, blue: 0.035, alpha: 1.0))
@@ -6847,7 +6852,6 @@ extension Color {
         return Color(cgColor: darkNS.cgColor)
     }
 }
-
 
 // MARK: - KroutonStateStore Secondary Accent Harmony Extension
 extension KroutonStateStore {
