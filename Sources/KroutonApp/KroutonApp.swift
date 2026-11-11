@@ -1042,7 +1042,7 @@ struct KroutonMainWorkspaceView: View {
                     Spacer()
                     Text("\(filteredDepotItems.count) Titles in Sub-Library  •  SHA-256 Verified")
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .foregroundStyle(store.activeAccent)
+                        .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent))
                         .lineLimit(1)
                 }
 
@@ -1116,7 +1116,7 @@ struct KroutonMainWorkspaceView: View {
                             .lineLimit(1)
                         Text("v\(item.version)")
                             .font(.system(size: 12, weight: .bold, design: .monospaced))
-                            .foregroundStyle(Color.cyan)
+                            .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent))
                             .lineLimit(1)
                     }
 
@@ -1146,9 +1146,9 @@ struct KroutonMainWorkspaceView: View {
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 3.5)
                                     .background(
-                                        idx == 0 ? Color.cyan.opacity(0.28) : (idx == 1 ? Color.green.opacity(0.26) : store.activeAccent.opacity(0.36))
+                                        idx == 0 ? (store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent).opacity(0.28) : (idx == 1 ? Color.green.opacity(0.26) : store.activeAccent.opacity(0.36))
                                     )
-                                    .overlay(Rectangle().stroke(Color.cyan.opacity(0.32), lineWidth: 0.6))
+                                    .overlay(Rectangle().stroke((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent).opacity(0.32), lineWidth: 0.6))
                                 }
                             }
                             .clipShape(RoundedRectangle(cornerRadius: 5))
@@ -1197,7 +1197,7 @@ struct KroutonMainWorkspaceView: View {
                                 .font(.system(size: 10.5, weight: .bold))
                                 .padding(.horizontal, 11)
                                 .padding(.vertical, 6)
-                                .background(Color.white.opacity(0.14))
+                                .background((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.45) : Color.white.opacity(0.14)))
                                 .foregroundStyle(.white)
                                 .clipShape(Capsule())
                                 .overlay(Capsule().stroke(Color.white.opacity(0.28), lineWidth: 1))
@@ -1214,10 +1214,10 @@ struct KroutonMainWorkspaceView: View {
                         HStack(spacing: 5) {
                             Image(systemName: item.sfSymbol)
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(Color.cyan)
+                                .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent))
                             Text("DISC CONTENT SCHEMATIC")
                                 .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
-                                .foregroundStyle(Color.cyan)
+                                .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent))
                                 .lineLimit(1)
                             Spacer(minLength: 4)
                             Text(item.sizeDisplay)
@@ -1225,7 +1225,7 @@ struct KroutonMainWorkspaceView: View {
                                 .foregroundStyle(.white.opacity(0.75))
                                 .lineLimit(1)
                         }
-                        Divider().overlay(Color.cyan.opacity(0.35))
+                        Divider().overlay((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent).opacity(0.35))
 
                         ForEach(treeFiles, id: \.self) { pathLine in
                             HStack(spacing: 4) {
@@ -1244,7 +1244,7 @@ struct KroutonMainWorkspaceView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 9))
                     .overlay(
                         RoundedRectangle(cornerRadius: 9)
-                            .stroke(Color.cyan.opacity(0.38), style: StrokeStyle(lineWidth: 1.0, dash: [4, 2]))
+                            .stroke((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent).opacity(0.38), style: StrokeStyle(lineWidth: 1.0, dash: [4, 2]))
                     )
                 }
             }
@@ -1295,7 +1295,7 @@ struct KroutonMainWorkspaceView: View {
                     HStack(spacing: 6) {
                         Text(item.title)
                             .font(.system(size: 12.5, weight: .bold))
-                            .foregroundStyle(isSelectedInHero ? store.activeAccent : .primary)
+                            .foregroundStyle(isSelectedInHero ? pillAccent : .primary)
                             .lineLimit(1)
                         Spacer(minLength: 2)
                         if isSelectedInHero {
@@ -1303,8 +1303,8 @@ struct KroutonMainWorkspaceView: View {
                                 .font(.system(size: 8, weight: .heavy, design: .monospaced))
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 1.5)
-                                .background(store.activeAccent.opacity(0.20))
-                                .foregroundStyle(store.activeAccent)
+                                .background(pillAccent.opacity(0.20))
+                                .foregroundStyle(pillAccent)
                                 .clipShape(RoundedRectangle(cornerRadius: 3))
                                 .fixedSize(horizontal: true, vertical: false)
                         }
@@ -1360,8 +1360,8 @@ struct KroutonMainWorkspaceView: View {
                         .font(.system(size: 10, weight: .heavy))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4.5)
-                        .background(isStaged ? Color.green : (item.isDownloaded ? store.activeAccent : Color.primary.opacity(0.12)))
-                        .foregroundStyle(isStaged ? Color.black : (item.isDownloaded ? store.activeOnAccentText : store.activeAccent))
+                        .background(isStaged ? Color.green : (item.isDownloaded ? pillAccent : Color.primary.opacity(0.12)))
+                        .foregroundStyle(isStaged ? Color.black : (item.isDownloaded ? store.activeOnAccentText : pillAccent))
                         .clipShape(Capsule())
                         .overlay(
                             Capsule()
@@ -1395,7 +1395,7 @@ struct KroutonMainWorkspaceView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 11)
                 .stroke(
-                    isStaged ? Color.green.opacity(0.70) : (isSelectedInHero ? store.activeAccent.opacity(0.85) : Color.primary.opacity(0.09)),
+                    isStaged ? Color.green.opacity(0.70) : (isSelectedInHero ? pillAccent.opacity(0.90) : Color.primary.opacity(0.09)),
                     lineWidth: (isStaged || isSelectedInHero) ? 1.5 : 1.0
                 )
         )
@@ -3542,7 +3542,7 @@ struct KroutonMainWorkspaceView: View {
                         .padding(.vertical, 3)
                         .background(
                             isFloatingOpen
-                                ? Color.cyan
+                                ? (store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent)
                                 : (isInlineVisible ? Color.green : Color.green.opacity(0.16))
                         )
                         .foregroundStyle(
@@ -3745,8 +3745,8 @@ struct KroutonMainWorkspaceView: View {
                         }
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.cyan.opacity(0.16))
-                        .foregroundStyle(Color.cyan)
+                        .background((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent).opacity(0.16))
+                        .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent))
                         .clipShape(Capsule())
                         .help("MMC Bitsetting Active: Stamps DVD+R / DVD+R DL lead-in Book Type as DVD-ROM (0x00)")
                     }
