@@ -1,3 +1,5 @@
+import Tartine
+import Marmalade
 //
 //  KroutonMasteringWorkspaces.swift
 //  Krouton — Optical Media Mastering Studio
@@ -555,6 +557,25 @@ extension KroutonMainWorkspaceView {
 
                         Spacer(minLength: 4)
 
+                        Button {
+                            showTartineLBAMapPopover.toggle()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "memorychip.fill")
+                                Text(KroutonL10n.tr("Tartine LBA Map"))
+                            }
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(store.activeAccent.opacity(0.16))
+                            .foregroundStyle(store.activeAccent)
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showTartineLBAMapPopover, arrowEdge: .bottom) {
+                            tartineHybridLBAMapPopoverView(for: activeSpec)
+                        }
+
                         if !isRetro83 {
                             Toggle(KroutonL10n.tr("Customize Finder Layout"), isOn: $enableCustomFinderLayoutTab)
                                 .toggleStyle(.checkbox)
@@ -819,6 +840,25 @@ extension KroutonMainWorkspaceView {
                     Text(KroutonL10n.tr("CD-TEXT: 7-Bit ASCII Hardware Safe"))
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .foregroundStyle(.green)
+
+                    Button {
+                        showMarmaladeCuePopover.toggle()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "doc.text.magnifyingglass")
+                            Text("Marmalade .CUE (\(store.computeLiveMarmaladeCDTextPackCount(albumTitle: cdTextAlbumTitle, albumPerformer: cdTextAlbumPerformer, tracks: store.redBookTracks)) Packs)")
+                        }
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(store.activeAccent.opacity(0.16))
+                        .foregroundStyle(store.activeAccent)
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showMarmaladeCuePopover, arrowEdge: .bottom) {
+                        marmaladeRedBookCuePopoverView()
+                    }
                 }
 
                 HStack(spacing: 14) {
@@ -1566,4 +1606,147 @@ extension KroutonMainWorkspaceView {
         .clipShape(RoundedRectangle(cornerRadius: 9))
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
     }
+
+
+    // MARK: - Live Tartine Hybrid LBA Sector Map & Marmalade Red Book .CUE Inspector Popovers
+    @ViewBuilder
+    func tartineHybridLBAMapPopoverView(for activeSpec: KroutonRecipeSpec) -> some View {
+        let plan = store.planLiveTartineHybridLayout(
+            volumeLabel: store.discVolumeTitle,
+            entries: store.stagedFiles,
+            isElToritoBootable: (activeSpec.id == "data-hybrid" || activeSpec.id.contains("boot") || activeSpec.technicalName.localizedCaseInsensitiveContains("El Torito"))
+        )
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "memorychip.fill")
+                    .foregroundStyle(store.activeAccent)
+                Text("TARTINE HYBRID LBA SECTOR PLANNER • \(plan.volumeIdentifier)")
+                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                Spacer()
+                Button {
+                    let report = """
+                    VOLUME: \(plan.volumeIdentifier)
+                    LBA 16: ISO-9660 Primary Volume Descriptor
+                    LBA \(plan.elToritoBootRecordLBA ?? -1): El Torito Boot Catalog
+                    LBA \(plan.jolietSVDSectorLBA): Joliet UCS-2 SVD
+                    LBA \(plan.udfAnchorAVDPLBA): ECMA-167 UDF 2.60 Anchor (AVDP)
+                    TOTAL SECTORS: \(plan.totalSectorsLBA) (\(plan.totalBytes) bytes)
+                    """
+                    KroutonOSDesktopBridge.copyTextToClipboard(report)
+                } label: {
+                    Label("Copy Map", systemImage: "doc.on.doc")
+                        .font(.caption.bold())
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(store.activeAccent)
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("• LBA 000016 : ISO-9660 Primary Volume Descriptor (CD001)")
+                if let bootLBA = plan.elToritoBootRecordLBA {
+                    Text(String(format: "• LBA %06lld : El Torito Boot Record Volume Descriptor", bootLBA))
+                        .foregroundStyle(.orange)
+                }
+                Text(String(format: "• LBA %06lld : Joliet Supplementary Volume Descriptor (UCS-2)", plan.jolietSVDSectorLBA))
+                Text(String(format: "• LBA %06lld : ECMA-167 / UDF 2.60 Anchor Volume Descriptor (AVDP)", plan.udfAnchorAVDPLBA))
+                Text(String(format: "• LBA %06lld : Shared Hybrid Data Payload Start (%d deduplicated extents)", plan.dataPayloadStartLBA, plan.sharedHybridExtents.count))
+                    .foregroundStyle(store.activeAccent)
+            }
+            .font(.system(size: 11, design: .monospaced))
+
+            if !plan.sharedHybridExtents.isEmpty {
+                Divider()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(plan.sharedHybridExtents) { ext in
+                            HStack(spacing: 8) {
+                                Text(String(format: "LBA %06lld..%06lld", ext.startLBA, ext.startLBA + ext.sectorCountLBA - 1))
+                                    .foregroundStyle(store.activeAccent)
+                                Text(ext.iso9660Name)
+                                    .frame(width: 150, alignment: .leading)
+                                Spacer()
+                                Text(ext.visibleInMacTree ? "[Mac]" : "     ")
+                                    .foregroundStyle(.cyan)
+                                Text(ext.visibleInPCTree ? "[PC]" : "    ")
+                                    .foregroundStyle(.green)
+                            }
+                            .font(.system(size: 10, design: .monospaced))
+                        }
+                    }
+                }
+                .frame(maxHeight: 160)
+            }
+
+            if !plan.warnings.isEmpty {
+                Divider()
+                ForEach(plan.warnings, id: \.self) { warn in
+                    Label(warn, systemImage: "exclamationmark.triangle.fill")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.yellow)
+                }
+            }
+        }
+        .padding(14)
+        .frame(width: 560)
+    }
+
+    @ViewBuilder
+    func marmaladeRedBookCuePopoverView() -> some View {
+        let cueText = store.compileLiveMarmaladeCueSheet(
+            albumTitle: cdTextAlbumTitle,
+            albumPerformer: cdTextAlbumPerformer,
+            mcnCatalog: cdTextUPCBarcode,
+            tracks: store.redBookTracks
+        )
+        let packCount = store.computeLiveMarmaladeCDTextPackCount(
+            albumTitle: cdTextAlbumTitle,
+            albumPerformer: cdTextAlbumPerformer,
+            tracks: store.redBookTracks
+        )
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "waveform.badge.magnifyingglass")
+                    .foregroundStyle(store.activeAccent)
+                Text("MARMALADE RED BOOK .CUE & 18-BYTE CD-TEXT INSPECTOR")
+                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                Spacer()
+                Button {
+                    KroutonOSDesktopBridge.copyTextToClipboard(cueText)
+                } label: {
+                    Label("Copy .CUE", systemImage: "doc.on.doc")
+                        .font(.caption.bold())
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(store.activeAccent)
+            }
+
+            HStack(spacing: 12) {
+                Label("\(packCount) × 18-Byte Subchannel Packs (CRC-16 CCITT)", systemImage: "checkmark.shield.fill")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.green)
+                Spacer()
+                Text("\(store.redBookTracks.count) Audio Tracks • 75 fps (2,352 B/sector)")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider()
+
+            ScrollView {
+                Text(cueText)
+                    .font(.system(size: 11, design: .monospaced))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+            }
+            .frame(height: 220)
+            .padding(8)
+            .background(Color.black.opacity(0.22))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .padding(14)
+        .frame(width: 560)
+    }
+
 }

@@ -190,6 +190,8 @@ struct KroutonMainWorkspaceView: View {
     @ObservedObject var krumb: KrumbKitchenClient = .shared
 
     @State var enableCustomFinderLayoutTab: Bool = false
+    @State var showTartineLBAMapPopover: Bool = false
+    @State var showMarmaladeCuePopover: Bool = false
     @State var activeDataWorkspaceTab: Int = 0
     @State var finderBgColor: Color = Color(red: 0.13, green: 0.17, blue: 0.24)
     @State var finderIconSize: Double = 256
