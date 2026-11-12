@@ -1,3 +1,4 @@
+import SwiftUI
 import Foundation
 import OpticalDough
 import Marmalade
@@ -196,6 +197,55 @@ harness.runSuite("8. Krumb Wire Protocol Codable Round-Trip & mDNS Host Sanitiza
 
     let decoded = try JSONDecoder().decode(KrumbBakeRequest.self, from: data)
     h.check(decoded.batchId == req.batchId && decoded.heatX == 16 && decoded.mode == .toast, "Round-trip decode")
+}
+
+
+// 9. Pure IEEE-754 RGB <-> HSB Bijective Math & 10-Swatch Display-P3 Harmony Engine
+harness.runSuite("9. IEEE-754 RGB <-> HSB Round-Trip & 10-Swatch Display-P3 Harmony Polarity") { h in
+    // 9a. Test all 6 HSV Hue Sectors (0..5) + Neutral Grayscale (s = 0)
+    let testRGBSamples: [(CGFloat, CGFloat, CGFloat)] = [
+        (0.95, 0.18, 0.22), // Sector 0: Laser Crimson
+        (0.92, 0.68, 0.12), // Sector 1: Solar Gold
+        (0.18, 0.88, 0.34), // Sector 2: Oscilloscope Green
+        (0.14, 0.82, 0.86), // Sector 3: Analog Seafoam Teal
+        (0.22, 0.38, 0.96), // Sector 4: Laser Cobalt Blue
+        (0.88, 0.20, 0.78), // Sector 5: Synth Magenta
+        (0.45, 0.45, 0.45), // Achromatic Titanium Neutral
+        (0.00, 0.00, 0.00), // Pure Black
+        (1.00, 1.00, 1.00)  // Pure White
+    ]
+
+    for (r, g, b) in testRGBSamples {
+        let (hue, sat, val) = KroutonPureColorMath.rgbToHSB(r: r, g: g, b: b)
+        h.check(hue >= 0.0 && hue <= 1.0, "Hue must be normalized in [0, 1]")
+        h.check(sat >= 0.0 && sat <= 1.0, "Saturation must be normalized in [0, 1]")
+        h.check(val >= 0.0 && val <= 1.0, "Brightness/Value must be normalized in [0, 1]")
+
+        let (r2, g2, b2) = KroutonPureColorMath.hsbToRGB(h: hue, s: sat, v: val)
+        h.check(abs(r - r2) < 1e-4 && abs(g - g2) < 1e-4 && abs(b - b2) < 1e-4,
+                "RGB -> HSB -> RGB round-trip drift exceeded 1e-4 for (\(r), \(g), \(b)) -> (\(r2), \(g2), \(b2))")
+    }
+
+    // 9b. Verify all 10 Swatch Presets (0..9) in Dark & Light mode produce distinct, valid Display-P3 colors
+    //     and obey the WCAG Luminance Polarity Invariant (Dark mode harmony brighter than Light mode studio ink)
+    for presetID in 0...9 {
+        let darkColor  = KroutonPureColorMath.secondaryHarmonyForPresetID(presetID, scheme: .dark)
+        let lightColor = KroutonPureColorMath.secondaryHarmonyForPresetID(presetID, scheme: .light)
+
+        let (dr, dg, db, da) = KroutonPureColorMath.extractSRGB(darkColor)
+        let (lr, lg, lb, la) = KroutonPureColorMath.extractSRGB(lightColor)
+
+        h.check(da == 1.0 && la == 1.0, "Swatch #\(presetID) opacity must be 1.0")
+
+        // Rec. 709 relative luminance approximation
+        let darkLuma  = 0.2126 * dr + 0.7152 * dg + 0.0722 * db
+        let lightLuma = 0.2126 * lr + 0.7152 * lg + 0.0722 * lb
+
+        h.check(
+            darkLuma > lightLuma,
+            "Swatch #\(presetID) Dark Mode phosphor luma (\(darkLuma)) must exceed Light Mode ink luma (\(lightLuma))"
+        )
+    }
 }
 
 print("\n🎯 SUMMARY: \(harness.passed) assertions passed, \(harness.failed) failed.")

@@ -1,3 +1,4 @@
+import SwiftUI
 import CryptoKit
 import VideoToolbox
 import AudioToolbox
@@ -2693,5 +2694,112 @@ extension KroutonLoafBootInspector {
         }
         let digest = SHA256.hash(data: data)
         return digest.map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+
+// MARK: - Pure IEEE-754 RGB <-> HSB & Display-P3 Perceptual Harmony Engine
+public enum KroutonPureColorMath {
+    public static func extractSRGB(_ color: Color) -> (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat) {
+        let resolved = color.resolve(in: EnvironmentValues())
+        return (
+            CGFloat(max(0.0, min(1.0, resolved.red))),
+            CGFloat(max(0.0, min(1.0, resolved.green))),
+            CGFloat(max(0.0, min(1.0, resolved.blue))),
+            CGFloat(max(0.0, min(1.0, resolved.opacity)))
+        )
+    }
+
+    public static func rgbToHSB(r: CGFloat, g: CGFloat, b: CGFloat) -> (h: CGFloat, s: CGFloat, v: CGFloat) {
+        let maxC = max(r, max(g, b))
+        let minC = min(r, min(g, b))
+        let delta = maxC - minC
+
+        var h: CGFloat = 0.0
+        let s: CGFloat = (maxC == 0.0) ? 0.0 : (delta / maxC)
+        let v: CGFloat = maxC
+
+        if delta > 0.00001 {
+            if maxC == r {
+                h = (g - b) / delta
+                if h < 0.0 { h += 6.0 }
+            } else if maxC == g {
+                h = 2.0 + (b - r) / delta
+            } else {
+                h = 4.0 + (r - g) / delta
+            }
+            h /= 6.0
+        }
+        return (h, s, v)
+    }
+
+    public static func hsbToRGB(h: CGFloat, s: CGFloat, v: CGFloat) -> (r: CGFloat, g: CGFloat, b: CGFloat) {
+        let clampedS = max(0.0, min(1.0, s))
+        let clampedV = max(0.0, min(1.0, v))
+        if clampedS <= 0.00001 {
+            return (clampedV, clampedV, clampedV)
+        }
+        var wrappedH = h.truncatingRemainder(dividingBy: 1.0)
+        if wrappedH < 0.0 { wrappedH += 1.0 }
+
+        let sector = wrappedH * 6.0
+        let i = Int(floor(sector))
+        let f = sector - CGFloat(i)
+        let p = clampedV * (1.0 - clampedS)
+        let q = clampedV * (1.0 - clampedS * f)
+        let t = clampedV * (1.0 - clampedS * (1.0 - f))
+
+        switch i % 6 {
+        case 0: return (clampedV, t, p)
+        case 1: return (q, clampedV, p)
+        case 2: return (p, clampedV, t)
+        case 3: return (p, q, clampedV)
+        case 4: return (t, p, clampedV)
+        default: return (clampedV, p, q)
+        }
+    }
+
+    public static func hsbToColor(h: CGFloat, s: CGFloat, v: CGFloat, a: CGFloat = 1.0) -> Color {
+        let (r, g, b) = hsbToRGB(h: h, s: s, v: v)
+        return Color(.sRGB, red: Double(r), green: Double(g), blue: Double(b), opacity: Double(a))
+    }
+
+    public static func p3Color(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat) -> Color {
+        if let space = CGColorSpace(name: CGColorSpace.displayP3),
+           let cg = CGColor(colorSpace: space, components: [r, g, b, 1.0]) {
+            return Color(cgColor: cg)
+        }
+        return Color(.sRGB, red: Double(r), green: Double(g), blue: Double(b), opacity: 1.0)
+    }
+
+    public static func secondaryHarmonyForPresetID(_ id: Int, scheme: ColorScheme = .dark) -> Color {
+        if scheme == .light {
+            switch id {
+            case 0:  return p3Color(0.50, 0.16, 0.84)
+            case 1:  return p3Color(0.28, 0.54, 0.00)
+            case 2:  return p3Color(0.14, 0.42, 0.82)
+            case 3:  return p3Color(0.00, 0.44, 0.78)
+            case 4:  return p3Color(0.64, 0.44, 0.00)
+            case 5:  return p3Color(0.82, 0.30, 0.00)
+            case 6:  return p3Color(0.76, 0.10, 0.48)
+            case 7:  return p3Color(0.00, 0.54, 0.46)
+            case 8:  return p3Color(0.56, 0.34, 0.10)
+            case 9:  return p3Color(0.22, 0.26, 0.32)
+            default: return p3Color(0.76, 0.10, 0.48)
+            }
+        }
+        switch id {
+        case 0:  return p3Color(0.78, 0.50, 1.00)
+        case 1:  return p3Color(0.72, 1.00, 0.18)
+        case 2:  return p3Color(0.56, 0.78, 1.00)
+        case 3:  return p3Color(0.20, 0.68, 1.00)
+        case 4:  return p3Color(0.98, 0.94, 0.32)
+        case 5:  return p3Color(1.00, 0.48, 0.08)
+        case 6:  return p3Color(0.98, 0.36, 0.76)
+        case 7:  return p3Color(0.26, 0.99, 0.88)
+        case 8:  return p3Color(0.98, 0.87, 0.68)
+        case 9:  return p3Color(0.98, 0.99, 1.00)
+        default: return p3Color(0.98, 0.36, 0.76)
+        }
     }
 }

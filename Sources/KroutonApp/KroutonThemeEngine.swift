@@ -7,70 +7,7 @@
 //
 
 import SwiftUI
-
-// MARK: - Pure SwiftUI / CoreGraphics RGB <-> HSB Math
-fileprivate enum KroutonPureColorMath {
-    static func extractSRGB(_ color: Color) -> (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat) {
-        let resolved = color.resolve(in: EnvironmentValues())
-        return (
-            CGFloat(max(0.0, min(1.0, resolved.red))),
-            CGFloat(max(0.0, min(1.0, resolved.green))),
-            CGFloat(max(0.0, min(1.0, resolved.blue))),
-            CGFloat(max(0.0, min(1.0, resolved.opacity)))
-        )
-    }
-
-    static func rgbToHSB(r: CGFloat, g: CGFloat, b: CGFloat) -> (h: CGFloat, s: CGFloat, v: CGFloat) {
-        let maxC = max(r, max(g, b))
-        let minC = min(r, min(g, b))
-        let delta = maxC - minC
-
-        var h: CGFloat = 0.0
-        let s: CGFloat = (maxC == 0.0) ? 0.0 : (delta / maxC)
-        let v: CGFloat = maxC
-
-        if delta > 0.00001 {
-            if maxC == r {
-                h = (g - b) / delta
-                if h < 0.0 { h += 6.0 }
-            } else if maxC == g {
-                h = 2.0 + (b - r) / delta
-            } else {
-                h = 4.0 + (r - g) / delta
-            }
-            h /= 6.0
-        }
-        return (h, s, v)
-    }
-
-    static func hsbToColor(h: CGFloat, s: CGFloat, v: CGFloat, a: CGFloat = 1.0) -> Color {
-        let clampedS = max(0.0, min(1.0, s))
-        let clampedV = max(0.0, min(1.0, v))
-        if clampedS <= 0.00001 {
-            return Color(.sRGB, red: Double(clampedV), green: Double(clampedV), blue: Double(clampedV), opacity: Double(a))
-        }
-        var wrappedH = h.truncatingRemainder(dividingBy: 1.0)
-        if wrappedH < 0.0 { wrappedH += 1.0 }
-
-        let sector = wrappedH * 6.0
-        let i = Int(floor(sector))
-        let f = sector - CGFloat(i)
-        let p = clampedV * (1.0 - clampedS)
-        let q = clampedV * (1.0 - clampedS * f)
-        let t = clampedV * (1.0 - clampedS * (1.0 - f))
-
-        let (r, g, b): (CGFloat, CGFloat, CGFloat)
-        switch i % 6 {
-        case 0: (r, g, b) = (clampedV, t, p)
-        case 1: (r, g, b) = (q, clampedV, p)
-        case 2: (r, g, b) = (p, clampedV, t)
-        case 3: (r, g, b) = (p, q, clampedV)
-        case 4: (r, g, b) = (t, p, clampedV)
-        default: (r, g, b) = (clampedV, p, q)
-        }
-        return Color(.sRGB, red: Double(r), green: Double(g), blue: Double(b), opacity: Double(a))
-    }
-}
+import OpticalDough
 
 // MARK: - Zero-Allocation Display-P3 Color Harmony LUT Cache (120Hz ProMotion Optimization)
 fileprivate final class KroutonColorHarmonyLUT: @unchecked Sendable {
