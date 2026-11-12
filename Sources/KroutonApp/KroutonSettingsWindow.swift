@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 import AppKit
 import OpticalDough
 
@@ -34,6 +35,9 @@ public struct KroutonSettingsWindowView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var driveManager: KroutonToasterBank
     @ObservedObject var krumb: KrumbKitchenClient = .shared
+    @State private var isShowingKrumbFileExporter: Bool = false
+    @State private var krumbExportDocument: KrumbPlainTextFileDocument = KrumbPlainTextFileDocument(text: "")
+    @State private var krumbExportDefaultFilename: String = "Krumb_Export.log"
     // Bound to store.selectedSettingsPane for direct Format Chooser deep-linking
     @State private var searchText: String = ""
 
@@ -899,16 +903,36 @@ public struct KroutonSettingsWindowView: View {
                     Spacer()
 
                     pillToggleButton(title: "Export Thermometer (.log + .toc)", sfSymbol: "thermometer.medium", isSelected: false) {
-                        Task { await krumb.exportKitchenThermometerReport() }
+                        Task {
+                            let artifact = await krumb.prepareKitchenThermometerArtifact()
+                            krumbExportDocument = KrumbPlainTextFileDocument(text: artifact.contentText)
+                            krumbExportDefaultFilename = artifact.defaultFilename
+                            isShowingKrumbFileExporter = true
+                        }
                     }
                     pillToggleButton(title: "Download DoggyBag", sfSymbol: "takeoutbag.and.cup.and.straw.fill", isSelected: false) {
-                        Task { await krumb.downloadDoggyBagArchive() }
+                        Task {
+                            let artifact = await krumb.prepareDoggyBagArtifact()
+                            krumbExportDocument = KrumbPlainTextFileDocument(text: artifact.contentText)
+                            krumbExportDefaultFilename = artifact.defaultFilename
+                            isShowingKrumbFileExporter = true
+                        }
                     }
                 }
 
                 Divider()
                 Toggle(KroutonL10n.tr("Share this Mac's connected optical drives on the local network"), isOn: $store.enableNetworkServerSharing)
                 Toggle(KroutonL10n.tr("Pre-stage full compiled disc image to remote Krumb Pantry before igniting laser"), isOn: $store.preStageImageToServerSSD)
+            }
+            .fileExporter(
+                isPresented: $isShowingKrumbFileExporter,
+                document: krumbExportDocument,
+                contentType: .plainText,
+                defaultFilename: krumbExportDefaultFilename
+            ) { result in
+                if case .success(let savedURL) = result {
+                    krumb.appendEventLog("Saved \(savedURL.lastPathComponent) via SwiftUI FileExporter")
+                }
             }
 
             settingsCard(title: "Optical Drive Hardware & MMC Bitsetting (Retro Console & Set-Top DVD Compatibility)") {
@@ -1304,5 +1328,29 @@ struct KroutonDualHarmonySwitch: View {
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+    }
+}
+
+
+// MARK: - Pure SwiftUI FileDocument for Non-Blocking Krumb Artifact Exports
+struct KrumbPlainTextFileDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.plainText, .log] }
+    var text: String
+
+    init(text: String) {
+        self.text = text
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        if let data = configuration.file.regularFileContents,
+           let str = String(data: data, encoding: .utf8) {
+            self.text = str
+        } else {
+            self.text = ""
+        }
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: Data(text.utf8))
     }
 }

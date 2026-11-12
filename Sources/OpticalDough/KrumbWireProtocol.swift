@@ -6,7 +6,6 @@
 import Foundation
 import Combine
 import Network
-import AppKit
 
 // MARK: - 1. Canonical Bakery Typealiases (Old Names -> Real Bakery Structs in OpticalDough.swift)
 public typealias DriveManager                = KroutonToasterBank
@@ -231,6 +230,17 @@ public struct KrumbKitchenEventMessage: Codable, Sendable {
 }
 
 // MARK: - 3. `KrumbKitchenClient` (mDNS + REST + Spool-and-Burn + WebSocket -> Phase Scope)
+public struct KrumbExportedArtifact: Sendable {
+    public let defaultFilename: String
+    public let contentText: String
+    public var data: Data { Data(contentText.utf8) }
+
+    public init(defaultFilename: String, contentText: String) {
+        self.defaultFilename = defaultFilename
+        self.contentText = contentText
+    }
+}
+
 @MainActor
 public final class KrumbKitchenClient: ObservableObject {
     public static let shared = KrumbKitchenClient()
@@ -722,7 +732,7 @@ public final class KrumbKitchenClient: ObservableObject {
         return true
     }
 
-    public func exportKitchenThermometerReport(endpoint: String? = nil) async {
+    public func prepareKitchenThermometerArtifact(endpoint: String? = nil) async -> KrumbExportedArtifact {
         let target = endpoint ?? activeEndpointHost
         var reportBody = """
         ===================================================================
@@ -740,8 +750,8 @@ public final class KrumbKitchenClient: ObservableObject {
         CD_TEXT {
           LANGUAGE_MAP { 0 : EN }
           LANGUAGE 0 {
-            TITLE "KRUTON_DISC"
-            PERFORMER "Kruton"
+            TITLE "KROUTON_DISC"
+            PERFORMER "Krouton"
             UPC_EAN "0123456789012"
           }
         }
@@ -758,42 +768,30 @@ public final class KrumbKitchenClient: ObservableObject {
             reportBody = liveText
         }
 
-        let panel = NSSavePanel()
-        panel.title = "Export Krumb KitchenThermometer Flight Recorder"
-        panel.nameFieldStringValue = "Krumb_Thermometer_\(lastBatchID.uuidString.prefix(8)).log"
-        if panel.runModal() == .OK, let outURL = panel.url {
-            try? reportBody.data(using: .utf8)?.write(to: outURL)
-            NSWorkspace.shared.activateFileViewerSelecting([outURL])
-            appendEventLog("Exported KitchenThermometer report to \(outURL.lastPathComponent)")
-        }
+        let filename = "Krumb_Thermometer_\(lastBatchID.uuidString.prefix(8)).log"
+        appendEventLog("Prepared KitchenThermometer artifact (\(filename))")
+        return KrumbExportedArtifact(defaultFilename: filename, contentText: reportBody)
     }
 
-    public func downloadDoggyBagArchive(endpoint: String? = nil) async {
+    public func prepareDoggyBagArtifact(endpoint: String? = nil) async -> KrumbExportedArtifact {
         let target = endpoint ?? activeEndpointHost
-        let panel = NSSavePanel()
-        panel.title = "Download Krumb DoggyBag Post-Mortem Archive (batch.toc + cdrdao.log)"
-        panel.nameFieldStringValue = "Krumb_DoggyBag_\(lastBatchID.uuidString.prefix(8)).txt"
-        if panel.runModal() == .OK, let outURL = panel.url {
-            var bagData: Data? = nil
-            if let base = normalizedBaseURL(from: target),
-               let url = URL(string: "/api/v1/pantry/doggy-bags/\(lastBatchID.uuidString)", relativeTo: base),
-               let (data, resp) = try? await session.data(from: url),
-               let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) {
-                bagData = data
-            }
-            if bagData == nil {
-                let fallback = """
-                # Krumb DoggyBag Post-Mortem Bundle (Policy: \(doggyBagPolicy.rawValue))
-                Batch ID: \(lastBatchID.uuidString)
-                Host: \(normalizedHostPort(from: target))
-                Included Artifacts: batch.toc, cdrdao.log, PantryCalibration snapshot
-                Status: No BurntToast errors recorded in last batch.
-                """
-                bagData = fallback.data(using: .utf8)
-            }
-            try? bagData?.write(to: outURL)
-            NSWorkspace.shared.activateFileViewerSelecting([outURL])
-            appendEventLog("Downloaded DoggyBag bundle for Batch \(lastBatchID.uuidString.prefix(8))")
+        var bagText: String? = nil
+        if let base = normalizedBaseURL(from: target),
+           let url = URL(string: "/api/v1/pantry/doggy-bags/\(lastBatchID.uuidString)", relativeTo: base),
+           let (data, resp) = try? await session.data(from: url),
+           let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+           let str = String(data: data, encoding: .utf8), !str.isEmpty {
+            bagText = str
         }
+        let finalBody = bagText ?? """
+        # Krumb DoggyBag Post-Mortem Bundle (Policy: \(doggyBagPolicy.rawValue))
+        Batch ID: \(lastBatchID.uuidString)
+        Host: \(normalizedHostPort(from: target))
+        Included Artifacts: batch.toc, cdrdao.log, PantryCalibration snapshot
+        Status: No BurntToast errors recorded in last batch.
+        """
+        let filename = "Krumb_DoggyBag_\(lastBatchID.uuidString.prefix(8)).txt"
+        appendEventLog("Prepared DoggyBag bundle for Batch \(lastBatchID.uuidString.prefix(8))")
+        return KrumbExportedArtifact(defaultFilename: filename, contentText: finalBody)
     }
 }
