@@ -77,7 +77,7 @@ final class KroutonWindowManager {
             backing: .buffered,
             defer: false
         )
-        window.title = "Krouton"
+        window.title = "Kruton"
         window.contentViewController = hostingController
         window.center()
         window.setFrameAutosaveName("KroutonMainWorkspaceWindow")
@@ -156,7 +156,7 @@ struct KroutonApp: App {
         }
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("Show Krouton Workspace") {
+                Button("Show Kruton Workspace") {
                     KroutonWindowManager.shared.openMainWindow()
                 }
                 .keyboardShortcut("0", modifiers: .command)
@@ -184,6 +184,7 @@ struct KroutonApp: App {
 struct KroutonMainWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var driveManager: KroutonToasterBank
+    @ObservedObject var krumb: KrumbKitchenClient = .shared
 
     @State var enableCustomFinderLayoutTab: Bool = false
     @State var activeDataWorkspaceTab: Int = 0
@@ -191,7 +192,7 @@ struct KroutonMainWorkspaceView: View {
     @State var finderIconSize: Double = 256
     @State var fitToDiscDVD9Shrink: Bool = true
     @State var preserveMenusAndExtras: Bool = true
-    @State var labelDiscTitle: String = "THE KROUTON ARCHIVE"
+    @State var labelDiscTitle: String = "THE KRUTON ARCHIVE"
     @State var labelSubtitle: String = "2026 MASTER EDITION"
     @State var autoLabelSearchQuery: String = "Dark Side of the Moon"
     @State var depotSearchQuery: String = ""
@@ -211,7 +212,7 @@ struct KroutonMainWorkspaceView: View {
     @State var romPerformOPCBeforeWrite: Bool = true
     @State var xboxLayerBreakPreset: String = "Auto (.dvd / Calculate Optimal)"
     // Red Book CD-DA & CD-Extra Mastering State
-    @State var cdTextAlbumTitle: String = "KROUTON SESSIONS VOL. I"
+    @State var cdTextAlbumTitle: String = "KRUTON SESSIONS VOL. I"
     @State var cdTextAlbumPerformer: String = "THE OPTICAL COLLECTIVE"
     @State var cdTextUPCBarcode: String = "012345678905"
     @State var enableHiddenTrackOneHTOA: Bool = false
@@ -715,7 +716,7 @@ struct KroutonMainWorkspaceView: View {
             }
         }
         if let hugeFile = store.stagedFiles.first(where: { $0.exceedsISO9660FourGiBLimit }) {
-            return "4 GiB File Limit Notice: '\(hugeFile.name)' exceeds the 4 GiB ISO9660 Level 2 ceiling. Krouton will bridge this file via UDF 2.60 + HFS+."
+            return "4 GiB File Limit Notice: '\(hugeFile.name)' exceeds the 4 GiB ISO9660 Level 2 ceiling. Kruton will bridge this file via UDF 2.60 + HFS+."
         }
         if let longFile = store.stagedFiles.first(where: { $0.exceedsJoliet64CharLimit }) {
             return "Joliet 64-Char Notice: '\(longFile.name)' is \(longFile.name.count) characters long. Full name is preserved on Mac (HFS+) and UDF, and safely truncated in legacy Windows Joliet tables."
@@ -1000,11 +1001,11 @@ struct KroutonMainWorkspaceView: View {
         case .copy:
             if taskID == "copy-rip-audio" {
                 store.destinationQueue = [
-                    KroutonBakeBatchItem(kind: .audioRip, targetDriveID: currentDriveID, hardwareOrPath: "~/Music/Krouton Rips/Apple Lossless", speedOrCodec: "ALAC (.m4a) + AccurateRip", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
+                    KroutonBakeBatchItem(kind: .audioRip, targetDriveID: currentDriveID, hardwareOrPath: "~/Music/Kruton Rips/Apple Lossless", speedOrCodec: "ALAC (.m4a) + AccurateRip", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
                 ]
             } else if taskID == "copy-rip-video" {
                 store.destinationQueue = [
-                    KroutonBakeBatchItem(kind: .videoExtract, targetDriveID: currentDriveID, hardwareOrPath: "~/Movies/Krouton Extracts", speedOrCodec: "H.265 (HEVC 10-bit Hardware)", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
+                    KroutonBakeBatchItem(kind: .videoExtract, targetDriveID: currentDriveID, hardwareOrPath: "~/Movies/Kruton Extracts", speedOrCodec: "H.265 (HEVC 10-bit Hardware)", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
                 ]
             } else {
                 store.destinationQueue = [

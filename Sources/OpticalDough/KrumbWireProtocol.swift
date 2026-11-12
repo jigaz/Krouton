@@ -174,6 +174,18 @@ public struct KrumbPantryCalibrationResult: Codable, Sendable {
     }
 }
 
+public struct KrumbPantrySlotResponse: Codable, Sendable {
+    public let pantryLoafId: UUID
+    public let spoolPath: String
+    public let freeBytes: UInt64
+
+    enum CodingKeys: String, CodingKey {
+        case pantryLoafId = "pantry_loaf_id"
+        case spoolPath    = "spool_path"
+        case freeBytes    = "free_bytes"
+    }
+}
+
 public struct KrumbBakeRequest: Codable, Sendable {
     public let batchId: UUID
     public let pantryLoafId: UUID
@@ -286,7 +298,8 @@ public final class KrumbKitchenClient: ObservableObject {
                 ]
                 for res in results {
                     if case let .service(name, _, _, _) = res.endpoint {
-                        found.append(KrumbDiscoveredNode(id: name, name: "\(name) (_krumb._tcp)", hostPort: "\(name).local:7420", isEasyBakeFallback: false))
+                        let safeHost = Self.sanitizeMdnsHostname(name)
+                        found.append(KrumbDiscoveredNode(id: name, name: "\(name) (_krumb._tcp)", hostPort: "\(safeHost).local:\(KrumbNetworkConstants.defaultPort)", isEasyBakeFallback: false))
                     }
                 }
                 if found.count == 1 {
@@ -297,6 +310,18 @@ public final class KrumbKitchenClient: ObservableObject {
         }
         browser.start(queue: .main)
         self.mdnsBrowser = browser
+    }
+
+    public static func sanitizeMdnsHostname(_ rawName: String) -> String {
+        let lowered = rawName.lowercased()
+        let allowed = lowered.map { ch -> Character in
+            if ch.isLetter || ch.isNumber || ch == "-" { return ch }
+            return "-"
+        }
+        let collapsed = String(allowed)
+            .replacingOccurrences(of: "--+", with: "-", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        return collapsed.isEmpty ? "krumb-node" : collapsed
     }
 
     private func normalizedHostPort(from hostOrPath: String) -> String {
@@ -513,7 +538,7 @@ public final class KrumbKitchenClient: ObservableObject {
         targetDriveKey: String = "krumb-network-toaster"
     ) async -> Bool {
         let batchID = UUID()
-        let loafID = UUID()
+        var loafID = UUID()
         self.lastBatchID = batchID
 
         let parsedHeatX: UInt8 = {
@@ -522,10 +547,12 @@ public final class KrumbKitchenClient: ObservableObject {
             return lastCalibration?.maxSafeDvdHeatX ?? 16
         }()
 
+        // STEP 1: Allocate Pantry Slot (`POST /api/v1/pantry/slot`) & Enforce >= 1 GiB Free Space Rule
         isSpoolingLoaf = true
         spoolProgressFraction = 0.0
-        statusBannerText = "Allocating Pantry Slot on \(normalizedHostPort(from: endpoint))..."
-        appendEventLog("POST /api/v1/pantry/slot -> Allocating Loaf \(loafID.uuidString.prefix(8))")
+        let hostPort = normalizedHostPort(from: endpoint)
+        statusBannerText = "Allocating Pantry Slot on \(hostPort)..."
+        appendEventLog("POST /api/v1/pantry/slot -> Requesting Spool Slot on \(hostPort)")
 
         var tel = driveManager.driveTelemetry[targetDriveKey] ?? KroutonKitchenThermometer(
             id: targetDriveKey,
@@ -537,14 +564,63 @@ public final class KrumbKitchenClient: ObservableObject {
         tel.phaseTitle = "Spooling Loaf to Krumb Pantry (Zero-Underrun Guard)..."
         driveManager.driveTelemetry[targetDriveKey] = tel
 
+        var liveSlotAllocated = false
+        if let base = normalizedBaseURL(from: endpoint),
+           let slotURL = URL(string: "/api/v1/pantry/slot", relativeTo: base) {
+            var slotReq = URLRequest(url: slotURL)
+            slotReq.httpMethod = "POST"
+            slotReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            let totalStagedBytes: UInt64 = UInt64(max(1, stagedFiles.count + audioCubes.count)) * 33_554_432
+            slotReq.httpBody = try? JSONEncoder().encode(["volume_title": volumeTitle, "requested_bytes": String(totalStagedBytes)])
+
+            if let (data, resp) = try? await session.data(for: slotReq),
+               let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+               let slotInfo = try? JSONDecoder().decode(KrumbPantrySlotResponse.self, from: data) {
+                loafID = slotInfo.pantryLoafId
+                liveSlotAllocated = true
+                if slotInfo.freeBytes < KrumbNetworkConstants.minimumPantryFreeBytes {
+                    isSpoolingLoaf = false
+                    let freeMB = Double(slotInfo.freeBytes) / 1_048_576.0
+                    let msg = String(format: "Pantry Low Space (%.0f MB < 1024 MB minimum)", freeMB)
+                    applyKitchenEventToThermometer(
+                        KrumbKitchenEventMessage(
+                            event: "BURNT_TOAST",
+                            batchId: batchID,
+                            toasterId: remoteToasters.first?.id,
+                            currentCube: nil,
+                            crispnessPct: 0.0,
+                            butterBufferPct: 0.0,
+                            heatX: 0.0,
+                            reason: msg
+                        ),
+                        driveManager: driveManager,
+                        targetDriveKey: targetDriveKey
+                    )
+                    return false
+                }
+                appendEventLog("Pantry Slot \(loafID.uuidString.prefix(8)) Allocated (\(slotInfo.freeBytes / 1_073_741_824) GiB Free)")
+            }
+        }
+
+        // STEP 2: Stream Staged Loaf / WAV Cubes to Pantry Before Laser Ignition
         for step in 1...10 {
-            try? await Task.sleep(nanoseconds: 75_000_000)
+            if liveSlotAllocated,
+               let base = normalizedBaseURL(from: endpoint),
+               let chunkURL = URL(string: "/api/v1/pantry/slot/\(loafID.uuidString)/chunk", relativeTo: base) {
+                var chunkReq = URLRequest(url: chunkURL)
+                chunkReq.httpMethod = "POST"
+                chunkReq.httpBody = Data("KRUTON_SPOOL_CHUNK_\(step)".utf8)
+                _ = try? await session.data(for: chunkReq)
+            } else {
+                try? await Task.sleep(nanoseconds: 65_000_000)
+            }
             spoolProgressFraction = Double(step) / 10.0
             statusBannerText = String(format: "Spooling Loaf to Pantry: %.0f%% (100%% Spool Before Toast)", spoolProgressFraction * 100.0)
         }
         isSpoolingLoaf = false
         appendEventLog("Pantry Spool 100% Complete -> Dispatching POST /api/v1/bake")
 
+        // STEP 3: Build & Dispatch `KrumbBakeRequest` (`POST /api/v1/bake`)
         let cubePayloads: [KrumbCubePayload] = audioCubes.enumerated().map { idx, c in
             KrumbCubePayload(
                 trackNumber: UInt8(idx + 1),
@@ -574,10 +650,16 @@ public final class KrumbKitchenClient: ObservableObject {
             req.httpBody = try? JSONEncoder().encode(bakeReq)
             if let (_, resp) = try? await session.data(for: req),
                let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) {
+                isDaemonReachable = true
+                appendEventLog("Live Krumb Daemon Accepted Batch \(batchID.uuidString.prefix(8)) -> Streaming WS /api/v1/kitchen")
                 connectKitchenWebSocket(endpoint: endpoint, driveManager: driveManager, targetDriveKey: targetDriveKey)
+                // Do NOT run local simulation loop when live daemon WebSocket is driving telemetry!
+                return true
             }
         }
 
+        // STEP 4: Offline EasyBake WebSocket Synthesizer (Only runs when no live daemon is on Port 7420)
+        appendEventLog("EasyBake Synthesizer Active -> Streaming simulated WS /api/v1/kitchen frames")
         applyKitchenEventToThermometer(
             KrumbKitchenEventMessage(
                 event: "PREHEATING",

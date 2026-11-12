@@ -527,7 +527,7 @@ extension KroutonMainWorkspaceView {
                             Text(KroutonL10n.tr("Disc Title:"))
                                 .font(.caption.bold())
                                 .lineLimit(1)
-                            TextField("KROUTON_DISC", text: $store.discVolumeTitle)
+                            TextField("KRUTON_DISC", text: $store.discVolumeTitle)
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 145)
                         }
@@ -577,7 +577,7 @@ extension KroutonMainWorkspaceView {
                             Text(KroutonL10n.tr("Disc Title:"))
                                 .font(.caption.bold())
                                 .lineLimit(1)
-                            TextField("KROUTON_DISC", text: $store.discVolumeTitle)
+                            TextField("KRUTON_DISC", text: $store.discVolumeTitle)
                                 .textFieldStyle(.roundedBorder)
                                 .frame(maxWidth: 180)
                             Spacer()
@@ -895,7 +895,7 @@ extension KroutonMainWorkspaceView {
                             .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
                         Text(KroutonL10n.tr("Drop Any Audio Format (WAV, AIFF, FLAC, ALAC, APE, WavPack, DSD .DSF/.DFF, Opus, Ogg, AC-3, DTS, MP3, M4A)"))
                             .font(.headline)
-                        Text(KroutonL10n.tr("Krouton decodes all audio to 44.1 kHz / 16-bit Stereo PCM on disk before burning (Zero Underrun Guarantee)."))
+                        Text(KroutonL10n.tr("Kruton decodes all audio to 44.1 kHz / 16-bit Stereo PCM on disk before burning (Zero Underrun Guarantee)."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -1047,7 +1047,7 @@ extension KroutonMainWorkspaceView {
                     HStack(spacing: 5) {
                         Text(KroutonL10n.tr("Disc Title:"))
                             .font(.caption.bold())
-                        TextField("KROUTON_VIDEO", text: $store.discVolumeTitle)
+                        TextField("KRUTON_VIDEO", text: $store.discVolumeTitle)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 155)
                     }
@@ -1390,7 +1390,7 @@ extension KroutonMainWorkspaceView {
                             .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
                         Text(KroutonL10n.tr("Drop Console Disc Image (.CUE + .BIN, .ISO, .GCM, .RVZ, .WBFS, or .DVD)"))
                             .font(.headline)
-                        Text(KroutonL10n.tr("Krouton verifies 2,352-byte Mode 2 XA sector headers, System Area boot licenses, and Dual-Layer XGD break offsets."))
+                        Text(KroutonL10n.tr("Kruton verifies 2,352-byte Mode 2 XA sector headers, System Area boot licenses, and Dual-Layer XGD break offsets."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }

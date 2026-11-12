@@ -421,12 +421,12 @@ public final class KroutonStateStore: ObservableObject {
     // Real Staged Files from Finder (Sprint 1)
     @Published public var stagedFiles: [KroutonLoafFileEntry] = []
     @Published public var redBookTracks: [KroutonAudioCube] = [
-        KroutonAudioCube(url: URL(fileURLWithPath: "/System/Library/Sounds/Glass.aiff"), title: "01 - Analogue Warmth (Intro)", performer: "The Kroutons", isrcCode: "USKRO2600001", durationSeconds: 222.24, preGapSeconds: 2.0, transitionStyle: .standard2s),
-        KroutonAudioCube(url: URL(fileURLWithPath: "/System/Library/Sounds/Ping.aiff"), title: "02 - Optical Servo Lock", performer: "The Kroutons", isrcCode: "USKRO2600002", durationSeconds: 258.00, preGapSeconds: 0.0, transitionStyle: .gapless0s),
-        KroutonAudioCube(url: URL(fileURLWithPath: "/System/Library/Sounds/Hero.aiff"), title: "03 - Phthalocyanine Groove", performer: "The Kroutons", isrcCode: "USKRO2600003", durationSeconds: 311.53, preGapSeconds: 0.0, crossfadeSeconds: 2.0, transitionStyle: .jamCrossfade),
-        KroutonAudioCube(url: URL(fileURLWithPath: "/System/Library/Sounds/Purr.aiff"), title: "04 - Lead-Out Horizon", performer: "The Kroutons", isrcCode: "USKRO2600004", durationSeconds: 295.13, preGapSeconds: 2.0, transitionStyle: .standard2s)
+        KroutonAudioCube(url: URL(fileURLWithPath: "/System/Library/Sounds/Glass.aiff"), title: "01 - Analogue Warmth (Intro)", performer: "The Krutons", isrcCode: "USKRO2600001", durationSeconds: 222.24, preGapSeconds: 2.0, transitionStyle: .standard2s),
+        KroutonAudioCube(url: URL(fileURLWithPath: "/System/Library/Sounds/Ping.aiff"), title: "02 - Optical Servo Lock", performer: "The Krutons", isrcCode: "USKRO2600002", durationSeconds: 258.00, preGapSeconds: 0.0, transitionStyle: .gapless0s),
+        KroutonAudioCube(url: URL(fileURLWithPath: "/System/Library/Sounds/Hero.aiff"), title: "03 - Phthalocyanine Groove", performer: "The Krutons", isrcCode: "USKRO2600003", durationSeconds: 311.53, preGapSeconds: 0.0, crossfadeSeconds: 2.0, transitionStyle: .jamCrossfade),
+        KroutonAudioCube(url: URL(fileURLWithPath: "/System/Library/Sounds/Purr.aiff"), title: "04 - Lead-Out Horizon", performer: "The Krutons", isrcCode: "USKRO2600004", durationSeconds: 295.13, preGapSeconds: 2.0, transitionStyle: .standard2s)
     ]
-    @Published public var discPerformer: String = "The Kroutons"
+    @Published public var discPerformer: String = "The Krutons"
     @Published public var discMCNBarcode: String = "0123456789012"
     @Published public var enableHTOA: Bool = false
     @Published public var htoaTitle: String = "Hidden Track Zero (INDEX 00 Pre-Gap Secret Audio)"
@@ -438,7 +438,7 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var includeJolietNames: Bool = true
     @Published public var allowATIPOverburn: Bool = false
     @Published public var dualLayerBreakSectorLBA: Int64 = 2_086_912
-    @Published public var discVolumeTitle: String = "KROUTON_DISC"
+    @Published public var discVolumeTitle: String = "KRUTON_DISC"
 
     @Published public var discFormats: [KroutonRecipeSpec] = [
         KroutonRecipeSpec(id: "cd-da", showInTaskChooser: true, technicalName: "CD-DA (Red Book)", colloquialName: "Audio CD w/ CD-TEXT & ISRC", launchYear: "1982", capacity: "700 MB / 80m", capacityGB: 0.7, laserType: "780nm IR", platform: "All CD / DVD / BD Players", deprecationStatus: "Current", sourceSupport: "New & Image", bookOrFileSystem: "IEC 60908 Red Book", sfSymbol: "waveform.circle.fill", filterGroup: .audio, isMediaPlaylist: true, isDataDisc: false),
@@ -727,7 +727,7 @@ public final class KroutonStateStore: ObservableObject {
     public var namingPreviewString: String {
         let joined = namingTokens.joined()
             .replacingOccurrences(of: "[Track 01]", with: "01")
-            .replacingOccurrences(of: "[Artist]", with: "The Krouton Trio")
+            .replacingOccurrences(of: "[Artist]", with: "The Kruton Trio")
             .replacingOccurrences(of: "[Album]", with: "Oakland Sessions")
             .replacingOccurrences(of: "[Title]", with: "Analogue Horizon")
             .replacingOccurrences(of: "[Year]", with: "2026")

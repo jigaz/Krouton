@@ -33,6 +33,7 @@ public enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendabl
 public struct KroutonSettingsWindowView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var driveManager: KroutonToasterBank
+    @ObservedObject var krumb: KrumbKitchenClient = .shared
     // Bound to store.selectedSettingsPane for direct Format Chooser deep-linking
     @State private var searchText: String = ""
 
@@ -825,7 +826,6 @@ public struct KroutonSettingsWindowView: View {
             }
 
             settingsCard(title: "Krumb Headless LAN Burner Daemon (_krumb._tcp.local. • Port 7420)") {
-                let krumb = KrumbKitchenClient.shared
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(krumb.statusBannerText)
@@ -914,7 +914,7 @@ public struct KroutonSettingsWindowView: View {
             settingsCard(title: "Optical Drive Hardware & MMC Bitsetting (Retro Console & Set-Top DVD Compatibility)") {
                 Toggle(KroutonL10n.tr("Stamp Book Type as DVD-ROM (0x00) on DVD+R & DVD+R DL Media (Required by vintage DVD players, early PS2 & Xbox)"), isOn: $store.forceDVDROMBookType)
                     .fontWeight(.semibold)
-                Text(KroutonL10n.tr("When enabled, Krouton sends the vendor MMC Mode Select / Set Compatibility bitsetting command before lead-in write so DVD+R and DVD+R DL discs identify as pressed factory DVD-ROMs."))
+                Text(KroutonL10n.tr("When enabled, Kruton sends the vendor MMC Mode Select / Set Compatibility bitsetting command before lead-in write so DVD+R and DVD+R DL discs identify as pressed factory DVD-ROMs."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Divider()
@@ -1125,7 +1125,7 @@ public struct KroutonSettingsWindowView: View {
                     Spacer()
                     pillToggleButton(title: "Speak Status Now", sfSymbol: "speaker.wave.3.fill", isSelected: false) {
                         let drv = driveManager.selectedDrive?.displayName ?? "Optical Burner"
-                        store.announceForVoiceOver("Krouton Accessibility Ready. Active burner: \(drv).")
+                        store.announceForVoiceOver("Kruton Accessibility Ready. Active burner: \(drv).")
                         NSSound.beep()
                     }
                 }
