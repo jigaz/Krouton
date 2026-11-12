@@ -278,9 +278,9 @@ struct KroutonMainWorkspaceView: View {
             GeometryReader { windowGeo in
                 let totalW = windowGeo.size.width
                 let minCenterW: CGFloat = 380
-                let maxAllowedLeft = max(182, min(340, totalW - rightColumnLiveWidth - minCenterW))
+                let maxAllowedLeft = max(182, min(340, totalW - rightColumnLiveWidth - minCenterW - 22))
                 let clampedLeft = min(max(182, leftColumnLiveWidth), maxAllowedLeft)
-                let maxAllowedRight = max(195, min(440, totalW - clampedLeft - minCenterW))
+                let maxAllowedRight = max(195, min(440, totalW - clampedLeft - minCenterW - 22))
                 let clampedRight = min(max(195, rightColumnLiveWidth), maxAllowedRight)
 
                 let centerLiveW = max(minCenterW, totalW - clampedLeft - clampedRight - 14)
