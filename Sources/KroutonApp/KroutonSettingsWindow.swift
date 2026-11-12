@@ -1,6 +1,5 @@
 import SwiftUI
 import UniformTypeIdentifiers
-import AppKit
 import OpticalDough
 
 public enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendable {
@@ -36,6 +35,7 @@ public struct KroutonSettingsWindowView: View {
     @ObservedObject var driveManager: KroutonToasterBank
     @ObservedObject var krumb: KrumbKitchenClient = .shared
     @State private var isShowingKrumbFileExporter: Bool = false
+    @State private var isShowingScratchFolderImporter: Bool = false
     @State private var krumbExportDocument: KrumbPlainTextFileDocument = KrumbPlainTextFileDocument(text: "")
     @State private var krumbExportDefaultFilename: String = "Krumb_Export.log"
     // Bound to store.selectedSettingsPane for direct Format Chooser deep-linking
@@ -395,11 +395,14 @@ public struct KroutonSettingsWindowView: View {
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 260)
                     pillToggleButton(title: "Choose...", sfSymbol: "folder.fill", isSelected: false) {
-                        let panel = NSOpenPanel()
-                        panel.canChooseFiles = false
-                        panel.canChooseDirectories = true
-                        panel.allowsMultipleSelection = false
-                        if panel.runModal() == .OK, let url = panel.url {
+                        isShowingScratchFolderImporter = true
+                    }
+                    .fileImporter(
+                        isPresented: $isShowingScratchFolderImporter,
+                        allowedContentTypes: [.folder],
+                        allowsMultipleSelection: false
+                    ) { result in
+                        if case .success(let urls) = result, let url = urls.first {
                             store.scratchDiskPath = url.path
                         }
                     }
@@ -1150,7 +1153,7 @@ public struct KroutonSettingsWindowView: View {
                     pillToggleButton(title: "Speak Status Now", sfSymbol: "speaker.wave.3.fill", isSelected: false) {
                         let drv = driveManager.selectedDrive?.displayName ?? "Optical Burner"
                         store.announceForVoiceOver("Krouton Accessibility Ready. Active burner: \(drv).")
-                        NSSound.beep()
+                        KroutonOSDesktopBridge.playAcousticCue()
                     }
                 }
             }

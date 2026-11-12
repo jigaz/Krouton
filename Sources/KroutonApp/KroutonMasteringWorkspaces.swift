@@ -5,7 +5,6 @@
 //  Format-Specific Mastering Workspaces (Data/Archival, Red Book Audio, Video Authoring, Car-Safe Audio, Retro Console ROMs, and Disc Image Inspector).
 //
 
-import AppKit
 import OpticalDough
 import SwiftUI
 import UniformTypeIdentifiers
@@ -131,7 +130,7 @@ extension KroutonMainWorkspaceView {
                                     NSPasteboard.general.clearContents()
                                     NSPasteboard.general.setString(hash, forType: .string)
                                     imageActionStatusBanner = "SHA-256 Copied to Clipboard"
-                                    NSSound.beep()
+                                    KroutonOSDesktopBridge.playAcousticCue()
                                 } label: {
                                     HStack(spacing: 4) {
                                         Image(systemName: computedImageSHA256.isEmpty ? "checkmark.shield.fill" : "doc.on.clipboard.fill")
@@ -169,7 +168,7 @@ extension KroutonMainWorkspaceView {
                                 .help("Mount this disc image on the macOS Desktop using hdiutil")
 
                                 Button {
-                                    NSWorkspace.shared.activateFileViewerSelecting([entry.url])
+                                    KroutonOSDesktopBridge.revealURLsInFinder([entry.url])
                                 } label: {
                                     HStack(spacing: 4) {
                                         Image(systemName: "folder.fill")
@@ -984,7 +983,7 @@ extension KroutonMainWorkspaceView {
                                                 auditioningTrackID = nil
                                             } else {
                                                 auditioningTrackID = entry.id
-                                                NSSound.beep()
+                                                KroutonOSDesktopBridge.playAcousticCue()
                                             }
                                         } label: {
                                             HStack(spacing: 4) {

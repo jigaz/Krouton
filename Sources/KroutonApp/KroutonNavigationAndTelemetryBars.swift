@@ -574,14 +574,10 @@ extension KroutonMainWorkspaceView {
               let pngData = rep.representation(using: .png, properties: [:]) else {
             return
         }
-        let panel = NSSavePanel()
-        panel.title = "Export 300-DPI 120mm Optical Disc Label (PNG)"
-        panel.nameFieldStringValue = "\(labelDiscTitle.replacingOccurrences(of: " ", with: "_"))_120mm_Label.png"
-        panel.allowedContentTypes = [UTType.png]
-        if panel.runModal() == .OK, let outURL = panel.url {
-            try? pngData.write(to: outURL)
-            NSWorkspace.shared.activateFileViewerSelecting([outURL])
-        }
+        KroutonLabelExportBridge.shared.presentPNGExport(
+            pngData: pngData,
+            defaultFilename: "\(labelDiscTitle.replacingOccurrences(of: " ", with: "_"))_120mm_Label.png"
+        )
     }
 
     private var resolvedLabelTracklistLines: [String] {
@@ -1094,5 +1090,54 @@ struct KroutonDiscLabelArtworkCanvas: View {
         }
         .frame(width: diameterPoints, height: diameterPoints)
         .clipShape(Circle())
+    }
+}
+
+
+// MARK: - Native SwiftUI .fileExporter Bridge for 300-DPI 120mm Disc Label PNG
+struct KroutonPNGFileDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.png] }
+    var pngData: Data
+
+    init(pngData: Data = Data()) {
+        self.pngData = pngData
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        self.pngData = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: pngData)
+    }
+}
+
+@MainActor
+final class KroutonLabelExportBridge: ObservableObject {
+    static let shared = KroutonLabelExportBridge()
+    @Published var isShowingExporter: Bool = false
+    @Published var document: KroutonPNGFileDocument = KroutonPNGFileDocument()
+    @Published var defaultFilename: String = "Krouton_120mm_Label.png"
+
+    func presentPNGExport(pngData: Data, defaultFilename: String) {
+        self.document = KroutonPNGFileDocument(pngData: pngData)
+        self.defaultFilename = defaultFilename
+        self.isShowingExporter = true
+    }
+}
+
+struct KroutonLabelExportSheetModifier: ViewModifier {
+    @ObservedObject private var bridge = KroutonLabelExportBridge.shared
+    func body(content: Content) -> some View {
+        content.fileExporter(
+            isPresented: $bridge.isShowingExporter,
+            document: bridge.document,
+            contentType: .png,
+            defaultFilename: bridge.defaultFilename
+        ) { result in
+            if case .success(let outURL) = result {
+                KroutonOSDesktopBridge.revealURLsInFinder([outURL])
+            }
+        }
     }
 }

@@ -5,7 +5,6 @@
 //  Right-Column Hardware Burner / Image Destination Cards, Queue Execution, and Volume Rows.
 //
 
-import AppKit
 import OpticalDough
 import SwiftUI
 import UniformTypeIdentifiers
@@ -390,22 +389,13 @@ extension KroutonMainWorkspaceView {
                     }
                 )
             } else if item.kind == .discImage {
-                HStack(spacing: 6) {
-                    TextField("~/Desktop/Krouton_Master.dmg", text: Binding(
+                KroutonDiscImageTargetRowView(
+                    defaultVolumeTitle: store.discVolumeTitle,
+                    pathText: Binding(
                         get: { item.hardwareOrPath },
                         set: { newPath in updateQueueItem(cardID) { $0.hardwareOrPath = newPath } }
-                    ))
-                    .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 11, design: .monospaced))
-                    Button("Save As...") {
-                        let panel = NSSavePanel()
-                        panel.nameFieldStringValue = "\(store.discVolumeTitle).dmg"
-                        if panel.runModal() == .OK, let url = panel.url {
-                            updateQueueItem(cardID) { $0.hardwareOrPath = url.path }
-                        }
-                    }
-                    .controlSize(.small)
-                }
+                    )
+                )
             } else {
                 Text(item.hardwareOrPath)
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
@@ -687,6 +677,45 @@ struct KrumbNetworkToasterCardSectionView: View {
                     .buttonStyle(.plain)
                 }
                 Spacer(minLength: 0)
+            }
+        }
+    }
+}
+
+
+// MARK: - Pure SwiftUI Disc Image Destination Path Row (.fileExporter)
+struct KroutonDiscImagePlaceholderDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.data, .diskImage] }
+    init() {}
+    init(configuration: ReadConfiguration) throws {}
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: Data())
+    }
+}
+
+struct KroutonDiscImageTargetRowView: View {
+    let defaultVolumeTitle: String
+    @Binding var pathText: String
+    @State private var isShowingSaveExporter: Bool = false
+
+    var body: some View {
+        HStack(spacing: 6) {
+            TextField("~/Desktop/Krouton_Master.dmg", text: $pathText)
+                .textFieldStyle(.roundedBorder)
+                .font(.system(size: 11, design: .monospaced))
+            Button("Save As...") {
+                isShowingSaveExporter = true
+            }
+            .controlSize(.small)
+            .fileExporter(
+                isPresented: $isShowingSaveExporter,
+                document: KroutonDiscImagePlaceholderDocument(),
+                contentType: .diskImage,
+                defaultFilename: "\(defaultVolumeTitle).dmg"
+            ) { result in
+                if case .success(let savedURL) = result {
+                    pathText = savedURL.path
+                }
             }
         }
     }

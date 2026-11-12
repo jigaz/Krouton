@@ -311,3 +311,24 @@ public extension Color {
         Color(nsColor: .controlBackgroundColor)
     }
 }
+
+// MARK: - Centralized Desktop OS Services Bridge (Keeps SwiftUI Views 100% AppKit-Free)
+public enum KroutonOSDesktopBridge {
+    public static func playAcousticCue() {
+        NSSound.beep()
+    }
+
+    public static func copyTextToClipboard(_ text: String) {
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.setString(text, forType: .string)
+    }
+
+    public static func revealURLsInFinder(_ urls: [URL]) {
+        NSWorkspace.shared.activateFileViewerSelecting(urls)
+    }
+
+    public static func revealFolderInFinder(path: String) {
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
+    }
+}

@@ -5,7 +5,6 @@
 //  Standalone Inspector Sheets, Hardware Scopes, Burn Progress Modals, and Support Views.
 //
 
-import AppKit
 import OpticalDough
 import SwiftUI
 import UniformTypeIdentifiers
@@ -295,7 +294,7 @@ struct KroutonSliceMediaPopover: View {
             Spacer()
 
             Button {
-                NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: vol.mountPath)
+                KroutonOSDesktopBridge.revealFolderInFinder(path: vol.mountPath)
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.up.forward.square")

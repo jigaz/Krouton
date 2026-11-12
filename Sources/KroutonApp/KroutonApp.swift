@@ -726,28 +726,18 @@ struct KroutonMainWorkspaceView: View {
 
     func promptToAddFiles() {
         let spec = store.activeFormatSpec()
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = spec.allowsDirectorySelection
-        panel.allowsMultipleSelection = (spec.id != "image-burn" && spec.filterGroup != .console)
-        panel.prompt = "Stage for \(spec.technicalName)"
-        panel.message = "Allowed for \(spec.technicalName): \(spec.expectedMediaDescription)"
-
-        // Grey out all incompatible files in the macOS Open Dialogue!
         let exts = spec.allowedFileExtensions
-        if !exts.isEmpty {
-            var types: [UTType] = exts.compactMap { UTType(filenameExtension: $0) }
-            if spec.allowsDirectorySelection {
-                types.append(.folder)
-            }
-            if !types.isEmpty {
-                panel.allowedContentTypes = types
-            }
+        var types: [UTType] = exts.compactMap { UTType(filenameExtension: $0) }
+        if spec.allowsDirectorySelection {
+            types.append(.folder)
         }
-
-        if panel.runModal() == .OK {
-            store.addStagedURLs(panel.urls)
+        if types.isEmpty {
+            types = spec.allowsDirectorySelection ? [.item, .folder] : [.item]
         }
+        KroutonStageImporterBridge.shared.presentImporter(
+            allowedTypes: types,
+            allowsMultiple: (spec.id != "image-burn" && spec.filterGroup != .console)
+        )
     }
 
     func triggerDropRejectShake() {
@@ -1074,6 +1064,39 @@ struct KroutonMainWorkspaceView: View {
         case .depot: return "arrow.down.doc.fill"
         case .copy: return "doc.on.doc.fill"
         case .label: return "printer.fill"
+        }
+    }
+}
+
+
+// MARK: - Native SwiftUI .fileImporter Bridge for Staging Optical Payloads
+@MainActor
+final class KroutonStageImporterBridge: ObservableObject {
+    static let shared = KroutonStageImporterBridge()
+    @Published var isShowingImporter: Bool = false
+    @Published var allowedTypes: [UTType] = [.item, .folder]
+    @Published var allowsMultipleSelection: Bool = true
+
+    func presentImporter(allowedTypes: [UTType], allowsMultiple: Bool) {
+        self.allowedTypes = allowedTypes
+        self.allowsMultipleSelection = allowsMultiple
+        self.isShowingImporter = true
+    }
+}
+
+struct KroutonStageImporterModifier: ViewModifier {
+    @ObservedObject var store: KroutonStateStore
+    @ObservedObject private var bridge = KroutonStageImporterBridge.shared
+
+    func body(content: Content) -> some View {
+        content.fileImporter(
+            isPresented: $bridge.isShowingImporter,
+            allowedContentTypes: bridge.allowedTypes,
+            allowsMultipleSelection: bridge.allowsMultipleSelection
+        ) { result in
+            if case .success(let urls) = result {
+                store.addStagedURLs(urls)
+            }
         }
     }
 }
