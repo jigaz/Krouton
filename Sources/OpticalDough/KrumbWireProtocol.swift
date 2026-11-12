@@ -938,3 +938,87 @@ public enum KrumbLANSecurityEngine {
         return rawPayload
     }
 }
+
+
+// MARK: - Chunk 7: Deterministic Telemetry State Machine & Monotonic Progress Filter
+public enum KrumbTelemetryPhase: String, Codable, Sendable, Equatable {
+    case idle             = "IDLE"
+    case preheating       = "PREHEATING"
+    case toastingProgress = "TOASTING_PROGRESS"
+    case verifyingCrumb   = "VERIFYING_CRUMB"
+    case freshOutOfOven   = "FRESH_OUT_OF_OVEN"
+    case burntToast       = "BURNT_TOAST"
+    case cancelled        = "CANCELLED"
+}
+
+public struct KrumbTelemetryPacket: Codable, Sendable, Equatable {
+    public let batchId: UUID
+    public let toasterId: String
+    public let state: KrumbTelemetryPhase
+    public let fraction: Double
+    public let currentLba: Int64
+    public let totalLba: Int64
+    public let effectiveSpeedX: Double
+    public let fifoFill: Double
+    public let driveBufferFill: Double
+    public let c2Errors: Int
+    public let etaSeconds: Int
+
+    public init(
+        batchId: UUID,
+        toasterId: String,
+        state: KrumbTelemetryPhase,
+        fraction: Double,
+        currentLba: Int64,
+        totalLba: Int64,
+        effectiveSpeedX: Double,
+        fifoFill: Double,
+        driveBufferFill: Double,
+        c2Errors: Int,
+        etaSeconds: Int
+    ) {
+        self.batchId = batchId
+        self.toasterId = toasterId
+        self.state = state
+        self.fraction = fraction
+        self.currentLba = currentLba
+        self.totalLba = totalLba
+        self.effectiveSpeedX = effectiveSpeedX
+        self.fifoFill = fifoFill
+        self.driveBufferFill = driveBufferFill
+        self.c2Errors = c2Errors
+        self.etaSeconds = etaSeconds
+    }
+}
+
+public enum KrumbTelemetrySanitizer {
+    /// Clamps and filters incoming WebSocket progress frames so out-of-order packets or NaN/Inf values
+    /// never cause progress regressions, negative buffer fill, or division-by-zero in the UI.
+    public static func sanitizeProgressTransition(
+        previousState: KrumbTelemetryPhase,
+        previousFraction: Double,
+        incomingFrame: KrumbTelemetryPacket
+    ) -> (state: KrumbTelemetryPhase, fraction: Double, fifoClamp: Double, driveClamp: Double) {
+        let cleanFifo = incomingFrame.fifoFill.isFinite ? max(0.0, min(1.0, incomingFrame.fifoFill)) : 0.0
+        let cleanDrive = incomingFrame.driveBufferFill.isFinite ? max(0.0, min(1.0, incomingFrame.driveBufferFill)) : 0.0
+        let rawFrac = incomingFrame.fraction.isFinite ? max(0.0, min(1.0, incomingFrame.fraction)) : previousFraction
+
+        // Terminal states (FRESH_OUT_OF_OVEN, BURNT_TOAST, CANCELLED) cannot regress to TOASTING_PROGRESS
+        let isPrevTerminal = (previousState == .freshOutOfOven || previousState == .burntToast || previousState == .cancelled)
+        if isPrevTerminal && (incomingFrame.state == .toastingProgress || incomingFrame.state == .preheating) {
+            return (previousState, previousFraction, cleanFifo, cleanDrive)
+        }
+
+        // During monotonic active burn (TOASTING_PROGRESS -> TOASTING_PROGRESS), ignore late stale UDP/WS packets
+        let monotonicFrac: Double
+        if previousState == .toastingProgress && incomingFrame.state == .toastingProgress {
+            monotonicFrac = max(previousFraction, rawFrac)
+        } else if incomingFrame.state == .freshOutOfOven {
+            monotonicFrac = 1.0
+        } else {
+            monotonicFrac = rawFrac
+        }
+
+        return (incomingFrame.state, monotonicFrac, cleanFifo, cleanDrive)
+    }
+}

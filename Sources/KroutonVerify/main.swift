@@ -558,6 +558,101 @@ harness.runSuite("15. Crustini Optical Rescue Copy Engine & Polar 300-DPI Label 
     }
 }
 
+
+// 16. Deep Process Security Gate (Zero Shell Injection) & Telemetry State Machine Fuzzing
+harness.runSuite("16. Zero Shell-Injection Process Gate & 500-Frame Telemetry State Machine Fuzzing") { h in
+    // 16a. Scan all 21 production files to ensure Process never invokes a shell (/bin/sh, /bin/zsh, /bin/bash, -c)
+    let forbiddenShellPatterns = ["/bin/sh", "/bin/bash", "/bin/zsh", "/usr/bin/env sh", "Darwin.system(", "popen("]
+    let fm = FileManager.default
+    if let enumerator = fm.enumerator(atPath: "Sources") {
+        while let rel = enumerator.nextObject() as? String {
+            guard rel.hasSuffix(".swift"), !rel.contains("KroutonVerify/") else { continue }
+            let content = (try? String(contentsOfFile: "Sources/" + rel, encoding: .utf8)) ?? ""
+            for pat in forbiddenShellPatterns {
+                h.check(!content.contains(pat), "Forbidden shell pattern '\(pat)' found in \(rel)")
+            }
+        }
+    }
+
+    // 16b. Fuzz KrumbTelemetrySanitizer with out-of-order packets, NaN, Infinity, and terminal-state regressions
+    var state: KrumbTelemetryPhase = .preheating
+    var frac: Double = 0.0
+    let batchID = UUID()
+
+    for step in 1...250 {
+        let progress = Double(step) / 250.0
+        let normalFrame = KrumbTelemetryPacket(
+            batchId: batchID,
+            toasterId: "pioneer-01",
+            state: .toastingProgress,
+            fraction: progress,
+            currentLba: Int64(step * 100),
+            totalLba: 25000,
+            effectiveSpeedX: 16.0,
+            fifoFill: 0.95,
+            driveBufferFill: 0.92,
+            c2Errors: 0,
+            etaSeconds: 45
+        )
+        let res = KrumbTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: normalFrame)
+        h.check(res.fraction >= frac, "Progress must never regress during active burn")
+        state = res.state
+        frac = res.fraction
+
+        // Inject a stale out-of-order frame with lower fraction + NaN buffer values
+        let staleFuzzFrame = KrumbTelemetryPacket(
+            batchId: batchID,
+            toasterId: "pioneer-01",
+            state: .toastingProgress,
+            fraction: max(0.0, progress - 0.15),
+            currentLba: 10,
+            totalLba: 25000,
+            effectiveSpeedX: .nan,
+            fifoFill: .nan,
+            driveBufferFill: .infinity,
+            c2Errors: 0,
+            etaSeconds: 99
+        )
+        let fuzzRes = KrumbTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: staleFuzzFrame)
+        h.check(fuzzRes.fraction == frac, "Stale out-of-order telemetry frame must be ignored")
+        h.check(fuzzRes.fifoClamp == 0.0 && fuzzRes.driveClamp == 0.0, "NaN/Infinity buffer fills must clamp safely to 0.0")
+    }
+
+    // Transition to terminal BURNT_TOAST and verify late TOASTING_PROGRESS cannot resurrect the job
+    let failFrame = KrumbTelemetryPacket(
+        batchId: batchID,
+        toasterId: "pioneer-01",
+        state: .burntToast,
+        fraction: frac,
+        currentLba: 12000,
+        totalLba: 25000,
+        effectiveSpeedX: 0.0,
+        fifoFill: 0.0,
+        driveBufferFill: 0.0,
+        c2Errors: 99,
+        etaSeconds: 0
+    )
+    let termRes = KrumbTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: failFrame)
+    state = termRes.state
+    h.check(state == .burntToast, "Must transition to terminal .burntToast state")
+
+    let zombieFrame = KrumbTelemetryPacket(
+        batchId: batchID,
+        toasterId: "pioneer-01",
+        state: .toastingProgress,
+        fraction: 0.99,
+        currentLba: 24900,
+        totalLba: 25000,
+        effectiveSpeedX: 16.0,
+        fifoFill: 1.0,
+        driveBufferFill: 1.0,
+        c2Errors: 0,
+        etaSeconds: 1
+    )
+    let afterZombie = KrumbTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: zombieFrame)
+    h.check(afterZombie.state == .burntToast, "Terminal state must reject late out-of-order progress frames")
+}
+
 print("\n🎯 SUMMARY: \(harness.passed) assertions passed, \(harness.failed) failed.")
 if harness.failed > 0 {
     exit(1)
