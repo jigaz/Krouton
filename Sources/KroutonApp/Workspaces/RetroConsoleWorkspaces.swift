@@ -14,8 +14,24 @@ import UniformTypeIdentifiers
 import Foundation
 import Combine
 
-extension KroutonMainWorkspaceView {
-    func retroConsoleROMWorkspace(for spec: KroutonRecipeSpec) -> some View {
+struct KroutonRetroConsoleWorkspaceView: View {
+    @ObservedObject var store: KroutonStateStore
+    let spec: KroutonRecipeSpec
+    let isCenterWorkspaceNarrow: Bool
+    @Binding var isDropTargeted: Bool
+    let onHandleFinderDrop: ([NSItemProvider]) -> Bool
+
+    @State private var romWriteModeDAO96SubQ: Bool = true
+    @State private var romBitsetDVDROM: Bool = true
+    @State private var romPerformOPCBeforeWrite: Bool = true
+    @State private var xboxLayerBreakPreset: String = "Auto (.dvd / Calculate Optimal)"
+    @State private var ps1AutoMergeMultiBinAndCHD: Bool = true
+    @State private var ps2ApplyESRPatch: Bool = false
+    @State private var gcPadToOuterEdge3GB: Bool = true
+    @State private var wiiLayerMode: String = "Auto-Detect (DVD5 4.7GB / DVD9 LBA 2084960)"
+    @State private var xboxVerifyStealthSectors: Bool = true
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             retroConsoleROMMasteringDeck(for: spec)
 
@@ -184,7 +200,7 @@ extension KroutonMainWorkspaceView {
                 }
             }
             .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-                handleFinderDrop(providers: providers)
+                onHandleFinderDrop(providers)
             }
         }
     }

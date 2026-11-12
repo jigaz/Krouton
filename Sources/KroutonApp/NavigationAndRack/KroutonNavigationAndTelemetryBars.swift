@@ -547,19 +547,61 @@ extension KroutonMainWorkspaceView {
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.orange.opacity(0.4), lineWidth: 1))
             }
 
-            // FORMAT-ADAPTIVE WORKSPACE ROUTER
+            // FORMAT-ADAPTIVE WORKSPACE ROUTER (Standalone Scoped View Structs)
             if activeSpec.isRedBookAudioFormat {
-                redBookAudioMasteringWorkspace(for: activeSpec)
+                KroutonRedBookAudioWorkspaceView(
+                    store: store,
+                    spec: activeSpec,
+                    isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
+                    cdTextAlbumTitle: $cdTextAlbumTitle,
+                    cdTextAlbumPerformer: $cdTextAlbumPerformer,
+                    auditioningTrackID: $auditioningTrackID,
+                    isDropTargeted: $isDropTargeted,
+                    onHandleFinderDrop: handleFinderDrop(providers:)
+                )
             } else if activeSpec.isCarSafeAudioFormat {
-                carSafeAudioMasteringWorkspace(for: activeSpec)
+                KroutonCarSafeAudioWorkspaceView(
+                    store: store,
+                    spec: activeSpec,
+                    isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
+                    isDropTargeted: $isDropTargeted,
+                    onHandleFinderDrop: handleFinderDrop(providers:)
+                )
             } else if activeSpec.isVideoAuthoringFormat {
-                videoDiscAuthoringWorkspace(for: activeSpec)
+                KroutonVideoAuthoringWorkspaceView(
+                    store: store,
+                    spec: activeSpec,
+                    isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
+                    fitToDiscDVD9Shrink: $fitToDiscDVD9Shrink,
+                    preserveMenusAndExtras: preserveMenusAndExtras,
+                    isDropTargeted: $isDropTargeted,
+                    onHandleFinderDrop: handleFinderDrop(providers:)
+                )
             } else if activeSpec.isDiscImageBurnFormat {
-                discImageInspectorWorkspace(for: activeSpec)
+                KroutonDiscImageInspectorWorkspaceView(
+                    store: store,
+                    spec: activeSpec,
+                    isDropTargeted: $isDropTargeted,
+                    onPromptToAddFiles: promptToAddFiles,
+                    onHandleFinderDrop: handleFinderDrop(providers:)
+                )
             } else if activeSpec.filterGroup == .console || activeSpec.id.hasPrefix("console-") {
-                retroConsoleROMWorkspace(for: activeSpec)
+                KroutonRetroConsoleWorkspaceView(
+                    store: store,
+                    spec: activeSpec,
+                    isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
+                    isDropTargeted: $isDropTargeted,
+                    onHandleFinderDrop: handleFinderDrop(providers:)
+                )
             } else {
-                dataAndArchivalMasteringWorkspace(for: activeSpec)
+                KroutonDataAndArchivalWorkspaceView(
+                    store: store,
+                    activeSpec: activeSpec,
+                    enableCustomFinderLayoutTab: $enableCustomFinderLayoutTab,
+                    finderIconSize: $finderIconSize,
+                    isDropTargeted: $isDropTargeted,
+                    onHandleFinderDrop: handleFinderDrop(providers:)
+                )
             }
         }
     }

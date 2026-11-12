@@ -190,11 +190,6 @@ struct KroutonMainWorkspaceView: View {
     @ObservedObject var krumb: KrumbKitchenClient = .shared
 
     @State var enableCustomFinderLayoutTab: Bool = false
-    @State var showTartineLBAMapPopover: Bool = false
-    @State var showMarmaladeCuePopover: Bool = false
-    @State var showVideoOvenPopover: Bool = false
-    @State var activeDataWorkspaceTab: Int = 0
-    @State var finderBgColor: Color = Color(red: 0.13, green: 0.17, blue: 0.24)
     @State var finderIconSize: Double = 256
     @State var fitToDiscDVD9Shrink: Bool = true
     @State var preserveMenusAndExtras: Bool = true
@@ -214,62 +209,15 @@ struct KroutonMainWorkspaceView: View {
     @State var isCenterWorkspaceUltraCompact: Bool = false
     @State var isDropTargeted: Bool = false
     @State var activeDiscPopoverCardID: UUID? = nil
-    @State var romWriteModeDAO96SubQ: Bool = true
-    @State var romBitsetDVDROM: Bool = true
-    @State var romPerformOPCBeforeWrite: Bool = true
-    @State var xboxLayerBreakPreset: String = "Auto (.dvd / Calculate Optimal)"
     // Red Book CD-DA & CD-Extra Mastering State
     @State var cdTextAlbumTitle: String = "KROUTON SESSIONS VOL. I"
     @State var cdTextAlbumPerformer: String = "THE OPTICAL COLLECTIVE"
-    @State var cdTextUPCBarcode: String = "012345678905"
-    @State var enableHiddenTrackOneHTOA: Bool = false
-    @State var defaultAudioTransition: String = "2.0s Standard Pre-Gap (INDEX 00)"
     @State var auditioningTrackID: UUID? = nil
     // Car-Safe MP3 / FLAC CD Mastering State
-    @State var carSafeZeroPadNumbers: Bool = true
-    @State var carSafeStripAppleDouble: Bool = true
-    @State var carSafeEnforceID3v23: Bool = true
-    @State var carSafeGenerateM3U: Bool = true
-    @State var carSafeTranscodeTarget: String = "320 kbps CBR MP3 (Universal Car Deck)"
     // Video Disc Authoring & Dual-Layer Break State
-    @State var videoMenuTemplate: String = "Dark Studio Chapter Grid"
-    @State var videoSystemStandard: String = "NTSC 16:9 (29.97 / 23.976p)"
-    @State var videoAudioEncoding: String = "AC-3 Dolby Digital 5.1 (448 kbps)"
-    @State var videoDualLayerBreakSector: String = "Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)"
     // M-DISC Archival PAR2 State
-    @State var mdiscPar2RedundancyPct: Double = 15.0
     // New Data Disc File System Bridge State
-    @State var selectedDataFileSystemBridge: String = "Universal 4-Way Bridge (UDF 1.02 + HFS+ + Joliet + Rock Ridge)"
-    @State var preserveMacExtendedAttributes: Bool = true
-    @State var enforce8Dot3RetroCompatibility: Bool = false
     // Dedicated Disc Image Burner State
-    @State var discImageWriteMethod: String = "DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)"
-    @State var verifyImageSHA256BeforeBurn: Bool = true
-    @State var inspectedImageLBA: Int = 17
-    @State var computedImageSHA256: String = ""
-    @State var imageActionStatusBanner: String = ""
-    @State var audioRipCodec: String = "FLAC (Lossless)"
-    @State var audioRipAccurateRip: Bool = true
-    @State var audioRipGenerateCueLog: Bool = true
-    @State var audioRipSelectedTracks: Set<Int> = [1, 2, 3, 4, 5]
-    @State var videoExtractMode: String = "Lossless MKV Remux"
-    @State var videoExtractMinSeconds: Int = 120
-    @State var videoExtractKeepChapters: Bool = true
-    @State var videoExtractSelectedTitles: Set<String> = ["TITLE_01", "TITLE_02"]
-    @State var ps1AutoMergeMultiBinAndCHD: Bool = true
-    @State var ps2ApplyESRPatch: Bool = false
-    @State var gcPadToOuterEdge3GB: Bool = true
-    @State var wiiLayerMode: String = "Auto-Detect (DVD5 4.7GB / DVD9 LBA 2084960)"
-    @State var xboxVerifyStealthSectors: Bool = true
-    @State var cdExtraDataVolumeName: String = "BONUS_EXTRA"
-    @State var cdExtraIncludeLinerNotes: Bool = true
-    @State var avchdBitrateCap: String = "18 Mbps (3x DVD-R Safe)"
-    @State var uhdPreserveHDR10DolbyVision: Bool = true
-    @State var copySourceOverrideLabel: String = ""
-    @State var copyOutputFolderPath: String = "~/Music/Krouton Rips"
-    @State var copyStatusBanner: String = ""
-    @State var audioRipTracks: [KroutonRipTrackItem] = KroutonRipTrackItem.defaultRedBookTOC
-    @State var videoExtractTitles: [KroutonVideoExtractTitleItem] = KroutonVideoExtractTitleItem.defaultVideoTitles
 
     var primarySelectedDrive: KroutonToasterInfo? {
         if let firstBurnerCard = store.destinationQueue.first(where: { $0.kind == .physicalBurner }),
@@ -541,7 +489,15 @@ struct KroutonMainWorkspaceView: View {
                 case .depot:
                     depotWorkspaceView
                 case .copy:
-                    copyWorkspaceView
+                    KroutonCopyAndRipWorkspaceView(
+                        store: store,
+                        primarySelectedDrive: primarySelectedDrive,
+                        isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
+                        fitToDiscDVD9Shrink: $fitToDiscDVD9Shrink,
+                        preserveMenusAndExtras: $preserveMenusAndExtras,
+                        cdTextAlbumTitle: $cdTextAlbumTitle,
+                        cdTextAlbumPerformer: $cdTextAlbumPerformer
+                    )
                 case .label:
                     labelWorkspaceView
                 }

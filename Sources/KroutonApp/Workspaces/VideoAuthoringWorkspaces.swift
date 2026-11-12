@@ -14,8 +14,23 @@ import UniformTypeIdentifiers
 import Foundation
 import Combine
 
-extension KroutonMainWorkspaceView {
-    func videoDiscAuthoringWorkspace(for spec: KroutonRecipeSpec) -> some View {
+struct KroutonVideoAuthoringWorkspaceView: View {
+    @ObservedObject var store: KroutonStateStore
+    let spec: KroutonRecipeSpec
+    let isCenterWorkspaceNarrow: Bool
+    @Binding var fitToDiscDVD9Shrink: Bool
+    let preserveMenusAndExtras: Bool
+    @Binding var isDropTargeted: Bool
+    let onHandleFinderDrop: ([NSItemProvider]) -> Bool
+
+    @State private var showVideoOvenPopover: Bool = false
+    @State private var videoMenuTemplate: String = "Dark Studio Chapter Grid"
+    @State private var videoSystemStandard: String = "NTSC 16:9 (29.97 / 23.976p)"
+    @State private var videoDualLayerBreakSector: String = "Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)"
+    @State private var avchdBitrateCap: String = "18 Mbps (3x DVD-R Safe)"
+    @State private var uhdPreserveHDR10DolbyVision: Bool = true
+
+    var body: some View {
         let isDualLayer = spec.technicalName.contains("DL") || spec.technicalName.contains("DVD-9") || spec.colloquialName.contains("50 GB") || spec.colloquialName.contains("UHD")
         let isBluRay = spec.technicalName.contains("BD") || spec.technicalName.contains("AVCHD")
         return VStack(alignment: .leading, spacing: 10) {
@@ -49,7 +64,7 @@ extension KroutonMainWorkspaceView {
                     }
                     .buttonStyle(.plain)
                     .popover(isPresented: $showVideoOvenPopover, arrowEdge: .bottom) {
-                        videoOvenBitrateAndShrinkPopoverView(for: spec, isBluRay: isBluRay, isDualLayer: isDualLayer)
+                        KroutonVideoOvenPopoverView(store: store, spec: spec, isBluRay: isBluRay, isDualLayer: isDualLayer, fitToDiscDVD9Shrink: fitToDiscDVD9Shrink, preserveMenusAndExtras: preserveMenusAndExtras)
                     }
                 }
 
@@ -273,7 +288,7 @@ extension KroutonMainWorkspaceView {
                 }
             }
             .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-                handleFinderDrop(providers: providers)
+                onHandleFinderDrop(providers)
             }
         }
     }

@@ -14,8 +14,22 @@ import UniformTypeIdentifiers
 import Foundation
 import Combine
 
-extension KroutonMainWorkspaceView {
-    func dataAndArchivalMasteringWorkspace(for activeSpec: KroutonRecipeSpec) -> some View {
+struct KroutonDataAndArchivalWorkspaceView: View {
+    @ObservedObject var store: KroutonStateStore
+    let activeSpec: KroutonRecipeSpec
+    @Binding var enableCustomFinderLayoutTab: Bool
+    @Binding var finderIconSize: Double
+    @Binding var isDropTargeted: Bool
+    let onHandleFinderDrop: ([NSItemProvider]) -> Bool
+
+    @State private var showTartineLBAMapPopover: Bool = false
+    @State private var activeDataWorkspaceTab: Int = 0
+    @State private var finderBgColor: Color = Color(red: 0.13, green: 0.17, blue: 0.24)
+    @State private var mdiscPar2RedundancyPct: Double = 15.0
+    @State private var preserveMacExtendedAttributes: Bool = true
+    @State private var enforce8Dot3RetroCompatibility: Bool = false
+
+    var body: some View {
         let isUniversalHybrid = (activeSpec.id == "data-hybrid" || activeSpec.id == "mdisc-vault")
         let isAppleOnly = (activeSpec.id == "data-apple-apfs")
         let isRetro83 = (activeSpec.id == "data-retro-iso")
@@ -124,7 +138,7 @@ extension KroutonMainWorkspaceView {
                         }
                         .buttonStyle(.plain)
                         .popover(isPresented: $showTartineLBAMapPopover, arrowEdge: .bottom) {
-                            tartineHybridLBAMapPopoverView(for: activeSpec)
+                            KroutonTartineLBAMapPopoverView(store: store, activeSpec: activeSpec)
                         }
 
                         if !isRetro83 {
@@ -375,7 +389,7 @@ extension KroutonMainWorkspaceView {
                     }
                 }
                 .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-                    handleFinderDrop(providers: providers)
+                    onHandleFinderDrop(providers)
                 }
             }
         }

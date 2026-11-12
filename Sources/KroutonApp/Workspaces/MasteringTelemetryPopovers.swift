@@ -14,10 +14,13 @@ import UniformTypeIdentifiers
 import Foundation
 import Combine
 
-extension KroutonMainWorkspaceView {
-    // MARK: - Live Tartine Hybrid LBA Sector Map & Marmalade Red Book .CUE Inspector Popovers
-    @ViewBuilder
-    func tartineHybridLBAMapPopoverView(for activeSpec: KroutonRecipeSpec) -> some View {
+// MARK: - Standalone Mastering Telemetry Popover Views
+
+struct KroutonTartineLBAMapPopoverView: View {
+    @ObservedObject var store: KroutonStateStore
+    let activeSpec: KroutonRecipeSpec
+
+    var body: some View {
         let plan = store.planLiveTartineHybridLayout(
             volumeLabel: store.discVolumeTitle,
             entries: store.stagedFiles,
@@ -98,9 +101,15 @@ extension KroutonMainWorkspaceView {
         .padding(14)
         .frame(width: 560)
     }
+}
 
-    @ViewBuilder
-    func marmaladeRedBookCuePopoverView() -> some View {
+struct KroutonMarmaladeCuePopoverView: View {
+    @ObservedObject var store: KroutonStateStore
+    let cdTextAlbumTitle: String
+    let cdTextAlbumPerformer: String
+    let cdTextUPCBarcode: String
+
+    var body: some View {
         let cueText = store.compileLiveMarmaladeCueSheet(
             albumTitle: cdTextAlbumTitle,
             albumPerformer: cdTextAlbumPerformer,
@@ -155,15 +164,17 @@ extension KroutonMainWorkspaceView {
         .padding(14)
         .frame(width: 560)
     }
+}
 
+struct KroutonVideoOvenPopoverView: View {
+    @ObservedObject var store: KroutonStateStore
+    let spec: KroutonRecipeSpec
+    let isBluRay: Bool
+    let isDualLayer: Bool
+    let fitToDiscDVD9Shrink: Bool
+    let preserveMenusAndExtras: Bool
 
-
-    @ViewBuilder
-    func videoOvenBitrateAndShrinkPopoverView(
-        for spec: KroutonRecipeSpec,
-        isBluRay: Bool,
-        isDualLayer: Bool
-    ) -> some View {
+    var body: some View {
         let medium: KroutonVideoTargetMedium = {
             if isBluRay {
                 return isDualLayer ? .bd50DualLayer : .bd25SingleLayer

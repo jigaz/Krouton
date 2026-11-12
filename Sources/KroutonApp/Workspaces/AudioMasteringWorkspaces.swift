@@ -14,8 +14,24 @@ import UniformTypeIdentifiers
 import Foundation
 import Combine
 
-extension KroutonMainWorkspaceView {
-    func redBookAudioMasteringWorkspace(for spec: KroutonRecipeSpec) -> some View {
+struct KroutonRedBookAudioWorkspaceView: View {
+    @ObservedObject var store: KroutonStateStore
+    let spec: KroutonRecipeSpec
+    let isCenterWorkspaceNarrow: Bool
+    @Binding var cdTextAlbumTitle: String
+    @Binding var cdTextAlbumPerformer: String
+    @Binding var auditioningTrackID: UUID?
+    @Binding var isDropTargeted: Bool
+    let onHandleFinderDrop: ([NSItemProvider]) -> Bool
+
+    @State private var showMarmaladeCuePopover: Bool = false
+    @State private var cdTextUPCBarcode: String = "012345678905"
+    @State private var enableHiddenTrackOneHTOA: Bool = false
+    @State private var defaultAudioTransition: String = "2.0s Standard Pre-Gap (INDEX 00)"
+    @State private var cdExtraDataVolumeName: String = "BONUS_EXTRA"
+    @State private var cdExtraIncludeLinerNotes: Bool = true
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             // WaveBurner CD-TEXT, UPC/MCN & HTOA Mastering Deck
             VStack(alignment: .leading, spacing: 8) {
@@ -50,7 +66,7 @@ extension KroutonMainWorkspaceView {
                     }
                     .buttonStyle(.plain)
                     .popover(isPresented: $showMarmaladeCuePopover, arrowEdge: .bottom) {
-                        marmaladeRedBookCuePopoverView()
+                        KroutonMarmaladeCuePopoverView(store: store, cdTextAlbumTitle: cdTextAlbumTitle, cdTextAlbumPerformer: cdTextAlbumPerformer, cdTextUPCBarcode: cdTextUPCBarcode)
                     }
                 }
 
@@ -306,13 +322,28 @@ extension KroutonMainWorkspaceView {
                 }
             }
             .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-                handleFinderDrop(providers: providers)
+                onHandleFinderDrop(providers)
             }
         }
     }
 
 
-    func carSafeAudioMasteringWorkspace(for spec: KroutonRecipeSpec) -> some View {
+}
+
+struct KroutonCarSafeAudioWorkspaceView: View {
+    @ObservedObject var store: KroutonStateStore
+    let spec: KroutonRecipeSpec
+    let isCenterWorkspaceNarrow: Bool
+    @Binding var isDropTargeted: Bool
+    let onHandleFinderDrop: ([NSItemProvider]) -> Bool
+
+    @State private var carSafeZeroPadNumbers: Bool = true
+    @State private var carSafeStripAppleDouble: Bool = true
+    @State private var carSafeEnforceID3v23: Bool = true
+    @State private var carSafeGenerateM3U: Bool = true
+    @State private var carSafeTranscodeTarget: String = "320 kbps CBR MP3 (Universal Car Deck)"
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 10) {
@@ -489,7 +520,7 @@ extension KroutonMainWorkspaceView {
                 }
             }
             .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-                handleFinderDrop(providers: providers)
+                onHandleFinderDrop(providers)
             }
         }
     }

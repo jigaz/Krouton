@@ -10,8 +10,30 @@ import Crustini
 
 // MARK: - Phase 4: Extracted Optical Copy, Audio CD Rip & Video Remux Workspaces
 
-extension KroutonMainWorkspaceView {
-    var copyWorkspaceView: some View {
+struct KroutonCopyAndRipWorkspaceView: View {
+    @ObservedObject var store: KroutonStateStore
+    let primarySelectedDrive: KroutonToasterInfo?
+    let isCenterWorkspaceNarrow: Bool
+    @Binding var fitToDiscDVD9Shrink: Bool
+    @Binding var preserveMenusAndExtras: Bool
+    @Binding var cdTextAlbumTitle: String
+    @Binding var cdTextAlbumPerformer: String
+
+    @State private var audioRipCodec: String = "FLAC (Lossless)"
+    @State private var audioRipAccurateRip: Bool = true
+    @State private var audioRipGenerateCueLog: Bool = true
+    @State private var audioRipSelectedTracks: Set<Int> = [1, 2, 3, 4, 5]
+    @State private var videoExtractMode: String = "Lossless MKV Remux"
+    @State private var videoExtractMinSeconds: Int = 120
+    @State private var videoExtractKeepChapters: Bool = true
+    @State private var videoExtractSelectedTitles: Set<String> = ["TITLE_01", "TITLE_02"]
+    @State private var copySourceOverrideLabel: String = ""
+    @State private var copyOutputFolderPath: String = "~/Music/Krouton Rips"
+    @State private var copyStatusBanner: String = ""
+    @State private var audioRipTracks: [KroutonRipTrackItem] = KroutonRipTrackItem.defaultRedBookTOC
+    @State private var videoExtractTitles: [KroutonVideoExtractTitleItem] = KroutonVideoExtractTitleItem.defaultVideoTitles
+
+    var body: some View {
         let isShrinkTask = (store.selectedTaskID == "copy-duplicate" || store.selectedTaskID == "copy-shrink-dvd")
         let isAudioRipTask = (store.selectedTaskID == "copy-rip-audio" || store.selectedTaskID == "copy-audio-rip")
 

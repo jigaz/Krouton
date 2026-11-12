@@ -14,8 +14,20 @@ import UniformTypeIdentifiers
 import Foundation
 import Combine
 
-extension KroutonMainWorkspaceView {
-    func discImageInspectorWorkspace(for spec: KroutonRecipeSpec) -> some View {
+struct KroutonDiscImageInspectorWorkspaceView: View {
+    @ObservedObject var store: KroutonStateStore
+    let spec: KroutonRecipeSpec
+    @Binding var isDropTargeted: Bool
+    let onPromptToAddFiles: () -> Void
+    let onHandleFinderDrop: ([NSItemProvider]) -> Bool
+
+    @State private var discImageWriteMethod: String = "DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)"
+    @State private var verifyImageSHA256BeforeBurn: Bool = true
+    @State private var inspectedImageLBA: Int = 17
+    @State private var computedImageSHA256: String = ""
+    @State private var imageActionStatusBanner: String = ""
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             // Top Mastering Bar
             VStack(alignment: .leading, spacing: 8) {
@@ -479,7 +491,7 @@ extension KroutonMainWorkspaceView {
                             .foregroundStyle(.secondary)
 
                         Button {
-                            promptToAddFiles()
+                            onPromptToAddFiles()
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "folder.badge.plus")
@@ -502,7 +514,7 @@ extension KroutonMainWorkspaceView {
                 store.clearStagedFiles()
                 computedImageSHA256 = ""
                 imageActionStatusBanner = ""
-                return handleFinderDrop(providers: providers)
+                return onHandleFinderDrop(providers)
             }
         }
     }

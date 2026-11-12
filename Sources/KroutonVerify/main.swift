@@ -815,6 +815,8 @@ harness.runSuite("21. Phase 4 Workspace Modularization & 600-LOC File Ceiling Ga
         if let content = try? String(contentsOf: url, encoding: .utf8) {
             let lineCount = content.components(separatedBy: .newlines).count
             h.check(lineCount <= 600, "\(file) must stay <= 600 LOC (Rule 4 ceiling), found \(lineCount) LOC")
+            h.check(!content.contains("extension KroutonMainWorkspaceView"), "\(file) must use standalone View structs, not extension KroutonMainWorkspaceView")
+            h.check(content.contains(": View {"), "\(file) must declare at least one standalone SwiftUI View struct")
         }
     }
 
