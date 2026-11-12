@@ -922,8 +922,7 @@ extension KroutonMainWorkspaceView {
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.leading, 12)
-            .padding(.trailing, 16)
+            .padding(.horizontal, 12)
             .padding(.vertical, 10)
 
             Divider()
@@ -935,8 +934,7 @@ extension KroutonMainWorkspaceView {
                         destinationCard(item: item)
                     }
                 }
-                .padding(.leading, 12)
-                .padding(.trailing, 16)
+                .padding(.horizontal, 12)
                 .padding(.vertical, 12)
             }
 
@@ -961,8 +959,7 @@ extension KroutonMainWorkspaceView {
                             .lineLimit(1)
                     }
                 }
-                .padding(.leading, 12)
-            .padding(.trailing, 16)
+                .padding(.horizontal, 12)
                 .padding(.top, 10)
             }
 

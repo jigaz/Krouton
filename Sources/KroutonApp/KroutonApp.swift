@@ -283,7 +283,7 @@ struct KroutonMainWorkspaceView: View {
                 let maxAllowedRight = max(195, min(440, totalW - clampedLeft - minCenterW - 22))
                 let clampedRight = min(max(195, rightColumnLiveWidth), maxAllowedRight)
 
-                let centerLiveW = max(minCenterW, totalW - clampedLeft - clampedRight - 14)
+                let centerLiveW = max(0, totalW - clampedLeft - clampedRight - 22)
 
                 HStack(spacing: 0) {
                     leftFormatChooserColumn
@@ -359,6 +359,7 @@ struct KroutonMainWorkspaceView: View {
                         .frame(maxHeight: .infinity)
                         .clipped()
                 }
+                .frame(width: totalW, alignment: .leading)
                 .coordinateSpace(name: "KroutonSplitSpace")
                 .onAppear {
                     isLeftSidebarCompact = clampedLeft < 265
