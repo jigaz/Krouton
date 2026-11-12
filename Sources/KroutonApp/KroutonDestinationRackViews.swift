@@ -59,7 +59,7 @@ extension KroutonMainWorkspaceView {
                     }
                 }
                 .labelsHidden()
-                .frame(minWidth: 74, maxWidth: 175)
+                .frame(minWidth: 120, maxWidth: 190)
                 .layoutPriority(1)
 
                 Spacer(minLength: 4)

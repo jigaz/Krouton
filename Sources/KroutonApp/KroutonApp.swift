@@ -202,8 +202,8 @@ struct KroutonMainWorkspaceView: View {
     @State var labelSubtitle: String = "2026 MASTER EDITION"
     @State var autoLabelSearchQuery: String = "Dark Side of the Moon"
     @State var depotSearchQuery: String = ""
-    @State var leftColumnLiveWidth: CGFloat = 168
-    @State var rightColumnLiveWidth: CGFloat = 345
+    @State var leftColumnLiveWidth: CGFloat = 196
+    @State var rightColumnLiveWidth: CGFloat = 315
     @State var leftSidebarDragStartWidth: CGFloat? = nil
     @State var rightSidebarDragStartWidth: CGFloat? = nil
     @State var dropRejectShakePhase: CGFloat = 0
@@ -278,8 +278,8 @@ struct KroutonMainWorkspaceView: View {
             GeometryReader { windowGeo in
                 let totalW = windowGeo.size.width
                 let minCenterW: CGFloat = 380
-                let maxAllowedLeft = max(142, min(340, totalW - rightColumnLiveWidth - minCenterW))
-                let clampedLeft = min(max(142, leftColumnLiveWidth), maxAllowedLeft)
+                let maxAllowedLeft = max(182, min(340, totalW - rightColumnLiveWidth - minCenterW))
+                let clampedLeft = min(max(182, leftColumnLiveWidth), maxAllowedLeft)
                 let maxAllowedRight = max(195, min(440, totalW - clampedLeft - minCenterW))
                 let clampedRight = min(max(195, rightColumnLiveWidth), maxAllowedRight)
 
@@ -304,8 +304,8 @@ struct KroutonMainWorkspaceView: View {
                             .onChanged { val in
                                 if leftSidebarDragStartWidth == nil { leftSidebarDragStartWidth = clampedLeft }
                                 let startW = leftSidebarDragStartWidth ?? clampedLeft
-                                let maxL = max(142, min(340, totalW - clampedRight - minCenterW - 22))
-                                let newW = min(max(142, startW + val.translation.width), maxL)
+                                let maxL = max(182, min(340, totalW - clampedRight - minCenterW - 22))
+                                let newW = min(max(182, startW + val.translation.width), maxL)
                                 var tx = Transaction(); tx.disablesAnimations = true
                                 withTransaction(tx) {
                                     leftColumnLiveWidth = newW
@@ -344,8 +344,8 @@ struct KroutonMainWorkspaceView: View {
                                 var tx = Transaction(); tx.disablesAnimations = true
                                 withTransaction(tx) {
                                     rightColumnLiveWidth = newW
-                                    if !isRightQueueCompact && newW < 335 { isRightQueueCompact = true }
-                                    else if isRightQueueCompact && newW > 348 { isRightQueueCompact = false }
+                                    if !isRightQueueCompact && newW < 355 { isRightQueueCompact = true }
+                                    else if isRightQueueCompact && newW > 368 { isRightQueueCompact = false }
                                 }
                             }
                             .onEnded { _ in
@@ -363,7 +363,7 @@ struct KroutonMainWorkspaceView: View {
                 .onAppear {
                     isLeftSidebarCompact = clampedLeft < 265
                     isLeftSidebarUltraSkinny = clampedLeft < 215
-                    isRightQueueCompact = clampedRight < 342
+                    isRightQueueCompact = clampedRight < 355
                     isCenterWorkspaceUltraCompact = centerLiveW < 500
                     isCenterWorkspaceNarrow = centerLiveW < 720
                 }
