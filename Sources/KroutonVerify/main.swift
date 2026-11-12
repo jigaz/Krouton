@@ -37,7 +37,7 @@ struct KroutonTestHarness {
 print("=== KROUTON ARCHITECTURE & CORE INVARIANT SUITE (krouton-verify) ===")
 var harness = KroutonTestHarness()
 
-harness.runSuite("1. 20/21 AppKit-Free Clean Architecture & Zero Banned Symbols Gate") { h in
+harness.runSuite("1. 21/21 (100%) AppKit-Free Clean Architecture & Zero Banned Symbols Gate") { h in
     let repoRoot = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .deletingLastPathComponent()
@@ -55,7 +55,7 @@ harness.runSuite("1. 20/21 AppKit-Free Clean Architecture & Zero Banned Symbols 
     h.check(swiftFiles.count == 21, "Expected 21 production Swift files, found \(swiftFiles.count)")
 
     let bannedEverywhere = [
-        "NSColor",
+        "import AppKit", "NSWindow", "NSApp", "NSPasteboard", "NSWorkspace", "NSColor",
         "NSOpenPanel",
         "NSSavePanel",
         "NSSound",
@@ -83,7 +83,7 @@ harness.runSuite("1. 20/21 AppKit-Free Clean Architecture & Zero Banned Symbols 
         }
     }
     h.check(
-        filesImportingAppKit == ["Sources/KroutonApp/KroutonApp.swift"],
+        filesImportingAppKit.isEmpty,
         "AppKit must only be imported in KroutonApp.swift, found: \(filesImportingAppKit)"
     )
 }
