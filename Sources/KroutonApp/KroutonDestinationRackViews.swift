@@ -60,7 +60,7 @@ extension KroutonMainWorkspaceView {
                     }
                 }
                 .labelsHidden()
-                .frame(minWidth: 135, maxWidth: 175)
+                .frame(minWidth: 95, maxWidth: 175)
                 .layoutPriority(1)
 
                 Spacer(minLength: 4)
@@ -221,43 +221,19 @@ extension KroutonMainWorkspaceView {
                                 KroutonSliceMediaPopover(drive: activeDrive, accent: store.uiSecondaryAccent)
                             }
 
-                            if canErase {
-                                Menu {
-                                    Button("Quick Erase (Fast TOC Blank — ~30s)") {
-                                        driveManager.eraseRewritableDisc(driveID: activeCardDriveID, fullErase: false) { _ in }
-                                    }
-                                    Button("Full Erase (Zero All Sectors)") {
-                                        driveManager.eraseRewritableDisc(driveID: activeCardDriveID, fullErase: true) { _ in }
-                                    }
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "eraser.fill")
-                                        Text(KroutonL10n.tr("Erase RW"))
-                                            .lineLimit(1)
-                                    }
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundStyle(store.uiSecondaryAccent)
-                                }
-                                .menuStyle(.borderlessButton)
-                                .tint(store.uiSecondaryAccent)
-                                .fixedSize()
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(store.uiSecondaryAccent.opacity(0.16))
-                                .clipShape(Capsule())
-                                .help("Erase rewritable disc in \(activeDrive.displayName)")
-                            }
-
                             Spacer(minLength: 0)
                         }
                     }
                 }
 
-                HStack {
-                    Text(isRightQueueCompact ? "Speed:" : KroutonL10n.tr("Write Speed:")).lineLimit(1)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
+                HStack(spacing: 6) {
+                    if !isRightQueueCompact {
+                        Text(KroutonL10n.tr("Write Speed:"))
+                            .lineLimit(1)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer(minLength: 4)
+                    }
                     Picker("", selection: Binding(
                         get: {
                             validSpeeds.contains(item.speedOrCodec) ? item.speedOrCodec : "Max Safe (Auto)"
@@ -271,7 +247,7 @@ extension KroutonMainWorkspaceView {
                         }
                     }
                     .labelsHidden()
-                    .frame(width: 155)
+                    .frame(maxWidth: isRightQueueCompact ? .infinity : 155)
                 }
 
                 // Multi-Copy Batch & Book Type Bitsetting Row
@@ -292,7 +268,7 @@ extension KroutonMainWorkspaceView {
 
                     Spacer(minLength: 4)
 
-                    if store.forceDVDROMBookType {
+                    if store.forceDVDROMBookType && !isRightQueueCompact {
                         HStack(spacing: 3) {
                             Image(systemName: "seal.fill")
                                 .font(.system(size: 8))

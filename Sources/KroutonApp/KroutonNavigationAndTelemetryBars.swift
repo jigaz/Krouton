@@ -48,7 +48,7 @@ extension KroutonMainWorkspaceView {
                                 id: fmt.id,
                                 category: .burn,
                                 title: fmt.technicalName,
-                                shortTitle: fmt.shortDisplayName,
+                                shortTitle: fmt.exactShortDisplayName,
                                 colloquial: fmt.colloquialName,
                                 badge: fmt.sourceSupport,
                                 sfSymbol: fmt.sfSymbol
@@ -467,7 +467,7 @@ extension KroutonMainWorkspaceView {
                             size: 28,
                             symbolSize: 15
                         )
-                        Text(isCenterWorkspaceNarrow ? activeSpec.shortDisplayName : activeSpec.technicalName)
+                        Text(isCenterWorkspaceNarrow ? activeSpec.exactShortDisplayName : activeSpec.technicalName)
                             .font(.title3.bold())
                             .lineLimit(1)
                         if !isCenterWorkspaceNarrow {
@@ -477,10 +477,12 @@ extension KroutonMainWorkspaceView {
                                 .lineLimit(1)
                         }
                     }
-                    Text("Spec: \(activeSpec.bookOrFileSystem) • Laser: \(activeSpec.laserType) • Source: \(activeSpec.sourceSupport)")
-                        .font(.caption)
-                        .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.82) : Color.secondary)
-                        .lineLimit(1)
+                    if !isCenterWorkspaceNarrow {
+                        Text("Spec: \(activeSpec.bookOrFileSystem) • Laser: \(activeSpec.laserType) • Source: \(activeSpec.sourceSupport)")
+                            .font(.caption)
+                            .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.82) : Color.secondary)
+                            .lineLimit(1)
+                    }
                 }
                 Spacer(minLength: 6)
 
@@ -511,7 +513,7 @@ extension KroutonMainWorkspaceView {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: addButtonSymbol(for: activeSpec))
-                        Text(KroutonL10n.tr(addButtonTitle(for: activeSpec)))
+                        Text(isCenterWorkspaceNarrow ? KroutonL10n.tr("Add Files...") : KroutonL10n.tr(addButtonTitle(for: activeSpec)))
                             .lineLimit(1)
                     }
                     .font(.system(size: 12, weight: .semibold))

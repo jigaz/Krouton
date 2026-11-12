@@ -854,9 +854,11 @@ extension KroutonMainWorkspaceView {
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text(KroutonL10n.tr("CD-TEXT: 7-Bit ASCII Hardware Safe"))
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.green)
+                    if !isCenterWorkspaceNarrow {
+                        Text(KroutonL10n.tr("CD-TEXT: 7-Bit ASCII Hardware Safe"))
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.green)
+                    }
 
                     Button {
                         showMarmaladeCuePopover.toggle()
@@ -1116,9 +1118,11 @@ extension KroutonMainWorkspaceView {
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text(isBluRay ? "BDMV + CERTIFICATE Folders Auto-Built" : "VIDEO_TS + Empty AUDIO_TS Enforced")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.green)
+                    if !isCenterWorkspaceNarrow {
+                        Text(isBluRay ? "BDMV + CERTIFICATE Folders Auto-Built" : "VIDEO_TS + Empty AUDIO_TS Enforced")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.green)
+                    }
 
                     Button {
                         showVideoOvenPopover.toggle()

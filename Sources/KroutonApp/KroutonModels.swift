@@ -1556,3 +1556,43 @@ extension KroutonStateStore {
         )
     }
 }
+
+
+extension KroutonRecipeSpec {
+    public var exactShortDisplayName: String {
+        switch id {
+        case "cd-da": return "CD-DA"
+        case "mp3-cd": return "MP3 CD"
+        case "cd-extra": return "CD-Extra"
+        case "dts-cd": return "DTS-CD"
+        case "dvd-audio": return "DVD-Audio"
+        case "sacd-r": return "SACD"
+        case "dvd-video": return "DVD-Video"
+        case "bd-on-dvd": return "AVCHD"
+        case "bd-25": return "BD-R SL"
+        case "bd-50": return "BD-R DL"
+        case "bd-uhd": return "BDXL UHD"
+        case "image-burn": return "Burn Image"
+        case "data-hybrid": return "Hybrid Data"
+        case "data-udf-modern": return "UDF 2.60"
+        case "data-apple-apfs": return "Apple HFS+"
+        case "data-retro-iso": return "DOS 8.3"
+        case "video-svcd", "vcd-svcd": return "VCD"
+        case "mdisc-vault": return "M-DISC"
+        case "dvd-ram": return "DVD-RAM"
+        case "console-wii": return "Wii"
+        case "console-gc": return "GameCube"
+        case "console-ps2": return "PS2"
+        case "console-ps1": return "PS1"
+        case "console-ps3": return "PS3"
+        case "console-xbox": return "Xbox"
+        case "console-dc": return "Dreamcast"
+        case "console-saturn": return "Saturn"
+        case "console-3do": return "3DO / PCE"
+        case "macos9-hfs": return "HFS"
+        case "photo-cd": return "Photo CD"
+        case "cd-g": return "Karaoke"
+        default: return technicalName
+        }
+    }
+}
