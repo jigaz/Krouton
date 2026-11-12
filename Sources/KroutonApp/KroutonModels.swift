@@ -1397,24 +1397,24 @@ extension KroutonRecipeSpec {
     /// Returns the exact lowercase file extensions allowed for this optical format.
     /// Empty array means any file/folder is permitted (New Data & Archival Discs).
     public var allowedFileExtensions: [String] {
-        if id == "audio-cdda" || id == "audio-cdextra" || id == "audio-dtscd" || id == "audio-dvda" {
+        if id == "cd-da" || id == "audio-cdda" || id == "cd-extra" || id == "audio-cdextra" || id == "dts-cd" || id == "audio-dtscd" || id == "dvd-audio" || id == "audio-dvda" {
             return ["wav", "aiff", "aif", "flac", "alac", "m4a", "mp3", "ogg", "opus", "wv", "ape", "dsf", "dff", "caf", "ac3", "dts"]
-        } else if id == "audio-mp3" {
+        } else if id == "mp3-cd" || id == "audio-mp3" {
             return ["mp3", "flac", "m4a", "wav", "ogg", "aac", "wma", "opus"]
-        } else if filterGroup == .video || id.hasPrefix("video-") || id.hasPrefix("bd-") || id == "avchd-dvd" {
+        } else if filterGroup == .video || id.hasPrefix("video-") || id.hasPrefix("bd-") || id == "avchd-dvd" || id == "dvd-video" {
             // Video authoring formats NEVER allow .iso/.dmg/.bin disc images!
             return ["mkv", "mp4", "m4v", "mov", "m2ts", "mts", "ts", "vob", "IFO", "ifo", "avi", "webm", "mpg", "mpeg", "wmv", "hevc", "h264", "bdmv"]
         } else if id == "image-burn" || sourceSupport == "Disc Image" {
-            return ["iso", "dmg", "cdr", "bin", "cue", "img", "toast", "nrg", "mds", "mdf", "ccd"]
-        } else if id == "game-wii" {
-            return ["rvz", "wbfs", "iso", "gcm", "wia", "ciso"]
-        } else if id == "game-gc" {
-            return ["rvz", "gcm", "iso", "ciso"]
-        } else if id == "game-ps2" {
-            return ["iso", "bin", "cue", "mdf", "mds", "chd"]
-        } else if id == "game-ps1" {
-            return ["cue", "bin", "chd", "ccd", "img", "sub", "iso"]
-        } else if id == "game-xbox" {
+            return ["iso", "dmg", "cdr", "bin", "cue", "img", "toast", "nrg", "mds", "mdf", "ccd", "chd", "rvz"]
+        } else if id == "console-wii" || id == "game-wii" {
+            return ["rvz", "wbfs", "iso", "wia", "ciso"]
+        } else if id == "console-gc" || id == "game-gc" {
+            return ["rvz", "gcm", "iso", "ciso", "gcz"]
+        } else if id == "console-ps2" || id == "game-ps2" {
+            return ["iso", "chd", "bin", "cue", "mdf", "mds"]
+        } else if id == "console-ps1" || id == "game-ps1" {
+            return ["cue", "bin", "chd", "ccd", "img", "sub"]
+        } else if id == "console-xbox" || id == "game-xbox" {
             return ["iso", "xiso", "dvd"]
         } else if filterGroup == .console {
             return ["cue", "bin", "iso", "chd", "cdi", "gdi", "rvz", "gcm"]
@@ -1433,7 +1433,12 @@ extension KroutonRecipeSpec {
         if filterGroup == .audio { return "Audio tracks (.wav, .flac, .aiff, .m4a, .mp3)" }
         if filterGroup == .video { return "Video streams (.mkv, .mp4, .mov, .m2ts, VIDEO_TS, BDMV)" }
         if id == "image-burn" { return "Disc images (.iso, .dmg, .bin/.cue, .cdr, .img, .toast)" }
-        if filterGroup == .console { return "Console ROM disc images (.cue/.bin, .iso, .rvz, .gcm, .wbfs)" }
+        if id == "console-wii" || id == "game-wii" { return "Nintendo Wii disc images (.rvz, .wbfs, .iso, .wia, .ciso)" }
+        if id == "console-gc" || id == "game-gc" { return "Nintendo GameCube disc images (.rvz, .gcm, .iso, .ciso, .gcz)" }
+        if id == "console-ps2" || id == "game-ps2" { return "PlayStation 2 disc images (.iso, .chd, .bin/.cue, .mdf/.mds)" }
+        if id == "console-ps1" || id == "game-ps1" { return "PlayStation 1 disc images (.cue/.bin, .chd, .ccd/.img/.sub)" }
+        if id == "console-xbox" || id == "game-xbox" { return "Xbox XDVDFS disc images (.iso, .xiso, .dvd)" }
+        if filterGroup == .console { return "Console ROM disc images (.cue/.bin, .iso, .chd, .rvz, .gcm, .wbfs)" }
         return "Files and folders"
     }
 }

@@ -655,8 +655,18 @@ struct KroutonMainWorkspaceView: View {
             return "Add Video Titles (MKV / MP4 / MOV / VIDEO_TS)..."
         } else if spec.isDiscImageBurnFormat {
             return "Select Disc Image (.ISO / .DMG / .BIN / .CUE / .CDR / .TOAST)..."
+        } else if spec.id == "console-wii" {
+            return "Select Wii Image (.RVZ / .WBFS / .ISO)..."
+        } else if spec.id == "console-gc" {
+            return "Select GameCube Image (.RVZ / .GCM / .ISO)..."
+        } else if spec.id == "console-ps2" {
+            return "Select PS2 Image (.ISO / .CHD / .BIN+.CUE)..."
+        } else if spec.id == "console-ps1" {
+            return "Select PS1 Image (.CUE+.BIN / .CHD / .CCD)..."
+        } else if spec.id == "console-xbox" {
+            return "Select Xbox Image (.ISO / .XISO / .DVD)..."
         } else if (spec.filterGroup == .console || spec.id.hasPrefix("console-")) {
-            return "Select Console Disc Image (.CHD / .RVZ / .WBFS / .CUE / .BIN / .ISO)..."
+            return "Select Console Image..."
         } else {
             return "Add Files or Folders..."
         }

@@ -1541,15 +1541,42 @@ extension KroutonMainWorkspaceView {
                     )
 
                 if store.stagedFiles.isEmpty {
+                    let consoleHeadline: String = {
+                        if isCenterWorkspaceNarrow { return KroutonL10n.tr("Drop Console Disc Image") }
+                        switch spec.id {
+                        case "console-wii": return KroutonL10n.tr("Drop Nintendo Wii Disc Image (.RVZ, .WBFS, .ISO)")
+                        case "console-gc": return KroutonL10n.tr("Drop GameCube Mini-DVD Image (.RVZ, .GCM, .ISO)")
+                        case "console-ps2": return KroutonL10n.tr("Drop PlayStation 2 Disc Image (.ISO, .CHD, .CUE + .BIN)")
+                        case "console-ps1": return KroutonL10n.tr("Drop PlayStation 1 Disc Image (.CUE + .BIN, .CHD, .CCD)")
+                        case "console-xbox": return KroutonL10n.tr("Drop Xbox Disc Image (.ISO, .XISO, .DVD)")
+                        default: return KroutonL10n.tr("Drop Console Disc Image")
+                        }
+                    }()
+                    let consoleSubtext: String = {
+                        switch spec.id {
+                        case "console-wii":
+                            return KroutonL10n.tr("Krouton verifies RVL-006 partition tables, rebuilds scrubbed sectors on the fly, and aligns Dual-Layer DVD9 break LBA 2084960.")
+                        case "console-gc":
+                            return KroutonL10n.tr("Krouton verifies 1,459,978,240-byte (712,880 LBA) DOL-006 layout, 32 KB ECC alignment, and optional 3.0 GB outer-edge laser padding.")
+                        case "console-ps2":
+                            return KroutonL10n.tr("Krouton auto-detects PS2 CD-ROM (<700 MB Mode 2 XA) vs PS2 DVD-ROM (UDF 1.02 + ISO9660 Bridge), SYSTEM.CNF boot ID, and ESR patching.")
+                        case "console-ps1":
+                            return KroutonL10n.tr("Krouton verifies 2,352-byte Mode 2 Form 1/2 XA sectors, System Area license strings, Red Book CD-DA pre-gaps, and LibCrypt Subchannel Q.")
+                        case "console-xbox":
+                            return KroutonL10n.tr("Krouton verifies Microsoft XDVDFS partition headers, SS/DMI/PFI stealth security sectors, and XGD2 (1913760) / XGD3 (2133520) layer breaks.")
+                        default:
+                            return KroutonL10n.tr("Krouton verifies 2,352-byte Mode 2 XA sector headers, System Area boot licenses, and Dual-Layer XGD break offsets.")
+                        }
+                    }()
                     VStack(spacing: 10) {
-                        Image(systemName: "gamecontroller.fill")
+                        Image(systemName: spec.sfSymbol)
                             .font(.system(size: 36))
                             .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
-                        Text(isCenterWorkspaceNarrow ? KroutonL10n.tr("Drop Console Disc Image") : KroutonL10n.tr("Drop Console Disc Image (.CHD, .RVZ, .WBFS, .CUE + .BIN, .ISO, .GCM)"))
+                        Text(consoleHeadline)
                             .font(.headline)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
-                        Text(KroutonL10n.tr("Krouton verifies 2,352-byte Mode 2 XA sector headers, System Area boot licenses, and Dual-Layer XGD break offsets."))
+                        Text(consoleSubtext)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
