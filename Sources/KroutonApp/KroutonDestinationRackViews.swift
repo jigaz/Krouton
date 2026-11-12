@@ -41,45 +41,57 @@ extension KroutonMainWorkspaceView {
         let canEject = (cardDrive?.isMediaPresent == true) && !isDriveBusy
 
         return VStack(alignment: .leading, spacing: 10) {
-            // Top Row: Output Kind Picker + Scope Toggle/Dock Button + (Conditional) Eject + Remove Card
-            HStack(spacing: 6) {
-                Image(systemName: item.kind.sfSymbol)
-                    .foregroundStyle(store.uiSecondaryAccent)
-
-                Picker("", selection: Binding(
-                    get: { item.kind },
-                    set: {
-                        let newKind = $0
-                        updateQueueItem(cardID) { $0.kind = newKind }
-                        reconcileUniqueDriveAssignments()
-                    }
-                )) {
+            // Top Row: USB Burner / USB Menu + Scope + Icon-Only Eject + Remove Card
+            HStack(spacing: 5) {
+                Menu {
                     ForEach(allowedDestinationsForCurrentCategory) { kind in
-                        Text(KroutonL10n.tr(kind.rawValue)).tag(kind)
+                        Button {
+                            updateQueueItem(cardID) { $0.kind = kind }
+                            reconcileUniqueDriveAssignments()
+                        } label: {
+                            HStack {
+                                if item.kind == kind { Image(systemName: "checkmark") }
+                                Text(kind == .physicalBurner ? KroutonL10n.tr("USB Burner") : KroutonL10n.tr(kind.rawValue))
+                            }
+                        }
                     }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: item.kind.sfSymbol)
+                            .foregroundStyle(store.uiSecondaryAccent)
+                        Text(
+                            item.kind == .physicalBurner
+                                ? (isRightQueueCompact ? "USB" : KroutonL10n.tr("USB Burner"))
+                                : (isRightQueueCompact ? "ISO" : KroutonL10n.tr(item.kind.rawValue))
+                        )
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 8.5, weight: .bold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(Color.primary.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
-                .labelsHidden()
-                .frame(minWidth: 120, maxWidth: 190)
-                .layoutPriority(1)
+                .buttonStyle(.plain)
 
-                Spacer(minLength: 4)
+                Spacer(minLength: 2)
 
                 if item.kind == .physicalBurner {
-                    // Scope Button: Overrides auto-hide! If floating window is open, changes style and sucks it back into a mini graph when pressed!
                     Button {
                         withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
                             if isFloatingOpen {
-                                // Suck floating window back into inline mini graph!
                                 KroutonWindowManager.shared.closeFloatingPhaseScopeWindow(driveID: activeCardDriveID, suckIntoMiniGraph: true)
                             } else if isInlineVisible {
-                                // Manual override: hide the inline mini graph
                                 driveManager.setManualInlinePin(for: activeCardDriveID, isPinned: false)
                                 if var t = driveManager.driveTelemetry[activeCardDriveID] {
                                     t.isActive = false
                                     driveManager.driveTelemetry[activeCardDriveID] = t
                                 }
                             } else {
-                                // Manual override: pin inline mini graph open & run calibration sweep
                                 driveManager.setManualInlinePin(for: activeCardDriveID, isPinned: true)
                                 driveManager.runPhaseScopeTestSweep(for: activeCardDriveID, keepPinnedAfterSweep: true)
                             }
@@ -90,21 +102,19 @@ extension KroutonMainWorkspaceView {
                             if !isRightQueueCompact { Text(isFloatingOpen ? "Dock" : "Scope").lineLimit(1) }
                         }
                         .font(.system(size: 10, weight: .bold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 4)
                         .background(
                             isFloatingOpen
                                 ? (store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.uiSecondaryAccent)
                                 : (isInlineVisible ? store.uiSecondaryAccent : store.uiSecondaryAccent.opacity(0.18))
                         )
-                        .foregroundStyle(
-                            (isFloatingOpen || isInlineVisible) ? Color.black.opacity(0.9) : store.uiSecondaryAccent
-                        )
+                        .foregroundStyle((isFloatingOpen || isInlineVisible) ? Color.black.opacity(0.9) : store.uiSecondaryAccent)
                         .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
                     .fixedSize()
-                    .help(isFloatingOpen ? "Pull Floating Phase Scope window back into the inline mini graph" : (isInlineVisible ? "Hide inline Phase Scope mini graph" : "Show inline Phase Scope mini graph (overrides auto-hide)"))
+                    .help(isFloatingOpen ? "Pull Floating Phase Scope window back into inline mini graph" : "Toggle inline Phase Scope mini graph")
 
                     if canEject {
                         Button {
@@ -114,7 +124,7 @@ extension KroutonMainWorkspaceView {
                                 if isRightQueueCompact {
                                     Image(systemName: "eject.fill")
                                         .font(.system(size: 10, weight: .semibold))
-                                        .padding(.horizontal, 7)
+                                        .padding(.horizontal, 6)
                                         .padding(.vertical, 4)
                                 } else {
                                     HStack(spacing: 4) {
@@ -122,7 +132,7 @@ extension KroutonMainWorkspaceView {
                                         Text(KroutonL10n.tr("Eject")).lineLimit(1)
                                     }
                                     .font(.system(size: 10, weight: .semibold))
-                                    .padding(.horizontal, 8)
+                                    .padding(.horizontal, 7)
                                     .padding(.vertical, 3)
                                 }
                             }
@@ -144,20 +154,16 @@ extension KroutonMainWorkspaceView {
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
-                    .help("Remove this output from the queue (releases its drive for other cards)")
                 }
             }
 
             if item.kind == .physicalBurner {
                 if driveManager.availableDrives.isEmpty {
                     HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                        Text(KroutonL10n.tr("No USB Optical Drive Connected"))
-                            .font(.system(size: 11, weight: .semibold))
+                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                        Text(KroutonL10n.tr("No USB Optical Drive Connected")).font(.system(size: 11, weight: .semibold))
                     }
                 } else {
-                    // Custom Hardware Drive Menu: Shows all drives, greys out drives selected in other cards, and never shows '(In Use)' on the active drive!
                     Menu {
                         ForEach(driveManager.availableDrives) { d in
                             let isTakenByOther = otherUsedDriveIDs.contains(d.id)
@@ -170,111 +176,119 @@ extension KroutonMainWorkspaceView {
                                 }
                             } label: {
                                 HStack {
-                                    if d.id == activeCardDriveID {
-                                        Image(systemName: "checkmark")
-                                    }
+                                    if d.id == activeCardDriveID { Image(systemName: "checkmark") }
                                     Text(isTakenByOther ? "\(d.displayName) — In Use" : d.displayName)
                                 }
                             }
                             .disabled(isTakenByOther)
                         }
                     } label: {
-                        HStack {
+                        HStack(spacing: 6) {
                             Text(cardDrive?.displayName ?? "Select Optical Burner")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.system(size: 11.5, weight: .medium))
                                 .foregroundStyle(.primary)
                                 .lineLimit(1)
-                            Spacer()
+                                .truncationMode(.middle)
+                            Spacer(minLength: 4)
                             Image(systemName: "chevron.up.chevron.down")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.system(size: 9.5, weight: .bold))
                                 .foregroundStyle(.secondary)
                         }
-                        .padding(.horizontal, 10)
+                        .padding(.horizontal, 8)
                         .padding(.vertical, 5)
                         .background(store.enableSecondaryAccentUITints ? store.uiSecondaryAccent.opacity(0.11) : Color.clear)
-            .background(Color.kroutonControlSurface)
+                        .background(Color.kroutonControlSurface)
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.primary.opacity(0.12), lineWidth: 1))
                     }
                     .buttonStyle(.plain)
 
                     if let activeDrive = cardDrive {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 6) {
                             Button {
                                 activeDiscPopoverCardID = (activeDiscPopoverCardID == cardID) ? nil : cardID
                             } label: {
-                                HStack(spacing: 5) {
+                                HStack(spacing: 4) {
                                     Circle()
                                         .fill(activeDrive.isMediaPresent ? store.uiSecondaryAccent : Color.secondary)
-                                        .frame(width: 7, height: 7)
+                                        .frame(width: 6, height: 6)
                                     Text(activeDrive.statusBadgeText)
                                         .font(.system(size: 10, weight: .semibold))
                                         .lineLimit(1)
                                     Image(systemName: "info.circle")
                                         .font(.system(size: 9))
                                 }
-                                .padding(.horizontal, 9)
-                                .padding(.vertical, 4)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
                                 .background((activeDrive.isMediaPresent ? store.uiSecondaryAccent : Color.secondary).opacity(0.15))
                                 .foregroundStyle(activeDrive.isMediaPresent ? store.uiSecondaryAccent : .secondary)
                                 .clipShape(Capsule())
                             }
                             .buttonStyle(.plain)
-                            .fixedSize()
-                            .help("Click to inspect ATIP/MID manufacturer, dye chemistry, sessions, and sector topology")
                             .popover(isPresented: Binding(
                                 get: { activeDiscPopoverCardID == cardID },
                                 set: { if !$0 { activeDiscPopoverCardID = nil } }
                             ), arrowEdge: .leading) {
                                 KroutonSliceMediaPopover(drive: activeDrive, accent: store.uiSecondaryAccent)
                             }
-
                             Spacer(minLength: 0)
                         }
                     }
                 }
 
+                // Consolidated Single-Row: Speed ('Max') + Copies ('1x')
                 HStack(spacing: 6) {
-                    if !isRightQueueCompact {
-                        Text(KroutonL10n.tr("Write Speed:"))
-                            .lineLimit(1)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Spacer(minLength: 4)
-                    }
-                    Picker("", selection: Binding(
-                        get: {
-                            validSpeeds.contains(item.speedOrCodec) ? item.speedOrCodec : "Max Safe (Auto)"
-                        },
-                        set: { newVal in
-                            updateQueueItem(cardID) { $0.speedOrCodec = newVal }
-                        }
-                    )) {
-                        ForEach(validSpeeds, id: \.self) { spd in
-                            Text(spd).tag(spd)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: isRightQueueCompact ? .infinity : 155)
-                }
+                    let activeSpd = validSpeeds.contains(item.speedOrCodec) ? item.speedOrCodec : "Max Safe (Auto)"
+                    let shortSpd = activeSpd.hasPrefix("Max") ? "Max" : (activeSpd.components(separatedBy: " ").first ?? activeSpd)
 
-                // Multi-Copy Batch & Book Type Bitsetting Row
-                HStack(spacing: 8) {
+                    Menu {
+                        ForEach(validSpeeds, id: \.self) { spd in
+                            Button {
+                                updateQueueItem(cardID) { $0.speedOrCodec = spd }
+                            } label: {
+                                HStack {
+                                    if activeSpd == spd { Image(systemName: "checkmark") }
+                                    Text(spd)
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "gauge.with.dots.needle.67percent")
+                                .font(.system(size: 10))
+                                .foregroundStyle(store.uiSecondaryAccent)
+                            Text(shortSpd)
+                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.system(size: 8.5, weight: .bold))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 4)
+                        .background(Color.primary.opacity(0.06))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Write Speed: \(activeSpd)")
+
+                    Spacer(minLength: 2)
+
                     Stepper(value: Binding(
                         get: { item.copiesToBurn },
                         set: { newCopies in updateQueueItem(cardID) { $0.copiesToBurn = max(1, min(99, newCopies)) } }
                     ), in: 1...99) {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 3) {
                             Image(systemName: item.copiesToBurn > 1 ? "square.stack.3d.up.fill" : "doc.on.doc")
                                 .font(.system(size: 10))
                                 .foregroundStyle(item.copiesToBurn > 1 ? store.uiSecondaryAccent : .secondary)
-                            Text(isRightQueueCompact ? "\(item.copiesToBurn)×" : (item.copiesToBurn > 1 ? "Batch: \(item.copiesToBurn) Copies" : "Copies: 1"))
-                                .font(.system(size: 11, weight: item.copiesToBurn > 1 ? .bold : .regular, design: .monospaced))
+                            Text("\(item.copiesToBurn)×")
+                                .font(.system(size: 11, weight: item.copiesToBurn > 1 ? .bold : .semibold, design: .monospaced))
+                                .lineLimit(1)
                         }
                     }
                     .controlSize(.small)
-
-                    Spacer(minLength: 4)
 
                     if store.forceDVDROMBookType && !isRightQueueCompact {
                         HStack(spacing: 3) {
