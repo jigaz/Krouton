@@ -274,6 +274,8 @@ extension KroutonMainWorkspaceView {
                     .fixedSize()
                     .help("Write Speed: \(activeSpd)")
 
+                    Spacer(minLength: 2)
+
                     Toggle(isOn: Binding(
                         get: { item.simulationMode },
                         set: { val in updateQueueItem(cardID) { $0.simulationMode = val } }
@@ -286,6 +288,8 @@ extension KroutonMainWorkspaceView {
                     .controlSize(.small)
                     .fixedSize()
                     .help("Simulate Burn (Test laser write without committing to media)")
+
+                    Spacer(minLength: 2)
 
                     Toggle(isOn: Binding(
                         get: { item.verifyAfterBurn },
@@ -430,20 +434,6 @@ extension KroutonMainWorkspaceView {
             // Bottom Row: Options on Left + Dedicated Per-Card Action Button on Right
             HStack(spacing: 10) {
                 if item.kind == .physicalBurner || item.kind == .networkBurner {
-                    HStack(spacing: isRightQueueCompact ? 6 : 10) {
-                        Toggle(isRightQueueCompact ? "Sim" : KroutonL10n.tr("Simulate"), isOn: Binding(
-                            get: { item.simulationMode },
-                            set: { val in updateQueueItem(cardID) { $0.simulationMode = val } }
-                        ))
-                        .font(.caption)
-                        .lineLimit(1)
-                        Toggle(KroutonL10n.tr("Verify"), isOn: Binding(
-                            get: { item.verifyAfterBurn },
-                            set: { val in updateQueueItem(cardID) { $0.verifyAfterBurn = val } }
-                        ))
-                        .font(.caption)
-                        .lineLimit(1)
-                    }
                 } else if item.kind == .discImage {
                     Toggle(KroutonL10n.tr("Compress Image"), isOn: Binding(
                         get: { item.compressAfterCreation },
