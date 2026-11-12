@@ -316,6 +316,71 @@ harness.runSuite("10. Krumb LAN Security Engine (RFC-1918 Subnet Guard, HMAC-SHA
     h.check(tamperedAttempt == nil, "Tampered payload with forged signature must be rejected")
 }
 
+
+// 11. Marmalade Red Book CUE Compiler, 18-Byte CD-Text CRC-16 Packager & Equal-Power Crossfade
+harness.runSuite("11. Marmalade Red Book CUE Sheet Compiler, 18B CD-Text CRC-16 & Equal-Power Crossfade") { h in
+    // 11a. Equal-power crossfade energy conservation (fadeOut^2 + fadeIn^2 == 1.0)
+    for step in 0...10 {
+        let t = Double(step) / 10.0
+        let (outG, inG) = KroutonMarmaladeModule.equalPowerCrossfadeGains(progress: t)
+        let energySum = (outG * outG) + (inG * inG)
+        h.check(abs(energySum - 1.0) < 1e-9, "Equal-power crossfade energy must equal 1.0 at t=\(t)")
+    }
+
+    // 11b. 18-Byte Sony/Philips CD-Text Pack & CRC-16 CCITT verification
+    let packs = KroutonMarmaladeModule.buildCDTextPacks(
+        packType: 0x80,
+        trackNumber: 1,
+        text: "KROUTON OVERDRIVE SUITE"
+    )
+    h.check(packs.count == 2, "23-char title + null byte must span 2 x 12-byte CD-Text packs")
+    for p in packs {
+        let raw = p.raw18Bytes
+        h.check(raw.count == 18, "Each Sony/Philips CD-Text pack must be exactly 18 bytes")
+        let recomputedCRC = KroutonMarmaladeModule.computeCDTextInvertedCRC16(Array(raw.prefix(16)))
+        h.check(recomputedCRC == p.crc16Inverted, "CD-Text CRC-16 CCITT must match inverted header+payload checksum")
+    }
+
+    // 11c. Frame-accurate Red Book .cue sheet generation
+    let tracks = [
+        KroutonAudioCube(
+            url: URL(fileURLWithPath: "/tmp/01.wav"),
+            title: "Solar Overture",
+            performer: "The Bakery",
+            songWriter: "Greybeard",
+            isrcCode: "USKRO2600001",
+            durationSeconds: 10.0,
+            preGapSeconds: 2.0,
+            crossfadeSeconds: 0.0,
+            transitionStyle: .standard2s,
+            preEmphasisEnabled: true,
+            copyPermittedSCMS: true
+        ),
+        KroutonAudioCube(
+            url: URL(fileURLWithPath: "/tmp/02.wav"),
+            title: "Laser Groove",
+            performer: "The Bakery",
+            songWriter: "Bruder",
+            isrcCode: "USKRO2600002",
+            durationSeconds: 20.0,
+            preGapSeconds: 0.0,
+            crossfadeSeconds: 2.0,
+            transitionStyle: .gapless0s
+        )
+    ]
+    let cue = KroutonMarmaladeModule.compileRedBookCueSheet(
+        albumTitle: "Krouton Red Book Master",
+        albumPerformer: "The Bakery",
+        mcnCatalog: "0123456789012",
+        tracks: tracks
+    )
+    h.check(cue.contains("CATALOG 0123456789012"), "CUE sheet must contain 13-digit CATALOG")
+    h.check(cue.contains("INDEX 00 00:00:00") && cue.contains("INDEX 01 00:02:00"), "Track 1 pregap + program start")
+    h.check(cue.contains("FLAGS DCP PRE"), "Track 1 SCMS + Pre-emphasis flags")
+    // Track 1 ends at 00:02:00 + 00:10:00 = 00:12:00, and Track 2 has 0s pregap -> INDEX 01 00:12:00
+    h.check(cue.contains("INDEX 01 00:12:00"), "Track 2 gapless start at exact cumulative frame 00:12:00")
+}
+
 print("\n🎯 SUMMARY: \(harness.passed) assertions passed, \(harness.failed) failed.")
 if harness.failed > 0 {
     exit(1)
