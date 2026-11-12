@@ -741,6 +741,38 @@ harness.runSuite("18. VideoOven DVD-9 -> DVD-5 Menu-Preserving Shrink, .IFO Reli
             "All relinked cells on DVD-5 must have seamlessPlaybackFlagSet = true")
 }
 
+harness.runSuite("19. Type-Safe Optical Recipe Catalog, Workspace Routing & File Extension Invariants") { h in
+    let formats = KroutonOpticalRecipeCatalog.defaultFormats
+    h.check(formats.count == 29, "Expected 29 canonical optical recipes, found \(formats.count)")
+
+    for spec in formats {
+        h.check(spec.formatID != nil, "Recipe '\(spec.id)' must map to a valid KroutonFormatID enum case")
+        h.check(!spec.exactShortDisplayName.isEmpty, "Recipe '\(spec.id)' must have a non-empty exactShortDisplayName")
+
+        if spec.filterGroup == .console {
+            h.check(spec.workspaceKind == .retroConsole, "Console format '\(spec.id)' must route to .retroConsole workspace")
+            h.check(!spec.allowedFileExtensions.isEmpty, "Console format '\(spec.id)' must restrict allowedFileExtensions")
+            h.check(!spec.allowsDirectorySelection, "Console format '\(spec.id)' must disallow directory selection")
+        }
+        if spec.filterGroup == .video {
+            h.check(spec.workspaceKind == .videoAuthoring, "Video format '\(spec.id)' must route to .videoAuthoring workspace")
+            h.check(!spec.allowedFileExtensions.contains("iso"), "Video authoring format '\(spec.id)' must never allow .iso images")
+        }
+    }
+
+    // Verify per-console specialized extensions
+    let wii = formats.first { $0.id == KroutonFormatID.consoleWii.rawValue }!
+    h.check(wii.allowedFileExtensions.contains("rvz") && wii.allowedFileExtensions.contains("wbfs"), "Wii must allow .rvz and .wbfs")
+    h.check(!wii.allowedFileExtensions.contains("ccd"), "Wii must not allow PS1 .ccd")
+
+    let ps1 = formats.first { $0.id == KroutonFormatID.consolePS1.rawValue }!
+    h.check(ps1.allowedFileExtensions.contains("cue") && ps1.allowedFileExtensions.contains("ccd"), "PS1 must allow .cue and .ccd")
+    h.check(!ps1.allowedFileExtensions.contains("wbfs"), "PS1 must not allow Wii .wbfs")
+
+    // Verify Copy Task IDs
+    h.check(KroutonCopyTaskID.allCases.count == 3, "Expected 3 canonical KroutonCopyTaskID cases")
+}
+
 print("\n🎯 SUMMARY: \(harness.passed) assertions passed, \(harness.failed) failed.")
 if harness.failed > 0 {
     exit(1)
