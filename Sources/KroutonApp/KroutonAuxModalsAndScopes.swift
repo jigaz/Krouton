@@ -13,7 +13,7 @@ import Foundation
 import Combine
 
 // MARK: - Physically Accurate Optical Disc Icon (Matches Real Dye & Substrate Physics)
-struct OpticalDiscArtworkView: View {
+struct KroutonSliceArtworkView: View {
     let mediaType: String
     let isMediaPresent: Bool
     let isErasable: Bool
@@ -153,8 +153,8 @@ struct OpticalDiscArtworkView: View {
 }
 
 // MARK: - Clickable Disc Pill Popover: Textured Visual Disc Media & Volume Inspector
-struct DiscMediaInspectorPopover: View {
-    let drive: OpticalDriveDevice
+struct KroutonSliceMediaPopover: View {
+    let drive: KroutonToasterInfo
     let accent: Color
 
     var body: some View {
@@ -177,7 +177,7 @@ struct DiscMediaInspectorPopover: View {
     var heroBannerSection: some View {
         let modeLabel = drive.isMediaErasable ? "REWRITABLE MEDIA" : (drive.isMediaBlank ? "WRITE-ONCE BLANK" : "MASTERED DISC")
         return HStack(spacing: 14) {
-            OpticalDiscArtworkView(
+            KroutonSliceArtworkView(
                 mediaType: drive.mediaType,
                 isMediaPresent: drive.isMediaPresent,
                 isErasable: drive.isMediaErasable,
@@ -266,7 +266,7 @@ struct DiscMediaInspectorPopover: View {
         }
     }
 
-    func volumeRowCard(_ vol: MountedVolumePartition) -> some View {
+    func volumeRowCard(_ vol: KroutonMountedSlice) -> some View {
         let countLabel = vol.itemCount >= 2500 ? "2,500+" : "\(vol.itemCount)"
         let unitLabel = vol.isAudioCD ? "Audio Tracks" : "Files"
         let sizeStr = ByteCountFormatter.string(fromByteCount: vol.usedBytes, countStyle: .file)
@@ -449,7 +449,7 @@ struct DiscMediaInspectorPopover: View {
 }
 
 struct KroutonMasteringReportSheet: View {
-    let report: BurnCompletionReport
+    let report: KroutonToastReport
     let accent: Color
     let onDismiss: () -> Void
 
@@ -557,7 +557,7 @@ fileprivate struct ScopeTraceBundle {
 }
 
 fileprivate func buildSmoothScopeTraces(
-    telemetry: DrivePhaseScopeTelemetry,
+    telemetry: KroutonKitchenThermometer,
     size: CGSize,
     maxScaleX: Double,
     maxScaleRPM: Double
@@ -642,8 +642,8 @@ fileprivate func buildSmoothScopeTraces(
     return out
 }
 
-struct InlineMiniPhaseScopeView: View {
-    let telemetry: DrivePhaseScopeTelemetry
+struct KroutonMiniThermometerView: View {
+    let telemetry: KroutonKitchenThermometer
     let accent: Color
     let onPopOut: () -> Void
 
@@ -868,18 +868,18 @@ struct InlineMiniPhaseScopeView: View {
     }
 }
 
-struct FloatingPhaseScopeWindowView: View {
+struct KroutonFloatingThermometerView: View {
     let driveID: String
     @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: DriveManager
+    @ObservedObject var driveManager: KroutonToasterBank
     let onDockInline: () -> Void
 
-    var drive: OpticalDriveDevice? {
+    var drive: KroutonToasterInfo? {
         driveManager.driveForID(driveID)
     }
 
-    var telemetry: DrivePhaseScopeTelemetry {
-        driveManager.telemetryForDrive(driveID) ?? DrivePhaseScopeTelemetry(
+    var telemetry: KroutonKitchenThermometer {
+        driveManager.telemetryForDrive(driveID) ?? KroutonKitchenThermometer(
             id: driveID,
             driveName: drive?.displayName ?? "Optical Burner"
         )
@@ -939,7 +939,7 @@ struct FloatingPhaseScopeWindowView: View {
             // 1. TOP INSTRUMENT HEADER BAR ("Dock" button + Calibration Sweep)
             // =========================================================================
             HStack(spacing: 12) {
-                OpticalDiscArtworkView(
+                KroutonSliceArtworkView(
                     mediaType: drive?.mediaType ?? "CD-RW",
                     isMediaPresent: drive?.isMediaPresent ?? true,
                     isErasable: drive?.isMediaErasable ?? true,
@@ -1486,7 +1486,7 @@ struct FloatingPhaseScopeWindowView: View {
 }
 
 // MARK: - Format Classification Extension for Adaptive Central Workspaces
-extension DiscFormatSpec {
+extension KroutonRecipeSpec {
     var isDiscImageBurnFormat: Bool {
         id == "image-burn" || sourceSupport == "Disc Image"
     }
@@ -1511,7 +1511,7 @@ extension DiscFormatSpec {
     }
 }
 
-extension StagedFileEntry {
+extension KroutonLoafFileEntry {
     var iso9660Level1Name: String {
         let ext = url.pathExtension.uppercased().prefix(3)
         let base = url.deletingPathExtension().lastPathComponent

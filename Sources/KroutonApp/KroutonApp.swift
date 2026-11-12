@@ -7,12 +7,12 @@ import OpticalDough
 final class KroutonWindowManager {
     static let shared = KroutonWindowManager()
     let store = KroutonStateStore()
-    let driveManager = DriveManager()
+    let driveManager = KroutonToasterBank()
 
     var mainWindow: NSWindow?
     var settingsWindow: NSWindow?
     var phaseScopeWindows: [String: NSWindow] = [:]
-    var phaseScopeDelegates: [String: PhaseScopeWindowCloseDelegate] = [:]
+    var phaseScopeDelegates: [String: KroutonThermometerCloseDelegate] = [:]
 
     func openFloatingPhaseScopeWindow(driveID: String) {
         let resolvedDrive = driveManager.driveForID(driveID)
@@ -28,7 +28,7 @@ final class KroutonWindowManager {
             return
         }
 
-        let rootView = FloatingPhaseScopeWindowView(
+        let rootView = KroutonFloatingThermometerView(
             driveID: targetID,
             store: store,
             driveManager: driveManager,
@@ -48,7 +48,7 @@ final class KroutonWindowManager {
         window.center()
         window.isReleasedWhenClosed = false
 
-        let del = PhaseScopeWindowCloseDelegate(driveID: targetID, driveManager: driveManager)
+        let del = KroutonThermometerCloseDelegate(driveID: targetID, driveManager: driveManager)
         self.phaseScopeDelegates[targetID] = del
         window.delegate = del
 
@@ -87,7 +87,7 @@ final class KroutonWindowManager {
         self.mainWindow = window
     }
 
-    func openSettingsWindow(store: KroutonStateStore, driveManager: DriveManager, pane: KroutonSettingsCategory? = nil) {
+    func openSettingsWindow(store: KroutonStateStore, driveManager: KroutonToasterBank, pane: KroutonSettingsCategory? = nil) {
         if let targetPane = pane { store.selectedSettingsPane = targetPane }
         if let existing = settingsWindow {
             existing.makeKeyAndOrderFront(nil)
@@ -114,11 +114,11 @@ final class KroutonWindowManager {
 }
 
 @MainActor
-final class PhaseScopeWindowCloseDelegate: NSObject, NSWindowDelegate {
+final class KroutonThermometerCloseDelegate: NSObject, NSWindowDelegate {
     let driveID: String
-    weak var driveManager: DriveManager?
+    weak var driveManager: KroutonToasterBank?
 
-    init(driveID: String, driveManager: DriveManager) {
+    init(driveID: String, driveManager: KroutonToasterBank) {
         self.driveID = driveID
         self.driveManager = driveManager
     }
@@ -183,7 +183,7 @@ struct KroutonApp: App {
 
 struct KroutonMainWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: DriveManager
+    @ObservedObject var driveManager: KroutonToasterBank
 
     @State var enableCustomFinderLayoutTab: Bool = false
     @State var activeDataWorkspaceTab: Int = 0
@@ -241,7 +241,7 @@ struct KroutonMainWorkspaceView: View {
     @State var computedImageSHA256: String = ""
     @State var imageActionStatusBanner: String = ""
 
-    var primarySelectedDrive: OpticalDriveDevice? {
+    var primarySelectedDrive: KroutonToasterInfo? {
         if let firstBurnerCard = store.destinationQueue.first(where: { $0.kind == .physicalBurner }),
            let match = driveManager.driveForID(firstBurnerCard.targetDriveID) {
             return match
@@ -468,7 +468,7 @@ struct KroutonMainWorkspaceView: View {
 
 
 
-    func taskRowButton(id: String, category: TaskMasterCategory, title: String,
+    func taskRowButton(id: String, category: KroutonBakeryStation, title: String,
         shortTitle: String? = nil, colloquial: String, badge: String = "", sfSymbol: String) -> some View {
         let effectiveTitle = isLeftSidebarCompact ? (shortTitle ?? title) : title
         let isSelected = (store.selectedTaskID == id)
@@ -541,7 +541,7 @@ struct KroutonMainWorkspaceView: View {
 
 
 
-    var filteredDepotItems: [DepotCatalogItem] {
+    var filteredDepotItems: [KroutonPantryCatalogItem] {
         let channelFilter: String? = {
             switch store.selectedTaskID {
             case "depot-rescue": return "Rescue & Diagnostics"
@@ -568,7 +568,7 @@ struct KroutonMainWorkspaceView: View {
         }
     }
 
-    var depotHeroSelectedItem: DepotCatalogItem {
+    var depotHeroSelectedItem: KroutonPantryCatalogItem {
         let items = filteredDepotItems
         if let selID = store.selectedDepotHeroItemID,
            let match = items.first(where: { $0.id == selID }) {
@@ -638,7 +638,7 @@ struct KroutonMainWorkspaceView: View {
 
 
 
-    func addButtonTitle(for spec: DiscFormatSpec) -> String {
+    func addButtonTitle(for spec: KroutonRecipeSpec) -> String {
         if spec.isRedBookAudioFormat {
             return "Add Audio Tracks (WAV / AIFF / FLAC / MP3)..."
         } else if spec.isCarSafeAudioFormat {
@@ -654,7 +654,7 @@ struct KroutonMainWorkspaceView: View {
         }
     }
 
-    func addButtonSymbol(for spec: DiscFormatSpec) -> String {
+    func addButtonSymbol(for spec: KroutonRecipeSpec) -> String {
         if spec.isRedBookAudioFormat || spec.isCarSafeAudioFormat {
             return "waveform.badge.plus"
         } else if spec.isVideoAuthoringFormat {
@@ -703,7 +703,7 @@ struct KroutonMainWorkspaceView: View {
     // MARK: - Retro Console ROM Mastering Deck & Pre-Flight Sanity Engine
 
 
-    func currentPreFlightSanityWarning(for spec: DiscFormatSpec) -> String? {
+    func currentPreFlightSanityWarning(for spec: KroutonRecipeSpec) -> String? {
         if spec.id.hasPrefix("game-"), let drive = primarySelectedDrive, drive.isMediaPresent && drive.isMediaErasable {
             return "Retro Console Pickup Warning: \(drive.displayName) has rewritable \(drive.mediaType) loaded (~20% reflectivity). Vintage PS1/PS2/GameCube/Dreamcast optical pickups require high-reflectivity write-once CD-R or DVD-R media at 4x–8x."
         }
@@ -853,7 +853,7 @@ struct KroutonMainWorkspaceView: View {
 
 
     // Safe UUID-based mutator helper so removing a card never triggers an out-of-bounds index crash
-    func updateQueueItem(_ id: UUID, mutate: @escaping (inout DestinationQueueItem) -> Void) {
+    func updateQueueItem(_ id: UUID, mutate: @escaping (inout KroutonBakeBatchItem) -> Void) {
         guard let idx = store.destinationQueue.firstIndex(where: { $0.id == id }) else { return }
         mutate(&store.destinationQueue[idx])
     }
@@ -878,7 +878,7 @@ struct KroutonMainWorkspaceView: View {
 
 
 
-    func cardActionTitle(for kind: DestinationOutputKind) -> String {
+    func cardActionTitle(for kind: KroutonToasterOutputKind) -> String {
         switch kind {
         case .physicalBurner, .networkBurner:
             return "Burn Disc"
@@ -895,7 +895,7 @@ struct KroutonMainWorkspaceView: View {
         }
     }
 
-    func cardActionSymbol(for kind: DestinationOutputKind) -> String {
+    func cardActionSymbol(for kind: KroutonToasterOutputKind) -> String {
         switch kind {
         case .physicalBurner, .networkBurner:
             return "flame.fill"
@@ -912,14 +912,14 @@ struct KroutonMainWorkspaceView: View {
         }
     }
 
-    func executeSingleDestination(_ target: DestinationQueueItem) {
+    func executeSingleDestination(_ target: KroutonBakeBatchItem) {
         if driveManager.isExecutingQueue {
             driveManager.abortActiveBurn()
             return
         }
 
         if store.stagedFiles.isEmpty && store.selectedCategory == .burn {
-            driveManager.completionReport = BurnCompletionReport(
+            driveManager.completionReport = KroutonToastReport(
                 isSuccess: false,
                 title: "File List Is Empty",
                 summary: "There are no files or folders staged in the central workspace.",
@@ -951,7 +951,7 @@ struct KroutonMainWorkspaceView: View {
         }
 
         if store.stagedFiles.isEmpty && store.selectedCategory == .burn {
-            driveManager.completionReport = BurnCompletionReport(
+            driveManager.completionReport = KroutonToastReport(
                 isSuccess: false,
                 title: "File List Is Empty",
                 summary: "There are no files or folders staged in the central workspace.",
@@ -976,7 +976,7 @@ struct KroutonMainWorkspaceView: View {
         }
     }
 
-    var allowedDestinationsForCurrentCategory: [DestinationOutputKind] {
+    var allowedDestinationsForCurrentCategory: [KroutonToasterOutputKind] {
         switch store.selectedCategory {
         case .burn, .depot:
             return [.physicalBurner, .networkBurner, .discImage]
@@ -987,7 +987,7 @@ struct KroutonMainWorkspaceView: View {
         }
     }
 
-    func syncDefaultDestinationForCategory(_ category: TaskMasterCategory, taskID: String) {
+    func syncDefaultDestinationForCategory(_ category: KroutonBakeryStation, taskID: String) {
         let firstDrive = driveManager.availableDrives.first
         let currentDriveName = firstDrive?.displayName ?? "Optical Drive"
         let currentDriveID = firstDrive?.id ?? ""
@@ -995,25 +995,25 @@ struct KroutonMainWorkspaceView: View {
         switch category {
         case .burn, .depot:
             store.destinationQueue = [
-                DestinationQueueItem(kind: .physicalBurner, targetDriveID: currentDriveID, hardwareOrPath: currentDriveName, speedOrCodec: "Max Safe (Auto)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
+                KroutonBakeBatchItem(kind: .physicalBurner, targetDriveID: currentDriveID, hardwareOrPath: currentDriveName, speedOrCodec: "Max Safe (Auto)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
             ]
         case .copy:
             if taskID == "copy-rip-audio" {
                 store.destinationQueue = [
-                    DestinationQueueItem(kind: .audioRip, targetDriveID: currentDriveID, hardwareOrPath: "~/Music/Krouton Rips/Apple Lossless", speedOrCodec: "ALAC (.m4a) + AccurateRip", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
+                    KroutonBakeBatchItem(kind: .audioRip, targetDriveID: currentDriveID, hardwareOrPath: "~/Music/Krouton Rips/Apple Lossless", speedOrCodec: "ALAC (.m4a) + AccurateRip", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
                 ]
             } else if taskID == "copy-rip-video" {
                 store.destinationQueue = [
-                    DestinationQueueItem(kind: .videoExtract, targetDriveID: currentDriveID, hardwareOrPath: "~/Movies/Krouton Extracts", speedOrCodec: "H.265 (HEVC 10-bit Hardware)", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
+                    KroutonBakeBatchItem(kind: .videoExtract, targetDriveID: currentDriveID, hardwareOrPath: "~/Movies/Krouton Extracts", speedOrCodec: "H.265 (HEVC 10-bit Hardware)", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
                 ]
             } else {
                 store.destinationQueue = [
-                    DestinationQueueItem(kind: .physicalBurner, targetDriveID: currentDriveID, hardwareOrPath: currentDriveName, speedOrCodec: "Max Safe (Auto)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
+                    KroutonBakeBatchItem(kind: .physicalBurner, targetDriveID: currentDriveID, hardwareOrPath: currentDriveName, speedOrCodec: "Max Safe (Auto)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
                 ]
             }
         case .label:
             store.destinationQueue = [
-                DestinationQueueItem(kind: .discPrinter, targetDriveID: "", hardwareOrPath: "Epson EcoTank Photo ET-8550 (CD/DVD Tray)", speedOrCodec: "Claria ET 6-Ink • 120mm / 18mm", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
+                KroutonBakeBatchItem(kind: .discPrinter, targetDriveID: "", hardwareOrPath: "Epson EcoTank Photo ET-8550 (CD/DVD Tray)", speedOrCodec: "Claria ET 6-Ink • 120mm / 18mm", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
             ]
         }
     }
@@ -1024,7 +1024,7 @@ struct KroutonMainWorkspaceView: View {
             let usedDriveIDs = Set(store.destinationQueue.filter { $0.kind == .physicalBurner }.map { $0.targetDriveID })
             if let nextUnusedDrive = driveManager.availableDrives.first(where: { !usedDriveIDs.contains($0.id) }) {
                 store.destinationQueue.append(
-                    DestinationQueueItem(
+                    KroutonBakeBatchItem(
                         kind: .physicalBurner,
                         targetDriveID: nextUnusedDrive.id,
                         hardwareOrPath: nextUnusedDrive.displayName,
@@ -1036,7 +1036,7 @@ struct KroutonMainWorkspaceView: View {
                 )
             } else {
                 store.destinationQueue.append(
-                    DestinationQueueItem(
+                    KroutonBakeBatchItem(
                         kind: .discImage,
                         targetDriveID: "",
                         hardwareOrPath: "~/Desktop/\(store.discVolumeTitle).dmg",
@@ -1049,11 +1049,11 @@ struct KroutonMainWorkspaceView: View {
             }
         case .copy:
             store.destinationQueue.append(
-                DestinationQueueItem(kind: .discImage, targetDriveID: "", hardwareOrPath: "~/Desktop/Disc_Backup.iso", speedOrCodec: "1:1 Archival Sector Image", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
+                KroutonBakeBatchItem(kind: .discImage, targetDriveID: "", hardwareOrPath: "~/Desktop/Disc_Backup.iso", speedOrCodec: "1:1 Archival Sector Image", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
             )
         case .label:
             store.destinationQueue.append(
-                DestinationQueueItem(kind: .pdfVector, targetDriveID: "", hardwareOrPath: "~/Desktop/Epson_ET8550_Label_120mm.pdf", speedOrCodec: "300 DPI Vector PDF Proof", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
+                KroutonBakeBatchItem(kind: .pdfVector, targetDriveID: "", hardwareOrPath: "~/Desktop/Epson_ET8550_Label_120mm.pdf", speedOrCodec: "300 DPI Vector PDF Proof", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
             )
         }
     }

@@ -551,7 +551,7 @@ extension KroutonMainWorkspaceView {
     }
 
     @MainActor
-    private func exportDiscLabelAsPNG(preset: LabelGeometryPreset) {
+    private func exportDiscLabelAsPNG(preset: KroutonSliceLabelGeometry) {
         let exportView = KroutonDiscLabelArtworkCanvas(
             preset: preset,
             template: store.selectedLabelTemplate,
@@ -666,7 +666,7 @@ extension KroutonMainWorkspaceView {
                     Text("Studio Harmony Template")
                         .font(.headline)
                     Picker("Template:", selection: $store.selectedLabelTemplate) {
-                        ForEach(DiscLabelTemplateStyle.allCases) { tpl in
+                        ForEach(KroutonCroutonLabelStyle.allCases) { tpl in
                             Text(tpl.rawValue).tag(tpl)
                         }
                     }
@@ -881,8 +881,8 @@ extension KroutonMainWorkspaceView {
 
 // MARK: - 120mm Optical Disc Label Studio Artwork Renderer (Primary + Secondary Harmony)
 struct KroutonDiscLabelArtworkCanvas: View {
-    let preset: LabelGeometryPreset
-    let template: DiscLabelTemplateStyle
+    let preset: KroutonSliceLabelGeometry
+    let template: KroutonCroutonLabelStyle
     let title: String
     let subtitle: String
     let performer: String

@@ -9,8 +9,8 @@ import SwiftUI
 import AppKit
 
 // MARK: - Metal GPU-Accelerated (.drawingGroup) Pop-Culture Macro-Cropped Bezier Hero Studio
-struct DepotBlueprintArtStudioView: View {
-    let item: DepotCatalogItem
+struct KroutonRecipeBlueprintView: View {
+    let item: KroutonPantryCatalogItem
     let accent: Color
     let isNarrow: Bool
     var useHarmony: Bool = true

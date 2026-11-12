@@ -13,7 +13,7 @@ import Foundation
 import Combine
 
 extension KroutonMainWorkspaceView {
-    func discImageInspectorWorkspace(for spec: DiscFormatSpec) -> some View {
+    func discImageInspectorWorkspace(for spec: KroutonRecipeSpec) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             // Top Mastering Bar
             VStack(alignment: .leading, spacing: 8) {
@@ -73,7 +73,7 @@ extension KroutonMainWorkspaceView {
                     let isRaw2352 = (ext == "bin" || ext == "cue")
                     let sectorByteSize = isRaw2352 ? 2352 : 2048
                     let bootReadout = entry.bootabilityBadge ?? "Non-Bootable Data Volume (Sectors 0..15 Unbooted)"
-                    let hexRows = BootableImageInspector.readSectorHexDump(url: entry.url, lba: inspectedImageLBA, sectorSize: sectorByteSize)
+                    let hexRows = KroutonLoafBootInspector.readSectorHexDump(url: entry.url, lba: inspectedImageLBA, sectorSize: sectorByteSize)
 
                     VStack(alignment: .leading, spacing: 12) {
                         // 1. Top Identity Banner + Interactive Action Pill Bar (EVERY pill is a button!)
@@ -126,7 +126,7 @@ extension KroutonMainWorkspaceView {
                                 }
 
                                 Button {
-                                    let hash = BootableImageInspector.computeSHA256Hex(url: entry.url)
+                                    let hash = KroutonLoafBootInspector.computeSHA256Hex(url: entry.url)
                                     computedImageSHA256 = hash
                                     NSPasteboard.general.clearContents()
                                     NSPasteboard.general.setString(hash, forType: .string)
@@ -490,7 +490,7 @@ extension KroutonMainWorkspaceView {
         }
     }
 
-    func dataAndArchivalMasteringWorkspace(for activeSpec: DiscFormatSpec) -> some View {
+    func dataAndArchivalMasteringWorkspace(for activeSpec: KroutonRecipeSpec) -> some View {
         let isUniversalHybrid = (activeSpec.id == "data-hybrid" || activeSpec.id == "mdisc-vault")
         let isAppleOnly = (activeSpec.id == "data-apple-apfs")
         let isRetro83 = (activeSpec.id == "data-retro-iso")
@@ -807,7 +807,7 @@ extension KroutonMainWorkspaceView {
         }
     }
 
-    func redBookAudioMasteringWorkspace(for spec: DiscFormatSpec) -> some View {
+    func redBookAudioMasteringWorkspace(for spec: KroutonRecipeSpec) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             // WaveBurner CD-TEXT, UPC/MCN & HTOA Mastering Deck
             VStack(alignment: .leading, spacing: 8) {
@@ -955,7 +955,7 @@ extension KroutonMainWorkspaceView {
                                             Text(cleanTitle)
                                                 .font(.system(size: 12, weight: .semibold))
                                                 .lineLimit(1)
-                                            let probe = UniversalMediaDecoderEngine.probeFile(entry.url)
+                                            let probe = KroutonPantryPrepEngine.probeFile(entry.url)
                                             Text("Performer: \(cdTextAlbumPerformer) • [\(probe.shortHardwareBadge)] \(probe.audioCodecName) -> 44.1 kHz 16-Bit PCM")
                                                 .font(.system(size: 10))
                                                 .foregroundStyle(.secondary)
@@ -1026,7 +1026,7 @@ extension KroutonMainWorkspaceView {
         }
     }
 
-    func videoDiscAuthoringWorkspace(for spec: DiscFormatSpec) -> some View {
+    func videoDiscAuthoringWorkspace(for spec: KroutonRecipeSpec) -> some View {
         let isDualLayer = spec.technicalName.contains("DL") || spec.technicalName.contains("DVD-9") || spec.colloquialName.contains("50 GB") || spec.colloquialName.contains("UHD")
         let isBluRay = spec.technicalName.contains("BD") || spec.technicalName.contains("AVCHD")
         return VStack(alignment: .leading, spacing: 10) {
@@ -1163,7 +1163,7 @@ extension KroutonMainWorkspaceView {
                                                 .lineLimit(1)
                                         }
                                         Spacer()
-                                        let vProbe = UniversalMediaDecoderEngine.probeFile(entry.url)
+                                        let vProbe = KroutonPantryPrepEngine.probeFile(entry.url)
                                         Text("\(vProbe.shortHardwareBadge) • \(isBluRay ? "BDMV" : "DVD-V")")
                                             .font(.system(size: 10, weight: .semibold, design: .monospaced))
                                             .foregroundStyle(Color.cyan)
@@ -1201,7 +1201,7 @@ extension KroutonMainWorkspaceView {
         }
     }
 
-    func carSafeAudioMasteringWorkspace(for spec: DiscFormatSpec) -> some View {
+    func carSafeAudioMasteringWorkspace(for spec: KroutonRecipeSpec) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 10) {
@@ -1368,7 +1368,7 @@ extension KroutonMainWorkspaceView {
         }
     }
 
-    func retroConsoleROMWorkspace(for spec: DiscFormatSpec) -> some View {
+    func retroConsoleROMWorkspace(for spec: KroutonRecipeSpec) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             retroConsoleROMMasteringDeck(for: spec)
 
@@ -1511,7 +1511,7 @@ extension KroutonMainWorkspaceView {
         }
     }
 
-    func retroConsoleROMMasteringDeck(for spec: DiscFormatSpec) -> some View {
+    func retroConsoleROMMasteringDeck(for spec: KroutonRecipeSpec) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 Image(systemName: "gamecontroller.fill")

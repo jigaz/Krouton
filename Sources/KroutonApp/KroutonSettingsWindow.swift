@@ -32,16 +32,16 @@ public enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendabl
 
 public struct KroutonSettingsWindowView: View {
     @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: DriveManager
+    @ObservedObject var driveManager: KroutonToasterBank
     // Bound to store.selectedSettingsPane for direct Format Chooser deep-linking
     @State private var searchText: String = ""
 
-    @State private var formatFilter: FormatFilterGroup = .all
-    @State private var formatSortOrder: [KeyPathComparator<DiscFormatSpec>] = [
+    @State private var formatFilter: KroutonRecipeFilterGroup = .all
+    @State private var formatSortOrder: [KeyPathComparator<KroutonRecipeSpec>] = [
         .init(\.technicalName, order: .forward)
     ]
-    @State private var selectedFormatIDs: Set<DiscFormatSpec.ID> = []
-    @AppStorage("KroutonFormatTableColumnCustomization") private var columnCustomization: TableColumnCustomization<DiscFormatSpec>
+    @State private var selectedFormatIDs: Set<KroutonRecipeSpec.ID> = []
+    @AppStorage("KroutonFormatTableColumnCustomization") private var columnCustomization: TableColumnCustomization<KroutonRecipeSpec>
 
     @State private var newPresetName: String = "Custom Disc Tray Preset"
     @State private var newOuterMM: Double = 120.0
@@ -49,7 +49,7 @@ public struct KroutonSettingsWindowView: View {
     @State private var newOffsetX: Double = 0.0
     @State private var newOffsetY: Double = 0.0
 
-    public init(store: KroutonStateStore, driveManager: DriveManager) {
+    public init(store: KroutonStateStore, driveManager: KroutonToasterBank) {
         self.store = store
         self.driveManager = driveManager
     }
@@ -168,7 +168,7 @@ public struct KroutonSettingsWindowView: View {
                     }
                     Spacer()
                     HStack(spacing: 9) {
-                        ForEach(AccentColorPreset.allPresets) { preset in
+                        ForEach(KroutonSeasoningColorPreset.allPresets) { preset in
                             Button {
                                 store.selectedAccentIndex = preset.id
                             } label: {
@@ -240,7 +240,7 @@ public struct KroutonSettingsWindowView: View {
                     }
                     Spacer()
                     HStack(spacing: 12) {
-                        ForEach(IconWidgetStyleMode.allCases) { style in
+                        ForEach(KroutonGarnishStyleMode.allCases) { style in
                             Button {
                                 store.iconWidgetStyle = style
                             } label: {
@@ -297,7 +297,7 @@ public struct KroutonSettingsWindowView: View {
                         .fontWeight(.medium)
                     Spacer()
                     HStack(spacing: 8) {
-                        ForEach(AppAppearanceMode.allCases) { mode in
+                        ForEach(KroutonRoastAppearanceMode.allCases) { mode in
                             pillToggleButton(
                                 title: mode.rawValue,
                                 sfSymbol: mode.sfSymbol,
@@ -317,7 +317,7 @@ public struct KroutonSettingsWindowView: View {
                         Image(systemName: "folder.fill")
                             .foregroundStyle(store.resolvedFolderIconColor)
                         Picker("", selection: $store.folderColorMode) {
-                            ForEach(FolderColorMode.allCases) { fMode in
+                            ForEach(KroutonPantryFolderColorMode.allCases) { fMode in
                                 Text(KroutonL10n.tr(fMode.rawValue)).tag(fMode)
                             }
                         }
@@ -333,7 +333,7 @@ public struct KroutonSettingsWindowView: View {
                         .fontWeight(.medium)
                     Spacer()
                     Picker("", selection: $store.sidebarIconSize) {
-                        ForEach(SidebarIconSizeMode.allCases) { sz in
+                        ForEach(KroutonCubeIconSizeMode.allCases) { sz in
                             Text(KroutonL10n.tr(sz.rawValue)).tag(sz)
                         }
                     }
@@ -417,7 +417,7 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    private var filteredAndSortedFormats: [DiscFormatSpec] {
+    private var filteredAndSortedFormats: [KroutonRecipeSpec] {
         let filtered = store.discFormats.filter { fmt in
             switch formatFilter {
             case .all: return true
@@ -451,7 +451,7 @@ public struct KroutonSettingsWindowView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(FormatFilterGroup.allCases) { group in
+                    ForEach(KroutonRecipeFilterGroup.allCases) { group in
                         pillToggleButton(
                             title: group.rawValue,
                             sfSymbol: "line.3.horizontal.decrease.circle",
@@ -463,7 +463,7 @@ public struct KroutonSettingsWindowView: View {
                 }
             }
 
-            Table(of: DiscFormatSpec.self, selection: $selectedFormatIDs, sortOrder: $formatSortOrder, columnCustomization: $columnCustomization) {
+            Table(of: KroutonRecipeSpec.self, selection: $selectedFormatIDs, sortOrder: $formatSortOrder, columnCustomization: $columnCustomization) {
                 TableColumn(KroutonL10n.tr("Show"), value: \.visibilitySortKey) { fmt in
                     Toggle("", isOn: Binding(
                         get: { fmt.showInTaskChooser },
@@ -639,7 +639,7 @@ public struct KroutonSettingsWindowView: View {
                         .foregroundStyle(.secondary)
                 }
                 Divider()
-                ForEach(UniversalMediaDecoderEngine.liveHardwareCodecMatrix) { row in
+                ForEach(KroutonPantryPrepEngine.liveHardwareCodecMatrix) { row in
                     VStack(alignment: .leading, spacing: 3) {
                         HStack {
                             Image(systemName: row.isHardwareAccelerated ? "bolt.shield.fill" : "cpu")
@@ -760,7 +760,7 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    // MARK: - 6. BURNERS & NETWORK PANE (Live Connected Hardware via DriveManager)
+    // MARK: - 6. BURNERS & NETWORK PANE (Live Connected Hardware via KroutonToasterBank)
     private var burnersNetworkPane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "Connected Optical Burners (Live IOKit / DiscRecording Bus)") {
@@ -824,17 +824,91 @@ public struct KroutonSettingsWindowView: View {
                 }
             }
 
-            settingsCard(title: "Network Optical Server (krouton-node) & Buffer Protection") {
-                Toggle(KroutonL10n.tr("Share this Mac's connected optical drives on the local network"), isOn: $store.enableNetworkServerSharing)
-                Divider()
+            settingsCard(title: "Krumb Headless LAN Burner Daemon (_krumb._tcp.local. • Port 7420)") {
+                let krumb = KrumbKitchenClient.shared
                 HStack {
-                    Text("Server RAM Ring Buffer Allocation: \(Int(store.serverRingBufferMB)) MB")
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(krumb.statusBannerText)
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .foregroundStyle(store.uiSecondaryAccent)
+                        Text("Spool-and-Burn Architecture: Uploads Loaf & Seasoning to Krumb Pantry (>= 1 GB free) before DAO/SAO laser ignition.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     Spacer()
-                    Slider(value: $store.serverRingBufferMB, in: 64...1024, step: 64)
-                        .frame(width: 220)
+                    pillToggleButton(title: "Scan mDNS (7420)", sfSymbol: "antenna.radiowaves.left.and.right", isSelected: false) {
+                        krumb.startZeroConfDiscovery()
+                        Task {
+                            await krumb.refreshToasters()
+                            store.objectWillChange.send()
+                        }
+                    }
+                    pillToggleButton(title: "Calibrate Pantry", sfSymbol: "gauge.with.dots.needle.67percent", isSelected: false) {
+                        Task {
+                            await krumb.runPantryCalibration()
+                            store.objectWillChange.send()
+                        }
+                    }
                 }
                 Divider()
-                Toggle(KroutonL10n.tr("Pre-stage full compiled disc image to remote server SSD before igniting laser"), isOn: $store.preStageImageToServerSSD)
+
+                ForEach(krumb.remoteToasters) { toaster in
+                    HStack(spacing: 10) {
+                        Image(systemName: toaster.isEasyBake ? "sparkles.tv.fill" : "externaldrive.connected.to.line.below.fill")
+                            .foregroundStyle(store.activeAccent)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(toaster.name)
+                                .font(.system(size: 12, weight: .bold))
+                            Text("ToasterID: \(toaster.id) • Rack: \(toaster.rackState.rawValue) • SliceMedia: \(toaster.sliceMedia.rawValue)")
+                                .font(.system(size: 10.5, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        pillToggleButton(
+                            title: toaster.rackState == .open ? "Close Rack" : "Wink / Open Rack",
+                            sfSymbol: "eject.fill",
+                            isSelected: toaster.rackState == .open
+                        ) {
+                            Task {
+                                await krumb.toggleToasterRack(toasterID: toaster.id)
+                                store.objectWillChange.send()
+                            }
+                        }
+                    }
+                }
+
+                Divider()
+
+                HStack(spacing: 12) {
+                    Text("DoggyBag Post-Mortem Policy:")
+                        .fontWeight(.medium)
+                    Picker("", selection: Binding(
+                        get: { krumb.doggyBagPolicy },
+                        set: { newPol in
+                            krumb.doggyBagPolicy = newPol
+                            store.objectWillChange.send()
+                        }
+                    )) {
+                        ForEach(KrumbDoggyBagPolicy.allCases) { pol in
+                            Text(pol.rawValue).tag(pol)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 190)
+
+                    Spacer()
+
+                    pillToggleButton(title: "Export Thermometer (.log + .toc)", sfSymbol: "thermometer.medium", isSelected: false) {
+                        Task { await krumb.exportKitchenThermometerReport() }
+                    }
+                    pillToggleButton(title: "Download DoggyBag", sfSymbol: "takeoutbag.and.cup.and.straw.fill", isSelected: false) {
+                        Task { await krumb.downloadDoggyBagArchive() }
+                    }
+                }
+
+                Divider()
+                Toggle(KroutonL10n.tr("Share this Mac's connected optical drives on the local network"), isOn: $store.enableNetworkServerSharing)
+                Toggle(KroutonL10n.tr("Pre-stage full compiled disc image to remote Krumb Pantry before igniting laser"), isOn: $store.preStageImageToServerSSD)
             }
 
             settingsCard(title: "Optical Drive Hardware & MMC Bitsetting (Retro Console & Set-Top DVD Compatibility)") {
@@ -951,7 +1025,7 @@ public struct KroutonSettingsWindowView: View {
                     Spacer()
                     Button {
                         store.labelPresets.append(
-                            LabelGeometryPreset(
+                            KroutonSliceLabelGeometry(
                                 name: newPresetName,
                                 outerDiameterMM: newOuterMM,
                                 innerDiameterMM: newInnerMM,

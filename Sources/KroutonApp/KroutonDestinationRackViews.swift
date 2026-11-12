@@ -13,7 +13,7 @@ import Foundation
 import Combine
 
 extension KroutonMainWorkspaceView {
-    func destinationCard(item: DestinationQueueItem) -> some View {
+    func destinationCard(item: KroutonBakeBatchItem) -> some View {
         let cardID = item.id
 
         // Drives claimed by OTHER destination cards in the queue
@@ -24,14 +24,14 @@ extension KroutonMainWorkspaceView {
         )
 
         // Resolve THIS card's drive without falling back to a drive already claimed by another card!
-        let cardDrive: OpticalDriveDevice? = {
+        let cardDrive: KroutonToasterInfo? = {
             if let exact = driveManager.availableDrives.first(where: { $0.id == item.targetDriveID }) {
                 return exact
             }
             return driveManager.availableDrives.first(where: { !otherUsedDriveIDs.contains($0.id) }) ?? driveManager.availableDrives.first
         }()
 
-        let activeCardDriveID = cardDrive?.id ?? ""
+        let activeCardDriveID = (item.kind == .networkBurner) ? "krumb-network-toaster" : (cardDrive?.id ?? "")
         let validSpeeds = cardDrive?.availableWriteSpeeds ?? ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
 
         let scopeTel = driveManager.telemetryForDrive(activeCardDriveID)
@@ -220,7 +220,7 @@ extension KroutonMainWorkspaceView {
                                 get: { activeDiscPopoverCardID == cardID },
                                 set: { if !$0 { activeDiscPopoverCardID = nil } }
                             ), arrowEdge: .leading) {
-                                DiscMediaInspectorPopover(drive: activeDrive, accent: store.uiSecondaryAccent)
+                                KroutonSliceMediaPopover(drive: activeDrive, accent: store.uiSecondaryAccent)
                             }
 
                             if canErase {
@@ -378,14 +378,140 @@ extension KroutonMainWorkspaceView {
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(store.uiSecondaryAccent.opacity(0.38), lineWidth: 1))
                 }
             } else if item.kind == .networkBurner {
-                Text(item.hardwareOrPath)
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                HStack(spacing: 5) {
-                    Circle().fill(store.uiSecondaryAccent).frame(width: 7, height: 7)
-                    Text(KroutonL10n.tr("LAN Node Online • 256 MB Ring Buffer"))
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(store.uiSecondaryAccent)
-                    Spacer()
+                let krumb = KrumbKitchenClient.shared
+                let firstToaster = krumb.remoteToasters.first
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "server.rack")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(store.uiSecondaryAccent)
+                        Picker("", selection: Binding(
+                            get: { item.hardwareOrPath.isEmpty ? "localhost:7420" : item.hardwareOrPath },
+                            set: { newHost in
+                                updateQueueItem(cardID) { $0.hardwareOrPath = newHost }
+                                krumb.activeEndpointHost = newHost
+                            }
+                        )) {
+                            ForEach(krumb.discoveredNodes) { node in
+                                Text("\(node.name) (\(node.hostPort))").tag(node.hostPort)
+                            }
+                        }
+                        .labelsHidden()
+
+                        Spacer(minLength: 4)
+
+                        Button {
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                if isFloatingOpen {
+                                    KroutonWindowManager.shared.closeFloatingPhaseScopeWindow(driveID: activeCardDriveID, suckIntoMiniGraph: true)
+                                } else if isInlineVisible {
+                                    driveManager.setManualInlinePin(for: activeCardDriveID, isPinned: false)
+                                    if var t = driveManager.driveTelemetry[activeCardDriveID] {
+                                        t.isActive = false
+                                        driveManager.driveTelemetry[activeCardDriveID] = t
+                                    }
+                                } else {
+                                    driveManager.setManualInlinePin(for: activeCardDriveID, isPinned: true)
+                                    Task {
+                                        _ = await krumb.executeSpoolAndBurn(
+                                            endpoint: item.hardwareOrPath,
+                                            stagedFiles: store.stagedFiles,
+                                            audioCubes: store.redBookTracks,
+                                            volumeTitle: store.discVolumeTitle,
+                                            performer: store.discPerformer,
+                                            mcnBarcode: store.discMCNBarcode,
+                                            requestedSpeedLabel: item.speedOrCodec,
+                                            simulationMode: true,
+                                            driveManager: driveManager,
+                                            targetDriveKey: activeCardDriveID
+                                        )
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: isFloatingOpen ? "arrow.down.right.and.arrow.up.left" : "waveform.path.ecg")
+                                Text(isFloatingOpen ? "Dock" : "Scope")
+                            }
+                            .font(.system(size: 10, weight: .bold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background((isFloatingOpen || isInlineVisible) ? store.uiSecondaryAccent : store.uiSecondaryAccent.opacity(0.18))
+                            .foregroundStyle((isFloatingOpen || isInlineVisible) ? Color.black.opacity(0.9) : store.uiSecondaryAccent)
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .help("Stream Krumb WS /api/v1/kitchen telemetry directly into the Phase Scope")
+                    }
+
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(store.uiSecondaryAccent)
+                            .frame(width: 7, height: 7)
+                        Text(krumb.statusBannerText)
+                            .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(store.uiSecondaryAccent)
+                            .lineLimit(1)
+                        Spacer(minLength: 0)
+                    }
+
+                    if krumb.isSpoolingLoaf {
+                        ProgressView(value: krumb.spoolProgressFraction, total: 1.0)
+                            .tint(store.activeAccent)
+                            .controlSize(.small)
+                    }
+
+                    HStack(spacing: 6) {
+                        Button {
+                            Task {
+                                await krumb.refreshToasters(endpoint: item.hardwareOrPath)
+                                store.objectWillChange.send()
+                            }
+                        } label: {
+                            Label("Probe 7420", systemImage: "antenna.radiowaves.left.and.right")
+                                .font(.system(size: 9.5, weight: .bold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(store.uiSecondaryAccent.opacity(0.16))
+                                .foregroundStyle(store.uiSecondaryAccent)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            Task {
+                                await krumb.runPantryCalibration(endpoint: item.hardwareOrPath)
+                                store.objectWillChange.send()
+                            }
+                        } label: {
+                            Label("Calibrate Pantry", systemImage: "gauge.with.dots.needle.67percent")
+                                .font(.system(size: 9.5, weight: .bold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(store.activeAccent.opacity(0.16))
+                                .foregroundStyle(store.activeAccent)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+
+                        if let toaster = firstToaster {
+                            Button {
+                                Task {
+                                    await krumb.toggleToasterRack(toasterID: toaster.id, endpoint: item.hardwareOrPath)
+                                    store.objectWillChange.send()
+                                }
+                            } label: {
+                                Label(toaster.rackState == .open ? "Close Rack" : "Wink Rack", systemImage: "eject.fill")
+                                    .font(.system(size: 9.5, weight: .bold))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(Color.primary.opacity(0.08))
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        Spacer(minLength: 0)
+                    }
                 }
             } else if item.kind == .discImage {
                 HStack(spacing: 6) {
@@ -458,10 +584,10 @@ extension KroutonMainWorkspaceView {
             }
 
             // Per-Burner Inline Mini Phase Scope (Shown when active OR manually pinned via Scope button, and not popped out)
-            if item.kind == .physicalBurner,
+            if (item.kind == .physicalBurner || item.kind == .networkBurner),
                let scopeTel = scopeTel,
                isInlineVisible {
-                InlineMiniPhaseScopeView(telemetry: scopeTel, accent: store.uiSecondaryAccent) {
+                KroutonMiniThermometerView(telemetry: scopeTel, accent: store.uiSecondaryAccent) {
                     KroutonWindowManager.shared.openFloatingPhaseScopeWindow(driveID: activeCardDriveID)
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -474,9 +600,24 @@ extension KroutonMainWorkspaceView {
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(store.uiSecondaryAccent.opacity(0.35), lineWidth: 1))
     }
 
-    func runTargetDestination(_ target: DestinationQueueItem) async {
+    func runTargetDestination(_ target: KroutonBakeBatchItem) async {
         switch target.kind {
-        case .physicalBurner, .networkBurner:
+        case .networkBurner:
+            driveManager.setManualInlinePin(for: "krumb-network-toaster", isPinned: true)
+            let _ = await KrumbKitchenClient.shared.executeSpoolAndBurn(
+                endpoint: target.hardwareOrPath,
+                stagedFiles: store.stagedFiles,
+                audioCubes: store.redBookTracks,
+                volumeTitle: store.discVolumeTitle,
+                performer: store.discPerformer,
+                mcnBarcode: store.discMCNBarcode,
+                requestedSpeedLabel: target.speedOrCodec,
+                simulationMode: target.simulationMode,
+                driveManager: driveManager,
+                targetDriveKey: "krumb-network-toaster"
+            )
+            store.objectWillChange.send()
+        case .physicalBurner:
             if store.forceDVDROMBookType, !target.targetDriveID.isEmpty {
                 driveManager.stampDVDROMBookType(for: target.targetDriveID, vendorProfile: store.bitsetVendorProfile)
             }

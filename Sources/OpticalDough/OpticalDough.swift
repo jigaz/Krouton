@@ -6,7 +6,7 @@ import AppKit
 import AVFoundation
 @preconcurrency import DiscRecording
 
-public struct MountedVolumePartition: Identifiable, Hashable, Sendable {
+public struct KroutonMountedSlice: Identifiable, Hashable, Sendable {
     public let id: String
     public let volumeName: String
     public let filesystemFormat: String
@@ -40,7 +40,7 @@ public struct MountedVolumePartition: Identifiable, Hashable, Sendable {
     }
 }
 
-public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
+public struct KroutonToasterInfo: Identifiable, Hashable, Sendable {
     public let id: String
     public let vendor: String
     public let product: String
@@ -69,7 +69,7 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
     public let laserWavelengthNA: String
     public let sectorBlockSize: String
     public let copyProtectionStatus: String
-    public let mountedVolumes: [MountedVolumePartition]
+    public let mountedVolumes: [KroutonMountedSlice]
     public let availableWriteSpeeds: [String]
 
     public init(
@@ -101,7 +101,7 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
         laserWavelengthNA: String = "780 nm IR (0.45 NA)",
         sectorBlockSize: String = "2,048 Bytes (Mode 1)",
         copyProtectionStatus: String = "Unencrypted ( CSS / AACS Clear )",
-        mountedVolumes: [MountedVolumePartition] = [],
+        mountedVolumes: [KroutonMountedSlice] = [],
         availableWriteSpeeds: [String] = ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
     ) {
         self.id = id
@@ -184,7 +184,7 @@ public struct OpticalDriveDevice: Identifiable, Hashable, Sendable {
 }
 
 // MARK: - Sprint 3: WaveBurner Red Book CD-DA & Car-Safe MP3 Models
-public enum AudioTransitionStyle: String, CaseIterable, Identifiable, Sendable {
+public enum KroutonCubePregapStyle: String, CaseIterable, Identifiable, Sendable {
     case standard2s = "2.0s Standard Pre-Gap"
     case gapless0s = "0.0s Gapless (Live)"
     case customPause = "Custom INDEX 00 Pause"
@@ -192,7 +192,7 @@ public enum AudioTransitionStyle: String, CaseIterable, Identifiable, Sendable {
     public var id: String { rawValue }
 }
 
-public struct RedBookAudioTrack: Identifiable, Hashable, Sendable {
+public struct KroutonAudioCube: Identifiable, Hashable, Sendable {
     public let id: UUID
     public let url: URL
     public var title: String
@@ -202,7 +202,7 @@ public struct RedBookAudioTrack: Identifiable, Hashable, Sendable {
     public var durationSeconds: Double
     public var preGapSeconds: Double     // INDEX 00 duration (0.0s gapless .. 4.0s)
     public var crossfadeSeconds: Double  // Jam-style overlap duration
-    public var transitionStyle: AudioTransitionStyle
+    public var transitionStyle: KroutonCubePregapStyle
     public var preEmphasisEnabled: Bool
     public var copyPermittedSCMS: Bool
     public var sampleRateHz: Int
@@ -218,7 +218,7 @@ public struct RedBookAudioTrack: Identifiable, Hashable, Sendable {
         durationSeconds: Double = 215.0,
         preGapSeconds: Double = 2.0,
         crossfadeSeconds: Double = 0.0,
-        transitionStyle: AudioTransitionStyle = .standard2s,
+        transitionStyle: KroutonCubePregapStyle = .standard2s,
         preEmphasisEnabled: Bool = false,
         copyPermittedSCMS: Bool = true,
         sampleRateHz: Int = 44100,
@@ -262,7 +262,7 @@ public struct RedBookAudioTrack: Identifiable, Hashable, Sendable {
 
 // Hardware CD-TEXT Sanitizer: Transliterates curly quotes, em-dashes, and diacritics to strict 7-bit ASCII
 // so 1990s-2010s Sony/Pioneer/Alpine car stereos never display garbled subcode characters.
-public enum CDTextSanitizer {
+public enum KroutonSeasoningSanitizer {
     public static func sanitize(_ input: String) -> String {
         var s = input
             .replacingOccurrences(of: "\u{2018}", with: "'")
@@ -293,7 +293,7 @@ public enum CDTextSanitizer {
 // WaveBurner 5-Second Transition Audition Preview Engine
 // Plays the final 2.5s of Track N -> INDEX 00 Pre-Gap (or Jam Crossfade) -> first 2.5s of Track N+1
 @MainActor
-public final class RedBookAuditionEngine: ObservableObject {
+public final class KroutonCubeTasterEngine: ObservableObject {
     @Published public var isAuditioning: Bool = false
     @Published public var auditionStatusText: String = "Idle"
     @Published public var auditioningTrackID: UUID? = nil
@@ -315,7 +315,7 @@ public final class RedBookAuditionEngine: ObservableObject {
         auditionStatusText = "Idle"
     }
 
-    public func auditionTransition(from trackA: RedBookAudioTrack, to trackB: RedBookAudioTrack?) {
+    public func auditionTransition(from trackA: KroutonAudioCube, to trackB: KroutonAudioCube?) {
         stopAudition()
         isAuditioning = true
         auditioningTrackID = trackA.id
@@ -363,7 +363,7 @@ public final class RedBookAuditionEngine: ObservableObject {
 }
 
 // MARK: - Sprint 3 Part 2: UltraISO / PowerISO Bootable Sector 17 El Torito & Apple Partition Map Inspector
-public enum BootableImageInspector {
+public enum KroutonLoafBootInspector {
     public static func inspectDiscImageBootability(url: URL) -> String? {
         let lower = url.lastPathComponent.lowercased()
         let isImage = lower.hasSuffix(".iso") || lower.hasSuffix(".img") || lower.hasSuffix(".dmg") || lower.hasSuffix(".cdr") || lower.hasSuffix(".toast") || lower.hasSuffix(".bin") || lower.hasSuffix(".rvz") || lower.hasSuffix(".gcm")
@@ -436,7 +436,7 @@ public enum BootableImageInspector {
     }
 }
 
-public struct StagedFileEntry: Identifiable, Hashable, Sendable {
+public struct KroutonLoafFileEntry: Identifiable, Hashable, Sendable {
     public let id: UUID
     public let url: URL
     public let name: String
@@ -489,7 +489,7 @@ public struct StagedFileEntry: Identifiable, Hashable, Sendable {
     }
 
     public var bootabilityBadge: String? {
-        BootableImageInspector.inspectDiscImageBootability(url: url)
+        KroutonLoafBootInspector.inspectDiscImageBootability(url: url)
     }
 
     public var isConvertibleBinOrIso: Bool {
@@ -498,7 +498,7 @@ public struct StagedFileEntry: Identifiable, Hashable, Sendable {
     }
 }
 
-public struct NeroTelemetrySample: Identifiable, Hashable, Sendable {
+public struct KroutonToastingSample: Identifiable, Hashable, Sendable {
     public let id: UUID
     public let progressFraction: Double
     public let speedMultiplierX: Double
@@ -520,7 +520,7 @@ public struct NeroTelemetrySample: Identifiable, Hashable, Sendable {
     }
 }
 
-public struct BatchDuplicationState: Identifiable, Hashable, Sendable {
+public struct KroutonBatchToastState: Identifiable, Hashable, Sendable {
     public let id: String // Drive ID
     public var driveName: String
     public var currentCopyIndex: Int
@@ -552,7 +552,7 @@ public struct BatchDuplicationState: Identifiable, Hashable, Sendable {
     }
 }
 
-public struct DrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable {
+public struct KroutonKitchenThermometer: Identifiable, Hashable, Sendable {
     public let id: String          // Drive ID
     public var driveName: String
     public var isActive: Bool       // True whenever throughputKBs > 0
@@ -572,7 +572,7 @@ public struct DrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable {
     public var laserWavelengthText: String
     public var writeStrategyText: String
     public var elapsedSeconds: Int
-    public var samples: [NeroTelemetrySample]
+    public var samples: [KroutonToastingSample]
 
     public init(
         id: String,
@@ -594,7 +594,7 @@ public struct DrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable {
         laserWavelengthText: String = "780 nm IR",
         writeStrategyText: String = "P-CAV",
         elapsedSeconds: Int = 0,
-        samples: [NeroTelemetrySample] = []
+        samples: [KroutonToastingSample] = []
     ) {
         self.id = id
         self.driveName = driveName
@@ -634,7 +634,7 @@ public struct DrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable {
                 samples.removeAll()
                 peakSpeedX = speedX
             } else if abs(clamped - last.progressFraction) < 0.003 {
-                samples[samples.count - 1] = NeroTelemetrySample(
+                samples[samples.count - 1] = KroutonToastingSample(
                     progressFraction: last.progressFraction,
                     speedMultiplierX: speedX,
                     spindleRPM: Double(rpm),
@@ -648,7 +648,7 @@ public struct DrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable {
         }
         let monotonicFrac = max(samples.last?.progressFraction ?? 0.0, clamped)
         progressFraction = monotonicFrac
-        samples.append(NeroTelemetrySample(
+        samples.append(KroutonToastingSample(
             progressFraction: monotonicFrac,
             speedMultiplierX: speedX,
             spindleRPM: Double(rpm),
@@ -659,7 +659,7 @@ public struct DrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable {
     }
 }
 
-public struct BurnCompletionReport: Identifiable, Hashable, Sendable {
+public struct KroutonToastReport: Identifiable, Hashable, Sendable {
     public let id: UUID
     public let isSuccess: Bool
     public let title: String
@@ -709,22 +709,22 @@ public struct BurnCompletionReport: Identifiable, Hashable, Sendable {
 }
 
 @MainActor
-public final class DriveManager: ObservableObject {
-    @Published public var availableDrives: [OpticalDriveDevice] = []
-    @Published public var selectedDrive: OpticalDriveDevice?
+public final class KroutonToasterBank: ObservableObject {
+    @Published public var availableDrives: [KroutonToasterInfo] = []
+    @Published public var selectedDrive: KroutonToasterInfo?
     @Published public var hardwareStatusLog: String = "Scanning IOKit / DiscRecording bus..."
 
         @Published public var isExecutingQueue: Bool = false
     @Published public var activeJobPhase: String = "Idle"
     @Published public var activeJobProgress: Double = 0.0
     @Published public var activeJobDetail: String = ""
-    @Published public var driveTelemetry: [String: DrivePhaseScopeTelemetry] = [:]
-    @Published public var batchStates: [String: BatchDuplicationState] = [:]
+    @Published public var driveTelemetry: [String: KroutonKitchenThermometer] = [:]
+    @Published public var batchStates: [String: KroutonBatchToastState] = [:]
     @Published public var driveBookTypeOverrides: [String: String] = [:]
     private var batchCountdownTimers: [String: Timer] = [:]
     private var perDriveTimers: [String: Timer] = [:]
 
-    @Published public var neroSamples: [NeroTelemetrySample] = []
+    @Published public var neroSamples: [KroutonToastingSample] = []
     @Published public var currentSpeedX: Double = 0.0
     @Published public var currentSpeedKBs: Double = 0.0
     @Published public var peakSpeedX: Double = 0.0
@@ -737,7 +737,7 @@ public final class DriveManager: ObservableObject {
     @Published public var writeStrategyText: String = "P-CAV / CLV"
     @Published public var activeTrackNumber: Int = 1
     @Published public var elapsedSeconds: Int = 0
-    @Published public var completionReport: BurnCompletionReport? = nil
+    @Published public var completionReport: KroutonToastReport? = nil
 
     private var pollTimer: Timer?
     private var activeDRBurn: DRBurn?
@@ -800,7 +800,7 @@ public final class DriveManager: ObservableObject {
     }
 
     // Scans macOS mounted optical volumes to extract Volume Names, File/Track counts, and Filesystem types
-    public static func scanMountedOpticalVolumes(bsdName: String?, isMediaPresent: Bool, isMediaBlank: Bool, usedBytes: Int64) -> [MountedVolumePartition] {
+    public static func scanMountedOpticalVolumes(bsdName: String?, isMediaPresent: Bool, isMediaBlank: Bool, usedBytes: Int64) -> [KroutonMountedSlice] {
         guard isMediaPresent && !isMediaBlank else { return [] }
         let fm = FileManager.default
         let keys: [URLResourceKey] = [
@@ -818,7 +818,7 @@ public final class DriveManager: ObservableObject {
             return []
         }
 
-        var results: [MountedVolumePartition] = []
+        var results: [KroutonMountedSlice] = []
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .medium
         dateFormatter.timeStyle = .none
@@ -849,7 +849,7 @@ public final class DriveManager: ObservableObject {
             let usedCap = max(0, totalCap - availCap)
             let createdStr = vals.volumeCreationDate.map { dateFormatter.string(from: $0) } ?? "Mastered Session"
 
-            results.append(MountedVolumePartition(
+            results.append(KroutonMountedSlice(
                 id: url.path,
                 volumeName: volName,
                 filesystemFormat: formatDesc,
@@ -896,7 +896,7 @@ public final class DriveManager: ObservableObject {
     }
 
     public func refreshDrives() {
-        var found: [OpticalDriveDevice] = []
+        var found: [KroutonToasterInfo] = []
 
         if let devices = DRDevice.devices() as? [DRDevice] {
             for dev in devices {
@@ -946,7 +946,7 @@ public final class DriveManager: ObservableObject {
                 var laserSpec = "—"
                 var blockSpec = "—"
                 var drmStatus = "Unencrypted (Clear Sectors)"
-                var mountedVols: [MountedVolumePartition] = []
+                var mountedVols: [KroutonMountedSlice] = []
                 var speeds: [String] = ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
 
                 if isTransition {
@@ -1036,7 +1036,7 @@ public final class DriveManager: ObservableObject {
                 }
 
                 let deviceID = "\(vendor)-\(product)-\(revision)"
-                found.append(OpticalDriveDevice(
+                found.append(KroutonToasterInfo(
                     id: deviceID,
                     vendor: vendor,
                     product: product,
@@ -1098,7 +1098,7 @@ public final class DriveManager: ObservableObject {
         guard !driveID.isEmpty else { return }
         let wasFloated = driveTelemetry[driveID]?.isFloatingWindowOpen ?? false
         let wasPinned = pinInlineOverride ?? (driveTelemetry[driveID]?.isManuallyPinnedInline ?? false)
-        driveTelemetry[driveID] = DrivePhaseScopeTelemetry(
+        driveTelemetry[driveID] = KroutonKitchenThermometer(
             id: driveID,
             driveName: driveName,
             isActive: true,
@@ -1131,7 +1131,7 @@ public final class DriveManager: ObservableObject {
         hardwareStatusLog = "[MMC Bitsetting] Stamped Lead-In Book Type -> DVD-ROM (0x00) on \(name) via \(vendorProfile)"
     }
 
-    public func bookTypeStatus(for drive: OpticalDriveDevice, forceDVDROM: Bool) -> String {
+    public func bookTypeStatus(for drive: KroutonToasterInfo, forceDVDROM: Bool) -> String {
         if let explicit = driveBookTypeOverrides[drive.id] {
             return explicit
         }
@@ -1159,7 +1159,7 @@ public final class DriveManager: ObservableObject {
         ejectDrive(id: key)
 
         let nextCopy = completedCopy + 1
-        batchStates[key] = BatchDuplicationState(
+        batchStates[key] = KroutonBatchToastState(
             id: key,
             driveName: name,
             currentCopyIndex: nextCopy,
@@ -1224,12 +1224,12 @@ public final class DriveManager: ObservableObject {
         let key = resolved?.id ?? driveID
         guard !key.isEmpty else { return }
         let name = resolved?.displayName ?? "Optical Burner"
-        let currentSt = batchStates[key] ?? BatchDuplicationState(id: key, driveName: name, currentCopyIndex: 2, totalCopies: 2)
+        let currentSt = batchStates[key] ?? KroutonBatchToastState(id: key, driveName: name, currentCopyIndex: 2, totalCopies: 2)
         let nextCopy = currentSt.currentCopyIndex
         let total = max(2, currentSt.totalCopies)
         let startSec = max(1, countdownSeconds)
 
-        batchStates[key] = BatchDuplicationState(
+        batchStates[key] = KroutonBatchToastState(
             id: key,
             driveName: name,
             currentCopyIndex: nextCopy,
@@ -1273,7 +1273,7 @@ public final class DriveManager: ObservableObject {
         hardwareStatusLog = "[Duplication Station] Cancelled multi-copy batch on \(resolved?.displayName ?? driveID)."
     }
 
-    public func telemetryForDrive(_ driveID: String) -> DrivePhaseScopeTelemetry? {
+    public func telemetryForDrive(_ driveID: String) -> KroutonKitchenThermometer? {
         if let existing = driveTelemetry[driveID] {
             return existing
         }
@@ -1289,7 +1289,7 @@ public final class DriveManager: ObservableObject {
             driveTelemetry[driveID] = tel
         } else {
             let name = driveForID(driveID)?.displayName ?? "Optical Drive"
-            driveTelemetry[driveID] = DrivePhaseScopeTelemetry(id: driveID, driveName: name, isManuallyPinnedInline: !isOpen && keepInlineVisible, isFloatingWindowOpen: isOpen)
+            driveTelemetry[driveID] = KroutonKitchenThermometer(id: driveID, driveName: name, isManuallyPinnedInline: !isOpen && keepInlineVisible, isFloatingWindowOpen: isOpen)
         }
     }
 
@@ -1299,7 +1299,7 @@ public final class DriveManager: ObservableObject {
             driveTelemetry[driveID] = tel
         } else {
             let name = driveForID(driveID)?.displayName ?? "Optical Drive"
-            driveTelemetry[driveID] = DrivePhaseScopeTelemetry(id: driveID, driveName: name, isManuallyPinnedInline: isPinned)
+            driveTelemetry[driveID] = KroutonKitchenThermometer(id: driveID, driveName: name, isManuallyPinnedInline: isPinned)
         }
         if isPinned && (driveTelemetry[driveID]?.samples.isEmpty ?? true) {
             runPhaseScopeTestSweep(for: driveID, keepPinnedAfterSweep: true)
@@ -1322,7 +1322,7 @@ public final class DriveManager: ObservableObject {
         let divisor: Double = mediaType.contains("BD") ? 4500.0 : (mediaType.contains("DVD") ? 1385.0 : 176.4)
         let laserStr = mediaType.contains("BD") ? "405 nm Violet" : (mediaType.contains("DVD") ? "650 nm Red" : "780 nm IR")
 
-        let tel = DrivePhaseScopeTelemetry(
+        let tel = KroutonKitchenThermometer(
             id: targetID,
             driveName: driveName,
             isActive: true,
@@ -1367,7 +1367,7 @@ public final class DriveManager: ObservableObject {
                 current.elapsedSeconds = max(1, Int(Date().timeIntervalSince(startDate)))
                 current.phaseTitle = nextFrac < 0.99 ? "Phase Scope Active (\(String(format: "%.1fx", speedX)))" : "Sweep Complete"
 
-                current.samples.append(NeroTelemetrySample(
+                current.samples.append(KroutonToastingSample(
                     progressFraction: nextFrac,
                     speedMultiplierX: speedX,
                     spindleRPM: Double(rpm),
@@ -1395,7 +1395,7 @@ public final class DriveManager: ObservableObject {
         }
     }
 
-    public func driveForID(_ id: String) -> OpticalDriveDevice? {
+    public func driveForID(_ id: String) -> KroutonToasterInfo? {
         if let match = availableDrives.first(where: { $0.id == id }) {
             return match
         }
@@ -1431,14 +1431,14 @@ public final class DriveManager: ObservableObject {
     public func eraseRewritableDisc(
         driveID: String? = nil,
         fullErase: Bool,
-        onCompletion: @escaping @MainActor (BurnCompletionReport) -> Void
+        onCompletion: @escaping @MainActor (KroutonToastReport) -> Void
     ) {
         let resolvedMeta = driveForID(driveID ?? "")
         let driveName = resolvedMeta?.displayName ?? "Optical Drive"
         let fwRev = resolvedMeta?.firmware ?? "1.0"
 
         guard let device = resolveDRDevice(id: driveID ?? selectedDrive?.id) else {
-            let report = BurnCompletionReport(
+            let report = KroutonToastReport(
                 isSuccess: false,
                 title: "Optical Drive Not Found",
                 summary: "Krouton could not communicate with the selected optical burner on the USB/SATA bus.",
@@ -1461,7 +1461,7 @@ public final class DriveManager: ObservableObject {
         let status = device.status() as? [String: Any] ?? [:]
         let mediaState = status[DRDeviceMediaStateKey] as? String ?? DRDeviceMediaStateNone
         guard mediaState == DRDeviceMediaStateMediaPresent else {
-            let report = BurnCompletionReport(
+            let report = KroutonToastReport(
                 isSuccess: false,
                 title: "Drive Slot Is Empty",
                 summary: "There is currently no optical disc inserted in \(driveName).",
@@ -1486,7 +1486,7 @@ public final class DriveManager: ObservableObject {
         let mType = Self.formatHumanMediaType(mediaInfo[DRDeviceMediaTypeKey] as? String ?? "Disc")
 
         guard isErasable else {
-            let report = BurnCompletionReport(
+            let report = KroutonToastReport(
                 isSuccess: false,
                 title: "Disc Is Not Rewritable",
                 summary: "The inserted \(mType) media is write-once and cannot be erased.",
@@ -1560,7 +1560,7 @@ public final class DriveManager: ObservableObject {
                 self.currentSpeedKBs = simulatedX * divisor
                 self.currentSpindleRPM = Int(2200.0 + (800.0 * (1.0 - clampedPct * 0.3)))
                 self.currentSectorLBA = Int64(Double(self.totalTargetSectorsLBA) * clampedPct)
-                let sample = NeroTelemetrySample(
+                let sample = KroutonToastingSample(
                     progressFraction: clampedPct,
                     speedMultiplierX: simulatedX,
                     spindleRPM: Double(self.currentSpindleRPM),
@@ -1569,7 +1569,7 @@ public final class DriveManager: ObservableObject {
                 self.neroSamples.append(sample)
                 let targetKey = resolvedMeta?.id ?? (driveID ?? "")
                 if !targetKey.isEmpty {
-                    var dTel = self.driveTelemetry[targetKey] ?? DrivePhaseScopeTelemetry(id: targetKey, driveName: driveName)
+                    var dTel = self.driveTelemetry[targetKey] ?? KroutonKitchenThermometer(id: targetKey, driveName: driveName)
                     dTel.isActive = (rawState != DRStatusStateDone && rawState != DRStatusStateFailed)
                     dTel.phaseTitle = self.activeJobPhase
                     dTel.progressFraction = clampedPct
@@ -1596,7 +1596,7 @@ public final class DriveManager: ObservableObject {
                     self.refreshDrives()
                     let mins = self.elapsedSeconds / 60
                     let secs = self.elapsedSeconds % 60
-                    let report = BurnCompletionReport(
+                    let report = KroutonToastReport(
                         isSuccess: true,
                         title: "Rewritable Disc Erased Successfully",
                         summary: "The \(mType) in \(driveName) has been blanked and is ready for a new mastering session.",
@@ -1629,7 +1629,7 @@ public final class DriveManager: ObservableObject {
                         matshitaAdvice = "Try running a Full Erase instead of Quick Erase, or test the disc in another optical drive."
                     }
 
-                    let report = BurnCompletionReport(
+                    let report = KroutonToastReport(
                         isSuccess: false,
                         title: "Unable to Erase Rewritable Disc",
                         summary: "\(errStr)\(senseStr.isEmpty ? "" : " (\(senseStr))")",
@@ -1652,13 +1652,13 @@ public final class DriveManager: ObservableObject {
     }
 
     public func createDiscImageFile(
-        stagedFiles: [StagedFileEntry],
+        stagedFiles: [KroutonLoafFileEntry],
         volumeTitle: String,
         outputPathString: String,
         compressImage: Bool,
         enableCustomLayout: Bool,
         iconSizePx: Int
-    ) async -> BurnCompletionReport {
+    ) async -> KroutonToastReport {
         isExecutingQueue = true
         jobStartTime = Date()
         neroSamples = []
@@ -1679,7 +1679,7 @@ public final class DriveManager: ObservableObject {
                 try fm.copyItem(at: item.url, to: destURL)
                 let frac = 0.15 + (0.35 * Double(index + 1) / Double(max(1, stagedFiles.count)))
                 activeJobProgress = frac
-                neroSamples.append(NeroTelemetrySample(progressFraction: frac, speedMultiplierX: 32.0 + Double(index % 5), spindleRPM: 0, throughputKBs: 48_000))
+                neroSamples.append(KroutonToastingSample(progressFraction: frac, speedMultiplierX: 32.0 + Double(index % 5), spindleRPM: 0, throughputKBs: 48_000))
             }
 
             if enableCustomLayout {
@@ -1727,7 +1727,7 @@ public final class DriveManager: ObservableObject {
                 activeJobDetail = expandedPath
                 isExecutingQueue = false
                 NSSound.beep()
-                let report = BurnCompletionReport(
+                let report = KroutonToastReport(
                     isSuccess: true,
                     title: "Disc Image Mastered Successfully",
                     summary: "Created a mountable hybrid disc image containing \(stagedFiles.count) items at \(expandedPath).",
@@ -1747,7 +1747,7 @@ public final class DriveManager: ObservableObject {
             } else {
                 isExecutingQueue = false
                 activeJobPhase = "Image Creation Failed (Code \(status))"
-                let report = BurnCompletionReport(
+                let report = KroutonToastReport(
                     isSuccess: false,
                     title: "Disc Image Creation Failed",
                     summary: "The macOS hdiutil imaging engine exited with status code \(status).",
@@ -1769,7 +1769,7 @@ public final class DriveManager: ObservableObject {
             try? fm.removeItem(at: tempRoot)
             isExecutingQueue = false
             activeJobPhase = "Error: \(error.localizedDescription)"
-            let report = BurnCompletionReport(
+            let report = KroutonToastReport(
                 isSuccess: false,
                 title: "Disc Image Mastering Error",
                 summary: error.localizedDescription,
@@ -1791,12 +1791,12 @@ public final class DriveManager: ObservableObject {
 
     public func startPhysicalDataBurn(
         driveID: String? = nil,
-        stagedFiles: [StagedFileEntry],
+        stagedFiles: [KroutonLoafFileEntry],
         volumeTitle: String,
         requestedSpeedLabel: String,
         simulationMode: Bool,
         verifyDisc: Bool,
-        onCompletion: @escaping @MainActor (BurnCompletionReport) -> Void
+        onCompletion: @escaping @MainActor (KroutonToastReport) -> Void
     ) {
         let resolvedMeta = driveForID(driveID ?? "")
         let driveName = resolvedMeta?.displayName ?? "Optical Drive"
@@ -1805,7 +1805,7 @@ public final class DriveManager: ObservableObject {
         let totalLBA = max(1, stagedFiles.reduce(0) { $0 + $1.sectorsLBA })
 
         guard let device = resolveDRDevice(id: driveID ?? selectedDrive?.id) else {
-            let report = BurnCompletionReport(
+            let report = KroutonToastReport(
                 isSuccess: false,
                 title: "Optical Burner Disconnected",
                 summary: "Could not locate \(driveName) on the hardware bus.",
@@ -1828,7 +1828,7 @@ public final class DriveManager: ObservableObject {
         let status = device.status() as? [String: Any] ?? [:]
         let mediaState = status[DRDeviceMediaStateKey] as? String ?? DRDeviceMediaStateNone
         guard mediaState == DRDeviceMediaStateMediaPresent else {
-            let report = BurnCompletionReport(
+            let report = KroutonToastReport(
                 isSuccess: false,
                 title: "No Disc in Optical Drive",
                 summary: "The slot on \(driveName) is currently empty.",
@@ -1976,7 +1976,7 @@ public final class DriveManager: ObservableObject {
                 self.activeJobProgress = clampedPct
                 self.activeJobPhase = Self.formatHumanBurnState(rawState, isErase: false)
 
-                let sample = NeroTelemetrySample(
+                let sample = KroutonToastingSample(
                     progressFraction: clampedPct,
                     speedMultiplierX: speedX,
                     spindleRPM: Double(self.currentSpindleRPM),
@@ -1988,7 +1988,7 @@ public final class DriveManager: ObservableObject {
 
                 let targetKey = resolvedMeta?.id ?? (driveID ?? "")
                 if !targetKey.isEmpty {
-                    var dTel = self.driveTelemetry[targetKey] ?? DrivePhaseScopeTelemetry(id: targetKey, driveName: driveName)
+                    var dTel = self.driveTelemetry[targetKey] ?? KroutonKitchenThermometer(id: targetKey, driveName: driveName)
                     dTel.isActive = (rawState != DRStatusStateDone && rawState != DRStatusStateFailed)
                     dTel.phaseTitle = self.activeJobPhase
                     dTel.progressFraction = clampedPct
@@ -2019,7 +2019,7 @@ public final class DriveManager: ObservableObject {
 
                     let mins = self.elapsedSeconds / 60
                     let secs = self.elapsedSeconds % 60
-                    let report = BurnCompletionReport(
+                    let report = KroutonToastReport(
                         isSuccess: true,
                         title: simulationMode ? "Simulation Burn Completed" : "Optical Disc Burn Complete",
                         summary: simulationMode
@@ -2055,7 +2055,7 @@ public final class DriveManager: ObservableObject {
                         advice = "If this is a previously written rewritable disc, run 'Erase RW -> Quick Erase' first, or select a slower write speed."
                     }
 
-                    let report = BurnCompletionReport(
+                    let report = KroutonToastReport(
                         isSuccess: false,
                         title: "Optical Burn Failed",
                         summary: "\(errStr)\(senseStr.isEmpty ? "" : " — Hardware Sense: \(senseStr)")",
@@ -2086,7 +2086,7 @@ public final class DriveManager: ObservableObject {
     }
 
     // MARK: - UltraISO / PowerISO .BIN/.CUE (2,352 B/sector) <-> .ISO (2,048 B/sector) Sector Converter
-    public func convertBinAndIsoSectorImage(sourceURL: URL) async -> (outputURL: URL?, report: BurnCompletionReport) {
+    public func convertBinAndIsoSectorImage(sourceURL: URL) async -> (outputURL: URL?, report: KroutonToastReport) {
         let lower = sourceURL.lastPathComponent.lowercased()
         let baseName = sourceURL.deletingPathExtension().lastPathComponent
         let parentDir = sourceURL.deletingLastPathComponent()
@@ -2128,7 +2128,7 @@ public final class DriveManager: ObservableObject {
                 isExecutingQueue = false
                 NSSound.beep()
                 let secs = max(1, Int(Date().timeIntervalSince(startTime)))
-                let rep = BurnCompletionReport(
+                let rep = KroutonToastReport(
                     isSuccess: true,
                     title: ".BIN → .ISO Sector Conversion Complete",
                     summary: "Extracted 2,048-byte user payloads from 2,352-byte raw sectors into \(outISO.path).",
@@ -2182,7 +2182,7 @@ public final class DriveManager: ObservableObject {
                 isExecutingQueue = false
                 NSSound.beep()
                 let secs = max(1, Int(Date().timeIntervalSince(startTime)))
-                let rep = BurnCompletionReport(
+                let rep = KroutonToastReport(
                     isSuccess: true,
                     title: ".ISO → .BIN/.CUE Conversion Complete",
                     summary: "Synthesized 2,352-byte Mode 1 raw sectors + companion .CUE descriptor at \(outCUE.path).",
@@ -2202,7 +2202,7 @@ public final class DriveManager: ObservableObject {
             }
         } catch {
             isExecutingQueue = false
-            let rep = BurnCompletionReport(
+            let rep = KroutonToastReport(
                 isSuccess: false,
                 title: "Sector Conversion Error",
                 summary: error.localizedDescription,
@@ -2222,7 +2222,7 @@ public final class DriveManager: ObservableObject {
         }
     }
 
-    public static func inspectAudioTrack(url: URL, index: Int) -> RedBookAudioTrack {
+    public static func inspectAudioTrack(url: URL, index: Int) -> KroutonAudioCube {
         let rawTitle = url.deletingPathExtension().lastPathComponent
         var duration: Double = 212.0
         var sampleRate: Int = 44100
@@ -2240,7 +2240,7 @@ public final class DriveManager: ObservableObject {
         }
 
         let isrc = String(format: "USKRO26%05d", max(1, index))
-        return RedBookAudioTrack(
+        return KroutonAudioCube(
             url: url,
             title: rawTitle,
             performer: "Studio Master",
@@ -2255,15 +2255,15 @@ public final class DriveManager: ObservableObject {
     }
 
     // Stages a Car-Safe MP3/FLAC Folder Tree (Zero-padded 001_ prefixes + strips .DS_Store & ._AppleDouble files!)
-    public static func stageCarSafeAudioDirectory(tracks: [RedBookAudioTrack], tempRoot: URL) throws -> [StagedFileEntry] {
+    public static func stageCarSafeAudioDirectory(tracks: [KroutonAudioCube], tempRoot: URL) throws -> [KroutonLoafFileEntry] {
         let fm = FileManager.default
         try fm.createDirectory(at: tempRoot, withIntermediateDirectories: true)
-        var staged: [StagedFileEntry] = []
+        var staged: [KroutonLoafFileEntry] = []
         var m3uLines: [String] = ["#EXTM3U"]
 
         for (idx, trk) in tracks.enumerated() {
             let ext = trk.url.pathExtension.isEmpty ? "mp3" : trk.url.pathExtension.lowercased()
-            let cleanTitle = CDTextSanitizer.sanitize(trk.title)
+            let cleanTitle = KroutonSeasoningSanitizer.sanitize(trk.title)
                 .replacingOccurrences(of: "/", with: "-")
                 .replacingOccurrences(of: ":", with: "-")
             let carSafeName = String(format: "%03d - %@.%@", idx + 1, cleanTitle, ext)
@@ -2273,7 +2273,7 @@ public final class DriveManager: ObservableObject {
             } else {
                 try Data("Krouton Car-Safe Audio Stream".utf8).write(to: destURL)
             }
-            m3uLines.append("#EXTINF:\(Int(trk.durationSeconds)),\(CDTextSanitizer.sanitize(trk.performer)) - \(cleanTitle)")
+            m3uLines.append("#EXTINF:\(Int(trk.durationSeconds)),\(KroutonSeasoningSanitizer.sanitize(trk.performer)) - \(cleanTitle)")
             m3uLines.append(carSafeName)
             staged.append(Self.inspectFileOrFolder(url: destURL))
         }
@@ -2284,7 +2284,7 @@ public final class DriveManager: ObservableObject {
         return staged
     }
 
-    public static func inspectFileOrFolder(url: URL) -> StagedFileEntry {
+    public static func inspectFileOrFolder(url: URL) -> KroutonLoafFileEntry {
         let fm = FileManager.default
         var isDir: ObjCBool = false
         _ = fm.fileExists(atPath: url.path, isDirectory: &isDir)
@@ -2326,7 +2326,7 @@ public final class DriveManager: ObservableObject {
         let defaultMac = !(lowerName == "autorun.inf" || lowerName.hasSuffix(".exe") || lowerName.hasSuffix(".msi") || lowerName.hasSuffix(".bat"))
         let defaultPC = !(lowerName == ".ds_store" || lowerName == ".localized")
 
-        return StagedFileEntry(
+        return KroutonLoafFileEntry(
             url: url,
             name: url.lastPathComponent,
             isDirectory: isDir.boolValue,
@@ -2342,7 +2342,7 @@ public final class DriveManager: ObservableObject {
 
 // MARK: - Universal Media Decoder & Hardware Acceleration Engine (Hardware & Software Stream Engine)
 
-public enum HardwareAccelerationTier: String, Sendable {
+public enum KroutonHeatTier: String, Sendable {
     case videoToolboxASIC = "Apple Silicon VideoToolbox ASIC (Zero-Copy GPU)"
     case hybridDemuxVT = "Container Stream Demux -> VideoToolbox Hardware"
     case accelerateSIMD = "Apple Accelerate vDSP / ARM64 NEON SIMD"
@@ -2350,14 +2350,14 @@ public enum HardwareAccelerationTier: String, Sendable {
     case bitstreamPassthrough = "Direct Optical Bitstream Passthrough (Zero Re-encode)"
 }
 
-public struct MediaStreamProbeResult: Identifiable, Hashable, Sendable {
+public struct KroutonCubeProbeResult: Identifiable, Hashable, Sendable {
     public let id = UUID()
     public let fileExtension: String
     public let containerFormat: String
     public let videoCodecName: String?
     public let audioCodecName: String
     public let subtitleSummary: String?
-    public let accelerationTier: HardwareAccelerationTier
+    public let accelerationTier: KroutonHeatTier
     public let shortHardwareBadge: String
     public let isHardwareAccelerated: Bool
     public let targetMasteringPipeline: String
@@ -2368,7 +2368,7 @@ public struct MediaStreamProbeResult: Identifiable, Hashable, Sendable {
         videoCodecName: String?,
         audioCodecName: String,
         subtitleSummary: String?,
-        accelerationTier: HardwareAccelerationTier,
+        accelerationTier: KroutonHeatTier,
         shortHardwareBadge: String,
         isHardwareAccelerated: Bool,
         targetMasteringPipeline: String
@@ -2385,7 +2385,7 @@ public struct MediaStreamProbeResult: Identifiable, Hashable, Sendable {
     }
 }
 
-public struct CodecCapabilityRow: Identifiable, Hashable, Sendable {
+public struct KroutonRecipeCodecRow: Identifiable, Hashable, Sendable {
     public let id: String
     public let category: String
     public let formatsAndExtensions: String
@@ -2394,13 +2394,13 @@ public struct CodecCapabilityRow: Identifiable, Hashable, Sendable {
     public let isHardwareAccelerated: Bool
 }
 
-public enum UniversalMediaDecoderEngine {
+public enum KroutonPantryPrepEngine {
     /// Queries Apple's VideoToolbox framework at runtime to verify hardware decode support for a CMVideoCodecType
     public static func isHardwareDecodeSupported(_ codec: CMVideoCodecType) -> Bool {
         return VTIsHardwareDecodeSupported(codec)
     }
 
-    public static var liveHardwareCodecMatrix: [CodecCapabilityRow] {
+    public static var liveHardwareCodecMatrix: [KroutonRecipeCodecRow] {
         let h264HW = VTIsHardwareDecodeSupported(kCMVideoCodecType_H264)
         let hevcHW = VTIsHardwareDecodeSupported(kCMVideoCodecType_HEVC)
         let proResHW = VTIsHardwareDecodeSupported(kCMVideoCodecType_AppleProRes422HQ)
@@ -2409,7 +2409,7 @@ public enum UniversalMediaDecoderEngine {
         let mpeg2HW = VTIsHardwareDecodeSupported(kCMVideoCodecType_MPEG2Video)
 
         return [
-            CodecCapabilityRow(
+            KroutonRecipeCodecRow(
                 id: "vt-hevc-h264",
                 category: "Modern Cinema Video (H.264 / H.265 HEVC / HDR10 / Dolby Vision)",
                 formatsAndExtensions: ".mp4, .mov, .m4v, .hevc, .h264, .ts",
@@ -2417,7 +2417,7 @@ public enum UniversalMediaDecoderEngine {
                 hardwareStatus: (h264HW && hevcHW) ? "Hardware ASIC Active (8-bit & 10-bit 4:2:2)" : "Software Fallback",
                 isHardwareAccelerated: h264HW && hevcHW
             ),
-            CodecCapabilityRow(
+            KroutonRecipeCodecRow(
                 id: "vt-prores",
                 category: "Broadcast & Post-Production Mezzanine (ProRes / CineForm / DNxHR)",
                 formatsAndExtensions: ".mov, .mxf (ProRes 422 / LT / HQ / 4444 / XQ / RAW)",
@@ -2425,7 +2425,7 @@ public enum UniversalMediaDecoderEngine {
                 hardwareStatus: proResHW ? "Dedicated ProRes Silicon Engine" : "Apple Accelerate SIMD",
                 isHardwareAccelerated: true
             ),
-            CodecCapabilityRow(
+            KroutonRecipeCodecRow(
                 id: "vt-av1-vp9",
                 category: "Next-Gen Web & Archival Video (AV1 / VP9 / WebM)",
                 formatsAndExtensions: ".mkv, .webm, .mp4, .ivf (AV1 10-bit / VP9 Profile 2)",
@@ -2433,7 +2433,7 @@ public enum UniversalMediaDecoderEngine {
                 hardwareStatus: (av1HW || vp9HW) ? "Hardware Decode + NEON SIMD" : "ARM64 NEON 12-Thread SIMD",
                 isHardwareAccelerated: av1HW || vp9HW
             ),
-            CodecCapabilityRow(
+            KroutonRecipeCodecRow(
                 id: "ffmpeg-containers",
                 category: "Universal Multi-Track Containers & Optical Streams",
                 formatsAndExtensions: ".mkv, .m2ts, .mts, .vob, .evo, .avi, .wmv, .asf, .flv, .ogv, .rmvb",
@@ -2441,7 +2441,7 @@ public enum UniversalMediaDecoderEngine {
                 hardwareStatus: "Zero-Copy Packet Remux -> VT Hardware",
                 isHardwareAccelerated: true
             ),
-            CodecCapabilityRow(
+            KroutonRecipeCodecRow(
                 id: "legacy-optical-video",
                 category: "Legacy Set-Top & Broadcast Video (MPEG-2 / VC-1 / DivX / Xvid / DV)",
                 formatsAndExtensions: ".vob, .mpg, .mpeg, .m2v, .vc1, .dv, .avi",
@@ -2449,7 +2449,7 @@ public enum UniversalMediaDecoderEngine {
                 hardwareStatus: mpeg2HW ? "VideoToolbox HW + NEON SIMD" : "ARM64 NEON SIMD (400+ fps)",
                 isHardwareAccelerated: true
             ),
-            CodecCapabilityRow(
+            KroutonRecipeCodecRow(
                 id: "audiophile-lossless",
                 category: "Audiophile Lossless, Studio PCM & Scarlet Book DSD",
                 formatsAndExtensions: ".wav (RF64/32f), .aiff, .flac, .alac, .ape, .wv, .tta, .dsf, .dff",
@@ -2457,7 +2457,7 @@ public enum UniversalMediaDecoderEngine {
                 hardwareStatus: "Apple Accelerate vDSP 64-Bit Float",
                 isHardwareAccelerated: true
             ),
-            CodecCapabilityRow(
+            KroutonRecipeCodecRow(
                 id: "cinema-surround",
                 category: "Home Theater Bitstream & Lossy Audio (Atmos / TrueHD / DTS-HD / Opus)",
                 formatsAndExtensions: ".ac3, .eac3, .thd, .mlp, .dts, .dtshd, .opus, .ogg, .mp3, .m4a, .wma",
@@ -2465,7 +2465,7 @@ public enum UniversalMediaDecoderEngine {
                 hardwareStatus: "Direct Bitstream / Accelerate vDSP",
                 isHardwareAccelerated: true
             ),
-            CodecCapabilityRow(
+            KroutonRecipeCodecRow(
                 id: "optical-subtitles",
                 category: "Optical Bitmap & Styled Text Subtitles (Blu-ray PGS & DVD VobSub)",
                 formatsAndExtensions: ".sup (BD PGS), .idx/.sub (VobSub), .ass, .ssa, .srt, .vtt, CEA-608/708",
@@ -2477,12 +2477,12 @@ public enum UniversalMediaDecoderEngine {
     }
 
     /// Probes any audio/video/container URL and returns its exact decoder pipeline & hardware acceleration badge
-    public static func probeFile(_ url: URL) -> MediaStreamProbeResult {
+    public static func probeFile(_ url: URL) -> KroutonCubeProbeResult {
         let ext = url.pathExtension.lowercased()
         switch ext {
         // --- 1. Apple Compressor / Broadcast Mezzanine ---
         case "mov", "mxf":
-            return MediaStreamProbeResult(
+            return KroutonCubeProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: ext == "mxf" ? "SMPTE MXF Container" : "QuickTime MOV Container",
                 videoCodecName: "Apple ProRes 422 HQ / HEVC 10-Bit",
@@ -2495,7 +2495,7 @@ public enum UniversalMediaDecoderEngine {
             )
         // --- 2. HandBrake / VLC Matroska & Blu-ray Transport Streams ---
         case "mkv", "m2ts", "mts", "ts", "webm":
-            return MediaStreamProbeResult(
+            return KroutonCubeProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: ext == "mkv" ? "Matroska (.MKV) Multi-Track" : (ext == "webm" ? "WebM Container" : "Blu-ray MPEG-2 Transport Stream (.M2TS)"),
                 videoCodecName: ext == "webm" ? "VP9 / AV1 10-Bit" : "HEVC 10-Bit HDR / H.264 High@L5.1",
@@ -2508,7 +2508,7 @@ public enum UniversalMediaDecoderEngine {
             )
         // --- 3. Standard MP4 / M4V ---
         case "mp4", "m4v":
-            return MediaStreamProbeResult(
+            return KroutonCubeProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: "ISO Base Media (.MP4)",
                 videoCodecName: "H.264 / HEVC (VideoToolbox)",
@@ -2521,7 +2521,7 @@ public enum UniversalMediaDecoderEngine {
             )
         // --- 4. Legacy DVD VOB / MPEG-2 / AVI / WMV / VC-1 ---
         case "vob", "mpg", "mpeg", "m2v", "evo":
-            return MediaStreamProbeResult(
+            return KroutonCubeProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: "DVD Program Stream (MPEG-PS / VOB)",
                 videoCodecName: "MPEG-2 Main@Main (2,048 B Navigation Packs)",
@@ -2533,7 +2533,7 @@ public enum UniversalMediaDecoderEngine {
                 targetMasteringPipeline: "Zero-Generation Loss MPEG-2 Passthrough (Or Smart Requantize)"
             )
         case "avi", "wmv", "asf", "flv", "divx", "dv", "ogv", "rmvb":
-            return MediaStreamProbeResult(
+            return KroutonCubeProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: "Legacy Container (\(ext.uppercased()))",
                 videoCodecName: "VC-1 / MPEG-4 ASP (DivX/Xvid) / DV",
@@ -2546,7 +2546,7 @@ public enum UniversalMediaDecoderEngine {
             )
         // --- 5. Audiophile Lossless & DSD Audio ---
         case "flac", "ape", "wv", "tta", "shn":
-            return MediaStreamProbeResult(
+            return KroutonCubeProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: "Lossless Audiophile (\(ext.uppercased()))",
                 videoCodecName: nil,
@@ -2558,7 +2558,7 @@ public enum UniversalMediaDecoderEngine {
                 targetMasteringPipeline: "libFLAC/WavPack -> vDSP 64-Bit Sinc Resampler -> 44.1 kHz 16-Bit Red Book PCM"
             )
         case "dsf", "dff":
-            return MediaStreamProbeResult(
+            return KroutonCubeProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: "Scarlet Book 1-Bit DSD (\(ext.uppercased()))",
                 videoCodecName: nil,
@@ -2570,7 +2570,7 @@ public enum UniversalMediaDecoderEngine {
                 targetMasteringPipeline: "8th-OrdervDSP Decimation Filter (Or Native SACD-R Scarlet Book UDF)"
             )
         case "wav", "aiff", "aif", "caf", "alac":
-            return MediaStreamProbeResult(
+            return KroutonCubeProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: "Uncompressed Studio PCM (\(ext.uppercased()))",
                 videoCodecName: nil,
@@ -2583,7 +2583,7 @@ public enum UniversalMediaDecoderEngine {
             )
         // --- 6. Surround Bitstreams & Lossy Audio ---
         case "ac3", "eac3", "thd", "mlp", "dts", "dtshd":
-            return MediaStreamProbeResult(
+            return KroutonCubeProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: "Cinema Surround Bitstream (\(ext.uppercased()))",
                 videoCodecName: nil,
@@ -2595,7 +2595,7 @@ public enum UniversalMediaDecoderEngine {
                 targetMasteringPipeline: "Direct S/PDIF / BDMV Bitstream Passthrough (Or 5.1 -> Stereo Folddown)"
             )
         default:
-            return MediaStreamProbeResult(
+            return KroutonCubeProbeResult(
                 fileExtension: ext.isEmpty ? "MEDIA" : ext.uppercased(),
                 containerFormat: "Universal Media Stream",
                 videoCodecName: nil,
@@ -2610,8 +2610,8 @@ public enum UniversalMediaDecoderEngine {
     }
 }
 
-// MARK: - StagedFileEntry Bootability & .BIN/.CUE <-> .ISO Conversion UI Helpers
-extension StagedFileEntry {
+// MARK: - KroutonLoafFileEntry Bootability & .BIN/.CUE <-> .ISO Conversion UI Helpers
+extension KroutonLoafFileEntry {
     public var conversionTargetLabel: String {
         let ext = url.pathExtension.lowercased()
         if ext == "bin" {
@@ -2623,7 +2623,7 @@ extension StagedFileEntry {
 }
 
 // MARK: - Live Disc Image Sector Hex/ASCII Reader & CryptoKit SHA-256 Engine
-extension BootableImageInspector {
+extension KroutonLoafBootInspector {
     public struct HexDumpRow: Identifiable, Hashable, Sendable {
         public let id: Int
         public let offsetHex: String

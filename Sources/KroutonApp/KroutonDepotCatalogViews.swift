@@ -13,7 +13,7 @@ import Foundation
 import Combine
 
 extension KroutonMainWorkspaceView {
-    func depotInteractiveHeroBanner(for item: DepotCatalogItem, isNarrow: Bool) -> some View {
+    func depotInteractiveHeroBanner(for item: KroutonPantryCatalogItem, isNarrow: Bool) -> some View {
         let isStaged = (store.stagedDepotItemID == item.id && !store.stagedFiles.isEmpty)
         let activeProgress = store.depotDownloadProgress[item.id]
         let segments = item.blueprintSectorSegments
@@ -35,7 +35,7 @@ extension KroutonMainWorkspaceView {
                 )
 
             // 2. Multi-Layer Isometric & Pixel-Matrix CAD Blueprint Art Studio
-            DepotBlueprintArtStudioView(item: item, accent: store.activeAccent, isNarrow: isNarrow, useHarmony: store.enableSecondaryAccentUITints).id("\(item.id)-\(store.enableSecondaryAccentUITints)")
+            KroutonRecipeBlueprintView(item: item, accent: store.activeAccent, isNarrow: isNarrow, useHarmony: store.enableSecondaryAccentUITints).id("\(item.id)-\(store.enableSecondaryAccentUITints)")
                 .clipShape(RoundedRectangle(cornerRadius: 14))
 
             // 3. Foreground Layout: Left Info Column + Open Vector Showcase + Right Schematic Box
@@ -205,7 +205,7 @@ extension KroutonMainWorkspaceView {
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(isStaged ? Color.green.opacity(0.75) : store.activeAccent.opacity(0.55), lineWidth: 1.5))
     }
 
-    func depotAppStoreCard(for item: DepotCatalogItem, isSelectedInHero: Bool) -> some View {
+    func depotAppStoreCard(for item: KroutonPantryCatalogItem, isSelectedInHero: Bool) -> some View {
         let isStaged = (store.stagedDepotItemID == item.id && !store.stagedFiles.isEmpty)
         let activeProgress = store.depotDownloadProgress[item.id]
         let useHarmony = store.enableSecondaryAccentUITints

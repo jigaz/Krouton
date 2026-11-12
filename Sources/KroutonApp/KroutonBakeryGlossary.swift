@@ -1,0 +1,48 @@
+//
+//  KroutonBakeryGlossary.swift
+//  KroutonApp — Canonical Bakery UI Type Glossary & Scope Safety Net
+//
+
+import SwiftUI
+import OpticalDough
+
+public typealias DiscLabelGeometryPreset = KroutonSliceLabelGeometry
+typealias AccentColorPreset = KroutonSeasoningColorPreset
+typealias KroutonGlazePreset = KroutonSeasoningColorPreset
+typealias AppAppearanceMode = KroutonRoastAppearanceMode
+typealias SanitySeverity = KroutonBurntToastSeverity
+typealias KroutonSmokeSeverity = KroutonBurntToastSeverity
+typealias PreFlightSanityDiagnostic = KroutonPantryCalibrationCheck
+typealias KroutonOvenPreHeatDiagnostic = KroutonPantryCalibrationCheck
+typealias IconWidgetStyleMode = KroutonGarnishStyleMode
+typealias SidebarIconSizeMode = KroutonCubeIconSizeMode
+typealias KroutonCrumbSizeMode = KroutonCubeIconSizeMode
+typealias FolderColorMode = KroutonPantryFolderColorMode
+typealias KroutonBasketColorMode = KroutonPantryFolderColorMode
+typealias DiscLabelTemplateStyle = KroutonCroutonLabelStyle
+typealias KroutonLabelStencilStyle = KroutonCroutonLabelStyle
+typealias TaskMasterCategory = KroutonBakeryStation
+typealias KroutonKitchenStation = KroutonBakeryStation
+typealias FormatFilterGroup = KroutonRecipeFilterGroup
+typealias KroutonRecipeGroup = KroutonRecipeFilterGroup
+typealias DiscFormatSpec = KroutonRecipeSpec
+typealias DepotCatalogItem = KroutonPantryCatalogItem
+typealias DepotChannelSubscription = KroutonPantryFeedSubscription
+typealias KroutonPantrySubscription = KroutonPantryFeedSubscription
+typealias LabelGeometryPreset = KroutonSliceLabelGeometry
+typealias KroutonPlatterGeometryPreset = KroutonSliceLabelGeometry
+typealias NotificationEventRow = KroutonKitchenEventRow
+typealias KroutonKitchenTimerEventRow = KroutonKitchenEventRow
+typealias DestinationOutputKind = KroutonToasterOutputKind
+typealias KroutonBakeOutputKind = KroutonToasterOutputKind
+typealias DestinationQueueItem = KroutonBakeBatchItem
+typealias KroutonBakingTrayItem = KroutonBakeBatchItem
+typealias PhaseScopeWindowCloseDelegate = KroutonThermometerCloseDelegate
+typealias OpticalDiscArtworkView = KroutonSliceArtworkView
+typealias KroutonWaferArtworkView = KroutonSliceArtworkView
+typealias DiscMediaInspectorPopover = KroutonSliceMediaPopover
+typealias KroutonWaferInspectorPopover = KroutonSliceMediaPopover
+typealias InlineMiniPhaseScopeView = KroutonMiniThermometerView
+typealias FloatingPhaseScopeWindowView = KroutonFloatingThermometerView
+typealias DepotBlueprintArtStudioView = KroutonRecipeBlueprintView
+typealias KroutonPantryBlueprintStudioView = KroutonRecipeBlueprintView
