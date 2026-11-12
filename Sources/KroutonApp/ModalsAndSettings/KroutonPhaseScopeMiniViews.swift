@@ -365,3 +365,166 @@ extension KroutonLoafFileEntry {
         return ext.isEmpty ? String(base) : "\(base).\(ext)"
     }
 }
+
+// MARK: - KroutonFloatingThermometerView 6-Channel Telemetry Grid & Legend Tiles
+
+extension KroutonFloatingThermometerView {
+    @ViewBuilder
+    func floatingTelemetryChannelGrid(
+        primaryColor: Color,
+        harmonyColor: Color,
+        rpmColor: Color,
+        useHarmony: Bool
+    ) -> some View {
+            // =========================================================================
+            // 4. CLEAN 6-CHANNEL TELEMETRY & SIMPLE ENGLISH LEGEND STRIP CARDS
+            //    Alternating Primary / Harmony visual rhythm across the 3x2 grid!
+            // =========================================================================
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 10),
+                GridItem(.flexible(), spacing: 10),
+                GridItem(.flexible(), spacing: 10)
+            ], spacing: 10) {
+                telemetryChannelTile(
+                    title: "THROUGHPUT",
+                    legendLabel: "Speed",
+                    badgeKind: .speed,
+                    primary: String(format: "Live %.1fx (%.0f KB/s)", telemetry.currentSpeedX, telemetry.currentSpeedKBs),
+                    secondary: String(format: "Avg %.1fx • Peak %.1fx • Target P-CAV", telemetry.averageSpeedX, telemetry.peakSpeedX),
+                    color: primaryColor,
+                    secondaryColor: harmonyColor
+                )
+                telemetryChannelTile(
+                    title: "SPINDLE MOTOR",
+                    legendLabel: "RPM",
+                    badgeKind: .rpm,
+                    primary: "\(telemetry.currentSpindleRPM) RPM",
+                    secondary: "\(telemetry.writeStrategyText) • Angular Servo Locked",
+                    color: rpmColor,
+                    secondaryColor: primaryColor
+                )
+                telemetryChannelTile(
+                    title: "LASER POWER",
+                    legendLabel: "Laser",
+                    badgeKind: .laser,
+                    primary: telemetry.laserWavelengthText,
+                    secondary: String(format: "Active OPC Power: %.1f mW", telemetry.isActive ? 14.8 + (telemetry.progressFraction * 4.2) : 0.0),
+                    color: primaryColor,
+                    secondaryColor: harmonyColor
+                )
+                telemetryChannelTile(
+                    title: "RADIAL TRACKING",
+                    legendLabel: "Position",
+                    badgeKind: .position,
+                    primary: "LBA \(telemetry.currentSectorLBA) / \(telemetry.totalSectorsLBA)",
+                    secondary: String(format: "Radius r = %.2f / 58.00 mm (%.1f%%)", telemetry.radialMillimeters, telemetry.progressFraction * 100.0),
+                    color: useHarmony ? harmonyColor : primaryColor,
+                    secondaryColor: primaryColor
+                )
+                telemetryChannelTile(
+                    title: "BUFFER",
+                    legendLabel: "Buffer",
+                    badgeKind: .buffer,
+                    primary: String(format: "%.0f%% Full (Zero Underruns)", telemetry.bufferFillPercent),
+                    secondary: "Hardware BURN-Proof / SuperLink Active",
+                    color: primaryColor,
+                    secondaryColor: harmonyColor
+                )
+                telemetryChannelTile(
+                    title: "SERVO JITTER",
+                    legendLabel: "Jitter",
+                    badgeKind: .jitter,
+                    primary: String(format: "%.2f%% (C1/C2 Clear)", telemetry.isActive ? 4.8 + (telemetry.progressFraction * 0.7) : 0.0),
+                    secondary: "Phase-Locked Loop • Zero ECC Errors",
+                    color: useHarmony ? harmonyColor : primaryColor,
+                    secondaryColor: primaryColor
+                )
+            }
+    }
+
+    @ViewBuilder
+    func channelLegendSwatch(kind: ScopeChannelBadgeKind, color: Color, secondaryColor: Color) -> some View {
+        switch kind {
+        case .speed:
+            HStack(spacing: 3) {
+                Capsule()
+                    .fill(LinearGradient(colors: [color, secondaryColor], startPoint: .leading, endPoint: .trailing))
+                    .frame(width: 12, height: 3.5)
+                Rectangle().fill(secondaryColor.opacity(0.8)).frame(width: 3, height: 2)
+            }
+        case .rpm:
+            Capsule()
+                .fill(color)
+                .frame(width: 14, height: 3.5)
+        case .laser:
+            Circle()
+                .fill(color)
+                .frame(width: 6.5, height: 6.5)
+        case .position:
+            ZStack {
+                Rectangle()
+                    .fill(color)
+                    .frame(width: 2, height: 10)
+                Circle()
+                    .stroke(secondaryColor, lineWidth: 1.4)
+                    .frame(width: 5.5, height: 5.5)
+            }
+        case .buffer:
+            RoundedRectangle(cornerRadius: 2)
+                .fill(LinearGradient(colors: [secondaryColor.opacity(0.85), color.opacity(0.35)], startPoint: .top, endPoint: .bottom))
+                .frame(width: 13, height: 7.5)
+                .overlay(Rectangle().fill(secondaryColor).frame(height: 1.5), alignment: .top)
+        case .jitter:
+            Image(systemName: "waveform.path")
+                .font(.system(size: 8.5, weight: .bold))
+                .foregroundStyle(color)
+        }
+    }
+    func telemetryChannelTile(
+        title: String,
+        legendLabel: String,
+        badgeKind: ScopeChannelBadgeKind,
+        primary: String,
+        secondary: String,
+        color: Color,
+        secondaryColor: Color
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Text(title)
+                    .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                HStack(spacing: 4) {
+                    channelLegendSwatch(kind: badgeKind, color: color, secondaryColor: secondaryColor)
+                    Text(legendLabel)
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .foregroundStyle(color)
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 6.5)
+                .padding(.vertical, 2)
+                .background(color.opacity(0.12))
+                .clipShape(Capsule())
+            }
+            Text(primary)
+                .font(.system(size: 13, weight: .bold, design: .monospaced))
+                .foregroundStyle(color)
+                .lineLimit(1)
+            Text(secondary)
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(store.harmonizedCardFill)
+        .background(Color.kroutonControlSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .stroke(store.harmonizedCardBorder, lineWidth: 1)
+        )
+    }
+}
