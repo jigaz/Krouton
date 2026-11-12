@@ -934,9 +934,6 @@ struct KroutonMainWorkspaceView: View {
             KroutonStageImporterBridge.shared.presentImporter(allowedTypes: [.folder], allowsMultiple: false) { urls in
                 guard let url = urls.first else { return }
                 copyOutputFolderPath = url.path
-                if !store.destinationQueue.isEmpty {
-                    store.destinationQueue[0].outputFilePath = url.path
-                }
                 copyStatusBanner = "Rip output directory set to: \(url.path)"
             }
         } else {
@@ -946,7 +943,7 @@ struct KroutonMainWorkspaceView: View {
                 copySourceOverrideLabel = url.lastPathComponent
                 let sizeBytes = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64) ?? 4_700_000_000
                 let sizeGB = String(format: "%.2f GB", Double(max(sizeBytes, 850_000_000)) / 1_000_000_000.0)
-                if ! isShrinkTask {
+                if !isShrinkTask {
                     let customID = "TITLE_\( String(format: "%02d", videoExtractTitles.count + 1) )"
                     videoExtractTitles.insert(
                         (customID, "\(url.lastPathComponent) — Imported Stream", "Direct Stream Remux • Chapters Preserved", sizeGB, "01:42:10", 6130),
@@ -976,11 +973,6 @@ struct KroutonMainWorkspaceView: View {
                         }
                         .labelsHidden()
                         .frame(maxWidth: 220)
-                        .onChange(of: audioRipCodec) { _, newCodec in
-                            if !store.destinationQueue.isEmpty {
-                                store.destinationQueue[0].outputFilePath = "\(copyOutputFolderPath)/\(newCodec)"
-                            }
-                        }
 
                         Button {
                             cdTextAlbumTitle = "Polycarbonate Horizons (1994 Master)"
@@ -1160,9 +1152,6 @@ struct KroutonMainWorkspaceView: View {
                         KroutonStageImporterBridge.shared.presentImporter(allowedTypes: [.folder], allowsMultiple: false) { urls in
                             guard let url = urls.first else { return }
                             copyOutputFolderPath = url.path
-                            if !store.destinationQueue.isEmpty {
-                                store.destinationQueue[0].outputFilePath = url.path
-                            }
                             copyStatusBanner = "Video extraction folder set to: \(url.path)"
                         }
                     }
