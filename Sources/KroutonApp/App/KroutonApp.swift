@@ -268,18 +268,8 @@ struct KroutonMainWorkspaceView: View {
     @State var copySourceOverrideLabel: String = ""
     @State var copyOutputFolderPath: String = "~/Music/Krouton Rips"
     @State var copyStatusBanner: String = ""
-    @State var audioRipTracks: [(num: Int, title: String, performer: String, duration: String, arStatus: String)] = [
-        (1, "01. Opening Overture (Red Book PCM)", "Krouton Studio Ensemble", "04:18:22", "AR v2 [14/14]"),
-        (2, "02. Midnight Laser Calibration", "Krouton Studio Ensemble", "05:03:60", "AR v2 [14/14]"),
-        (3, "03. Polycarbonate Horizon", "Krouton Studio Ensemble", "03:49:15", "AR v2 [14/14]"),
-        (4, "04. Subchannel Q Drift", "Krouton Studio Ensemble", "06:12:44", "AR v2 [12/12]"),
-        (5, "05. Closing Fade (Index 00 Clean)", "Krouton Studio Ensemble", "04:55:08", "AR v2 [14/14]")
-    ]
-    @State var videoExtractTitles: [(id: String, name: String, streamInfo: String, sizeLabel: String, duration: String, seconds: Int)] = [
-        ("TITLE_01", "Title 01 — Main Feature (1080p / 480p)", "H.264/MPEG-2 • AC-3 5.1 + DTS + English SRT • 24 Chapters", "5.84 GB", "01:58:14", 7094),
-        ("TITLE_02", "Title 02 — Behind the Scenes Documentary", "Stereo PCM + Chapters", "780 MB", "00:32:40", 1960),
-        ("TITLE_03", "Title 03 — Theatrical Trailer (Skipped if < 120s)", "AC-3 2.0", "94 MB", "00:01:48", 108)
-    ]
+    @State var audioRipTracks: [KroutonRipTrackItem] = KroutonRipTrackItem.defaultRedBookTOC
+    @State var videoExtractTitles: [KroutonVideoExtractTitleItem] = KroutonVideoExtractTitleItem.defaultVideoTitles
 
     var primarySelectedDrive: KroutonToasterInfo? {
         if let firstBurnerCard = store.destinationQueue.first(where: { $0.kind == .physicalBurner }),
@@ -946,7 +936,7 @@ struct KroutonMainWorkspaceView: View {
                 if !isShrinkTask {
                     let customID = "TITLE_\( String(format: "%02d", videoExtractTitles.count + 1) )"
                     videoExtractTitles.insert(
-                        (customID, "\(url.lastPathComponent) — Imported Stream", "Direct Stream Remux • Chapters Preserved", sizeGB, "01:42:10", 6130),
+                        KroutonVideoExtractTitleItem(id: customID, name: "\(url.lastPathComponent) — Imported Stream", streamInfo: "Direct Stream Remux • Chapters Preserved", sizeLabel: sizeGB, duration: "01:42:10", seconds: 6130),
                         at: 0
                     )
                     videoExtractSelectedTitles.insert(customID)
@@ -977,13 +967,7 @@ struct KroutonMainWorkspaceView: View {
                         Button {
                             cdTextAlbumTitle = "Polycarbonate Horizons (1994 Master)"
                             cdTextAlbumPerformer = "The Optical Pickups"
-                            audioRipTracks = [
-                                (1, "01. Laser Calibration Overture", "The Optical Pickups", "04:18:22", "AR v2 [14/14]"),
-                                (2, "02. Eight-to-Fourteen Modulation", "The Optical Pickups", "05:03:60", "AR v2 [14/14]"),
-                                (3, "03. Red Book Reflections", "The Optical Pickups", "03:49:15", "AR v2 [14/14]"),
-                                (4, "04. Subchannel Q Drift", "The Optical Pickups", "06:12:44", "AR v2 [12/12]"),
-                                (5, "05. Lead-Out Silence (Index 00)", "The Optical Pickups", "04:55:08", "AR v2 [14/14]")
-                            ]
+                            audioRipTracks = KroutonRipTrackItem.musicBrainzMatchedTOC
                             copyStatusBanner = "Matched Disc ID 45059B05 via MusicBrainz & CD-TEXT."
                         } label: {
                             HStack(spacing: 4) {
@@ -1484,48 +1468,6 @@ struct KroutonMainWorkspaceView: View {
         case .depot: return "arrow.down.doc.fill"
         case .copy: return "doc.on.doc.fill"
         case .label: return "printer.fill"
-        }
-    }
-}
-
-
-// MARK: - Native SwiftUI .fileImporter Bridge for Staging Optical Payloads
-@MainActor
-final class KroutonStageImporterBridge: ObservableObject {
-    static let shared = KroutonStageImporterBridge()
-    @Published var isShowingImporter: Bool = false
-    @Published var allowedTypes: [UTType] = [.item, .folder]
-    @Published var allowsMultipleSelection: Bool = true
-    var customCompletion: (([URL]) -> Void)? = nil
-
-    func presentImporter(allowedTypes: [UTType], allowsMultiple: Bool, onPick: (([URL]) -> Void)? = nil) {
-        self.allowedTypes = allowedTypes.isEmpty ? [.item, .folder] : allowedTypes
-        self.allowsMultipleSelection = allowsMultiple
-        self.customCompletion = onPick
-        self.isShowingImporter = true
-    }
-}
-
-struct KroutonStageImporterModifier: ViewModifier {
-    @ObservedObject var store: KroutonStateStore
-    @ObservedObject private var bridge = KroutonStageImporterBridge.shared
-
-    func body(content: Content) -> some View {
-        content.fileImporter(
-            isPresented: $bridge.isShowingImporter,
-            allowedContentTypes: bridge.allowedTypes,
-            allowsMultipleSelection: bridge.allowsMultipleSelection
-        ) { result in
-            if case .success(let urls) = result {
-                if let custom = bridge.customCompletion {
-                    custom(urls)
-                    bridge.customCompletion = nil
-                } else {
-                    store.addStagedURLs(urls)
-                }
-            } else {
-                bridge.customCompletion = nil
-            }
         }
     }
 }

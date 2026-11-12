@@ -773,6 +773,24 @@ harness.runSuite("19. Type-Safe Optical Recipe Catalog, Workspace Routing & File
     h.check(KroutonCopyTaskID.allCases.count == 3, "Expected 3 canonical KroutonCopyTaskID cases")
 }
 
+harness.runSuite("20. Mastering & Extraction Domain Models (TOC, Video Titles & Config Codable Round-Trip)") { h in
+    let toc = KroutonRipTrackItem.defaultRedBookTOC
+    h.check(toc.count == 5, "Default Red Book TOC should have 5 tracks")
+    h.check(toc.first?.id == 1 && toc.last?.id == 5, "Track IDs must match track numbers")
+
+    let mbTOC = KroutonRipTrackItem.musicBrainzMatchedTOC
+    h.check(mbTOC.count == 5 && mbTOC[0].performer == "The Optical Pickups", "MusicBrainz TOC performer mismatch")
+
+    let titles = KroutonVideoExtractTitleItem.defaultVideoTitles
+    h.check(titles.count == 3, "Default Video Extract Titles should have 3 entries")
+    h.check(titles.filter { $0.seconds >= 120 }.count == 2, "Min duration filter (120s) should leave 2 feature titles")
+
+    let consoleCfg = KroutonConsoleMasteringConfig()
+    let data = try JSONEncoder().encode(consoleCfg)
+    let decoded = try JSONDecoder().decode(KroutonConsoleMasteringConfig.self, from: data)
+    h.check(decoded == consoleCfg, "KroutonConsoleMasteringConfig Codable round-trip must match")
+}
+
 print("\n🎯 SUMMARY: \(harness.passed) assertions passed, \(harness.failed) failed.")
 if harness.failed > 0 {
     exit(1)
