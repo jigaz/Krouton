@@ -850,9 +850,11 @@ extension KroutonMainWorkspaceView {
                 HStack(spacing: 10) {
                     Image(systemName: "waveform.path.ecg.rectangle.fill")
                         .foregroundStyle(store.activeAccent)
-                    Text(KroutonL10n.tr("RED BOOK CD-DA & CD-TEXT MASTERING DECK (44.1 kHz / 16-BIT PCM • 2,352 B/SECTOR)"))
-                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                    if !isCenterWorkspaceNarrow {
+                        Text(KroutonL10n.tr("RED BOOK CD-DA & CD-TEXT MASTERING DECK (44.1 kHz / 16-BIT PCM • 2,352 B/SECTOR)"))
+                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                            .foregroundStyle(.secondary).lineLimit(1)
+                    }
                     Spacer()
                     if !isCenterWorkspaceNarrow {
                         Text(KroutonL10n.tr("CD-TEXT: 7-Bit ASCII Hardware Safe"))
@@ -899,13 +901,15 @@ extension KroutonMainWorkspaceView {
 
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 6) {
-                            Text(KroutonL10n.tr("Album:")).font(.caption.bold())
+                            Text(KroutonL10n.tr("Album:")).font(.caption.bold()).frame(width: 48, alignment: .leading)
                             TextField("ALBUM TITLE", text: $cdTextAlbumTitle).textFieldStyle(.roundedBorder)
-                            Text(KroutonL10n.tr("Artist:")).font(.caption.bold())
+                        }
+                        HStack(spacing: 6) {
+                            Text(KroutonL10n.tr("Artist:")).font(.caption.bold()).frame(width: 48, alignment: .leading)
                             TextField("ARTIST / PERFORMER", text: $cdTextAlbumPerformer).textFieldStyle(.roundedBorder)
                         }
                         HStack(spacing: 6) {
-                            Text(KroutonL10n.tr("UPC / MCN:")).font(.caption.bold())
+                            Text(KroutonL10n.tr("UPC:")).font(.caption.bold()).frame(width: 48, alignment: .leading)
                             TextField("012345678905", text: $cdTextUPCBarcode).textFieldStyle(.roundedBorder).font(.system(size: 11, design: .monospaced)).frame(width: 125)
                             Spacer()
                         }

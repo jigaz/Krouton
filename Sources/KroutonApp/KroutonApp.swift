@@ -202,7 +202,7 @@ struct KroutonMainWorkspaceView: View {
     @State var labelSubtitle: String = "2026 MASTER EDITION"
     @State var autoLabelSearchQuery: String = "Dark Side of the Moon"
     @State var depotSearchQuery: String = ""
-    @State var leftColumnLiveWidth: CGFloat = 255
+    @State var leftColumnLiveWidth: CGFloat = 168
     @State var rightColumnLiveWidth: CGFloat = 345
     @State var leftSidebarDragStartWidth: CGFloat? = nil
     @State var rightSidebarDragStartWidth: CGFloat? = nil
@@ -291,50 +291,32 @@ struct KroutonMainWorkspaceView: View {
                         .frame(maxHeight: .infinity)
                         .clipped()
 
-                    // Left Interactive Column Resize Handle (Pinned to Stationary Window Coordinate Space!)
                     ZStack {
-                        Rectangle()
-                            .fill(Color.primary.opacity(0.10))
-                            .frame(width: 1)
-                        Capsule()
-                            .fill(Color.secondary.opacity(0.45))
-                            .frame(width: 3, height: 28)
+                        Rectangle().fill(Color.primary.opacity(0.10)).frame(width: 1)
+                        Capsule().fill(Color.secondary.opacity(0.45)).frame(width: 3, height: 28)
                     }
-                    .frame(width: 7)
+                    .frame(width: 11)
                     .frame(maxHeight: .infinity)
                     .contentShape(Rectangle())
-                    .onHover { inside in
-                        if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
-                    }
+                    .onHover { inside in if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
                     .gesture(
-                        DragGesture(minimumDistance: 0, coordinateSpace: .named("KroutonSplitSpace"))
+                        DragGesture(minimumDistance: 1, coordinateSpace: .global)
                             .onChanged { val in
+                                if leftSidebarDragStartWidth == nil { leftSidebarDragStartWidth = clampedLeft }
                                 let startW = leftSidebarDragStartWidth ?? clampedLeft
-                                if leftSidebarDragStartWidth == nil {
-                                    leftSidebarDragStartWidth = startW
-                                }
-                                let maxL = max(142, min(340, totalW - clampedRight - minCenterW - 14))
+                                let maxL = max(142, min(340, totalW - clampedRight - minCenterW - 22))
                                 let newW = min(max(142, startW + val.translation.width), maxL)
-                                if abs(newW - leftColumnLiveWidth) > 0.5 {
-                                    var tx = Transaction()
-                                    tx.disablesAnimations = true
-                                    withTransaction(tx) {
-                                        leftColumnLiveWidth = newW
-                                        // Hysteresis deadband: use short titles < 248pt, hide 2nd-line subtitle < 222pt!
-                                        if !isLeftSidebarCompact && newW < 248 {
-                                            isLeftSidebarCompact = true
-                                        } else if isLeftSidebarCompact && newW > 260 {
-                                            isLeftSidebarCompact = false
-                                        }
-                                        if !isLeftSidebarUltraSkinny && newW < 215 {
-                                            isLeftSidebarUltraSkinny = true
-                                        } else if isLeftSidebarUltraSkinny && newW > 228 {
-                                            isLeftSidebarUltraSkinny = false
-                                        }
-                                    }
+                                var tx = Transaction(); tx.disablesAnimations = true
+                                withTransaction(tx) {
+                                    leftColumnLiveWidth = newW
+                                    if !isLeftSidebarCompact && newW < 258 { isLeftSidebarCompact = true }
+                                    else if isLeftSidebarCompact && newW > 272 { isLeftSidebarCompact = false }
+                                    if !isLeftSidebarUltraSkinny && newW < 215 { isLeftSidebarUltraSkinny = true }
+                                    else if isLeftSidebarUltraSkinny && newW > 228 { isLeftSidebarUltraSkinny = false }
                                 }
                             }
                             .onEnded { _ in
+                                leftColumnLiveWidth = clampedLeft
                                 leftSidebarDragStartWidth = nil
                             }
                     )
@@ -344,45 +326,30 @@ struct KroutonMainWorkspaceView: View {
                         .frame(maxHeight: .infinity)
                         .clipped()
 
-                    // Right Interactive Column Resize Handle (Pinned to Stationary Window Coordinate Space!)
                     ZStack {
-                        Rectangle()
-                            .fill(Color.primary.opacity(0.10))
-                            .frame(width: 1)
-                        Capsule()
-                            .fill(Color.secondary.opacity(0.45))
-                            .frame(width: 3, height: 28)
+                        Rectangle().fill(Color.primary.opacity(0.10)).frame(width: 1)
+                        Capsule().fill(Color.secondary.opacity(0.45)).frame(width: 3, height: 28)
                     }
-                    .frame(width: 7)
+                    .frame(width: 11)
                     .frame(maxHeight: .infinity)
                     .contentShape(Rectangle())
-                    .onHover { inside in
-                        if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
-                    }
+                    .onHover { inside in if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
                     .gesture(
-                        DragGesture(minimumDistance: 0, coordinateSpace: .named("KroutonSplitSpace"))
+                        DragGesture(minimumDistance: 1, coordinateSpace: .global)
                             .onChanged { val in
+                                if rightSidebarDragStartWidth == nil { rightSidebarDragStartWidth = clampedRight }
                                 let startW = rightSidebarDragStartWidth ?? clampedRight
-                                if rightSidebarDragStartWidth == nil {
-                                    rightSidebarDragStartWidth = startW
-                                }
-                                let maxR = max(195, min(440, totalW - clampedLeft - minCenterW - 14))
+                                let maxR = max(195, min(440, totalW - clampedLeft - minCenterW - 22))
                                 let newW = min(max(195, startW - val.translation.width), maxR)
-                                if abs(newW - rightColumnLiveWidth) > 0.5 {
-                                    var tx = Transaction()
-                                    tx.disablesAnimations = true
-                                    withTransaction(tx) {
-                                        rightColumnLiveWidth = newW
-                                        // Hysteresis deadband (325pt <-> 338pt) so Eject becomes icon-only before any card edge clips!
-                                        if !isRightQueueCompact && newW < 325 {
-                                            isRightQueueCompact = true
-                                        } else if isRightQueueCompact && newW > 338 {
-                                            isRightQueueCompact = false
-                                        }
-                                    }
+                                var tx = Transaction(); tx.disablesAnimations = true
+                                withTransaction(tx) {
+                                    rightColumnLiveWidth = newW
+                                    if !isRightQueueCompact && newW < 335 { isRightQueueCompact = true }
+                                    else if isRightQueueCompact && newW > 348 { isRightQueueCompact = false }
                                 }
                             }
                             .onEnded { _ in
+                                rightColumnLiveWidth = clampedRight
                                 rightSidebarDragStartWidth = nil
                             }
                     )
@@ -394,9 +361,9 @@ struct KroutonMainWorkspaceView: View {
                 }
                 .coordinateSpace(name: "KroutonSplitSpace")
                 .onAppear {
-                    isLeftSidebarCompact = clampedLeft < 248
+                    isLeftSidebarCompact = clampedLeft < 265
                     isLeftSidebarUltraSkinny = clampedLeft < 215
-                    isRightQueueCompact = clampedRight < 330
+                    isRightQueueCompact = clampedRight < 342
                     isCenterWorkspaceUltraCompact = centerLiveW < 500
                     isCenterWorkspaceNarrow = centerLiveW < 720
                 }

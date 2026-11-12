@@ -705,7 +705,6 @@ struct KroutonMiniThermometerView: View {
         VStack(alignment: .leading, spacing: 5) {
             miniHeaderRow
             miniScopeCanvas
-            miniFooterRow
         }
         .padding(8)
         .background(
@@ -724,25 +723,27 @@ struct KroutonMiniThermometerView: View {
     }
 
     private var miniHeaderRow: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(telemetry.isActive ? primaryColor : harmonyColor)
-                .frame(width: 6, height: 6)
-            Text("PHASE SCOPE")
-                .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                .foregroundStyle(useHarmony ? harmonyColor : primaryColor)
-            Spacer()
-            Text(String(format: "Live %.1fx (%.0f KB/s)", telemetry.currentSpeedX, telemetry.currentSpeedKBs))
-                .font(.system(size: 9.5, weight: .bold, design: .monospaced))
-                .foregroundStyle(primaryColor)
-            Text("•")
-                .foregroundStyle(.secondary)
-            Text("\(telemetry.currentSpindleRPM) RPM")
-                .font(.system(size: 9.5, weight: .bold, design: .monospaced))
-                .foregroundStyle(rpmColor)
-            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                .font(.system(size: 8.5, weight: .bold))
-                .foregroundStyle(useHarmony ? harmonyColor : .secondary)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 6) {
+                Circle().fill(telemetry.isActive ? primaryColor : harmonyColor).frame(width: 6, height: 6)
+                Text(String(format: "%.0f KB/s", telemetry.currentSpeedKBs))
+                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                    .foregroundStyle(primaryColor).lineLimit(1).fixedSize(horizontal: true, vertical: false)
+                Spacer(minLength: 4)
+                Text("\(telemetry.currentSpindleRPM) RPM")
+                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                    .foregroundStyle(rpmColor).lineLimit(1).fixedSize(horizontal: true, vertical: false)
+            }
+            HStack(spacing: 4) {
+                Circle().fill(telemetry.isActive ? primaryColor : harmonyColor).frame(width: 5, height: 5)
+                Text(String(format: "%.0f", telemetry.currentSpeedKBs))
+                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                    .foregroundStyle(primaryColor).lineLimit(1)
+                Spacer(minLength: 2)
+                Text("\(telemetry.currentSpindleRPM)")
+                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                    .foregroundStyle(rpmColor).lineLimit(1)
+            }
         }
     }
 

@@ -268,7 +268,7 @@ extension KroutonMainWorkspaceView {
                             Image(systemName: item.copiesToBurn > 1 ? "square.stack.3d.up.fill" : "doc.on.doc")
                                 .font(.system(size: 10))
                                 .foregroundStyle(item.copiesToBurn > 1 ? store.uiSecondaryAccent : .secondary)
-                            Text(item.copiesToBurn > 1 ? "Batch: \(item.copiesToBurn) Copies" : "Copies: 1")
+                            Text(isRightQueueCompact ? "\(item.copiesToBurn)×" : (item.copiesToBurn > 1 ? "Batch: \(item.copiesToBurn) Copies" : "Copies: 1"))
                                 .font(.system(size: 11, weight: item.copiesToBurn > 1 ? .bold : .regular, design: .monospaced))
                         }
                     }
