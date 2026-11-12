@@ -37,7 +37,7 @@ struct KroutonTestHarness {
 print("=== KROUTON ARCHITECTURE & CORE INVARIANT SUITE (krouton-verify) ===")
 var harness = KroutonTestHarness()
 
-harness.runSuite("1. 21/21 (100%) AppKit-Free Clean Architecture & Zero Banned Symbols Gate") { h in
+harness.runSuite("1. 100% AppKit-Free Clean Modular Architecture & Zero Banned Symbols Gate") { h in
     let repoRoot = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .deletingLastPathComponent()
@@ -52,7 +52,17 @@ harness.runSuite("1. 21/21 (100%) AppKit-Free Clean Architecture & Zero Banned S
             swiftFiles.append(fileURL)
         }
     }
-    h.check(swiftFiles.count == 21, "Expected 21 production Swift files, found \(swiftFiles.count)")
+    h.check(swiftFiles.count >= 22, "Expected >= 22 modular production Swift files, found \(swiftFiles.count)")
+
+    let requiredSubdirs = [
+        "App", "StateAndModels", "DesignSystem", "Workspaces",
+        "Depot", "NavigationAndRack", "ModalsAndSettings", "Services"
+    ]
+    for sub in requiredSubdirs {
+        let dirURL = sourcesURL.appendingPathComponent("KroutonApp").appendingPathComponent(sub)
+        var isDir: ObjCBool = false
+        h.check(fm.fileExists(atPath: dirURL.path, isDirectory: &isDir) && isDir.boolValue, "Missing KroutonApp domain directory: \(sub)")
+    }
 
     let bannedEverywhere = [
         "import AppKit", "NSWindow", "NSApp", "NSPasteboard", "NSWorkspace", "NSColor",
