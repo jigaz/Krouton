@@ -1,3 +1,4 @@
+import VideoOven
 import Tartine
 import Marmalade
 //
@@ -1079,6 +1080,25 @@ extension KroutonMainWorkspaceView {
                     Text(isBluRay ? "BDMV + CERTIFICATE Folders Auto-Built" : "VIDEO_TS + Empty AUDIO_TS Enforced")
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .foregroundStyle(.green)
+
+                    Button {
+                        showVideoOvenPopover.toggle()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "gauge.with.dots.needle.67percent")
+                            Text("VideoOven Bitrate & Shrink")
+                        }
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(store.activeAccent.opacity(0.16))
+                        .foregroundStyle(store.activeAccent)
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showVideoOvenPopover, arrowEdge: .bottom) {
+                        videoOvenBitrateAndShrinkPopoverView(for: spec, isBluRay: isBluRay, isDualLayer: isDualLayer)
+                    }
                 }
 
                 HStack(spacing: 14) {
@@ -1747,6 +1767,101 @@ extension KroutonMainWorkspaceView {
         }
         .padding(14)
         .frame(width: 560)
+    }
+
+
+
+    @ViewBuilder
+    func videoOvenBitrateAndShrinkPopoverView(
+        for spec: KroutonRecipeSpec,
+        isBluRay: Bool,
+        isDualLayer: Bool
+    ) -> some View {
+        let medium: KroutonVideoTargetMedium = {
+            if isBluRay {
+                return isDualLayer ? .bd50DualLayer : .bd25SingleLayer
+            } else {
+                return isDualLayer ? .dvd9DualLayer : .dvd5SingleLayer
+            }
+        }()
+        let stagedBytes = store.stagedFiles.reduce(Int64(0)) { $0 + $1.byteSize }
+        // Estimate program duration from staged files (or default to 110-min feature film = 6,600s)
+        let estimatedDurationSec: Double = stagedBytes > 0
+            ? max(300.0, min(14_400.0, Double(stagedBytes) / 750_000.0))
+            : 6_600.0
+        let budget = store.computeLiveVideoOvenBitrateBudget(
+            durationSeconds: estimatedDurationSec,
+            audioKbps: isBluRay ? 1_536 : 448,
+            medium: medium
+        )
+        let mainBytes: Int64 = stagedBytes > 4_700_372_992 ? stagedBytes : 6_850_000_000
+        let extrasBytes: Int64 = 880_000_000
+        let shrinkPlan = KroutonVideoOvenModule.planDVD9ToDVD5Shrink(
+            mainFeatureBytes: mainBytes,
+            menusAndExtrasBytes: extrasBytes,
+            preserveMenusAndExtras: store.fitToDiscPreserveMenus
+        )
+
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "film.stack.fill")
+                    .foregroundStyle(store.activeAccent)
+                Text("VIDEOOVEN BITRATE BUDGET & REQUIEM SHRINK INSPECTOR")
+                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                Spacer()
+                Button {
+                    let summary = """
+                    MEDIUM: \(medium.rawValue) (\(medium.totalSectorsLBA) LBA sectors / \(medium.capacityBytes) B)
+                    TARGET VIDEO BITRATE: \(budget.targetVideoKbps) kbps (Max Ceiling: \(budget.maxHardwareCeilingKbps) kbps)
+                    VBV BUFFER: \(budget.vbvBufferKilobits) kilobits • Audio: \(budget.audioBitrateKbps) kbps
+                    DVD-9 -> DVD-5 REQUIEM SHRINK RATIO: \(String(format: "%.1f%%", shrinkPlan.requantizationRatio * 100.0))
+                    ESTIMATED OUTPUT: \(shrinkPlan.estimatedOutputBytes) bytes (Preserve Menus: \(shrinkPlan.preserveMenusAndExtras))
+                    """
+                    KroutonOSDesktopBridge.copyTextToClipboard(summary)
+                } label: {
+                    Label("Copy Budget", systemImage: "doc.on.doc")
+                        .font(.caption.bold())
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(store.activeAccent)
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("• Target Optical Medium : \(medium.rawValue) (\(medium.totalSectorsLBA) × 2048-B sectors)")
+                Text("• Target Video Bitrate  : \(budget.targetVideoKbps) kbps (Hardware Spec Ceiling: \(budget.maxHardwareCeilingKbps) kbps)")
+                    .foregroundStyle(store.activeAccent)
+                Text("• VBV Decoder Buffer    : \(budget.vbvBufferKilobits) kilobits • Audio Stream: \(budget.audioBitrateKbps) kbps")
+                Text(String(format: "• Usable Video Payload  : %.2f GB (Est. Disc Fill: %.1f%%)", Double(budget.usableVideoBytes) / 1_000_000_000.0, budget.estimatedDiscFillRatio * 100.0))
+                    .foregroundStyle(.green)
+            }
+            .font(.system(size: 11, design: .monospaced))
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    Image(systemName: "arrow.down.right.and.arrow.up.left")
+                        .foregroundStyle(.orange)
+                    Text("DVD-9 (8.54 GB DL) -> DVD-5 (4.70 GB SL) REQUIEM DCT REQUANTIZATION PLAN")
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(.orange)
+                }
+                Text(String(format: "• Main Feature DCT Retention : %.1f%% (%@)", shrinkPlan.requantizationRatio * 100.0, fitToDiscDVD9Shrink ? "ACTIVE" : "STANDBY"))
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                Text(String(format: "• Menus & Bonus Features     : %@ (%.2f GB source)", shrinkPlan.preserveMenusAndExtras ? "Preserved at 90% Fidelity" : "Stripped (Main Movie Only)", Double(shrinkPlan.sourceMenusAndExtrasBytes) / 1_000_000_000.0))
+                    .font(.system(size: 10, design: .monospaced))
+                Text(String(format: "• Requantized VTS Output     : %.3f GB / %.3f GB DVD-5 Safe Ceiling", Double(shrinkPlan.estimatedOutputBytes) / 1_000_000_000.0, Double(shrinkPlan.targetUsableDVD5Bytes) / 1_000_000_000.0))
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(8)
+            .background(Color.black.opacity(0.20))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .padding(14)
+        .frame(width: 575)
     }
 
 }
