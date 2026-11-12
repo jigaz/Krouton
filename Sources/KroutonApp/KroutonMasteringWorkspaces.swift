@@ -982,6 +982,8 @@ extension KroutonMainWorkspaceView {
                         Text(KroutonL10n.tr("Krouton decodes all audio to 44.1 kHz / 16-bit Stereo PCM on disk before burning (Zero Underrun Guarantee)."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 36)
                     }
                 } else {
                     VStack(spacing: 0) {
