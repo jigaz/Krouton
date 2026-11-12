@@ -1,19 +1,74 @@
-//
-//  KroutonNavigationAndTelemetryBars.swift
-//  Krouton — Optical Media Mastering Studio
-//
-//  Left Format Chooser Sidebar, Top Hardware Telemetry Header Bar, Center Router, and Bottom Capacity Bar.
-//
-
-import Combine
+import SwiftUI
 import Foundation
 import OpticalDough
-import SwiftUI
-import ImageIO
-import UniformTypeIdentifiers
+import Crustini
 
-extension KroutonMainWorkspaceView {
-    var leftFormatChooserColumn: some View {
+// MARK: - Standalone Left Format Chooser Sidebar, Central Capacity Bar & Burn Station Views
+
+struct KroutonLeftFormatChooserColumnView: View {
+    @ObservedObject var store: KroutonStateStore
+    @ObservedObject var driveManager: KroutonToasterBank
+    let isLeftSidebarUltraSkinny: Bool
+
+    func taskRowButton(id: String, category: KroutonBakeryStation, title: String,
+        shortTitle: String? = nil, colloquial: String, badge: String = "", sfSymbol: String) -> some View {
+        let isSelected = (store.selectedTaskID == id)
+        return Button {
+            store.selectedCategory = category
+            store.selectedTaskID = id
+            store.rejectedDropNotice = nil
+            store.purgeIncompatibleStagedFilesForCurrentTask()
+            store.syncDefaultDestinationForCategory(category, taskID: id, driveManager: driveManager)
+        } label: {
+            HStack(spacing: 9) {
+                let rowColor = store.effectiveColorForTask(id: id, category: category)
+                KroutonStyledIconBadge(
+                    sfSymbol: sfSymbol,
+                    tintColor: rowColor,
+                    style: store.iconWidgetStyle,
+                    isSelectedRow: isSelected,
+                    onAccentText: store.activeOnAccentText,
+                    size: store.sidebarIconSize.iconFontSize + 11,
+                    symbolSize: store.sidebarIconSize.iconFontSize - 1
+                )
+
+                VStack(alignment: .leading, spacing: 1) {
+                    ViewThatFits(in: .horizontal) {
+                        Text(KroutonL10n.tr(title))
+                            .font(.system(size: store.sidebarIconSize.titleFontSize, weight: .semibold))
+                            .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+
+                        Text(KroutonL10n.tr(shortTitle ?? title))
+                            .font(.system(size: store.sidebarIconSize.titleFontSize, weight: .semibold))
+                            .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
+                            .lineLimit(1)
+                    }
+                    if !isLeftSidebarUltraSkinny {
+                        Text(KroutonL10n.tr(colloquial))
+                            .font(.system(size: max(9.5, store.sidebarIconSize.titleFontSize - 2.0)))
+                            .foregroundStyle(isSelected ? store.activeOnAccentText.opacity(0.82) : .secondary)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, store.sidebarIconSize.rowVerticalPadding)
+            .background(
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(isSelected ? store.activeAccent : Color.clear)
+            )
+            .overlay(RoundedRectangle(cornerRadius: 7).stroke(store.a11yIncreaseContrast && isSelected ? Color.primary : Color.clear, lineWidth: 1.5))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title), \(colloquial)")
+    }
+
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Label(isLeftSidebarUltraSkinny ? KroutonL10n.tr("FORMATS") : KroutonL10n.tr("FORMAT CHOOSER"), systemImage: "list.bullet.rectangle")
@@ -190,7 +245,14 @@ extension KroutonMainWorkspaceView {
         .background(Color.kroutonControlSurface)
     }
 
-    var centralWorkspaceCapacityBar: some View {
+}
+
+struct KroutonCentralWorkspaceCapacityBarView: View {
+    @ObservedObject var store: KroutonStateStore
+    let activeDiscCapacityBytes: Int64
+    let primarySelectedDrive: KroutonToasterInfo?
+
+    var body: some View {
         let usedB = store.totalStagedBytes
         let totalB = max(1, activeDiscCapacityBytes)
         let freeB = max(0, totalB - usedB)
@@ -267,7 +329,120 @@ extension KroutonMainWorkspaceView {
         .accessibilityLabel(String(format: "Disc capacity %.1f percent full", ratio * 100.0))
     }
 
-    var burnWorkspaceView: some View {
+}
+
+struct KroutonBurnStationWorkspaceView: View {
+    @ObservedObject var store: KroutonStateStore
+    let primarySelectedDrive: KroutonToasterInfo?
+    let isCenterWorkspaceNarrow: Bool
+    @Binding var enableCustomFinderLayoutTab: Bool
+    @Binding var finderIconSize: Double
+    @Binding var fitToDiscDVD9Shrink: Bool
+    let preserveMenusAndExtras: Bool
+    @Binding var cdTextAlbumTitle: String
+    @Binding var cdTextAlbumPerformer: String
+    @Binding var auditioningTrackID: UUID?
+    @Binding var isDropTargeted: Bool
+    let onPromptToAddFiles: () -> Void
+    let onHandleFinderDrop: ([NSItemProvider]) -> Bool
+
+    func addButtonTitle(for spec: KroutonRecipeSpec) -> String {
+        if spec.isRedBookAudioFormat {
+            return "Add Audio Tracks (WAV / AIFF / FLAC / MP3)..."
+        } else if spec.isCarSafeAudioFormat {
+            return "Add Audio Files or Album Folders..."
+        } else if spec.isVideoAuthoringFormat {
+            return "Add Video Titles (MKV / MP4 / MOV / VIDEO_TS)..."
+        } else if spec.isDiscImageBurnFormat {
+            return "Select Disc Image (.ISO / .DMG / .BIN / .CUE / .CDR / .TOAST)..."
+        } else if spec.id == "console-wii" {
+            return "Select Wii Image (.RVZ / .WBFS / .ISO)..."
+        } else if spec.id == "console-gc" {
+            return "Select GameCube Image (.RVZ / .GCM / .ISO)..."
+        } else if spec.id == "console-ps2" {
+            return "Select PS2 Image (.ISO / .CHD / .BIN+.CUE)..."
+        } else if spec.id == "console-ps1" {
+            return "Select PS1 Image (.CUE+.BIN / .CHD / .CCD)..."
+        } else if spec.id == "console-xbox" {
+            return "Select Xbox Image (.ISO / .XISO / .DVD)..."
+        } else if (spec.filterGroup == .console || spec.id.hasPrefix("console-")) {
+            return "Select Console Image..."
+        } else {
+            return "Add Files or Folders..."
+        }
+    }
+
+    func addButtonSymbol(for spec: KroutonRecipeSpec) -> String {
+        if spec.isRedBookAudioFormat || spec.isCarSafeAudioFormat {
+            return "waveform.badge.plus"
+        } else if spec.isVideoAuthoringFormat {
+            return "film.stack.fill"
+        } else if spec.isDiscImageBurnFormat {
+            return "opticaldisc.fill"
+        } else if (spec.filterGroup == .console || spec.id.hasPrefix("console-")) {
+            return "gamecontroller.fill"
+        } else {
+            return "plus.rectangle.on.folder.fill"
+        }
+    }
+
+    // ==========================================================================
+    // 1. RED BOOK AUDIO CD (CD-DA) & CD-EXTRA WAVEBURNER MASTERING STUDIO
+    // ==========================================================================
+
+
+    // ==========================================================================
+    // 2. CAR-SAFE MP3 / FLAC AUDIO CD WORKSPACE (Head-Unit Sorting & Sanitizer)
+    // ==========================================================================
+
+
+    // ==========================================================================
+    // 3. VIDEO DISC AUTHORING STUDIO (DVD-Video, AVCHD, BD-R SL/DL, UHD-BD)
+    // ==========================================================================
+
+
+    // ==========================================================================
+    // 4. RETRO CONSOLE ROM & SECTOR VERIFICATION WORKSPACE (PS1/PS2/GC/Wii/Xbox)
+    // ==========================================================================
+
+
+    // ==========================================================================
+    // 5A. DEDICATED DISC IMAGE (.ISO / .BIN / .DMG / .CDR) FULL-WORKSPACE DECK
+    //     (Single-Image Radial Platter, Live LBA Hex Scope & Actionable Pills)
+    // ==========================================================================
+
+
+    // ==========================================================================
+    // 5B. NEW DATA & ARCHIVAL DISC AUTHORING WORKSPACE
+    //     (Author File/Folder Trees with Universal Bridge & Per-File OS Visibility)
+    // ==========================================================================
+
+
+    // MARK: - Retro Console ROM Mastering Deck & Pre-Flight Sanity Engine
+
+
+    func currentPreFlightSanityWarning(for spec: KroutonRecipeSpec) -> String? {
+        if (spec.filterGroup == .console || spec.id.hasPrefix("console-")), let drive = primarySelectedDrive, drive.isMediaPresent && drive.isMediaErasable {
+            return "Retro Console Pickup Warning: \(drive.displayName) has rewritable \(drive.mediaType) loaded (~20% reflectivity). Vintage PS1/PS2/GameCube/Dreamcast optical pickups require high-reflectivity write-once CD-R or DVD-R media at 4x–8x."
+        }
+        if spec.id == "console-ps1" && !store.stagedFiles.isEmpty {
+            let hasBin = store.stagedFiles.contains { $0.name.lowercased().hasSuffix(".bin") }
+            let hasCue = store.stagedFiles.contains { $0.name.lowercased().hasSuffix(".cue") || $0.name.lowercased().hasSuffix(".ccd") }
+            if hasBin && !hasCue {
+                return "Missing .CUE Descriptor: A raw .BIN track is staged without its companion .CUE sheet. Add the .CUE file to preserve Red Book audio tracks and 2-second pre-gap offsets."
+            }
+        }
+        if let hugeFile = store.stagedFiles.first(where: { $0.exceedsISO9660FourGiBLimit }) {
+            return "4 GiB File Limit Notice: '\(hugeFile.name)' exceeds the 4 GiB ISO9660 Level 2 ceiling. Krouton will bridge this file via UDF 2.60 + HFS+."
+        }
+        if let longFile = store.stagedFiles.first(where: { $0.exceedsJoliet64CharLimit }) {
+            return "Joliet 64-Char Notice: '\(longFile.name)' is \(longFile.name.count) characters long. Full name is preserved on Mac (HFS+) and UDF, and safely truncated in legacy Windows Joliet tables."
+        }
+        return nil
+    }
+
+
+    var body: some View {
         let activeSpec = store.discFormats.first(where: { $0.id == store.selectedTaskID }) ?? store.discFormats[0]
         return VStack(alignment: .leading, spacing: 12) {
             // Format Header Bar with Context-Sensitive Add Action (Responsive & Zero Vertical Word-Towers)
@@ -324,7 +499,7 @@ extension KroutonMainWorkspaceView {
                 }
 
                 Button {
-                    promptToAddFiles()
+                    onPromptToAddFiles()
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: addButtonSymbol(for: activeSpec))
@@ -371,7 +546,7 @@ extension KroutonMainWorkspaceView {
                     cdTextAlbumPerformer: $cdTextAlbumPerformer,
                     auditioningTrackID: $auditioningTrackID,
                     isDropTargeted: $isDropTargeted,
-                    onHandleFinderDrop: handleFinderDrop(providers:)
+                    onHandleFinderDrop: onHandleFinderDrop
                 )
             } else if activeSpec.isCarSafeAudioFormat {
                 KroutonCarSafeAudioWorkspaceView(
@@ -379,7 +554,7 @@ extension KroutonMainWorkspaceView {
                     spec: activeSpec,
                     isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
                     isDropTargeted: $isDropTargeted,
-                    onHandleFinderDrop: handleFinderDrop(providers:)
+                    onHandleFinderDrop: onHandleFinderDrop
                 )
             } else if activeSpec.isVideoAuthoringFormat {
                 KroutonVideoAuthoringWorkspaceView(
@@ -389,15 +564,15 @@ extension KroutonMainWorkspaceView {
                     fitToDiscDVD9Shrink: $fitToDiscDVD9Shrink,
                     preserveMenusAndExtras: preserveMenusAndExtras,
                     isDropTargeted: $isDropTargeted,
-                    onHandleFinderDrop: handleFinderDrop(providers:)
+                    onHandleFinderDrop: onHandleFinderDrop
                 )
             } else if activeSpec.isDiscImageBurnFormat {
                 KroutonDiscImageInspectorWorkspaceView(
                     store: store,
                     spec: activeSpec,
                     isDropTargeted: $isDropTargeted,
-                    onPromptToAddFiles: promptToAddFiles,
-                    onHandleFinderDrop: handleFinderDrop(providers:)
+                    onPromptToAddFiles: onPromptToAddFiles,
+                    onHandleFinderDrop: onHandleFinderDrop
                 )
             } else if activeSpec.filterGroup == .console || activeSpec.id.hasPrefix("console-") {
                 KroutonRetroConsoleWorkspaceView(
@@ -405,7 +580,7 @@ extension KroutonMainWorkspaceView {
                     spec: activeSpec,
                     isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
                     isDropTargeted: $isDropTargeted,
-                    onHandleFinderDrop: handleFinderDrop(providers:)
+                    onHandleFinderDrop: onHandleFinderDrop
                 )
             } else {
                 KroutonDataAndArchivalWorkspaceView(
@@ -414,109 +589,10 @@ extension KroutonMainWorkspaceView {
                     enableCustomFinderLayoutTab: $enableCustomFinderLayoutTab,
                     finderIconSize: $finderIconSize,
                     isDropTargeted: $isDropTargeted,
-                    onHandleFinderDrop: handleFinderDrop(providers:)
+                    onHandleFinderDrop: onHandleFinderDrop
                 )
             }
         }
     }
 
-    var rightDestinationColumn: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 6) {
-                Label(
-                    isRightQueueCompact ? "QUEUE (\(store.destinationQueue.count))" : "DESTINATIONS (\(store.destinationQueue.count))",
-                    systemImage: "arrow.right.doc.on.clipboard"
-                )
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : Color.secondary)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                Spacer(minLength: 4)
-                Button {
-                    appendContextAwareDestination()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "plus")
-                        if !isRightQueueCompact {
-                            Text(KroutonL10n.tr("Add Output"))
-                                .lineLimit(1)
-                        }
-                    }
-                    .font(.system(size: 11, weight: .semibold))
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 4)
-                    .background(store.uiSecondaryAccent.opacity(0.2))
-                    .clipShape(Capsule())
-                    .fixedSize(horizontal: true, vertical: false)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-
-            Divider()
-
-            // Iterating directly over store.destinationQueue by UUID (Zero raw array indices = Zero crashes!)
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(store.destinationQueue) { item in
-                        destinationCard(item: item)
-                    }
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 12)
-            }
-
-            Divider()
-
-            if driveManager.isExecutingQueue || driveManager.activeJobProgress > 0 {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text(driveManager.activeJobPhase)
-                            .font(.system(size: 11, weight: .bold))
-                            .lineLimit(1)
-                        Spacer()
-                        Text(String(format: "%.0f%%", driveManager.activeJobProgress * 100.0))
-                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                    }
-                    ProgressView(value: driveManager.activeJobProgress, total: 1.0)
-                        .tint(store.activeAccent)
-                    if !driveManager.activeJobDetail.isEmpty {
-                        Text(driveManager.activeJobDetail)
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                }
-                .padding(.horizontal, 12)
-                .padding(.top, 10)
-            }
-
-            VStack(spacing: 8) {
-                Button {
-                    executeDestinationQueue()
-                } label: {
-                    HStack {
-                        Image(systemName: driveManager.isExecutingQueue ? "stop.circle.fill" : primaryActionSymbol)
-                            .font(.system(size: 15, weight: .bold))
-                        Text(driveManager.isExecutingQueue ? "ABORT BURN" : primaryActionTitle)
-                            .font(.system(size: 14, weight: .heavy, design: .rounded))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(driveManager.isExecutingQueue ? Color.red : store.activeAccent)
-                    .foregroundStyle(driveManager.isExecutingQueue ? Color.white : store.activeOnAccentText)
-                    .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-
-                Text("Queue Ready • \(store.stagedFiles.count) Items (\(ByteCountFormatter.string(fromByteCount: store.totalStagedBytes, countStyle: .file)))")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(14)
-        }
-        .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-        .background(Color.kroutonControlSurface)
-    }
 }

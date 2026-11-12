@@ -1,18 +1,23 @@
-//
-//  KroutonDestinationRackViews.swift
-//  Krouton — Optical Media Mastering Studio
-//
-//  Right-Column Hardware Burner / Image Destination Cards, Queue Execution, and Volume Rows.
-//
-
-import OpticalDough
 import SwiftUI
-import UniformTypeIdentifiers
 import Foundation
-import Combine
+import UniformTypeIdentifiers
+import OpticalDough
 
-extension KroutonMainWorkspaceView {
-    func destinationCard(item: KroutonBakeBatchItem) -> some View {
+// MARK: - Standalone UUID-Safe Destination Rack Card View
+
+struct KroutonDestinationCardView: View {
+    @ObservedObject var store: KroutonStateStore
+    @ObservedObject var driveManager: KroutonToasterBank
+    @ObservedObject var krumb: KrumbKitchenClient = .shared
+    let item: KroutonBakeBatchItem
+    let isRightQueueCompact: Bool
+    let enableCustomFinderLayoutTab: Bool
+    let finderIconSize: Double
+    let primarySelectedDrive: KroutonToasterInfo?
+
+    @State private var activeDiscPopoverCardID: UUID? = nil
+
+    var body: some View {
         let cardID = item.id
 
         // Drives claimed by OTHER destination cards in the queue
@@ -44,10 +49,10 @@ extension KroutonMainWorkspaceView {
             // Top Row: USB Burner / USB Menu + Scope + Icon-Only Eject + Remove Card
             HStack(spacing: 5) {
                 Menu {
-                    ForEach(allowedDestinationsForCurrentCategory) { kind in
+                    ForEach(store.allowedDestinationsForCurrentCategory) { kind in
                         Button {
-                            updateQueueItem(cardID) { $0.kind = kind }
-                            reconcileUniqueDriveAssignments()
+                            store.updateQueueItem(cardID) { $0.kind = kind }
+                            store.reconcileUniqueDriveAssignments(driveManager: driveManager)
                         } label: {
                             HStack {
                                 if item.kind == kind { Image(systemName: "checkmark") }
@@ -148,7 +153,7 @@ extension KroutonMainWorkspaceView {
                 if store.destinationQueue.count > 1 {
                     Button {
                         store.destinationQueue.removeAll { $0.id == cardID }
-                        reconcileUniqueDriveAssignments()
+                        store.reconcileUniqueDriveAssignments(driveManager: driveManager)
                     } label: {
                         Image(systemName: "minus.circle.fill")
                             .foregroundStyle(.secondary)
@@ -169,7 +174,7 @@ extension KroutonMainWorkspaceView {
                             let isTakenByOther = otherUsedDriveIDs.contains(d.id)
                             Button {
                                 guard !isTakenByOther else { return }
-                                updateQueueItem(cardID) { qItem in
+                                store.updateQueueItem(cardID) { qItem in
                                     qItem.targetDriveID = d.id
                                     qItem.hardwareOrPath = d.displayName
                                     driveManager.selectedDrive = d
@@ -244,7 +249,7 @@ extension KroutonMainWorkspaceView {
                     Menu {
                         ForEach(validSpeeds, id: \.self) { spd in
                             Button {
-                                updateQueueItem(cardID) { $0.speedOrCodec = spd }
+                                store.updateQueueItem(cardID) { $0.speedOrCodec = spd }
                             } label: {
                                 HStack {
                                     if activeSpd == spd { Image(systemName: "checkmark") }
@@ -278,7 +283,7 @@ extension KroutonMainWorkspaceView {
 
                     Toggle(isOn: Binding(
                         get: { item.simulationMode },
-                        set: { val in updateQueueItem(cardID) { $0.simulationMode = val } }
+                        set: { val in store.updateQueueItem(cardID) { $0.simulationMode = val } }
                     )) {
                         Text(isRightQueueCompact ? "Sim" : KroutonL10n.tr("Simulate"))
                             .font(.system(size: 10.5, weight: .medium))
@@ -293,7 +298,7 @@ extension KroutonMainWorkspaceView {
 
                     Toggle(isOn: Binding(
                         get: { item.verifyAfterBurn },
-                        set: { val in updateQueueItem(cardID) { $0.verifyAfterBurn = val } }
+                        set: { val in store.updateQueueItem(cardID) { $0.verifyAfterBurn = val } }
                     )) {
                         Text(KroutonL10n.tr("Verify"))
                             .font(.system(size: 10.5, weight: .medium))
@@ -308,7 +313,7 @@ extension KroutonMainWorkspaceView {
 
                     Stepper(value: Binding(
                         get: { item.copiesToBurn },
-                        set: { newCopies in updateQueueItem(cardID) { $0.copiesToBurn = max(1, min(99, newCopies)) } }
+                        set: { newCopies in store.updateQueueItem(cardID) { $0.copiesToBurn = max(1, min(99, newCopies)) } }
                     ), in: 1...99) {
                         Text("\(item.copiesToBurn)×")
                             .font(.system(size: 10.5, weight: item.copiesToBurn > 1 ? .bold : .semibold, design: .monospaced))
@@ -372,7 +377,7 @@ extension KroutonMainWorkspaceView {
                                         driveID: activeCardDriveID,
                                         countdownSeconds: store.autoLoadCountdownSeconds
                                     ) {
-                                        executeSingleDestination(item)
+                                        store.executeSingleDestination(item, driveManager: driveManager, primarySelectedDrive: primarySelectedDrive, enableCustomFinderLayoutTab: enableCustomFinderLayoutTab, finderIconSize: finderIconSize)
                                     }
                                 } label: {
                                     Text("Simulate Blank Disc Insert (\(store.autoLoadCountdownSeconds)s)")
@@ -414,7 +419,7 @@ extension KroutonMainWorkspaceView {
                     isFloatingOpen: isFloatingOpen,
                     isInlineVisible: isInlineVisible,
                     onUpdateHost: { newHost in
-                        updateQueueItem(cardID) { $0.hardwareOrPath = newHost }
+                        store.updateQueueItem(cardID) { $0.hardwareOrPath = newHost }
                     }
                 )
             } else if item.kind == .discImage {
@@ -422,7 +427,7 @@ extension KroutonMainWorkspaceView {
                     defaultVolumeTitle: store.discVolumeTitle,
                     pathText: Binding(
                         get: { item.hardwareOrPath },
-                        set: { newPath in updateQueueItem(cardID) { $0.hardwareOrPath = newPath } }
+                        set: { newPath in store.updateQueueItem(cardID) { $0.hardwareOrPath = newPath } }
                     )
                 )
             } else {
@@ -437,7 +442,7 @@ extension KroutonMainWorkspaceView {
                 } else if item.kind == .discImage {
                     Toggle(KroutonL10n.tr("Compress Image"), isOn: Binding(
                         get: { item.compressAfterCreation },
-                        set: { val in updateQueueItem(cardID) { $0.compressAfterCreation = val } }
+                        set: { val in store.updateQueueItem(cardID) { $0.compressAfterCreation = val } }
                     ))
                     .font(.caption)
                 }
@@ -448,13 +453,13 @@ extension KroutonMainWorkspaceView {
                 // (avoids duplicating the primary green action button at the bottom of the column!)
                 if store.destinationQueue.count > 1 {
                     Button {
-                        executeSingleDestination(item)
+                        store.executeSingleDestination(item, driveManager: driveManager, primarySelectedDrive: primarySelectedDrive, enableCustomFinderLayoutTab: enableCustomFinderLayoutTab, finderIconSize: finderIconSize)
                     } label: {
                         HStack(spacing: 5) {
-                            Image(systemName: cardActionSymbol(for: item.kind))
+                            Image(systemName: store.cardActionSymbol(for: item.kind))
                                 .font(.system(size: 10, weight: .bold))
                             if !isRightQueueCompact {
-                                Text(KroutonL10n.tr(cardActionTitle(for: item.kind)))
+                                Text(KroutonL10n.tr(store.cardActionTitle(for: item.kind)))
                                     .font(.system(size: 11, weight: .bold, design: .rounded))
                                     .lineLimit(1)
                             }
@@ -489,222 +494,7 @@ extension KroutonMainWorkspaceView {
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(store.uiSecondaryAccent.opacity(0.35), lineWidth: 1))
     }
 
-    func runTargetDestination(_ target: KroutonBakeBatchItem) async {
-        switch target.kind {
-        case .networkBurner:
-            driveManager.setManualInlinePin(for: "krumb-network-toaster", isPinned: true)
-            let _ = await KrumbKitchenClient.shared.executeSpoolAndBurn(
-                endpoint: target.hardwareOrPath,
-                stagedFiles: store.stagedFiles,
-                audioCubes: store.redBookTracks,
-                volumeTitle: store.discVolumeTitle,
-                performer: store.discPerformer,
-                mcnBarcode: store.discMCNBarcode,
-                requestedSpeedLabel: target.speedOrCodec,
-                simulationMode: target.simulationMode,
-                driveManager: driveManager,
-                targetDriveKey: "krumb-network-toaster"
-            )
-            store.objectWillChange.send()
-        case .physicalBurner:
-            if store.forceDVDROMBookType, !target.targetDriveID.isEmpty {
-                driveManager.stampDVDROMBookType(for: target.targetDriveID, vendorProfile: store.bitsetVendorProfile)
-            }
-            let burnSucceeded = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
-                driveManager.startPhysicalDataBurn(
-                    driveID: target.targetDriveID.isEmpty ? nil : target.targetDriveID,
-                    stagedFiles: store.stagedFiles,
-                    volumeTitle: store.discVolumeTitle,
-                    requestedSpeedLabel: target.speedOrCodec,
-                    simulationMode: target.simulationMode,
-                    verifyDisc: target.verifyAfterBurn
-                ) { report in
-                    continuation.resume(returning: report.isSuccess)
-                }
-            }
-            if burnSucceeded && target.copiesToBurn > 1 && store.autoLoadNextDiscBatchMode {
-                let finishedCount = target.completedCopies + 1
-                if finishedCount < target.copiesToBurn {
-                    updateQueueItem(target.id) { $0.completedCopies = finishedCount }
-                    let driveKey = target.targetDriveID.isEmpty ? (driveManager.selectedDrive?.id ?? "") : target.targetDriveID
-                    driveManager.startBatchAutoLoadMonitor(
-                        for: driveKey,
-                        completedCopy: finishedCount,
-                        totalCopies: target.copiesToBurn,
-                        countdownSeconds: store.autoLoadCountdownSeconds,
-                        bitsetDVDROM: store.forceDVDROMBookType
-                    ) {
-                        if let updatedItem = store.destinationQueue.first(where: { $0.id == target.id }) {
-                            executeSingleDestination(updatedItem)
-                        }
-                    }
-                } else {
-                    updateQueueItem(target.id) { $0.completedCopies = 0 }
-                }
-            }
-        case .discImage:
-            let _ = await driveManager.createDiscImageFile(
-                stagedFiles: store.stagedFiles,
-                volumeTitle: store.discVolumeTitle,
-                outputPathString: target.hardwareOrPath,
-                compressImage: target.compressAfterCreation,
-                enableCustomLayout: enableCustomFinderLayoutTab,
-                iconSizePx: Int(finderIconSize)
-            )
-        default:
-            try? await Task.sleep(nanoseconds: 500_000_000)
-        }
-    }
 }
-
-
-// MARK: - Dedicated Reactive Subview for Krumb Port 7420 Network Toaster Cards
-struct KrumbNetworkToasterCardSectionView: View {
-    @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonToasterBank
-    @ObservedObject var krumb: KrumbKitchenClient = .shared
-
-    let item: KroutonBakeBatchItem
-    let activeCardDriveID: String
-    let isFloatingOpen: Bool
-    let isInlineVisible: Bool
-    let onUpdateHost: (String) -> Void
-
-    var body: some View {
-        let firstToaster = krumb.remoteToasters.first
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 6) {
-                Image(systemName: "server.rack")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(store.uiSecondaryAccent)
-                Picker("", selection: Binding(
-                    get: { item.hardwareOrPath.isEmpty ? "localhost:7420" : item.hardwareOrPath },
-                    set: { newHost in
-                        onUpdateHost(newHost)
-                        krumb.activeEndpointHost = newHost
-                    }
-                )) {
-                    ForEach(krumb.discoveredNodes) { node in
-                        Text("\(node.name) (\(node.hostPort))").tag(node.hostPort)
-                    }
-                }
-                .labelsHidden()
-
-                Spacer(minLength: 4)
-
-                Button {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                        if isFloatingOpen {
-                            KroutonWindowManager.shared.closeFloatingPhaseScopeWindow(driveID: activeCardDriveID, suckIntoMiniGraph: true)
-                        } else if isInlineVisible {
-                            driveManager.setManualInlinePin(for: activeCardDriveID, isPinned: false)
-                            if var t = driveManager.driveTelemetry[activeCardDriveID] {
-                                t.isActive = false
-                                driveManager.driveTelemetry[activeCardDriveID] = t
-                            }
-                        } else {
-                            driveManager.setManualInlinePin(for: activeCardDriveID, isPinned: true)
-                            Task {
-                                _ = await krumb.executeSpoolAndBurn(
-                                    endpoint: item.hardwareOrPath,
-                                    stagedFiles: store.stagedFiles,
-                                    audioCubes: store.redBookTracks,
-                                    volumeTitle: store.discVolumeTitle,
-                                    performer: store.discPerformer,
-                                    mcnBarcode: store.discMCNBarcode,
-                                    requestedSpeedLabel: item.speedOrCodec,
-                                    simulationMode: true,
-                                    driveManager: driveManager,
-                                    targetDriveKey: activeCardDriveID
-                                )
-                            }
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: isFloatingOpen ? "arrow.down.right.and.arrow.up.left" : "waveform.path.ecg")
-                        Text(isFloatingOpen ? "Dock" : "Scope")
-                    }
-                    .font(.system(size: 10, weight: .bold))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background((isFloatingOpen || isInlineVisible) ? store.uiSecondaryAccent : store.uiSecondaryAccent.opacity(0.18))
-                    .foregroundStyle((isFloatingOpen || isInlineVisible) ? Color.black.opacity(0.9) : store.uiSecondaryAccent)
-                    .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .help("Stream Krumb WS /api/v1/kitchen telemetry directly into the Phase Scope")
-            }
-
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(store.uiSecondaryAccent)
-                    .frame(width: 7, height: 7)
-                Text(krumb.statusBannerText)
-                    .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(store.uiSecondaryAccent)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-            }
-
-            if krumb.isSpoolingLoaf {
-                ProgressView(value: krumb.spoolProgressFraction, total: 1.0)
-                    .tint(store.activeAccent)
-                    .controlSize(.small)
-            }
-
-            HStack(spacing: 6) {
-                Button {
-                    Task {
-                        await krumb.refreshToasters(endpoint: item.hardwareOrPath)
-                    }
-                } label: {
-                    Label("Probe 7420", systemImage: "antenna.radiowaves.left.and.right")
-                        .font(.system(size: 9.5, weight: .bold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(store.uiSecondaryAccent.opacity(0.16))
-                        .foregroundStyle(store.uiSecondaryAccent)
-                        .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    Task {
-                        await krumb.runPantryCalibration(endpoint: item.hardwareOrPath)
-                    }
-                } label: {
-                    Label("Calibrate Pantry", systemImage: "gauge.with.dots.needle.67percent")
-                        .font(.system(size: 9.5, weight: .bold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(store.activeAccent.opacity(0.16))
-                        .foregroundStyle(store.activeAccent)
-                        .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-
-                if let toaster = firstToaster {
-                    Button {
-                        Task {
-                            await krumb.toggleToasterRack(toasterID: toaster.id, endpoint: item.hardwareOrPath)
-                        }
-                    } label: {
-                        Label(toaster.rackState == .open ? "Close Rack" : "Wink Rack", systemImage: "eject.fill")
-                            .font(.system(size: 9.5, weight: .bold))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(Color.primary.opacity(0.08))
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                }
-                Spacer(minLength: 0)
-            }
-        }
-    }
-}
-
 
 // MARK: - Pure SwiftUI Disc Image Destination Path Row (.fileExporter)
 struct KroutonDiscImagePlaceholderDocument: FileDocument {

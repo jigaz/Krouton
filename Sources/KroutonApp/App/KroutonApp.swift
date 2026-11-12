@@ -204,7 +204,6 @@ struct KroutonMainWorkspaceView: View {
     @State var isCenterWorkspaceNarrow: Bool = false
     @State var isCenterWorkspaceUltraCompact: Bool = false
     @State var isDropTargeted: Bool = false
-    @State var activeDiscPopoverCardID: UUID? = nil
     // Red Book CD-DA & CD-Extra Mastering State
     @State var cdTextAlbumTitle: String = "KROUTON SESSIONS VOL. I"
     @State var cdTextAlbumPerformer: String = "THE OPTICAL COLLECTIVE"
@@ -252,7 +251,7 @@ struct KroutonMainWorkspaceView: View {
                 let centerLiveW = max(0, totalW - clampedLeft - clampedRight - 22)
 
                 HStack(spacing: 0) {
-                    leftFormatChooserColumn
+                    KroutonLeftFormatChooserColumnView(store: store, driveManager: driveManager, isLeftSidebarUltraSkinny: isLeftSidebarUltraSkinny)
                         .frame(width: clampedLeft)
                         .frame(maxHeight: .infinity)
                         .clipped()
@@ -320,7 +319,14 @@ struct KroutonMainWorkspaceView: View {
                             }
                     )
 
-                    rightDestinationColumn
+                    KroutonDestinationRackColumnView(
+                        store: store,
+                        driveManager: driveManager,
+                        isRightQueueCompact: isRightQueueCompact,
+                        enableCustomFinderLayoutTab: enableCustomFinderLayoutTab,
+                        finderIconSize: finderIconSize,
+                        primarySelectedDrive: primarySelectedDrive
+                    )
                         .frame(width: clampedRight)
                         .frame(maxHeight: .infinity)
                         .clipped()
@@ -360,10 +366,10 @@ struct KroutonMainWorkspaceView: View {
         .environment(\.locale, store.activeLocale)
         .tint(store.activeAccent)
         .onAppear {
-            reconcileUniqueDriveAssignments()
+            store.reconcileUniqueDriveAssignments(driveManager: driveManager)
         }
         .onChange(of: driveManager.availableDrives) { _, _ in
-            reconcileUniqueDriveAssignments()
+            store.reconcileUniqueDriveAssignments(driveManager: driveManager)
         }
         .sheet(item: $driveManager.completionReport) { report in
             KroutonMasteringReportSheet(report: report, accent: store.activeAccent) {
@@ -417,70 +423,27 @@ struct KroutonMainWorkspaceView: View {
 
 
 
-    func taskRowButton(id: String, category: KroutonBakeryStation, title: String,
-        shortTitle: String? = nil, colloquial: String, badge: String = "", sfSymbol: String) -> some View {
-        let isSelected = (store.selectedTaskID == id)
-        return Button {
-            store.selectedCategory = category
-            store.selectedTaskID = id
-            store.rejectedDropNotice = nil
-            store.purgeIncompatibleStagedFilesForCurrentTask()
-            syncDefaultDestinationForCategory(category, taskID: id)
-        } label: {
-            HStack(spacing: 9) {
-                let rowColor = store.effectiveColorForTask(id: id, category: category)
-                KroutonStyledIconBadge(
-                    sfSymbol: sfSymbol,
-                    tintColor: rowColor,
-                    style: store.iconWidgetStyle,
-                    isSelectedRow: isSelected,
-                    onAccentText: store.activeOnAccentText,
-                    size: store.sidebarIconSize.iconFontSize + 11,
-                    symbolSize: store.sidebarIconSize.iconFontSize - 1
-                )
-
-                VStack(alignment: .leading, spacing: 1) {
-                    ViewThatFits(in: .horizontal) {
-                        Text(KroutonL10n.tr(title))
-                            .font(.system(size: store.sidebarIconSize.titleFontSize, weight: .semibold))
-                            .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
-                            .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
-
-                        Text(KroutonL10n.tr(shortTitle ?? title))
-                            .font(.system(size: store.sidebarIconSize.titleFontSize, weight: .semibold))
-                            .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
-                            .lineLimit(1)
-                    }
-                    if !isLeftSidebarUltraSkinny {
-                        Text(KroutonL10n.tr(colloquial))
-                            .font(.system(size: max(9.5, store.sidebarIconSize.titleFontSize - 2.0)))
-                            .foregroundStyle(isSelected ? store.activeOnAccentText.opacity(0.82) : .secondary)
-                            .lineLimit(1)
-                    }
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, store.sidebarIconSize.rowVerticalPadding)
-            .background(
-                RoundedRectangle(cornerRadius: 7)
-                    .fill(isSelected ? store.activeAccent : Color.clear)
-            )
-            .overlay(RoundedRectangle(cornerRadius: 7).stroke(store.a11yIncreaseContrast && isSelected ? Color.primary : Color.clear, lineWidth: 1.5))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(title), \(colloquial)")
-    }
-
     // MARK: - CENTER COLUMN: ADAPTABLE WORKSPACE + INTEGRATED CAPACITY BAR (Global graph removed)
     var centerAdaptableWorkspace: some View {
         VStack(alignment: .leading, spacing: 12) {
             Group {
                 switch store.selectedCategory {
                 case .burn:
-                    burnWorkspaceView
+                    KroutonBurnStationWorkspaceView(
+                        store: store,
+                        primarySelectedDrive: primarySelectedDrive,
+                        isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
+                        enableCustomFinderLayoutTab: $enableCustomFinderLayoutTab,
+                        finderIconSize: $finderIconSize,
+                        fitToDiscDVD9Shrink: $fitToDiscDVD9Shrink,
+                        preserveMenusAndExtras: preserveMenusAndExtras,
+                        cdTextAlbumTitle: $cdTextAlbumTitle,
+                        cdTextAlbumPerformer: $cdTextAlbumPerformer,
+                        auditioningTrackID: $auditioningTrackID,
+                        isDropTargeted: $isDropTargeted,
+                        onPromptToAddFiles: promptToAddFiles,
+                        onHandleFinderDrop: handleFinderDrop(providers:)
+                    )
                         .offset(x: sin(dropRejectShakePhase * .pi * 4) * 8)
                 case .depot:
                     KroutonDepotWorkspaceView(store: store, isCenterWorkspaceNarrow: isCenterWorkspaceNarrow)
@@ -502,7 +465,7 @@ struct KroutonMainWorkspaceView: View {
 
             // Integrated Central Workspace Capacity Allocation Bar (Hidden in Label Designer mode)
             if store.selectedCategory != .label {
-                centralWorkspaceCapacityBar
+                KroutonCentralWorkspaceCapacityBarView(store: store, activeDiscCapacityBytes: activeDiscCapacityBytes, primarySelectedDrive: primarySelectedDrive)
             }
         }
         .padding(20)
@@ -510,101 +473,6 @@ struct KroutonMainWorkspaceView: View {
     }
 
 
-
-    func addButtonTitle(for spec: KroutonRecipeSpec) -> String {
-        if spec.isRedBookAudioFormat {
-            return "Add Audio Tracks (WAV / AIFF / FLAC / MP3)..."
-        } else if spec.isCarSafeAudioFormat {
-            return "Add Audio Files or Album Folders..."
-        } else if spec.isVideoAuthoringFormat {
-            return "Add Video Titles (MKV / MP4 / MOV / VIDEO_TS)..."
-        } else if spec.isDiscImageBurnFormat {
-            return "Select Disc Image (.ISO / .DMG / .BIN / .CUE / .CDR / .TOAST)..."
-        } else if spec.id == "console-wii" {
-            return "Select Wii Image (.RVZ / .WBFS / .ISO)..."
-        } else if spec.id == "console-gc" {
-            return "Select GameCube Image (.RVZ / .GCM / .ISO)..."
-        } else if spec.id == "console-ps2" {
-            return "Select PS2 Image (.ISO / .CHD / .BIN+.CUE)..."
-        } else if spec.id == "console-ps1" {
-            return "Select PS1 Image (.CUE+.BIN / .CHD / .CCD)..."
-        } else if spec.id == "console-xbox" {
-            return "Select Xbox Image (.ISO / .XISO / .DVD)..."
-        } else if (spec.filterGroup == .console || spec.id.hasPrefix("console-")) {
-            return "Select Console Image..."
-        } else {
-            return "Add Files or Folders..."
-        }
-    }
-
-    func addButtonSymbol(for spec: KroutonRecipeSpec) -> String {
-        if spec.isRedBookAudioFormat || spec.isCarSafeAudioFormat {
-            return "waveform.badge.plus"
-        } else if spec.isVideoAuthoringFormat {
-            return "film.stack.fill"
-        } else if spec.isDiscImageBurnFormat {
-            return "opticaldisc.fill"
-        } else if (spec.filterGroup == .console || spec.id.hasPrefix("console-")) {
-            return "gamecontroller.fill"
-        } else {
-            return "plus.rectangle.on.folder.fill"
-        }
-    }
-
-    // ==========================================================================
-    // 1. RED BOOK AUDIO CD (CD-DA) & CD-EXTRA WAVEBURNER MASTERING STUDIO
-    // ==========================================================================
-
-
-    // ==========================================================================
-    // 2. CAR-SAFE MP3 / FLAC AUDIO CD WORKSPACE (Head-Unit Sorting & Sanitizer)
-    // ==========================================================================
-
-
-    // ==========================================================================
-    // 3. VIDEO DISC AUTHORING STUDIO (DVD-Video, AVCHD, BD-R SL/DL, UHD-BD)
-    // ==========================================================================
-
-
-    // ==========================================================================
-    // 4. RETRO CONSOLE ROM & SECTOR VERIFICATION WORKSPACE (PS1/PS2/GC/Wii/Xbox)
-    // ==========================================================================
-
-
-    // ==========================================================================
-    // 5A. DEDICATED DISC IMAGE (.ISO / .BIN / .DMG / .CDR) FULL-WORKSPACE DECK
-    //     (Single-Image Radial Platter, Live LBA Hex Scope & Actionable Pills)
-    // ==========================================================================
-
-
-    // ==========================================================================
-    // 5B. NEW DATA & ARCHIVAL DISC AUTHORING WORKSPACE
-    //     (Author File/Folder Trees with Universal Bridge & Per-File OS Visibility)
-    // ==========================================================================
-
-
-    // MARK: - Retro Console ROM Mastering Deck & Pre-Flight Sanity Engine
-
-
-    func currentPreFlightSanityWarning(for spec: KroutonRecipeSpec) -> String? {
-        if (spec.filterGroup == .console || spec.id.hasPrefix("console-")), let drive = primarySelectedDrive, drive.isMediaPresent && drive.isMediaErasable {
-            return "Retro Console Pickup Warning: \(drive.displayName) has rewritable \(drive.mediaType) loaded (~20% reflectivity). Vintage PS1/PS2/GameCube/Dreamcast optical pickups require high-reflectivity write-once CD-R or DVD-R media at 4x–8x."
-        }
-        if spec.id == "console-ps1" && !store.stagedFiles.isEmpty {
-            let hasBin = store.stagedFiles.contains { $0.name.lowercased().hasSuffix(".bin") }
-            let hasCue = store.stagedFiles.contains { $0.name.lowercased().hasSuffix(".cue") || $0.name.lowercased().hasSuffix(".ccd") }
-            if hasBin && !hasCue {
-                return "Missing .CUE Descriptor: A raw .BIN track is staged without its companion .CUE sheet. Add the .CUE file to preserve Red Book audio tracks and 2-second pre-gap offsets."
-            }
-        }
-        if let hugeFile = store.stagedFiles.first(where: { $0.exceedsISO9660FourGiBLimit }) {
-            return "4 GiB File Limit Notice: '\(hugeFile.name)' exceeds the 4 GiB ISO9660 Level 2 ceiling. Krouton will bridge this file via UDF 2.60 + HFS+."
-        }
-        if let longFile = store.stagedFiles.first(where: { $0.exceedsJoliet64CharLimit }) {
-            return "Joliet 64-Char Notice: '\(longFile.name)' is \(longFile.name.count) characters long. Full name is preserved on Mac (HFS+) and UDF, and safely truncated in legacy Windows Joliet tables."
-        }
-        return nil
-    }
 
     func promptToAddFiles() {
         let spec = store.activeFormatSpec()
@@ -659,231 +527,5 @@ struct KroutonMainWorkspaceView: View {
             }
         }
         return acceptedAny
-    }
-    // MARK: - RIGHT COLUMN: UUID-SAFE DESTINATION CARDS + CLICKABLE DISC MEDIA INSPECTOR PILL
-
-
-    // Safe UUID-based mutator helper so removing a card never triggers an out-of-bounds index crash
-    func updateQueueItem(_ id: UUID, mutate: @escaping (inout KroutonBakeBatchItem) -> Void) {
-        guard let idx = store.destinationQueue.firstIndex(where: { $0.id == id }) else { return }
-        mutate(&store.destinationQueue[idx])
-    }
-
-    // Ensures every physicalBurner card has a unique targetDriveID so 2 cards never select the same drive
-    func reconcileUniqueDriveAssignments() {
-        guard !driveManager.availableDrives.isEmpty else { return }
-        var claimedIDs = Set<String>()
-        for idx in store.destinationQueue.indices {
-            guard store.destinationQueue[idx].kind == .physicalBurner else { continue }
-            let currentID = store.destinationQueue[idx].targetDriveID
-            let isValidDrive = driveManager.availableDrives.contains(where: { $0.id == currentID })
-            if isValidDrive && !claimedIDs.contains(currentID) {
-                claimedIDs.insert(currentID)
-            } else if let nextFree = driveManager.availableDrives.first(where: { !claimedIDs.contains($0.id) }) {
-                store.destinationQueue[idx].targetDriveID = nextFree.id
-                store.destinationQueue[idx].hardwareOrPath = nextFree.displayName
-                claimedIDs.insert(nextFree.id)
-            }
-        }
-    }
-
-
-
-    func cardActionTitle(for kind: KroutonToasterOutputKind) -> String {
-        switch kind {
-        case .physicalBurner, .networkBurner:
-            return "Burn Disc"
-        case .discImage:
-            return "Save Image"
-        case .audioRip:
-            return "Rip Audio"
-        case .videoExtract:
-            return "Extract Video"
-        case .discPrinter:
-            return "Print Label"
-        case .pdfVector:
-            return "Save PDF"
-        }
-    }
-
-    func cardActionSymbol(for kind: KroutonToasterOutputKind) -> String {
-        switch kind {
-        case .physicalBurner, .networkBurner:
-            return "flame.fill"
-        case .discImage:
-            return "internaldrive.fill"
-        case .audioRip:
-            return "waveform"
-        case .videoExtract:
-            return "film"
-        case .discPrinter:
-            return "printer.fill"
-        case .pdfVector:
-            return "doc.richtext.fill"
-        }
-    }
-
-    func executeSingleDestination(_ target: KroutonBakeBatchItem) {
-        if driveManager.isExecutingQueue {
-            driveManager.abortActiveBurn()
-            return
-        }
-
-        if store.stagedFiles.isEmpty && store.selectedCategory == .burn {
-            driveManager.completionReport = KroutonToastReport(
-                isSuccess: false,
-                title: "File List Is Empty",
-                summary: "There are no files or folders staged in the central workspace.",
-                driveModel: primarySelectedDrive?.displayName ?? "Optical Burner",
-                firmwareRevision: primarySelectedDrive?.firmware ?? "1.0",
-                mediaFormattedName: primarySelectedDrive?.mediaType ?? "None",
-                volumeName: store.discVolumeTitle,
-                sectorsWrittenLBA: 0,
-                bytesWritten: 0,
-                averageSpeedText: "0.0x",
-                peakSpeedText: "0.0x",
-                elapsedDurationText: "00:00",
-                diagnosticAdvice: "Drag files or folders from Finder into the File List (or click 'Add Media or Files...') before starting the operation."
-            )
-            return
-        }
-
-        Task { @MainActor in
-            await runTargetDestination(target)
-        }
-    }
-
-
-
-    func executeDestinationQueue() {
-        if driveManager.isExecutingQueue {
-            driveManager.abortActiveBurn()
-            return
-        }
-
-        if store.stagedFiles.isEmpty && store.selectedCategory == .burn {
-            driveManager.completionReport = KroutonToastReport(
-                isSuccess: false,
-                title: "File List Is Empty",
-                summary: "There are no files or folders staged in the central workspace.",
-                driveModel: primarySelectedDrive?.displayName ?? "Optical Burner",
-                firmwareRevision: primarySelectedDrive?.firmware ?? "1.0",
-                mediaFormattedName: primarySelectedDrive?.mediaType ?? "None",
-                volumeName: store.discVolumeTitle,
-                sectorsWrittenLBA: 0,
-                bytesWritten: 0,
-                averageSpeedText: "0.0x",
-                peakSpeedText: "0.0x",
-                elapsedDurationText: "00:00",
-                diagnosticAdvice: "Drag files or folders from Finder into the File List (or click 'Add Media or Files...') before starting the burn."
-            )
-            return
-        }
-
-        Task { @MainActor in
-            for target in store.destinationQueue {
-                await runTargetDestination(target)
-            }
-        }
-    }
-
-    var allowedDestinationsForCurrentCategory: [KroutonToasterOutputKind] {
-        switch store.selectedCategory {
-        case .burn, .depot:
-            return [.physicalBurner, .networkBurner, .discImage]
-        case .copy:
-            return [.physicalBurner, .networkBurner, .discImage, .audioRip, .videoExtract]
-        case .label:
-            return [.discPrinter, .pdfVector]
-        }
-    }
-
-    func syncDefaultDestinationForCategory(_ category: KroutonBakeryStation, taskID: String) {
-        let firstDrive = driveManager.availableDrives.first
-        let currentDriveName = firstDrive?.displayName ?? "Optical Drive"
-        let currentDriveID = firstDrive?.id ?? ""
-
-        switch category {
-        case .burn, .depot:
-            store.destinationQueue = [
-                KroutonBakeBatchItem(kind: .physicalBurner, targetDriveID: currentDriveID, hardwareOrPath: currentDriveName, speedOrCodec: "Max Safe (Auto)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
-            ]
-        case .copy:
-            if taskID == "copy-rip-audio" {
-                store.destinationQueue = [
-                    KroutonBakeBatchItem(kind: .audioRip, targetDriveID: currentDriveID, hardwareOrPath: "~/Music/Krouton Rips/Apple Lossless", speedOrCodec: "ALAC (.m4a) + AccurateRip", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
-                ]
-            } else if taskID == "copy-rip-video" {
-                store.destinationQueue = [
-                    KroutonBakeBatchItem(kind: .videoExtract, targetDriveID: currentDriveID, hardwareOrPath: "~/Movies/Krouton Extracts", speedOrCodec: "H.265 (HEVC 10-bit Hardware)", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
-                ]
-            } else {
-                store.destinationQueue = [
-                    KroutonBakeBatchItem(kind: .physicalBurner, targetDriveID: currentDriveID, hardwareOrPath: currentDriveName, speedOrCodec: "Max Safe (Auto)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
-                ]
-            }
-        case .label:
-            store.destinationQueue = [
-                KroutonBakeBatchItem(kind: .discPrinter, targetDriveID: "", hardwareOrPath: "Epson EcoTank Photo ET-8550 (CD/DVD Tray)", speedOrCodec: "Claria ET 6-Ink • 120mm / 18mm", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
-            ]
-        }
-    }
-
-    func appendContextAwareDestination() {
-        switch store.selectedCategory {
-        case .burn, .depot:
-            let usedDriveIDs = Set(store.destinationQueue.filter { $0.kind == .physicalBurner }.map { $0.targetDriveID })
-            if let nextUnusedDrive = driveManager.availableDrives.first(where: { !usedDriveIDs.contains($0.id) }) {
-                store.destinationQueue.append(
-                    KroutonBakeBatchItem(
-                        kind: .physicalBurner,
-                        targetDriveID: nextUnusedDrive.id,
-                        hardwareOrPath: nextUnusedDrive.displayName,
-                        speedOrCodec: "Max Safe (Auto)",
-                        simulationMode: false,
-                        verifyAfterBurn: true,
-                        compressAfterCreation: false
-                    )
-                )
-            } else {
-                store.destinationQueue.append(
-                    KroutonBakeBatchItem(
-                        kind: .discImage,
-                        targetDriveID: "",
-                        hardwareOrPath: "~/Desktop/\(store.discVolumeTitle).dmg",
-                        speedOrCodec: "Hybrid UDF / HFS+ Image",
-                        simulationMode: false,
-                        verifyAfterBurn: true,
-                        compressAfterCreation: true
-                    )
-                )
-            }
-        case .copy:
-            store.destinationQueue.append(
-                KroutonBakeBatchItem(kind: .discImage, targetDriveID: "", hardwareOrPath: "~/Desktop/Disc_Backup.iso", speedOrCodec: "1:1 Archival Sector Image", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
-            )
-        case .label:
-            store.destinationQueue.append(
-                KroutonBakeBatchItem(kind: .pdfVector, targetDriveID: "", hardwareOrPath: "~/Desktop/Epson_ET8550_Label_120mm.pdf", speedOrCodec: "300 DPI Vector PDF Proof", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
-            )
-        }
-    }
-
-    var primaryActionTitle: String {
-        switch store.selectedCategory {
-        case .burn: return "BURN (\(store.destinationQueue.count))"
-        case .depot: return "GET & BURN ISO (\(store.destinationQueue.count))"
-        case .copy: return "START COPY / EXTRACT (\(store.destinationQueue.count))"
-        case .label: return "PRINT LABEL (\(store.destinationQueue.count))"
-        }
-    }
-
-    var primaryActionSymbol: String {
-        switch store.selectedCategory {
-        case .burn: return "flame.fill"
-        case .depot: return "arrow.down.doc.fill"
-        case .copy: return "doc.on.doc.fill"
-        case .label: return "printer.fill"
-        }
     }
 }
