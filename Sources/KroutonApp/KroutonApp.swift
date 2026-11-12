@@ -261,6 +261,10 @@ struct KroutonMainWorkspaceView: View {
     @State var gcPadToOuterEdge3GB: Bool = true
     @State var wiiLayerMode: String = "Auto-Detect (DVD5 4.7GB / DVD9 LBA 2084960)"
     @State var xboxVerifyStealthSectors: Bool = true
+    @State var cdExtraDataVolumeName: String = "BONUS_EXTRA"
+    @State var cdExtraIncludeLinerNotes: Bool = true
+    @State var avchdBitrateCap: String = "18 Mbps (3x DVD-R Safe)"
+    @State var uhdPreserveHDR10DolbyVision: Bool = true
 
     var primarySelectedDrive: KroutonToasterInfo? {
         if let firstBurnerCard = store.destinationQueue.first(where: { $0.kind == .physicalBurner }),

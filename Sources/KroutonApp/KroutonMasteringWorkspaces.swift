@@ -516,21 +516,47 @@ extension KroutonMainWorkspaceView {
             // File System Topology & Universal Compatibility Deck
             VStack(alignment: .leading, spacing: 8) {
                 if activeSpec.isMDiscParityFormat {
-                    HStack(spacing: 14) {
-                        Image(systemName: "lock.shield.fill")
-                            .foregroundStyle(store.activeAccent)
-                        Text(KroutonL10n.tr("M-DISC INORGANIC ROCK-LAYER VAULT + PAR2 SURFACE PARITY:"))
-                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                        Text("PAR2 Redundancy: \(Int(mdiscPar2RedundancyPct))%")
-                            .font(.caption.bold())
-                            .foregroundStyle(store.activeAccent)
-                        Slider(value: $mdiscPar2RedundancyPct, in: 5...30, step: 5)
-                            .frame(width: 150)
-                        Text(KroutonL10n.tr("• Generates .par2 Reed-Solomon recovery blocks + SHA-256 manifest"))
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                        Spacer()
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "lock.shield.fill")
+                                .foregroundStyle(store.activeAccent)
+                            Text(KroutonL10n.tr("M-DISC ROCK-LAYER VAULT + PAR2 PARITY:"))
+                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                            Text("PAR2: \(Int(mdiscPar2RedundancyPct))%")
+                                .font(.caption.bold())
+                                .foregroundStyle(store.activeAccent)
+                            Slider(value: $mdiscPar2RedundancyPct, in: 5...30, step: 5)
+                                .frame(width: 130)
+                            Text(KroutonL10n.tr("• Reed-Solomon .par2 + SHA-256"))
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                            Spacer(minLength: 0)
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "lock.shield.fill")
+                                    .foregroundStyle(store.activeAccent)
+                                Text(KroutonL10n.tr("M-DISC VAULT + PAR2 RECOVERY PARITY"))
+                                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                Spacer()
+                                Text("PAR2 Redundancy: \(Int(mdiscPar2RedundancyPct))%")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(store.activeAccent)
+                            }
+                            HStack(spacing: 10) {
+                                Slider(value: $mdiscPar2RedundancyPct, in: 5...30, step: 5)
+                                    .frame(maxWidth: 180)
+                                Text(KroutonL10n.tr("Generates .par2 blocks + SHA-256 manifest"))
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
                     }
                     Divider()
                 }
@@ -710,11 +736,15 @@ extension KroutonMainWorkspaceView {
                                 .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
                             Text(KroutonL10n.tr("Drag & Drop Files or Folders Here to Author a New Data Disc"))
                                 .font(.headline)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
                             Text(isUniversalHybrid
                                  ? KroutonL10n.tr("Shared data extents are linked into HFS+ (Mac), Joliet/UDF (Windows), and Rock Ridge (Linux) simultaneously. Toggle [Mac] / [PC] to hide platform-specific installers.")
                                  : KroutonL10n.tr("Add files and directories from Finder to build the optical volume directory tree."))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 36)
                         }
                     } else {
                         VStack(spacing: 0) {
@@ -931,12 +961,6 @@ extension KroutonMainWorkspaceView {
                             .font(.caption.bold())
                             .lineLimit(1)
 
-                        if spec.id.contains("extra") || spec.technicalName.contains("Extra") {
-                            Text(KroutonL10n.tr("• Session 2: Multisession Data (XA)"))
-                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                                .foregroundStyle(Color.cyan)
-                                .lineLimit(1)
-                        }
                         Spacer(minLength: 0)
                     }
 
@@ -951,6 +975,37 @@ extension KroutonMainWorkspaceView {
                         Toggle(KroutonL10n.tr("Hidden Track One Audio (HTOA in INDEX 00)"), isOn: $enableHiddenTrackOneHTOA)
                             .toggleStyle(.checkbox)
                             .font(.caption.bold())
+                    }
+                }
+
+                if spec.id == "cd-extra" || spec.technicalName.contains("Extra") {
+                    Divider().opacity(0.5)
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 12) {
+                            Label("Blue Book 2-Session (S1 Audio → S2 XA Data):", systemImage: "opticaldisc.fill")
+                                .font(.caption.bold())
+                                .foregroundStyle(store.uiSecondaryAccent)
+                            TextField("BONUS_EXTRA", text: $cdExtraDataVolumeName)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 135)
+                            Toggle(KroutonL10n.tr("Auto-Bundle Artwork & Liner Notes in Session 2"), isOn: $cdExtraIncludeLinerNotes)
+                                .toggleStyle(.checkbox)
+                                .font(.caption)
+                            Spacer(minLength: 0)
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 8) {
+                                Label("Session 2 Data Label:", systemImage: "opticaldisc.fill")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(store.uiSecondaryAccent)
+                                TextField("BONUS_EXTRA", text: $cdExtraDataVolumeName)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(maxWidth: 160)
+                            }
+                            Toggle(KroutonL10n.tr("Bundle Artwork & Liner Notes in Session 2 (ISO9660/HFS+)"), isOn: $cdExtraIncludeLinerNotes)
+                                .toggleStyle(.checkbox)
+                                .font(.caption)
+                        }
                     }
                 }
             }
@@ -979,6 +1034,8 @@ extension KroutonMainWorkspaceView {
                             .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
                         Text(isCenterWorkspaceNarrow ? KroutonL10n.tr("Drop Any Audio Format") : KroutonL10n.tr("Drop Any Audio Format (WAV, AIFF, FLAC, ALAC, APE, WavPack, DSD .DSF/.DFF, Opus, Ogg, AC-3, DTS, MP3, M4A)"))
                             .font(.headline)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
                         Text(KroutonL10n.tr("Krouton decodes all audio to 44.1 kHz / 16-bit Stereo PCM on disk before burning (Zero Underrun Guarantee)."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -1197,6 +1254,30 @@ extension KroutonMainWorkspaceView {
                     }
                 }
 
+                if spec.id == "bd-on-dvd" {
+                    HStack(spacing: 12) {
+                        Picker("AVCHD Bitrate Cap:", selection: $avchdBitrateCap) {
+                            Text("18 Mbps (3x DVD-R Spin Safe)").tag("18 Mbps (3x DVD-R Safe)")
+                            Text("24 Mbps (High-Speed BD Player)").tag("24 Mbps (High-Speed)")
+                        }
+                        .font(.caption)
+                        .frame(maxWidth: 265)
+                        Text(KroutonL10n.tr("• UDF 2.50 BDMV on 4.7 GB / 8.5 GB Red-Laser DVD"))
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                        Spacer(minLength: 0)
+                    }
+                } else if spec.id == "bd-uhd" {
+                    HStack(spacing: 12) {
+                        Toggle(KroutonL10n.tr("HEVC 10-Bit HDR10 / Dolby Vision Static & Dynamic Metadata Pass-Through"), isOn: $uhdPreserveHDR10DolbyVision)
+                            .toggleStyle(.checkbox)
+                            .font(.caption.bold())
+                            .lineLimit(1)
+                        Spacer(minLength: 0)
+                    }
+                }
+
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 14) {
                         Toggle(KroutonL10n.tr("Fit-to-Disc Smart Requantizer (DVD-9 -> DVD-5 / BD-50 -> BD-25)"), isOn: $fitToDiscDVD9Shrink)
@@ -1254,11 +1335,15 @@ extension KroutonMainWorkspaceView {
                         Image(systemName: "film.circle.fill")
                             .font(.system(size: 36))
                             .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
-                        Text(KroutonL10n.tr("Drop Any Video or Container (MKV, M2TS, MP4, MOV ProRes, AV1, HEVC 10-Bit, WebM, AVI, VOB, WMV, VC-1, VIDEO_TS, BDMV)"))
+                        Text(isCenterWorkspaceNarrow ? KroutonL10n.tr("Drop Any Video or Container") : KroutonL10n.tr("Drop Any Video or Container (MKV, M2TS, MP4, MOV ProRes, AV1, HEVC 10-Bit, WebM, AVI, VOB, VIDEO_TS, BDMV)"))
                             .font(.headline)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
                         Text(KroutonL10n.tr("Author standalone set-top player discs with AC-3 / DTS audio, chapter markers, and 32 KB IFO/BUP ECC sector padding."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 36)
                     }
                 } else {
                     VStack(spacing: 0) {
@@ -1431,9 +1516,13 @@ extension KroutonMainWorkspaceView {
                             .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
                         Text(KroutonL10n.tr("Drop MP3, FLAC, M4A, or Album Folders to Build a Car-Safe Audio Disc"))
                             .font(.headline)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
                         Text(KroutonL10n.tr("Automatically numbers files in raw FAT/ISO directory order and strips hidden macOS resource forks so car stereos never freeze."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 36)
                     }
                 } else {
                     VStack(spacing: 0) {
