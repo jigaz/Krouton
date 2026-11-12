@@ -37,19 +37,35 @@ extension KroutonMainWorkspaceView {
                     }
                 }
 
-                HStack(spacing: 16) {
-                    Picker(KroutonL10n.tr("Laser Write Topology:"), selection: $discImageWriteMethod) {
-                        Text("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)").tag("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)")
-                        Text("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)").tag("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)")
-                        Text("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)").tag("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)")
-                    }
-                    .frame(width: 460)
-                    .font(.caption)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 14) {
+                        Picker(KroutonL10n.tr("Laser Write Topology:"), selection: $discImageWriteMethod) {
+                            Text("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)").tag("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)")
+                            Text("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)").tag("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)")
+                            Text("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)").tag("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)")
+                        }
+                        .frame(maxWidth: 420)
+                        .font(.caption)
 
-                    Toggle(KroutonL10n.tr("Compute & Verify SHA-256 Digest Before Write"), isOn: $verifyImageSHA256BeforeBurn)
-                        .toggleStyle(.checkbox)
-                        .font(.caption.bold())
-                    Spacer()
+                        Toggle(KroutonL10n.tr("Verify SHA-256 Digest Before Write"), isOn: $verifyImageSHA256BeforeBurn)
+                            .toggleStyle(.checkbox)
+                            .font(.caption.bold())
+                            .lineLimit(1)
+                        Spacer(minLength: 0)
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Picker(KroutonL10n.tr("Write Mode:"), selection: $discImageWriteMethod) {
+                            Text("DAO / SAO Sector-Exact (Preserve Boot Catalog)").tag("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)")
+                            Text("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW)").tag("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)")
+                            Text("DVD+R / BD-R Seamless Layer Break (16-Sector ECC)").tag("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)")
+                        }
+                        .font(.caption)
+
+                        Toggle(KroutonL10n.tr("Compute & Verify SHA-256 Digest Before Write"), isOn: $verifyImageSHA256BeforeBurn)
+                            .toggleStyle(.checkbox)
+                            .font(.caption.bold())
+                    }
                 }
             }
             .padding(10)
@@ -862,51 +878,74 @@ extension KroutonMainWorkspaceView {
                     }
                 }
 
-                HStack(spacing: 14) {
-                    HStack(spacing: 5) {
-                        Text(KroutonL10n.tr("Album Title:"))
-                            .font(.caption.bold())
-                        TextField("ALBUM TITLE", text: $cdTextAlbumTitle)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 175)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) {
+                        HStack(spacing: 5) {
+                            Text(KroutonL10n.tr("Album Title:")).font(.caption.bold()).lineLimit(1)
+                            TextField("ALBUM TITLE", text: $cdTextAlbumTitle).textFieldStyle(.roundedBorder).frame(width: 160)
+                        }
+                        HStack(spacing: 5) {
+                            Text(KroutonL10n.tr("Performer:")).font(.caption.bold()).lineLimit(1)
+                            TextField("ARTIST / PERFORMER", text: $cdTextAlbumPerformer).textFieldStyle(.roundedBorder).frame(width: 150)
+                        }
+                        HStack(spacing: 5) {
+                            Text(KroutonL10n.tr("UPC / MCN:")).font(.caption.bold()).lineLimit(1)
+                            TextField("012345678905", text: $cdTextUPCBarcode).textFieldStyle(.roundedBorder).font(.system(size: 11, design: .monospaced)).frame(width: 110)
+                        }
+                        Spacer(minLength: 0)
                     }
-                    HStack(spacing: 5) {
-                        Text(KroutonL10n.tr("Performer:"))
-                            .font(.caption.bold())
-                        TextField("ARTIST / PERFORMER", text: $cdTextAlbumPerformer)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 165)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Text(KroutonL10n.tr("Album:")).font(.caption.bold())
+                            TextField("ALBUM TITLE", text: $cdTextAlbumTitle).textFieldStyle(.roundedBorder)
+                            Text(KroutonL10n.tr("Artist:")).font(.caption.bold())
+                            TextField("ARTIST / PERFORMER", text: $cdTextAlbumPerformer).textFieldStyle(.roundedBorder)
+                        }
+                        HStack(spacing: 6) {
+                            Text(KroutonL10n.tr("UPC / MCN:")).font(.caption.bold())
+                            TextField("012345678905", text: $cdTextUPCBarcode).textFieldStyle(.roundedBorder).font(.system(size: 11, design: .monospaced)).frame(width: 125)
+                            Spacer()
+                        }
                     }
-                    HStack(spacing: 5) {
-                        Text(KroutonL10n.tr("UPC / MCN:"))
-                            .font(.caption.bold())
-                        TextField("012345678905", text: $cdTextUPCBarcode)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.system(size: 11, design: .monospaced))
-                            .frame(width: 115)
-                    }
-                    Spacer()
                 }
 
-                HStack(spacing: 16) {
-                    Picker("Default Track Splice:", selection: $defaultAudioTransition) {
-                        Text(KroutonL10n.tr("2.0s Standard Pre-Gap (INDEX 00)")).tag("2.0s Standard Pre-Gap (INDEX 00)")
-                        Text(KroutonL10n.tr("0.0s Gapless Live Album (DAO)")).tag("0.0s Gapless Live Album (DAO)")
-                        Text(KroutonL10n.tr("2.5s Equal-Power Crossfade")).tag("2.5s Equal-Power Crossfade")
-                    }
-                    .frame(width: 295)
-                    .font(.caption)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 14) {
+                        Picker("Default Track Splice:", selection: $defaultAudioTransition) {
+                            Text(KroutonL10n.tr("2.0s Standard Pre-Gap (INDEX 00)")).tag("2.0s Standard Pre-Gap (INDEX 00)")
+                            Text(KroutonL10n.tr("0.0s Gapless Live Album (DAO)")).tag("0.0s Gapless Live Album (DAO)")
+                            Text(KroutonL10n.tr("2.5s Equal-Power Crossfade")).tag("2.5s Equal-Power Crossfade")
+                        }
+                        .frame(maxWidth: 285)
+                        .font(.caption)
 
-                    Toggle(KroutonL10n.tr("Hidden Track One Audio (HTOA in INDEX 00)"), isOn: $enableHiddenTrackOneHTOA)
-                        .toggleStyle(.checkbox)
-                        .font(.caption.bold())
+                        Toggle(KroutonL10n.tr("Hidden Track One Audio (HTOA)"), isOn: $enableHiddenTrackOneHTOA)
+                            .toggleStyle(.checkbox)
+                            .font(.caption.bold())
+                            .lineLimit(1)
 
-                    if spec.id.contains("extra") || spec.technicalName.contains("Extra") {
-                        Text(KroutonL10n.tr("• Session 1: Audio Tracks | Session 2: Multisession Data Track (XA)"))
-                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(Color.cyan)
+                        if spec.id.contains("extra") || spec.technicalName.contains("Extra") {
+                            Text(KroutonL10n.tr("• Session 2: Multisession Data (XA)"))
+                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(Color.cyan)
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 0)
                     }
-                    Spacer()
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Picker("Track Splice:", selection: $defaultAudioTransition) {
+                            Text(KroutonL10n.tr("2.0s Standard Pre-Gap (INDEX 00)")).tag("2.0s Standard Pre-Gap (INDEX 00)")
+                            Text(KroutonL10n.tr("0.0s Gapless Live Album (DAO)")).tag("0.0s Gapless Live Album (DAO)")
+                            Text(KroutonL10n.tr("2.5s Equal-Power Crossfade")).tag("2.5s Equal-Power Crossfade")
+                        }
+                        .font(.caption)
+
+                        Toggle(KroutonL10n.tr("Hidden Track One Audio (HTOA in INDEX 00)"), isOn: $enableHiddenTrackOneHTOA)
+                            .toggleStyle(.checkbox)
+                            .font(.caption.bold())
+                    }
                 }
             }
             .padding(10)
@@ -1101,47 +1140,86 @@ extension KroutonMainWorkspaceView {
                     }
                 }
 
-                HStack(spacing: 14) {
-                    HStack(spacing: 5) {
-                        Text(KroutonL10n.tr("Disc Title:"))
-                            .font(.caption.bold())
-                        TextField("KROUTON_VIDEO", text: $store.discVolumeTitle)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 155)
-                    }
-                    Picker("Menu Style:", selection: $videoMenuTemplate) {
-                        Text(KroutonL10n.tr("Dark Studio Chapter Grid")).tag("Dark Studio Chapter Grid")
-                        Text(KroutonL10n.tr("No Menu (Auto-Play Title 1 on Insert)")).tag("No Menu (Auto-Play Title 1 on Insert)")
-                        Text(KroutonL10n.tr("Minimalist Studio Track List")).tag("Minimalist Studio Track List")
-                    }
-                    .frame(width: 245)
-                    .font(.caption)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) {
+                        HStack(spacing: 5) {
+                            Text(KroutonL10n.tr("Disc Title:")).font(.caption.bold()).lineLimit(1)
+                            TextField("KROUTON_VIDEO", text: $store.discVolumeTitle).textFieldStyle(.roundedBorder).frame(width: 140)
+                        }
+                        Picker("Menu Style:", selection: $videoMenuTemplate) {
+                            Text(KroutonL10n.tr("Dark Studio Chapter Grid")).tag("Dark Studio Chapter Grid")
+                            Text(KroutonL10n.tr("No Menu (Auto-Play Title 1)")).tag("No Menu (Auto-Play Title 1 on Insert)")
+                            Text(KroutonL10n.tr("Minimalist Studio Track List")).tag("Minimalist Studio Track List")
+                        }
+                        .frame(maxWidth: 230)
+                        .font(.caption)
 
-                    Picker("System:", selection: $videoSystemStandard) {
-                        Text(KroutonL10n.tr("NTSC 16:9 (29.97 / 23.976p)")).tag("NTSC 16:9 (29.97 / 23.976p)")
-                        Text(KroutonL10n.tr("PAL 16:9 (25 fps)")).tag("PAL 16:9 (25 fps)")
-                        Text(KroutonL10n.tr("UHD 2160p HDR10 (HEVC 10-Bit)")).tag("UHD 2160p HDR10 (HEVC 10-Bit)")
+                        Picker("System:", selection: $videoSystemStandard) {
+                            Text(KroutonL10n.tr("NTSC 16:9 (29.97 / 23.976p)")).tag("NTSC 16:9 (29.97 / 23.976p)")
+                            Text(KroutonL10n.tr("PAL 16:9 (25 fps)")).tag("PAL 16:9 (25 fps)")
+                            Text(KroutonL10n.tr("UHD 2160p HDR10 (HEVC 10-Bit)")).tag("UHD 2160p HDR10 (HEVC 10-Bit)")
+                        }
+                        .frame(maxWidth: 215)
+                        .font(.caption)
+                        Spacer(minLength: 0)
                     }
-                    .frame(width: 225)
-                    .font(.caption)
-                    Spacer()
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Text(KroutonL10n.tr("Disc Title:")).font(.caption.bold())
+                            TextField("KROUTON_VIDEO", text: $store.discVolumeTitle).textFieldStyle(.roundedBorder)
+                        }
+                        HStack(spacing: 8) {
+                            Picker("Menu:", selection: $videoMenuTemplate) {
+                                Text(KroutonL10n.tr("Dark Studio Chapter Grid")).tag("Dark Studio Chapter Grid")
+                                Text(KroutonL10n.tr("No Menu (Auto-Play)")).tag("No Menu (Auto-Play Title 1 on Insert)")
+                                Text(KroutonL10n.tr("Minimalist Track List")).tag("Minimalist Studio Track List")
+                            }
+                            .font(.caption)
+
+                            Picker("System:", selection: $videoSystemStandard) {
+                                Text(KroutonL10n.tr("NTSC 16:9")).tag("NTSC 16:9 (29.97 / 23.976p)")
+                                Text(KroutonL10n.tr("PAL 16:9")).tag("PAL 16:9 (25 fps)")
+                                Text(KroutonL10n.tr("UHD HDR10")).tag("UHD 2160p HDR10 (HEVC 10-Bit)")
+                            }
+                            .font(.caption)
+                        }
+                    }
                 }
 
-                HStack(spacing: 16) {
-                    Toggle(KroutonL10n.tr("Fit-to-Disc Smart Requantizer (DVD-9 -> DVD-5 / BD-50 -> BD-25)"), isOn: $fitToDiscDVD9Shrink)
-                        .toggleStyle(.checkbox)
-                        .font(.caption.bold())
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 14) {
+                        Toggle(KroutonL10n.tr("Fit-to-Disc Smart Requantizer (DVD-9 -> DVD-5 / BD-50 -> BD-25)"), isOn: $fitToDiscDVD9Shrink)
+                            .toggleStyle(.checkbox)
+                            .font(.caption.bold())
+                            .lineLimit(1)
 
-                    if isDualLayer {
-                        Picker("Layer 0 -> Layer 1 Break:", selection: $videoDualLayerBreakSector) {
-                            Text(KroutonL10n.tr("Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)")).tag("Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)")
-                            Text(KroutonL10n.tr("50/50 Balanced Split (Layer 0 >= Layer 1 Rule)")).tag("50/50 Balanced Split (Layer 0 >= Layer 1 Rule)")
-                            Text(KroutonL10n.tr("Seamless Layer Break (SPLB Flag Set)")).tag("Seamless Layer Break (SPLB Flag Set)")
+                        if isDualLayer {
+                            Picker("Layer Break:", selection: $videoDualLayerBreakSector) {
+                                Text(KroutonL10n.tr("Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC)")).tag("Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)")
+                                Text(KroutonL10n.tr("50/50 Balanced Split (Layer 0 >= Layer 1)")).tag("50/50 Balanced Split (Layer 0 >= Layer 1 Rule)")
+                                Text(KroutonL10n.tr("Seamless Layer Break (SPLB Flag Set)")).tag("Seamless Layer Break (SPLB Flag Set)")
+                            }
+                            .frame(maxWidth: 310)
+                            .font(.caption)
                         }
-                        .frame(width: 340)
-                        .font(.caption)
+                        Spacer(minLength: 0)
                     }
-                    Spacer()
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle(KroutonL10n.tr("Fit-to-Disc Smart Requantizer (DVD-9 -> DVD-5)"), isOn: $fitToDiscDVD9Shrink)
+                            .toggleStyle(.checkbox)
+                            .font(.caption.bold())
+
+                        if isDualLayer {
+                            Picker("Layer Break:", selection: $videoDualLayerBreakSector) {
+                                Text(KroutonL10n.tr("Auto Cell Boundary (LBA 2,086,912)")).tag("Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)")
+                                Text(KroutonL10n.tr("50/50 Balanced Split (L0 >= L1)")).tag("50/50 Balanced Split (Layer 0 >= Layer 1 Rule)")
+                                Text(KroutonL10n.tr("Seamless Layer Break (SPLB)")).tag("Seamless Layer Break (SPLB Flag Set)")
+                            }
+                            .font(.caption)
+                        }
+                    }
                 }
             }
             .padding(10)
@@ -1274,26 +1352,38 @@ extension KroutonMainWorkspaceView {
                         .foregroundStyle(.green)
                 }
 
-                HStack(spacing: 14) {
-                    HStack(spacing: 6) {
-                        Text(KroutonL10n.tr("Disc Volume Title:"))
-                            .font(.caption.bold())
-                        TextField("CAR_MP3_DISC", text: $store.discVolumeTitle)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 160)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 14) {
+                        HStack(spacing: 6) {
+                            Text(KroutonL10n.tr("Disc Volume Title:")).font(.caption.bold()).lineLimit(1)
+                            TextField("CAR_MP3_DISC", text: $store.discVolumeTitle).textFieldStyle(.roundedBorder).frame(width: 150)
+                        }
+                        Picker("Audio Output Profile:", selection: $carSafeTranscodeTarget) {
+                            Text(KroutonL10n.tr("320 kbps CBR MP3 (Universal Car Deck)")).tag("320 kbps CBR MP3 (Universal Car Deck)")
+                            Text(KroutonL10n.tr("192 kbps CBR MP3 (Extended 12-Hour Roadtrip)")).tag("192 kbps CBR MP3 (Extended 12-Hour Roadtrip)")
+                            Text(KroutonL10n.tr("16-Bit FLAC / WAV Passthrough (Modern Head Units)")).tag("16-Bit FLAC / WAV Passthrough (Modern Head Units)")
+                        }
+                        .frame(maxWidth: 320)
+                        .font(.caption)
+                        Spacer(minLength: 0)
                     }
-                    Picker("Audio Output Profile:", selection: $carSafeTranscodeTarget) {
-                        Text(KroutonL10n.tr("320 kbps CBR MP3 (Universal Car Deck)")).tag("320 kbps CBR MP3 (Universal Car Deck)")
-                        Text(KroutonL10n.tr("192 kbps CBR MP3 (Extended 12-Hour Roadtrip)")).tag("192 kbps CBR MP3 (Extended 12-Hour Roadtrip)")
-                        Text(KroutonL10n.tr("16-Bit FLAC / WAV Passthrough (Modern Head Units)")).tag("16-Bit FLAC / WAV Passthrough (Modern Head Units)")
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Text(KroutonL10n.tr("Disc Title:")).font(.caption.bold())
+                            TextField("CAR_MP3_DISC", text: $store.discVolumeTitle).textFieldStyle(.roundedBorder)
+                        }
+                        Picker("Profile:", selection: $carSafeTranscodeTarget) {
+                            Text(KroutonL10n.tr("320 kbps CBR MP3")).tag("320 kbps CBR MP3 (Universal Car Deck)")
+                            Text(KroutonL10n.tr("192 kbps CBR MP3")).tag("192 kbps CBR MP3 (Extended 12-Hour Roadtrip)")
+                            Text(KroutonL10n.tr("16-Bit FLAC / WAV")).tag("16-Bit FLAC / WAV Passthrough (Modern Head Units)")
+                        }
+                        .font(.caption)
                     }
-                    .frame(width: 340)
-                    .font(.caption)
-                    Spacer()
                 }
 
-                HStack(spacing: 16) {
-                    Toggle(KroutonL10n.tr("Zero-Pad Track Prefixes (001 - Title.mp3)"), isOn: $carSafeZeroPadNumbers)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 225), alignment: .leading)], spacing: 6) {
+                    Toggle(KroutonL10n.tr("Zero-Pad Prefixes (001 - Title.mp3)"), isOn: $carSafeZeroPadNumbers)
                         .toggleStyle(.checkbox)
                         .font(.caption.bold())
                     Toggle(KroutonL10n.tr("Strip macOS .DS_Store & ._* Forks"), isOn: $carSafeStripAppleDouble)
@@ -1305,7 +1395,6 @@ extension KroutonMainWorkspaceView {
                     Toggle(KroutonL10n.tr("Write Root .M3U Playlist"), isOn: $carSafeGenerateM3U)
                         .toggleStyle(.checkbox)
                         .font(.caption)
-                    Spacer()
                 }
             }
             .padding(10)
