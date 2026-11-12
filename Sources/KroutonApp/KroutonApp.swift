@@ -248,6 +248,14 @@ struct KroutonMainWorkspaceView: View {
     @State var inspectedImageLBA: Int = 17
     @State var computedImageSHA256: String = ""
     @State var imageActionStatusBanner: String = ""
+    @State var audioRipCodec: String = "FLAC (Lossless)"
+    @State var audioRipAccurateRip: Bool = true
+    @State var audioRipGenerateCueLog: Bool = true
+    @State var audioRipSelectedTracks: Set<Int> = [1, 2, 3, 4, 5]
+    @State var videoExtractMode: String = "Lossless MKV Remux"
+    @State var videoExtractMinSeconds: Int = 120
+    @State var videoExtractKeepChapters: Bool = true
+    @State var videoExtractSelectedTitles: Set<String> = ["TITLE_01", "TITLE_02"]
 
     var primarySelectedDrive: KroutonToasterInfo? {
         if let firstBurnerCard = store.destinationQueue.first(where: { $0.kind == .physicalBurner }),
@@ -773,40 +781,270 @@ struct KroutonMainWorkspaceView: View {
         return acceptedAny
     }
     var copyWorkspaceView: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Image(systemName: "doc.on.doc.fill")
+        let isShrinkTask = (store.selectedTaskID == "copy-duplicate" || store.selectedTaskID == "copy-shrink-dvd")
+        let isAudioRipTask = (store.selectedTaskID == "copy-audio-rip")
+
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                Image(systemName: isAudioRipTask ? "waveform.circle.fill" : (isShrinkTask ? "arrow.down.right.and.arrow.up.left.circle.fill" : "film.stack.fill"))
                     .font(.title2)
                     .foregroundStyle(store.activeAccent)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(store.selectedTaskID == "copy-duplicate" ? "Duplicate Disc & Fit-to-Disc Requantizer" : "Optical Media Extractor & Archival Ripper")
-                        .font(.title3.bold())
+                    Text(
+                        isAudioRipTask
+                            ? KroutonL10n.tr("Audio CD Ripper & AccurateRip Archiver")
+                            : (isShrinkTask ? KroutonL10n.tr("Shrink to Fit DVD Video (DVD-9 → DVD-5)") : KroutonL10n.tr("Video Disc Extractor (MKV Remux / VideoToolbox)"))
+                    )
+                    .font(.title3.bold())
+                    .lineLimit(1)
                     Text("Source Drive: \(primarySelectedDrive?.displayName ?? "Optical Drive") — Status: \(primarySelectedDrive?.statusBadgeText ?? "Ready")")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
-                Spacer()
+                Spacer(minLength: 8)
             }
             Divider()
 
-            VStack(alignment: .leading, spacing: 12) {
-                Toggle(KroutonL10n.tr("Fit to Disc — Automatically shrink DVD-9 (8.5 GB) to standard 4.7 GB DVD-5"), isOn: $fitToDiscDVD9Shrink)
-                    .font(.headline)
-                Toggle(KroutonL10n.tr("Preserve Interactive Menus, Chapter Tables & Bonus Extras"), isOn: $preserveMenusAndExtras)
-                Divider()
-                playlistRow(num: "VTS_01", title: "Main Feature Movie (1080p / 480p MPEG-2)", duration: "01:58:14", transition: fitToDiscDVD9Shrink ? "Requantized -> 3.62 GB" : "Original 6.40 GB", info: "AC-3 5.1 + Subtitles")
-                playlistRow(num: "VMGM", title: "Interactive Motion Menus & Chapter Selector", duration: "00:04:12", transition: "100% Intact (340 MB)", info: "Zero Menu Loss")
-                playlistRow(num: "VTS_02", title: "Director Commentary & Making-Of Featurettes", duration: "00:32:40", transition: "Requantized -> 420 MB", info: "Preserved")
+            if isAudioRipTask {
+                audioCDRipWorkspaceDeck
+            } else if isShrinkTask {
+                shrinkDVDVideoWorkspaceDeck
+            } else {
+                videoDiscExtractWorkspaceDeck
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    var audioCDRipWorkspaceDeck: some View {
+        let sampleTracks: [(num: Int, title: String, duration: String, arStatus: String)] = [
+            (1, "01. Opening Overture (Red Book PCM)", "04:18:22", "AR v2 [14/14]"),
+            (2, "02. Midnight Laser Calibration", "05:03:60", "AR v2 [14/14]"),
+            (3, "03. Polycarbonate Horizon", "03:49:15", "AR v2 [14/14]"),
+            (4, "04. Subchannel Q Drift", "06:12:44", "AR v2 [12/12]"),
+            (5, "05. Closing Fade (Index 00 Clean)", "04:55:08", "AR v2 [14/14]")
+        ]
+
+        return VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 12) {
+                    Text(KroutonL10n.tr("Output Codec:"))
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
+                    Picker("", selection: $audioRipCodec) {
+                        Text("FLAC (Lossless)").tag("FLAC (Lossless)")
+                        Text("ALAC (Apple Lossless)").tag("ALAC (Apple Lossless)")
+                        Text("WAV (16-bit / 44.1 kHz PCM)").tag("WAV (16-bit / 44.1 kHz PCM)")
+                        Text("AIFF (Uncompressed)").tag("AIFF (Uncompressed)")
+                        Text("MP3 (320 kbps CBR)").tag("MP3 (320 kbps CBR)")
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: 230)
+
+                    Spacer(minLength: 8)
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 10))
+                        Text("Drive Offset: +6 Samples")
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(store.uiSecondaryAccent.opacity(0.16))
+                    .foregroundStyle(store.uiSecondaryAccent)
+                    .clipShape(Capsule())
+                }
+
+                HStack(spacing: 16) {
+                    Toggle(KroutonL10n.tr("Verify Checksums via AccurateRip v2"), isOn: $audioRipAccurateRip)
+                        .toggleStyle(.checkbox)
+                        .font(.caption)
+                    Toggle(KroutonL10n.tr("Generate Non-Compliant .CUE Sheet & Extraction Log"), isOn: $audioRipGenerateCueLog)
+                        .toggleStyle(.checkbox)
+                        .font(.caption)
+                    Spacer(minLength: 0)
+                }
             }
             .padding(14)
             .background(Color.kroutonControlSurface)
             .clipShape(RoundedRectangle(cornerRadius: 10))
 
-            Spacer()
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(KroutonL10n.tr("AUDIO CD TABLE OF CONTENTS (TOC)"))
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button(audioRipSelectedTracks.count == sampleTracks.count ? "Deselect All" : "Select All") {
+                        if audioRipSelectedTracks.count == sampleTracks.count {
+                            audioRipSelectedTracks.removeAll()
+                        } else {
+                            audioRipSelectedTracks = Set(sampleTracks.map(\.num))
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .font(.caption.bold())
+                    .foregroundStyle(store.activeAccent)
+                }
+                .padding(.horizontal, 4)
+
+                ForEach(sampleTracks, id: \.num) { trk in
+                    let isChecked = audioRipSelectedTracks.contains(trk.num)
+                    HStack(spacing: 10) {
+                        Toggle("", isOn: Binding(
+                            get: { isChecked },
+                            set: { val in
+                                if val { audioRipSelectedTracks.insert(trk.num) }
+                                else { audioRipSelectedTracks.remove(trk.num) }
+                            }
+                        ))
+                        .labelsHidden()
+                        .toggleStyle(.checkbox)
+
+                        Text(String(format: "TRK %02d", trk.num))
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundStyle(store.activeAccent)
+                            .frame(width: 48, alignment: .leading)
+
+                        Text(trk.title)
+                            .font(.system(size: 12, weight: .medium))
+                            .lineLimit(1)
+
+                        Spacer(minLength: 8)
+
+                        if audioRipAccurateRip {
+                            Text(trk.arStatus)
+                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(store.uiSecondaryAccent)
+                        }
+
+                        Text(trk.duration)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 68, alignment: .trailing)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.kroutonControlSurface)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+            }
         }
     }
 
+    var videoDiscExtractWorkspaceDeck: some View {
+        let titles: [(id: String, name: String, streamInfo: String, sizeLabel: String, duration: String)] = [
+            ("TITLE_01", "Title 01 — Main Feature (1080p / 480p)", "H.264/MPEG-2 • AC-3 5.1 + DTS + English SRT • 24 Chapters", "5.84 GB", "01:58:14"),
+            ("TITLE_02", "Title 02 — Behind the Scenes Documentary", "Stereo PCM + Chapters", "780 MB", "00:32:40"),
+            ("TITLE_03", "Title 03 — Theatrical Trailer (Skipped if < 120s)", "AC-3 2.0", "94 MB", "00:01:48")
+        ]
 
+        return VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 12) {
+                    Text(KroutonL10n.tr("Extract Mode:"))
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
+                    Picker("", selection: $videoExtractMode) {
+                        Text("Lossless MKV Remux (Zero Re-Encode)").tag("Lossless MKV Remux")
+                        Text("Apple MP4 (VideoToolbox H.264)").tag("Apple MP4 (VideoToolbox H.264)")
+                        Text("Apple HEVC 10-Bit (Hardware)").tag("Apple HEVC 10-Bit")
+                        Text("Full Decrypted Disc Backup").tag("Full Disc Backup")
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: 260)
+
+                    Spacer(minLength: 8)
+
+                    Picker("Min Title:", selection: $videoExtractMinSeconds) {
+                        Text("All Titles").tag(0)
+                        Text("> 2 min (Skip Warnings)").tag(120)
+                        Text("> 10 min (Features Only)").tag(600)
+                    }
+                    .frame(maxWidth: 210)
+                    .font(.caption)
+                }
+
+                Toggle(KroutonL10n.tr("Preserve Chapter Markers, Forced Subtitles & Original Audio Tracks"), isOn: $videoExtractKeepChapters)
+                    .toggleStyle(.checkbox)
+                    .font(.caption)
+            }
+            .padding(14)
+            .background(Color.kroutonControlSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            ForEach(titles.filter { $0.id != "TITLE_03" || videoExtractMinSeconds < 120 }, id: \.id) { item in
+                let isSelected = videoExtractSelectedTitles.contains(item.id)
+                HStack(spacing: 10) {
+                    Toggle("", isOn: Binding(
+                        get: { isSelected },
+                        set: { val in
+                            if val { videoExtractSelectedTitles.insert(item.id) }
+                            else { videoExtractSelectedTitles.remove(item.id) }
+                        }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.checkbox)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.name)
+                            .font(.system(size: 12, weight: .semibold))
+                            .lineLimit(1)
+                        Text(item.streamInfo)
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Text(item.sizeLabel)
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(store.activeAccent)
+
+                    Text(item.duration)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 68, alignment: .trailing)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(Color.kroutonControlSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+        }
+    }
+
+    var shrinkDVDVideoWorkspaceDeck: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Toggle(KroutonL10n.tr("Fit to Disc — Requantize DVD-9 (8.5 GB) to standard 4.7 GB DVD-5"), isOn: $fitToDiscDVD9Shrink)
+                    .font(.headline)
+                Spacer(minLength: 8)
+                Text(fitToDiscDVD9Shrink ? "Ratio: 68.4% • 4.37 GB" : "1:1 Dual-Layer • 7.92 GB")
+                    .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(store.uiSecondaryAccent.opacity(0.18))
+                    .foregroundStyle(store.uiSecondaryAccent)
+                    .clipShape(Capsule())
+            }
+            Toggle(KroutonL10n.tr("Preserve Interactive Menus, Chapter Tables (.IFO Relink) & Bonus Extras"), isOn: $preserveMenusAndExtras)
+                .font(.subheadline)
+            Divider()
+            playlistRow(num: "VTS_01", title: "Main Feature Movie (480p MPEG-2)", duration: "01:58:14", transition: fitToDiscDVD9Shrink ? "Requantized -> 3.62 GB" : "Original 6.40 GB", info: "AC-3 5.1 + Subtitles")
+            playlistRow(num: "VMGM", title: "Interactive Motion Menus & Chapter Selector", duration: "00:04:12", transition: "100% Intact (340 MB)", info: "Zero Menu Loss")
+            if preserveMenusAndExtras {
+                playlistRow(num: "VTS_02", title: "Director Commentary & Making-Of Featurettes", duration: "00:32:40", transition: fitToDiscDVD9Shrink ? "Requantized -> 420 MB" : "Original 1.18 GB", info: "Preserved")
+            }
+        }
+        .padding(14)
+        .background(Color.kroutonControlSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
 
     func playlistRow(num: String, title: String, duration: String, transition: String, info: String) -> some View {
         HStack(spacing: 12) {
