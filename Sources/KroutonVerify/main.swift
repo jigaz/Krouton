@@ -432,6 +432,42 @@ harness.runSuite("12. Tartine Hybrid Data LBA Planner (PVD LBA 16, El Torito LBA
     h.check(!plan.warnings.isEmpty, ">4GiB file must emit UDF multi-extent advisory")
 }
 
+
+// 13. VideoOven Bitrate Budget Calculator & DVD-9 -> DVD-5 Requiem Requantization Planner
+harness.runSuite("13. VideoOven Optical Bitrate Budget (DVD-5/DVD-9/BD-25/BD-50) & DVD-9 Shrink Math") { h in
+    h.check(KroutonVideoTargetMedium.dvd5SingleLayer.capacityBytes == 4_700_372_992, "Exact DVD-5 byte capacity (2,295,104 sectors)")
+    h.check(KroutonVideoTargetMedium.dvd9DualLayer.capacityBytes == 8_547_991_552, "Exact DVD-9 byte capacity (4,173,824 sectors)")
+    h.check(KroutonVideoTargetMedium.bd25SingleLayer.capacityBytes == 25_025_314_816, "Exact BD-25 byte capacity")
+
+    // Short 30-minute program on DVD-5 should clamp strictly to the 9,800 kbps DVD-Video hardware ceiling
+    let shortDVD = KroutonVideoOvenModule.computeBitrateBudget(durationSeconds: 1800, audioKbps: 448, medium: .dvd5SingleLayer)
+    h.check(shortDVD.targetVideoKbps == 9_800, "Short DVD program must clamp to 9,800 kbps DVD-Video spec ceiling")
+    h.check(shortDVD.vbvBufferKilobits == 1_835 && shortDVD.isSpecCompliant, "DVD VBV buffer must be 1,835 kb")
+
+    // 2.5-hour (9000s) feature film on DVD-5 must compute a custom VBR target below 9,800 kbps to fit 100% of disc
+    let featureDVD = KroutonVideoOvenModule.computeBitrateBudget(durationSeconds: 9000, audioKbps: 448, medium: .dvd5SingleLayer)
+    h.check(featureDVD.targetVideoKbps > 3_000 && featureDVD.targetVideoKbps < 4_200, "150-min DVD-5 target video bitrate in [3000, 4200] kbps")
+    h.check(featureDVD.estimatedDiscFillRatio > 0.98, "150-min DVD-5 bitrate budget should utilize >98% of disc capacity")
+
+    // DVD-9 (7.2 GB main + 0.8 GB extras) -> DVD-5 shrink test with and without extras
+    let mainBytes: Int64 = 6_800_000_000
+    let extraBytes: Int64 = 900_000_000
+    let shrinkWithExtras = KroutonVideoOvenModule.planDVD9ToDVD5Shrink(
+        mainFeatureBytes: mainBytes,
+        menusAndExtrasBytes: extraBytes,
+        preserveMenusAndExtras: true
+    )
+    let shrinkMainOnly = KroutonVideoOvenModule.planDVD9ToDVD5Shrink(
+        mainFeatureBytes: mainBytes,
+        menusAndExtrasBytes: extraBytes,
+        preserveMenusAndExtras: false
+    )
+    h.check(shrinkWithExtras.requiresRequantization && shrinkWithExtras.estimatedOutputBytes <= KroutonVideoTargetMedium.dvd5SingleLayer.capacityBytes,
+            "DVD-9 -> DVD-5 shrink must fit strictly inside DVD-5 capacity")
+    h.check(shrinkMainOnly.requantizationRatio > shrinkWithExtras.requantizationRatio,
+            "Stripping extras must yield higher video quality retention ratio for the main feature")
+}
+
 print("\n🎯 SUMMARY: \(harness.passed) assertions passed, \(harness.failed) failed.")
 if harness.failed > 0 {
     exit(1)
