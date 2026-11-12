@@ -102,7 +102,7 @@ final class KroutonWindowManager {
             backing: .buffered,
             defer: false
         )
-        window.title = "Krouton Settings"
+        window.title = "Kruton Settings"
         window.contentViewController = hostingController
         window.center()
         window.setFrameAutosaveName("KroutonSettingsWindow")
@@ -431,7 +431,7 @@ struct KroutonMainWorkspaceView: View {
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(store.activeAccent)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(KroutonL10n.tr("KROUTON"))
+                    Text(KroutonL10n.tr("KRUTON"))
                         .font(.system(size: 13, weight: .heavy, design: .rounded))
                     Text("\(driveManager.availableDrives.count) Optical Drive(s) Online • \(driveManager.hardwareStatusLog)")
                         .font(.system(size: 10, design: .monospaced))

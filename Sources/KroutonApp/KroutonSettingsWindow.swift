@@ -162,7 +162,7 @@ public struct KroutonSettingsWindowView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(KroutonL10n.tr("Color"))
                             .fontWeight(.medium)
-                        Text(KroutonL10n.tr(store.selectedAccentIndex == -1 ? "Multicolor (Adapts per workspace)" : "Krouton Pro Studio Accent Swatch"))
+                        Text(KroutonL10n.tr(store.selectedAccentIndex == -1 ? "Multicolor (Adapts per workspace)" : "Kruton Accent Swatch"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
