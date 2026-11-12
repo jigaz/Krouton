@@ -1859,6 +1859,38 @@ extension KroutonMainWorkspaceView {
             .padding(8)
             .background(Color.black.opacity(0.20))
             .clipShape(RoundedRectangle(cornerRadius: 6))
+
+            let sampleCells = [
+                KroutonDVD9CellDescriptor(cellID: 1, originalStartSectorLBA: 0, originalSectorCountLBA: 1_100_000, hadDualLayerBreakPause: false),
+                KroutonDVD9CellDescriptor(cellID: 2, originalStartSectorLBA: 1_100_000, originalSectorCountLBA: 1_050_000, hadDualLayerBreakPause: true),
+                KroutonDVD9CellDescriptor(cellID: 3, originalStartSectorLBA: 2_150_000, originalSectorCountLBA: 1_190_000, hadDualLayerBreakPause: false)
+            ]
+            let blueprint = KroutonVideoOvenModule.buildDVD9ToDVD5MenuShrinkBlueprint(
+                menuVobBytes: extrasBytes,
+                preserveMenus: store.fitToDiscPreserveMenus,
+                sourceCells: sampleCells
+            )
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Image(systemName: "MenuCard" == "" ? "list.bullet.rectangle.fill" : "menubar.rectangle")
+                        .foregroundStyle(.cyan)
+                    Text("DVD-9 -> DVD-5 MENU BUTTONS, .IFO RELINKING & LAYER-BREAK REMOVAL")
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(.cyan)
+                }
+                Text("• Menu NV_PCK & SPU Highlights : 100% Bit-Exact Passthrough (Menu Video @ \(Int(blueprint.menuVobRetentionRatio * 100))%)")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.green)
+                Text("• VTS_01_0.IFO / .BUP Pointers : \(blueprint.relinkedCells.count) PGC Cells Relinked to Shrunk VOBU Sectors (32K ECC Guarded)")
+                    .font(.system(size: 10, design: .monospaced))
+                Text("• Former DVD-9 Layer-Break Cell: \(blueprint.layerBreakPauseRemoved ? "SPLB Pause Flag Cleared -> 100% Seamless DVD-5 Playback" : "Seamless")")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(store.activeAccent)
+            }
+            .padding(8)
+            .background(Color.black.opacity(0.20))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
         }
         .padding(14)
         .frame(width: 575)

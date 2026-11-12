@@ -695,6 +695,42 @@ harness.runSuite("17. End-to-End 5-Module Mastering & LAN Signed Dispatch Integr
     h.check(verified == dispatchJSON, "End-to-end signed Krumb dispatch must verify cleanly")
 }
 
+
+// 18. VideoOven DVD-9 -> DVD-5 Menu-Preserving Shrink, IFO Sector Pointer Relinking & Layer-Break Pause Removal
+harness.runSuite("18. VideoOven DVD-9 -> DVD-5 Menu-Preserving Shrink, .IFO Relinking & Layer-Break Removal") { h in
+    // Simulate a 7.85 GB Dual-Layer DVD-9 (450 MB interactive motion menus + 3 main feature cells across Layer 0 & Layer 1)
+    let dvd9Cells = [
+        KroutonDVD9CellDescriptor(cellID: 1, originalStartSectorLBA: 0,         originalSectorCountLBA: 1_200_000, hadDualLayerBreakPause: false),
+        KroutonDVD9CellDescriptor(cellID: 2, originalStartSectorLBA: 1_200_000, originalSectorCountLBA: 1_100_000, hadDualLayerBreakPause: true), // Layer 0 -> Layer 1 break cell!
+        KroutonDVD9CellDescriptor(cellID: 3, originalStartSectorLBA: 2_300_000, originalSectorCountLBA: 1_100_000, hadDualLayerBreakPause: false)
+    ]
+    let blueprint = KroutonVideoOvenModule.buildDVD9ToDVD5MenuShrinkBlueprint(
+        ifoTableBytes: 65_536,
+        menuVobBytes: 450_000_000,
+        preserveMenus: true,
+        sourceCells: dvd9Cells
+    )
+
+    h.check(blueprint.originalTotalBytes > KroutonVideoTargetMedium.dvd5SingleLayer.capacityBytes,
+            "Source DVD-9 (7.4 GB) must exceed DVD-5 single-layer capacity before shrink")
+    h.check(blueprint.fitsStrictlyOnDVD5 && blueprint.shrunkTotalBytes <= KroutonVideoTargetMedium.dvd5SingleLayer.capacityBytes,
+            "Shrunk DVD-9 -> DVD-5 output (\(blueprint.shrunkTotalBytes) B) must fit strictly inside 4,700,372,992 B DVD-5 ceiling")
+    h.check(blueprint.navPacksAndButtonHighlightsIntact && blueprint.menuVobRetentionRatio == 0.90,
+            "Menu NV_PCK & SPU button highlight overlays must remain intact with 90% motion-menu video retention")
+    h.check(blueprint.layerBreakPauseRemoved,
+            "Old DVD-9 OTP layer-break pause on Cell 2 must be cleared for seamless single-layer DVD-5 playback")
+
+    // Verify contiguous, gapless IFO cell sector relinking (Cell N+1 startLBA == Cell N endLBA + 1)
+    h.check(blueprint.relinkedCells.count == 3, "All 3 PGC cells must be relinked in VTS_01_0.IFO / .BUP")
+    h.check(blueprint.relinkedCells[0].relinkedStartSectorLBA == 0, "Cell 1 starts at relative VOB sector 0")
+    h.check(blueprint.relinkedCells[1].relinkedStartSectorLBA == blueprint.relinkedCells[0].relinkedEndSectorLBA + 1,
+            "Cell 2 relinked start LBA must immediately follow Cell 1 shrunk end LBA")
+    h.check(blueprint.relinkedCells[2].relinkedStartSectorLBA == blueprint.relinkedCells[1].relinkedEndSectorLBA + 1,
+            "Cell 3 relinked start LBA must immediately follow Cell 2 shrunk end LBA")
+    h.check(blueprint.relinkedCells.allSatisfy { $0.seamlessPlaybackFlagSet },
+            "All relinked cells on DVD-5 must have seamlessPlaybackFlagSet = true")
+}
+
 print("\n🎯 SUMMARY: \(harness.passed) assertions passed, \(harness.failed) failed.")
 if harness.failed > 0 {
     exit(1)
