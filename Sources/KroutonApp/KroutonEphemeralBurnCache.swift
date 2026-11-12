@@ -11,7 +11,6 @@
 //
 
 import Foundation
-import AppKit
 import Combine
 import Darwin.Mach
 
@@ -120,14 +119,14 @@ public final class KroutonIdlePowerMonitor: ObservableObject {
     private func setupLifecycleObservers() {
         let nc = NotificationCenter.default
 
-        nc.publisher(for: NSApplication.didBecomeActiveNotification)
+        nc.publisher(for: KroutonOSDesktopBridge.didBecomeActiveNotification)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.isAppVisiblyActive = true
             }
             .store(in: &cancellables)
 
-        nc.publisher(for: NSApplication.didResignActiveNotification)
+        nc.publisher(for: KroutonOSDesktopBridge.didResignActiveNotification)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 guard let self else { return }
@@ -139,12 +138,11 @@ public final class KroutonIdlePowerMonitor: ObservableObject {
             }
             .store(in: &cancellables)
 
-        nc.publisher(for: NSWindow.didChangeOcclusionStateNotification)
+        nc.publisher(for: KroutonOSDesktopBridge.didChangeWindowOcclusionNotification)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 guard let self else { return }
-                let anyVisible = NSApp.windows.contains { $0.isVisible && $0.occlusionState.contains(.visible) }
-                self.isAppVisiblyActive = NSApp.isActive && anyVisible
+                self.isAppVisiblyActive = KroutonOSDesktopBridge.isApplicationVisiblyActive()
             }
             .store(in: &cancellables)
     }

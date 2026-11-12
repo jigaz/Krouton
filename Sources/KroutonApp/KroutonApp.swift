@@ -767,7 +767,7 @@ struct KroutonMainWorkspaceView: View {
                     Task { @MainActor in
                         if store.selectedCategory == .burn && !store.isURLCompatible(url, for: spec) {
                             store.rejectedDropNotice = "Rejected '\(url.lastPathComponent)': \(spec.technicalName) only accepts \(spec.expectedMediaDescription)."
-                            NSSound.beep()
+                            KroutonOSDesktopBridge.playAcousticCue()
                             triggerDropRejectShake()
                         } else {
                             store.addStagedURLs([url])

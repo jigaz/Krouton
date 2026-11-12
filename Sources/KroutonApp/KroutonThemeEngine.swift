@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import AudioToolbox
+import Combine
 import AppKit
 
 // MARK: - Zero-Allocation Display-P3 Color Harmony LUT Cache (120Hz ProMotion Optimization)
@@ -197,7 +199,7 @@ extension KroutonStateStore {
         case .light: return .light
         case .dark:  return .dark
         case .auto:
-            let isDark = NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            let isDark = KroutonOSDesktopBridge.isSystemDarkMode()
             return isDark ? .dark : .light
         }
     }
@@ -312,10 +314,10 @@ public extension Color {
     }
 }
 
-// MARK: - Centralized Desktop OS Services Bridge (Keeps SwiftUI Views 100% AppKit-Free)
+// MARK: - Centralized Desktop OS Services Bridge (Keeps SwiftUI Views & Models 100% AppKit-Free)
 public enum KroutonOSDesktopBridge {
     public static func playAcousticCue() {
-        NSSound.beep()
+        AudioServicesPlaySystemSound(kSystemSoundID_UserPreferredAlert)
     }
 
     public static func copyTextToClipboard(_ text: String) {
@@ -330,5 +332,49 @@ public enum KroutonOSDesktopBridge {
 
     public static func revealFolderInFinder(path: String) {
         NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
+    }
+
+    @MainActor
+    public static func printSwiftUIView<V: View>(_ view: V) {
+        NSPrintOperation(view: NSHostingView(rootView: view)).run()
+    }
+
+    public static func isSystemDarkMode() -> Bool {
+        UserDefaults.standard.string(forKey: "AppleInterfaceStyle") == "Dark"
+    }
+
+    public static func postVoiceOverAnnouncement(_ message: String) {
+        Task { @MainActor in
+            if let mainWin = NSApp?.mainWindow {
+                NSAccessibility.post(
+                    element: mainWin,
+                    notification: .announcementRequested,
+                    userInfo: [
+                        .announcement: message,
+                        .priority: NSAccessibilityPriorityLevel.high.rawValue
+                    ]
+                )
+            }
+        }
+    }
+
+    public static var didBecomeActiveNotification: Notification.Name {
+        NSApplication.didBecomeActiveNotification
+    }
+
+    public static var didResignActiveNotification: Notification.Name {
+        NSApplication.didResignActiveNotification
+    }
+
+    public static var didChangeWindowOcclusionNotification: Notification.Name {
+        NSWindow.didChangeOcclusionStateNotification
+    }
+
+    public static func isApplicationVisiblyActive() -> Bool {
+        MainActor.assumeIsolated {
+            guard let app = NSApp else { return true }
+            let anyVisible = app.windows.contains { $0.isVisible && $0.occlusionState.contains(.visible) }
+            return app.isActive && anyVisible
+        }
     }
 }

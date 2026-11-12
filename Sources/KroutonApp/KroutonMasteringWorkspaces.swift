@@ -127,8 +127,7 @@ extension KroutonMainWorkspaceView {
                                 Button {
                                     let hash = KroutonLoafBootInspector.computeSHA256Hex(url: entry.url)
                                     computedImageSHA256 = hash
-                                    NSPasteboard.general.clearContents()
-                                    NSPasteboard.general.setString(hash, forType: .string)
+                                    KroutonOSDesktopBridge.copyTextToClipboard(hash)
                                     imageActionStatusBanner = "SHA-256 Copied to Clipboard"
                                     KroutonOSDesktopBridge.playAcousticCue()
                                 } label: {

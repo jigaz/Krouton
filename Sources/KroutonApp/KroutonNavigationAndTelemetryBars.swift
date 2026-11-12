@@ -5,7 +5,6 @@
 //  Left Format Chooser Sidebar, Top Hardware Telemetry Header Bar, Center Router, and Bottom Capacity Bar.
 //
 
-import AppKit
 import Combine
 import Foundation
 import OpticalDough
@@ -713,7 +712,7 @@ extension KroutonMainWorkspaceView {
                         .buttonStyle(.plain)
 
                         Button {
-                            NSPrintOperation(view: NSHostingView(rootView: KroutonDiscLabelArtworkCanvas(
+                            KroutonOSDesktopBridge.printSwiftUIView(KroutonDiscLabelArtworkCanvas(
                                 preset: preset,
                                 template: store.selectedLabelTemplate,
                                 title: labelDiscTitle,
@@ -726,7 +725,7 @@ extension KroutonMainWorkspaceView {
                                 harmonyColor: store.uiSecondaryAccent,
                                 isExportMode: true,
                                 diameterPoints: 340.0
-                            ))).run()
+                            ))
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "printer.fill")

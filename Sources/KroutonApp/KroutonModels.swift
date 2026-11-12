@@ -1,5 +1,4 @@
 import SwiftUI
-import AppKit
 import OpticalDough
 
 public struct KroutonSeasoningColorPreset: Identifiable, Hashable, Sendable {
@@ -664,7 +663,7 @@ public final class KroutonStateStore: ObservableObject {
             case .light: return .light
             case .dark: return .dark
             case .auto:
-                let isDark = NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                let isDark = KroutonOSDesktopBridge.isSystemDarkMode()
                 return isDark ? .dark : .light
             }
         }()
@@ -692,7 +691,7 @@ public final class KroutonStateStore: ObservableObject {
             case .light: return .light
             case .dark: return .dark
             case .auto:
-                let isDark = NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                let isDark = KroutonOSDesktopBridge.isSystemDarkMode()
                 return isDark ? .dark : .light
             }
         }()
@@ -705,7 +704,7 @@ public final class KroutonStateStore: ObservableObject {
             case .light: return .light
             case .dark: return .dark
             case .auto:
-                let isDark = NSApp?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                let isDark = KroutonOSDesktopBridge.isSystemDarkMode()
                 return isDark ? .dark : .light
             }
         }()
@@ -792,7 +791,7 @@ public final class KroutonStateStore: ObservableObject {
         if !rejectedNames.isEmpty {
             let joined = rejectedNames.prefix(2).joined(separator: ", ")
             rejectedDropNotice = "Rejected \(joined): \(spec.technicalName) only accepts \(spec.expectedMediaDescription)."
-            NSSound.beep()
+            KroutonOSDesktopBridge.playAcousticCue()
             announceForVoiceOver(rejectedDropNotice ?? "Incompatible file rejected")
         } else {
             rejectedDropNotice = nil
@@ -889,16 +888,7 @@ public final class KroutonStateStore: ObservableObject {
 
     public func announceForVoiceOver(_ message: String) {
         guard voiceOverSpokenTelemetry else { return }
-        if let mainWin = NSApp.mainWindow {
-            NSAccessibility.post(
-                element: mainWin,
-                notification: .announcementRequested,
-                userInfo: [
-                    .announcement: message,
-                    .priority: NSAccessibilityPriorityLevel.high.rawValue
-                ]
-            )
-        }
+        KroutonOSDesktopBridge.postVoiceOverAnnouncement(message)
     }
 
     /// Real Apple Bundle.module .lproj localization lookup (Sources/KroutonApp/Resources/<lang>.lproj/Localizable.strings)
@@ -1033,7 +1023,7 @@ public final class KroutonStateStore: ObservableObject {
         stagedDepotItemID = item.id
         discVolumeTitle = item.id.uppercased().replacingOccurrences(of: "-", with: "_")
         announceForVoiceOver("Staged \(item.title) (\(item.sizeDisplay)) ready to burn.")
-        NSSound.beep()
+        KroutonOSDesktopBridge.playAcousticCue()
 
         if jumpToInspector {
             selectedCategory = .burn
