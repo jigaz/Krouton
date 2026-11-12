@@ -791,6 +791,37 @@ harness.runSuite("20. Mastering & Extraction Domain Models (TOC, Video Titles & 
     h.check(decoded == consoleCfg, "KroutonConsoleMasteringConfig Codable round-trip must match")
 }
 
+harness.runSuite("21. Phase 4 Workspace Modularization & 600-LOC File Ceiling Gate") { h in
+    let repoRoot = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+    let workspacesDir = repoRoot.appendingPathComponent("Sources/KroutonApp/Workspaces")
+    let fm = FileManager.default
+
+    let expectedWorkspaceFiles = [
+        "AudioMasteringWorkspaces.swift",
+        "CopyAndRipWorkspaces.swift",
+        "DataAndArchivalWorkspaces.swift",
+        "DiscImageInspectorWorkspace.swift",
+        "MasteringTelemetryPopovers.swift",
+        "RetroConsoleWorkspaces.swift",
+        "VideoAuthoringWorkspaces.swift"
+    ]
+
+    for file in expectedWorkspaceFiles {
+        let url = workspacesDir.appendingPathComponent(file)
+        h.check(fm.fileExists(atPath: url.path), "Expected modular workspace file: \(file)")
+        if let content = try? String(contentsOf: url, encoding: .utf8) {
+            let lineCount = content.components(separatedBy: .newlines).count
+            h.check(lineCount <= 600, "\(file) must stay <= 600 LOC (Rule 4 ceiling), found \(lineCount) LOC")
+        }
+    }
+
+    let legacyMonolith = workspacesDir.appendingPathComponent("KroutonMasteringWorkspaces.swift")
+    h.check(!fm.fileExists(atPath: legacyMonolith.path), "Legacy KroutonMasteringWorkspaces.swift monolith must be removed")
+}
+
 print("\n🎯 SUMMARY: \(harness.passed) assertions passed, \(harness.failed) failed.")
 if harness.failed > 0 {
     exit(1)
