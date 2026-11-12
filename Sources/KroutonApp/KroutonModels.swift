@@ -1,3 +1,8 @@
+import Crustini
+import Galette
+import VideoOven
+import Tartine
+import Marmalade
 import SwiftUI
 import OpticalDough
 
@@ -1478,5 +1483,76 @@ extension KroutonStateStore {
                 completion(digest)
             }
         }
+    }
+}
+
+
+// MARK: - Chunk 8: Live Backend Engine Bridge Across All 5 Culinary Modules
+extension KroutonStateStore {
+    /// Compiles a frame-accurate Red Book .cue sheet via Marmalade for the given audio cubes
+    public func compileLiveMarmaladeCueSheet(
+        albumTitle: String = "KROUTON AUDIO MASTER",
+        albumPerformer: String = "THE KROUTON BAKERY",
+        mcnCatalog: String = "0123456789012",
+        tracks: [KroutonAudioCube] = []
+    ) -> String {
+        KroutonMarmaladeModule.compileRedBookCueSheet(
+            albumTitle: albumTitle,
+            albumPerformer: albumPerformer,
+            mcnCatalog: mcnCatalog,
+            tracks: tracks
+        )
+    }
+
+    /// Computes total 18-byte Sony/Philips CD-Text subchannel packs via Marmalade
+    public func computeLiveMarmaladeCDTextPackCount(
+        albumTitle: String = "KROUTON AUDIO MASTER",
+        albumPerformer: String = "THE KROUTON BAKERY",
+        tracks: [KroutonAudioCube] = []
+    ) -> Int {
+        var count = KroutonMarmaladeModule.buildCDTextPacks(packType: 0x80, trackNumber: 0, text: albumTitle).count
+        count += KroutonMarmaladeModule.buildCDTextPacks(packType: 0x81, trackNumber: 0, text: albumPerformer).count
+        for (idx, cube) in tracks.enumerated() {
+            let tNum = UInt8(min(99, idx + 1))
+            count += KroutonMarmaladeModule.buildCDTextPacks(packType: 0x80, trackNumber: tNum, text: cube.title).count
+            count += KroutonMarmaladeModule.buildCDTextPacks(packType: 0x81, trackNumber: tNum, text: cube.performer).count
+        }
+        return count
+    }
+
+    /// Plans a deduplicated Hybrid ISO-9660 / Joliet / UDF 2.60 / El Torito LBA sector layout via Tartine
+    public func planLiveTartineHybridLayout(
+        volumeLabel: String = "KROUTON_HYBRID_DISC",
+        entries: [KroutonLoafFileEntry] = [],
+        isElToritoBootable: Bool = false
+    ) -> KroutonTartineLayoutPlan {
+        KroutonTartineModule.planHybridDataLayout(
+            volumeLabel: volumeLabel,
+            entries: entries,
+            isElToritoBootable: isElToritoBootable
+        )
+    }
+
+    /// Computes a live VideoOven bitrate budget for the given duration and target optical medium
+    public func computeLiveVideoOvenBitrateBudget(
+        durationSeconds: Double = 5400.0,
+        audioKbps: Int = 448,
+        medium: KroutonVideoTargetMedium = .dvd5SingleLayer
+    ) -> KroutonVideoBitrateBudget {
+        KroutonVideoOvenModule.computeBitrateBudget(
+            durationSeconds: max(60.0, durationSeconds),
+            audioKbps: audioKbps,
+            medium: medium
+        )
+    }
+
+    /// Computes a live Crustini 300-DPI polar arc glyph layout for the Disc Label Studio
+    public func computeLiveDiscLabelArcGlyphs(title: String, radiusPoints: Double = 500.0) -> [KroutonPolarArcGlyphPlacement] {
+        KroutonKrustiniModule.computePolarArcGlyphLayout(
+            text: title,
+            centerX: 708.5,
+            centerY: 708.5,
+            radiusPoints: radiusPoints
+        )
     }
 }

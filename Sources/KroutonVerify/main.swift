@@ -653,6 +653,48 @@ harness.runSuite("16. Zero Shell-Injection Process Gate & 500-Frame Telemetry St
     h.check(afterZombie.state == .burntToast, "Terminal state must reject late out-of-order progress frames")
 }
 
+
+// 17. End-to-End 5-Module Mastering Pipeline Integration (OpticalDough + Marmalade + Tartine + VideoOven + Galette + Crustini)
+harness.runSuite("17. End-to-End 5-Module Mastering & LAN Signed Dispatch Integration Pipeline") { h in
+    // Step 1: Plan a Hybrid Data Loaf via Tartine
+    let entries = [
+        KroutonLoafFileEntry(
+            url: URL(fileURLWithPath: "/tmp/KroutonBoot.efi"),
+            name: "KroutonBoot.efi",
+            isDirectory: false,
+            byteSize: 65_536,
+            itemCount: 1,
+            posixPermissions: "rwxr-xr-x",
+            modifiedDate: Date(),
+            showOnMac: true,
+            showOnPC: true
+        )
+    ]
+    let layout = KroutonTartineModule.planHybridDataLayout(
+        volumeLabel: "KROUTON_E2E_MASTER",
+        entries: entries,
+        isElToritoBootable: true
+    )
+    h.check(layout.totalSectorsLBA > 288, "Tartine E2E layout must allocate descriptors + payload + lead-out")
+
+    // Step 2: Classify the resulting image via Galette
+    let depotInfo = KroutonGaletteModule.classifyDepotImage(
+        byteSize: layout.totalBytes,
+        signatureSampleASCII: "CD001 EL TORITO SPECIFICATION UDF NSR03"
+    )
+    h.check(depotInfo.isBootable && depotInfo.recommendedMediaBadge == "CD-R (700 MB)", "Galette E2E image classification")
+
+    // Step 3: Sign the network dispatch payload via KrumbLANSecurityEngine for a private LAN toaster
+    let targetEndpoint = "http://192.168.1.77:7420/api/v1/bake"
+    h.check(KrumbLANSecurityEngine.isAllowedLANEndpoint(targetEndpoint), "Private LAN toaster endpoint must pass subnet guard")
+
+    let dispatchJSON = Data("{\"volume\":\"\(layout.volumeIdentifier)\",\"sectors\":\(layout.totalSectorsLBA)}".utf8)
+    var replaySet: Set<String> = []
+    let signed = KrumbLANSecurityEngine.signPayload(dispatchJSON, sharedSecret: "e2e-kitchen-secret", timestampEpochSeconds: 1_775_100_000, nonce: "e2e-001")
+    let verified = KrumbLANSecurityEngine.verifyEnvelope(signed, sharedSecret: "e2e-kitchen-secret", nowEpochSeconds: 1_775_100_002, seenNonces: &replaySet)
+    h.check(verified == dispatchJSON, "End-to-end signed Krumb dispatch must verify cleanly")
+}
+
 print("\n🎯 SUMMARY: \(harness.passed) assertions passed, \(harness.failed) failed.")
 if harness.failed > 0 {
     exit(1)
