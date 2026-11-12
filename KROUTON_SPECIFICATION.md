@@ -1,10 +1,10 @@
-# Kruton & Krumb ("The Bakery") — Master Architecture & Rebuild Specification
+# Krouton & Krumb ("The Bakery") — Master Architecture & Rebuild Specification
 
 ## 1. Product Vision & Ecosystem Overview
-**Kruton** is a native macOS (SwiftUI + AppKit + Metal) optical disc mastering, archival, ripping, and label-printing application. It pairs with **Krumb**, a headless cross-platform Rust daemon that exposes physical optical drives over the local network via mDNS (`_krumb._tcp.local.`, Port `7420`), REST, and WebSockets.
+**Krouton** is a native macOS (SwiftUI + AppKit + Metal) optical disc mastering, archival, ripping, and label-printing application. It pairs with **Krumb**, a headless cross-platform Rust daemon that exposes physical optical drives over the local network via mDNS (`_krumb._tcp.local.`, Port `7420`), REST, and WebSockets.
 
 ### Core Design Principles
-1. **Zero Coasters (Spool-and-Burn):** Network burns never stream raw sectors over Wi-Fi directly to a live laser. Kruton spools the compiled image/tracks ("Loaf" / "Cubes") to Krumb's local temp directory ("Pantry", enforcing >= 1 GiB free space) before initiating DAO/SAO laser writing.
+1. **Zero Coasters (Spool-and-Burn):** Network burns never stream raw sectors over Wi-Fi directly to a live laser. Krouton spools the compiled image/tracks ("Loaf" / "Cubes") to Krumb's local temp directory ("Pantry", enforcing >= 1 GiB free space) before initiating DAO/SAO laser writing.
 2. **4-Mode Display-P3 Color Harmony:** Every surface, vector graphic, and oscilloscope trace adapts dynamically across 4 visual states:
    - **Dark Mode — Primary Only:** Obsidian surfaces with primary accent highlights.
    - **Dark Mode — Primary + Harmony:** Window background tinted with `11%` primary accent; borders, badges, and secondary curves rendered in a locked split-complementary Display-P3 harmony color.
@@ -17,7 +17,7 @@
 ## 2. Ubiquitous Language ("The Bakery")
 All internal models, API payloads, and UI telemetry share a strict culinary domain vocabulary:
 
-| Optical Concept | Bakery Term | Swift Type (`Kruton`) | Rust Type (`Krumb`) |
+| Optical Concept | Bakery Term | Swift Type (`Krouton`) | Rust Type (`Krumb`) |
 | :--- | :--- | :--- | :--- |
 | **Optical Burner / Drive** | **Toaster** | `KroutonToasterInfo` | `ToasterInfo` |
 | **Multi-Drive Controller** | **ToasterBank** | `KroutonToasterBank` | `ToasterBank` |

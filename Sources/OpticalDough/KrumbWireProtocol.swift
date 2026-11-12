@@ -1,6 +1,6 @@
 //
 //  KrumbWireProtocol.swift
-//  OpticalDough — The Bakery Ecosystem (Kruton Client <-> Krumb Port 7420 Rust Daemon)
+//  OpticalDough — The Bakery Ecosystem (Krouton Client <-> Krumb Port 7420 Rust Daemon)
 //
 
 import Foundation
@@ -619,7 +619,7 @@ public final class KrumbKitchenClient: ObservableObject {
                let chunkURL = URL(string: "/api/v1/pantry/slot/\(loafID.uuidString)/chunk", relativeTo: base) {
                 var chunkReq = URLRequest(url: chunkURL)
                 chunkReq.httpMethod = "POST"
-                chunkReq.httpBody = Data("KRUTON_SPOOL_CHUNK_\(step)".utf8)
+                chunkReq.httpBody = Data("KROUTON_SPOOL_CHUNK_\(step)".utf8)
                 _ = try? await session.data(for: chunkReq)
             } else {
                 try? await Task.sleep(nanoseconds: 65_000_000)

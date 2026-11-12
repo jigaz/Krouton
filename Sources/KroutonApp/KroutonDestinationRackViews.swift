@@ -391,7 +391,7 @@ extension KroutonMainWorkspaceView {
                 )
             } else if item.kind == .discImage {
                 HStack(spacing: 6) {
-                    TextField("~/Desktop/Kruton_Master.dmg", text: Binding(
+                    TextField("~/Desktop/Krouton_Master.dmg", text: Binding(
                         get: { item.hardwareOrPath },
                         set: { newPath in updateQueueItem(cardID) { $0.hardwareOrPath = newPath } }
                     ))

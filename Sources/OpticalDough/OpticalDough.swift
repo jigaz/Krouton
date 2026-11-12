@@ -1441,7 +1441,7 @@ public final class KroutonToasterBank: ObservableObject {
             let report = KroutonToastReport(
                 isSuccess: false,
                 title: "Optical Drive Not Found",
-                summary: "Kruton could not communicate with the selected optical burner on the USB/SATA bus.",
+                summary: "Krouton could not communicate with the selected optical burner on the USB/SATA bus.",
                 driveModel: driveName,
                 firmwareRevision: fwRev,
                 mediaFormattedName: "None",
@@ -1686,7 +1686,7 @@ public final class KroutonToasterBank: ObservableObject {
                 let autorunContent = "[Autorun]\r\nLabel=\(volumeTitle)\r\n"
                 try? autorunContent.write(to: tempRoot.appendingPathComponent("autorun.inf"), atomically: true, encoding: .utf8)
 
-                let layoutManifest = "Kruton Custom Finder View\nVolume: \(volumeTitle)\nIconSize: \(iconSizePx)px\n"
+                let layoutManifest = "Krouton Custom Finder View\nVolume: \(volumeTitle)\nIconSize: \(iconSizePx)px\n"
                 try? layoutManifest.write(to: tempRoot.appendingPathComponent(".krouton_view_layout"), atomically: true, encoding: .utf8)
             }
 
@@ -2132,7 +2132,7 @@ public final class KroutonToasterBank: ObservableObject {
                     isSuccess: true,
                     title: ".BIN → .ISO Sector Conversion Complete",
                     summary: "Extracted 2,048-byte user payloads from 2,352-byte raw sectors into \(outISO.path).",
-                    driveModel: "Kruton Sector Geometry Transcoder",
+                    driveModel: "Krouton Sector Geometry Transcoder",
                     firmwareRevision: "ISO/IEC 10149",
                     mediaFormattedName: "ISO 9660 (2,048 B/Sector)",
                     volumeName: outISO.lastPathComponent,
@@ -2186,7 +2186,7 @@ public final class KroutonToasterBank: ObservableObject {
                     isSuccess: true,
                     title: ".ISO → .BIN/.CUE Conversion Complete",
                     summary: "Synthesized 2,352-byte Mode 1 raw sectors + companion .CUE descriptor at \(outCUE.path).",
-                    driveModel: "Kruton Sector Geometry Transcoder",
+                    driveModel: "Krouton Sector Geometry Transcoder",
                     firmwareRevision: "DAO/96 Mode 1",
                     mediaFormattedName: "BIN/CUE Raw Sector Pair",
                     volumeName: outBIN.lastPathComponent,
@@ -2206,7 +2206,7 @@ public final class KroutonToasterBank: ObservableObject {
                 isSuccess: false,
                 title: "Sector Conversion Error",
                 summary: error.localizedDescription,
-                driveModel: "Kruton Sector Transcoder",
+                driveModel: "Krouton Sector Transcoder",
                 firmwareRevision: "1.0",
                 mediaFormattedName: "Disc Image",
                 volumeName: sourceURL.lastPathComponent,
@@ -2271,7 +2271,7 @@ public final class KroutonToasterBank: ObservableObject {
             if fm.fileExists(atPath: trk.url.path) {
                 try? fm.copyItem(at: trk.url, to: destURL)
             } else {
-                try Data("Kruton Car-Safe Audio Stream".utf8).write(to: destURL)
+                try Data("Krouton Car-Safe Audio Stream".utf8).write(to: destURL)
             }
             m3uLines.append("#EXTINF:\(Int(trk.durationSeconds)),\(KroutonSeasoningSanitizer.sanitize(trk.performer)) - \(cleanTitle)")
             m3uLines.append(carSafeName)
@@ -2657,9 +2657,9 @@ extension KroutonLoafBootInspector {
         if !didReadRealBytes || (byteOffset > 0 && buffer.allSatisfy({ $0 == 0 })) {
             let sig: String
             if lba == 0 {
-                sig = "ER\u{08}\u{00}\u{00}\u{00}PM\u{00}\u{00}Apple_partition_map\u{00}KRUTON_BOOT_SECTOR_00"
+                sig = "ER\u{08}\u{00}\u{00}\u{00}PM\u{00}\u{00}Apple_partition_map\u{00}KROUTON_BOOT_SECTOR_00"
             } else if lba == 16 {
-                sig = "\u{01}CD001\u{01}\u{00}MACOS_WINDOWS_LINUX     KRUTON_OPTICAL_MASTER_PVD      "
+                sig = "\u{01}CD001\u{01}\u{00}MACOS_WINDOWS_LINUX     KROUTON_OPTICAL_MASTER_PVD      "
             } else if lba == 17 {
                 sig = "\u{00}CD001\u{01}EL TORITO SPECIFICATION\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{13}\u{00}\u{00}\u{00}"
             } else {

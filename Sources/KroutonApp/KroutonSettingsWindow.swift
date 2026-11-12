@@ -167,7 +167,7 @@ public struct KroutonSettingsWindowView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(KroutonL10n.tr("Color"))
                             .fontWeight(.medium)
-                        Text(KroutonL10n.tr(store.selectedAccentIndex == -1 ? "Multicolor (Adapts per workspace)" : "Kruton Accent Swatch"))
+                        Text(KroutonL10n.tr(store.selectedAccentIndex == -1 ? "Multicolor (Adapts per workspace)" : "Krouton Accent Swatch"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -938,7 +938,7 @@ public struct KroutonSettingsWindowView: View {
             settingsCard(title: "Optical Drive Hardware & MMC Bitsetting (Retro Console & Set-Top DVD Compatibility)") {
                 Toggle(KroutonL10n.tr("Stamp Book Type as DVD-ROM (0x00) on DVD+R & DVD+R DL Media (Required by vintage DVD players, early PS2 & Xbox)"), isOn: $store.forceDVDROMBookType)
                     .fontWeight(.semibold)
-                Text(KroutonL10n.tr("When enabled, Kruton sends the vendor MMC Mode Select / Set Compatibility bitsetting command before lead-in write so DVD+R and DVD+R DL discs identify as pressed factory DVD-ROMs."))
+                Text(KroutonL10n.tr("When enabled, Krouton sends the vendor MMC Mode Select / Set Compatibility bitsetting command before lead-in write so DVD+R and DVD+R DL discs identify as pressed factory DVD-ROMs."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Divider()
@@ -1149,7 +1149,7 @@ public struct KroutonSettingsWindowView: View {
                     Spacer()
                     pillToggleButton(title: "Speak Status Now", sfSymbol: "speaker.wave.3.fill", isSelected: false) {
                         let drv = driveManager.selectedDrive?.displayName ?? "Optical Burner"
-                        store.announceForVoiceOver("Kruton Accessibility Ready. Active burner: \(drv).")
+                        store.announceForVoiceOver("Krouton Accessibility Ready. Active burner: \(drv).")
                         NSSound.beep()
                     }
                 }

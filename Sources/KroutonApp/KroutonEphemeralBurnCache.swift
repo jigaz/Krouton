@@ -168,7 +168,7 @@ public final class KroutonIdlePowerMonitor: ObservableObject {
         if ioActivityToken == nil {
             ioActivityToken = ProcessInfo.processInfo.beginActivity(
                 options: [.userInitiated, .idleSystemSleepDisabled],
-                reason: "Kruton Optical Laser Mastering Active"
+                reason: "Krouton Optical Laser Mastering Active"
             )
         }
     }

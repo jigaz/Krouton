@@ -650,7 +650,7 @@ extension KroutonMainWorkspaceView {
                             Button {
                                 if !autoLabelSearchQuery.trimmingCharacters(in: .whitespaces).isEmpty {
                                     labelDiscTitle = autoLabelSearchQuery.uppercased()
-                                    labelSubtitle = "MASTERED IN KRUTON • SHA-256 VERIFIED"
+                                    labelSubtitle = "MASTERED IN KROUTON • SHA-256 VERIFIED"
                                 }
                             } label: {
                                 Text("Fetch Art")
@@ -1003,12 +1003,12 @@ struct KroutonDiscLabelArtworkCanvas: View {
             let badgeBg: Color = (template == .archivalSpec) ? primaryColor : harmonyColor
 
             VStack(spacing: 2) {
-                Text("KRUTON OPTICAL MASTER")
+                Text("KROUTON OPTICAL MASTER")
                     .font(.system(size: diameterPoints * 0.026, weight: .heavy, design: .monospaced))
                     .foregroundStyle(template == .archivalSpec ? primaryColor : harmonyColor)
                     .padding(.top, diameterPoints * 0.085)
 
-                Text(title.isEmpty ? "KRUTON_DISC" : title)
+                Text(title.isEmpty ? "KROUTON_DISC" : title)
                     .font(.system(size: diameterPoints * 0.046, weight: .black, design: .rounded))
                     .foregroundStyle(fgText)
                     .lineLimit(1)
