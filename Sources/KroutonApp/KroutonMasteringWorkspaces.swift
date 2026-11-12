@@ -1669,59 +1669,208 @@ extension KroutonMainWorkspaceView {
     }
 
     func retroConsoleROMMasteringDeck(for spec: KroutonRecipeSpec) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
                 Image(systemName: "gamecontroller.fill")
                     .foregroundStyle(store.activeAccent)
-                Text(KroutonL10n.tr("RETRO CONSOLE HARDWARE MASTERING PROFILE"))
+                Text(isCenterWorkspaceNarrow ? KroutonL10n.tr("CONSOLE MASTERING PROFILE") : KroutonL10n.tr("RETRO CONSOLE HARDWARE MASTERING PROFILE"))
                     .font(.system(size: 10, weight: .heavy, design: .monospaced))
                     .foregroundStyle(.secondary)
-                Spacer()
-                Toggle(KroutonL10n.tr("Perform OPC Before Write"), isOn: $romPerformOPCBeforeWrite)
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                Toggle(isCenterWorkspaceNarrow ? KroutonL10n.tr("OPC Calibration") : KroutonL10n.tr("Perform OPC Before Write"), isOn: $romPerformOPCBeforeWrite)
                     .toggleStyle(.checkbox)
                     .font(.caption)
+                    .fixedSize()
             }
 
-            HStack(spacing: 16) {
-                if spec.id == "game-ps1" {
-                    Toggle(KroutonL10n.tr("DAO/96 Raw Mode 2 Form 1/2 (2,352 B/sector + SubQ)"), isOn: $romWriteModeDAO96SubQ)
-                        .toggleStyle(.checkbox)
-                        .font(.caption.bold())
-                    Text(KroutonL10n.tr("• Recommended Speed: 4x–8x CLV (High-Reflectivity CD-R Only — Never CD-RW)"))
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                } else if spec.id == "game-ps2" {
-                    Toggle(KroutonL10n.tr("Stamp Book Type as DVD-ROM (Bitsetting for PS2 Mechacon)"), isOn: $romBitsetDVDROM)
-                        .toggleStyle(.checkbox)
-                        .font(.caption.bold())
-                    Text(KroutonL10n.tr("• Enforces UDF 1.02 + ISO9660 Bridge (FreeDVDBoot / ESR Compatible)"))
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                } else if spec.id == "game-gc" || spec.id == "game-wii" {
-                    Toggle(KroutonL10n.tr("Stamp Book Type as DVD-ROM + 32 KB ECC Boundary Alignment"), isOn: $romBitsetDVDROM)
-                        .toggleStyle(.checkbox)
-                        .font(.caption.bold())
-                    Text(spec.id == "game-gc" ? "• Exact 80mm Mini-DVD Target: 1,459,978,240 Bytes (712,880 LBA)" : "• Exact Wii Single-Layer Target: 4,699,979,776 Bytes (2,294,912 LBA)")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                } else if spec.id == "game-xbox" {
-                    Picker("Layer Break:", selection: $xboxLayerBreakPreset) {
-                        Text(KroutonL10n.tr("Auto (.dvd Descriptor)")).tag("Auto (.dvd / Calculate Optimal)")
-                        Text(KroutonL10n.tr("XGD2 Lock (LBA 1913760)")).tag("XGD2 (1913760)")
-                        Text(KroutonL10n.tr("XGD3 Lock (LBA 2133520)")).tag("XGD3 (2133520)")
+            Divider().opacity(0.5)
+
+            if spec.id == "game-ps1" {
+                VStack(alignment: .leading, spacing: 6) {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 14) {
+                            Toggle(KroutonL10n.tr("DAO/96 Raw Mode 2 XA (2,352 B/sec + SubQ LibCrypt)"), isOn: $romWriteModeDAO96SubQ)
+                                .toggleStyle(.checkbox)
+                                .font(.caption.bold())
+                            Toggle(KroutonL10n.tr("Auto-Decompress .CHD & Merge Multi-Track .BIN/.CUE"), isOn: $ps1AutoMergeMultiBinAndCHD)
+                                .toggleStyle(.checkbox)
+                                .font(.caption)
+                            Spacer(minLength: 0)
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            Toggle(KroutonL10n.tr("DAO/96 Raw Mode 2 XA (2,352 B/sec + SubQ)"), isOn: $romWriteModeDAO96SubQ)
+                                .toggleStyle(.checkbox)
+                                .font(.caption.bold())
+                            Toggle(KroutonL10n.tr("Auto-Expand .CHD & Merge Multi-BIN"), isOn: $ps1AutoMergeMultiBinAndCHD)
+                                .toggleStyle(.checkbox)
+                                .font(.caption)
+                        }
                     }
-                    .frame(width: 265)
-                    .font(.caption)
-                    Toggle(KroutonL10n.tr("DVD+R DL -> DVD-ROM Bitsetting"), isOn: $romBitsetDVDROM)
-                        .toggleStyle(.checkbox)
-                        .font(.caption.bold())
+                    HStack(spacing: 6) {
+                        Image(systemName: "laser.burst")
+                            .font(.system(size: 10))
+                            .foregroundStyle(store.uiSecondaryAccent)
+                        Text(KroutonL10n.tr("4x–8x CLV Guard Active • High-Reflectivity 700 MB CD-R Only (Preserves 2s Pre-Gaps & Red Book CD-DA)"))
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
-                Spacer()
+            } else if spec.id == "game-ps2" {
+                VStack(alignment: .leading, spacing: 6) {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 14) {
+                            Toggle(KroutonL10n.tr("Stamp Book Type as DVD-ROM (PS2 Mechacon Bitsetting)"), isOn: $romBitsetDVDROM)
+                                .toggleStyle(.checkbox)
+                                .font(.caption.bold())
+                            Toggle(KroutonL10n.tr("Apply ESR DVD-Video Descriptor Patch (FMCB / Softmod)"), isOn: $ps2ApplyESRPatch)
+                                .toggleStyle(.checkbox)
+                                .font(.caption)
+                            Spacer(minLength: 0)
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            Toggle(KroutonL10n.tr("Stamp Book Type as DVD-ROM (Mechacon)"), isOn: $romBitsetDVDROM)
+                                .toggleStyle(.checkbox)
+                                .font(.caption.bold())
+                            Toggle(KroutonL10n.tr("Apply ESR DVD-Video Patch (FMCB)"), isOn: $ps2ApplyESRPatch)
+                                .toggleStyle(.checkbox)
+                                .font(.caption)
+                        }
+                    }
+                    HStack(spacing: 6) {
+                        Image(systemName: "opticaldisc")
+                            .font(.system(size: 10))
+                            .foregroundStyle(store.uiSecondaryAccent)
+                        Text(KroutonL10n.tr("Auto-Detects PS2 CD (<700 MB Mode 2 XA) vs PS2 DVD (>700 MB UDF 1.02 + ISO9660 Bridge) + .CHD Support"))
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            } else if spec.id == "game-gc" {
+                VStack(alignment: .leading, spacing: 6) {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 14) {
+                            Toggle(KroutonL10n.tr("DVD-ROM Book Type + 32 KB ECC Boundary Alignment"), isOn: $romBitsetDVDROM)
+                                .toggleStyle(.checkbox)
+                                .font(.caption.bold())
+                            Toggle(KroutonL10n.tr("Pad 1.46 GB Image to 3.0 GB Outer Edge (120mm DVD-R Laser Helper)"), isOn: $gcPadToOuterEdge3GB)
+                                .toggleStyle(.checkbox)
+                                .font(.caption)
+                            Spacer(minLength: 0)
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            Toggle(KroutonL10n.tr("DVD-ROM Bitset + 32 KB ECC Alignment"), isOn: $romBitsetDVDROM)
+                                .toggleStyle(.checkbox)
+                                .font(.caption.bold())
+                            Toggle(KroutonL10n.tr("Pad 1.46 GB to 3.0 GB (120mm DVD-R Helper)"), isOn: $gcPadToOuterEdge3GB)
+                                .toggleStyle(.checkbox)
+                                .font(.caption)
+                        }
+                    }
+                    HStack(spacing: 6) {
+                        Image(systemName: "cpu")
+                            .font(.system(size: 10))
+                            .foregroundStyle(store.uiSecondaryAccent)
+                        Text(KroutonL10n.tr("Exact 80mm Mini-DVD Target: 1,459,978,240 Bytes (712,880 LBA) • Native .GCM / .ISO / .RVZ Auto-Expand"))
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            } else if spec.id == "game-wii" {
+                VStack(alignment: .leading, spacing: 6) {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 12) {
+                            Picker("Layer Mode:", selection: $wiiLayerMode) {
+                                Text("Auto (DVD5 4.7GB / DVD9 DL)").tag("Auto-Detect (DVD5 4.7GB / DVD9 LBA 2084960)")
+                                Text("Single-Layer DVD5 (2,294,912 LBA)").tag("Single-Layer DVD5")
+                                Text("Dual-Layer DVD9 (Break LBA 2084960)").tag("Dual-Layer DVD9")
+                            }
+                            .font(.caption)
+                            .frame(maxWidth: 280)
+
+                            Toggle(KroutonL10n.tr("DVD-ROM Bitset + 32 KB ECC Alignment"), isOn: $romBitsetDVDROM)
+                                .toggleStyle(.checkbox)
+                                .font(.caption.bold())
+                            Spacer(minLength: 0)
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            Picker("Layer Mode:", selection: $wiiLayerMode) {
+                                Text("Auto (DVD5 / DVD9 DL)").tag("Auto-Detect (DVD5 4.7GB / DVD9 LBA 2084960)")
+                                Text("Single-Layer DVD5").tag("Single-Layer DVD5")
+                                Text("Dual-Layer DVD9 (LBA 2084960)").tag("Dual-Layer DVD9")
+                            }
+                            .font(.caption)
+                            Toggle(KroutonL10n.tr("DVD-ROM Bitset + 32 KB ECC Alignment"), isOn: $romBitsetDVDROM)
+                                .toggleStyle(.checkbox)
+                                .font(.caption.bold())
+                        }
+                    }
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 10))
+                            .foregroundStyle(store.uiSecondaryAccent)
+                        Text(KroutonL10n.tr("Accepts .ISO, .WBFS & Dolphin .RVZ (Auto-Rebuilds Partition Tables & Scrubbed Sectors on Burn)"))
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            } else if spec.id == "game-xbox" {
+                VStack(alignment: .leading, spacing: 6) {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 12) {
+                            Picker("Layer Break:", selection: $xboxLayerBreakPreset) {
+                                Text(KroutonL10n.tr("Auto (.dvd Descriptor)")).tag("Auto (.dvd / Calculate Optimal)")
+                                Text(KroutonL10n.tr("XGD2 Lock (LBA 1913760)")).tag("XGD2 (1913760)")
+                                Text(KroutonL10n.tr("XGD3 Lock (LBA 2133520)")).tag("XGD3 (2133520)")
+                            }
+                            .font(.caption)
+                            .frame(maxWidth: 245)
+
+                            Toggle(KroutonL10n.tr("DVD+R DL → DVD-ROM Bitset"), isOn: $romBitsetDVDROM)
+                                .toggleStyle(.checkbox)
+                                .font(.caption.bold())
+
+                            Toggle(KroutonL10n.tr("Verify SS/DMI/PFI Stealth"), isOn: $xboxVerifyStealthSectors)
+                                .toggleStyle(.checkbox)
+                                .font(.caption)
+                            Spacer(minLength: 0)
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            Picker("Layer Break:", selection: $xboxLayerBreakPreset) {
+                                Text(KroutonL10n.tr("Auto (.dvd Descriptor)")).tag("Auto (.dvd / Calculate Optimal)")
+                                Text(KroutonL10n.tr("XGD2 Lock (LBA 1913760)")).tag("XGD2 (1913760)")
+                                Text(KroutonL10n.tr("XGD3 Lock (LBA 2133520)")).tag("XGD3 (2133520)")
+                            }
+                            .font(.caption)
+                            HStack(spacing: 12) {
+                                Toggle(KroutonL10n.tr("DVD-ROM Bitset"), isOn: $romBitsetDVDROM)
+                                    .toggleStyle(.checkbox)
+                                    .font(.caption.bold())
+                                Toggle(KroutonL10n.tr("Verify SS/DMI/PFI"), isOn: $xboxVerifyStealthSectors)
+                                    .toggleStyle(.checkbox)
+                                    .font(.caption)
+                            }
+                        }
+                    }
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.shield.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(store.uiSecondaryAccent)
+                        Text(KroutonL10n.tr("XDVDFS / XISO Topology • Locks Layer 0→1 Transition Sector & Verifies Stealth Security Sectors"))
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
             }
         }
-        .padding(10)
+        .padding(12)
         .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-            .background(Color.kroutonControlSurface)
+        .background(Color.kroutonControlSurface)
         .clipShape(RoundedRectangle(cornerRadius: 9))
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
     }

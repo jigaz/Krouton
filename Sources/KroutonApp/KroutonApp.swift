@@ -256,6 +256,11 @@ struct KroutonMainWorkspaceView: View {
     @State var videoExtractMinSeconds: Int = 120
     @State var videoExtractKeepChapters: Bool = true
     @State var videoExtractSelectedTitles: Set<String> = ["TITLE_01", "TITLE_02"]
+    @State var ps1AutoMergeMultiBinAndCHD: Bool = true
+    @State var ps2ApplyESRPatch: Bool = false
+    @State var gcPadToOuterEdge3GB: Bool = true
+    @State var wiiLayerMode: String = "Auto-Detect (DVD5 4.7GB / DVD9 LBA 2084960)"
+    @State var xboxVerifyStealthSectors: Bool = true
 
     var primarySelectedDrive: KroutonToasterInfo? {
         if let firstBurnerCard = store.destinationQueue.first(where: { $0.kind == .physicalBurner }),
@@ -651,7 +656,7 @@ struct KroutonMainWorkspaceView: View {
         } else if spec.isDiscImageBurnFormat {
             return "Select Disc Image (.ISO / .DMG / .BIN / .CUE / .CDR / .TOAST)..."
         } else if spec.id.hasPrefix("game-") {
-            return "Select Console Disc Image (.CUE / .BIN / .ISO / .RVZ)..."
+            return "Select Console Disc Image (.CHD / .RVZ / .WBFS / .CUE / .BIN / .ISO)..."
         } else {
             return "Add Files or Folders..."
         }
