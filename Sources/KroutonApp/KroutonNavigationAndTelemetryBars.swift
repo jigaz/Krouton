@@ -9,6 +9,7 @@ import Combine
 import Foundation
 import OpticalDough
 import SwiftUI
+import ImageIO
 import UniformTypeIdentifiers
 
 extension KroutonMainWorkspaceView {
@@ -567,12 +568,14 @@ extension KroutonMainWorkspaceView {
         )
         let renderer = ImageRenderer(content: exportView)
         renderer.scale = 2.0 // 1440x1440 px (>300 DPI for 120mm optical disc)
-        guard let nsImage = renderer.nsImage,
-              let tiff = nsImage.tiffRepresentation,
-              let rep = NSBitmapImageRep(data: tiff),
-              let pngData = rep.representation(using: .png, properties: [:]) else {
+        guard let cgImage = renderer.cgImage else { return }
+        let mutableData = CFDataCreateMutable(nil, 0)!
+        guard let destination = CGImageDestinationCreateWithData(mutableData, UTType.png.identifier as CFString, 1, nil) else {
             return
         }
+        CGImageDestinationAddImage(destination, cgImage, nil)
+        guard CGImageDestinationFinalize(destination) else { return }
+        let pngData = mutableData as Data
         KroutonLabelExportBridge.shared.presentPNGExport(
             pngData: pngData,
             defaultFilename: "\(labelDiscTitle.replacingOccurrences(of: " ", with: "_"))_120mm_Label.png"

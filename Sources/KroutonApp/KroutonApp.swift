@@ -11,9 +11,8 @@ public enum KroutonOSDesktopBridge {
     }
 
     public static func copyTextToClipboard(_ text: String) {
-        let pb = NSPasteboard.general
-        pb.clearContents()
-        pb.setString(text, forType: .string)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
     }
 
     public static func revealURLsInFinder(_ urls: [URL]) {
@@ -35,36 +34,26 @@ public enum KroutonOSDesktopBridge {
 
     public static func postVoiceOverAnnouncement(_ message: String) {
         Task { @MainActor in
-            if let mainWin = NSApp?.mainWindow {
-                NSAccessibility.post(
-                    element: mainWin,
-                    notification: .announcementRequested,
-                    userInfo: [
-                        .announcement: message,
-                        .priority: NSAccessibilityPriorityLevel.high.rawValue
-                    ]
-                )
-            }
+            AccessibilityNotification.Announcement(message).post()
         }
     }
 
     public static var didBecomeActiveNotification: Notification.Name {
-        NSApplication.didBecomeActiveNotification
+        Notification.Name("NSApplicationDidBecomeActiveNotification")
     }
 
     public static var didResignActiveNotification: Notification.Name {
-        NSApplication.didResignActiveNotification
+        Notification.Name("NSApplicationDidResignActiveNotification")
     }
 
     public static var didChangeWindowOcclusionNotification: Notification.Name {
-        NSWindow.didChangeOcclusionStateNotification
+        Notification.Name("NSWindowDidChangeOcclusionStateNotification")
     }
 
     public static func isApplicationVisiblyActive() -> Bool {
         MainActor.assumeIsolated {
             guard let app = NSApp else { return true }
-            let anyVisible = app.windows.contains { $0.isVisible && $0.occlusionState.contains(.visible) }
-            return app.isActive && anyVisible
+            return app.isActive && app.windows.contains { $0.isVisible && $0.occlusionState.contains(.visible) }
         }
     }
 }
@@ -78,27 +67,27 @@ final class KroutonWindowManager: NSObject, NSApplicationDelegate, NSWindowDeleg
     private var hostedWindows: [String: NSWindow] = [:]
 
     private func presentWindow<V: View>(id: String, title: String, width: CGFloat, height: CGFloat, autosave: String? = nil, rootView: V) {
+        let win: NSWindow
         if let existing = hostedWindows[id] {
-            existing.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
+            win = existing
+        } else {
+            win = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: width, height: height),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                backing: .buffered,
+                defer: false
+            )
+            win.title = title
+            win.identifier = NSUserInterfaceItemIdentifier(id)
+            win.contentViewController = NSHostingController(rootView: rootView)
+            win.center()
+            if let saveName = autosave { win.setFrameAutosaveName(saveName) }
+            win.isReleasedWhenClosed = false
+            win.delegate = self
+            hostedWindows[id] = win
         }
-        let win = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: width, height: height),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        win.title = title
-        win.identifier = NSUserInterfaceItemIdentifier(id)
-        win.contentViewController = NSHostingController(rootView: rootView)
-        win.center()
-        if let saveName = autosave { win.setFrameAutosaveName(saveName) }
-        win.isReleasedWhenClosed = false
-        win.delegate = self
         win.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        hostedWindows[id] = win
     }
 
     func openFloatingPhaseScopeWindow(driveID: String) {
