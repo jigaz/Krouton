@@ -804,6 +804,7 @@ harness.runSuite("21. Phase 4 Workspace Modularization & 600-LOC File Ceiling Ga
         "CopyAndRipWorkspaces.swift",
         "DataAndArchivalWorkspaces.swift",
         "DiscImageInspectorWorkspace.swift",
+        "DiscLabelStudioWorkspace.swift",
         "MasteringTelemetryPopovers.swift",
         "RetroConsoleWorkspaces.swift",
         "VideoAuthoringWorkspaces.swift"

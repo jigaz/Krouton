@@ -193,10 +193,6 @@ struct KroutonMainWorkspaceView: View {
     @State var finderIconSize: Double = 256
     @State var fitToDiscDVD9Shrink: Bool = true
     @State var preserveMenusAndExtras: Bool = true
-    @State var labelDiscTitle: String = "THE KROUTON ARCHIVE"
-    @State var labelSubtitle: String = "2026 MASTER EDITION"
-    @State var autoLabelSearchQuery: String = "Dark Side of the Moon"
-    @State var depotSearchQuery: String = ""
     @State var leftColumnLiveWidth: CGFloat = 196
     @State var rightColumnLiveWidth: CGFloat = 315
     @State var leftSidebarDragStartWidth: CGFloat? = nil
@@ -487,7 +483,7 @@ struct KroutonMainWorkspaceView: View {
                     burnWorkspaceView
                         .offset(x: sin(dropRejectShakePhase * .pi * 4) * 8)
                 case .depot:
-                    depotWorkspaceView
+                    KroutonDepotWorkspaceView(store: store, isCenterWorkspaceNarrow: isCenterWorkspaceNarrow)
                 case .copy:
                     KroutonCopyAndRipWorkspaceView(
                         store: store,
@@ -499,7 +495,7 @@ struct KroutonMainWorkspaceView: View {
                         cdTextAlbumPerformer: $cdTextAlbumPerformer
                     )
                 case .label:
-                    labelWorkspaceView
+                    KroutonDiscLabelStudioWorkspaceView(store: store)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -512,103 +508,6 @@ struct KroutonMainWorkspaceView: View {
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
-
-
-
-    var filteredDepotItems: [KroutonPantryCatalogItem] {
-        let channelFilter: String? = {
-            switch store.selectedTaskID {
-            case "depot-rescue": return "Rescue & Diagnostics"
-            case "depot-linux": return "Live Linux & BSD"
-            case "depot-vintage": return "Vintage Apple (archive.org)"
-            case "depot-homebrew": return "Console Homebrew & ROMs"
-            case "depot-coverdiscs": return "Cover Discs & Demoscene"
-            case "depot-retropc": return "Retro PC & Alt OS"
-            case "depot-ia-live": return "Internet Archive Live"
-            default: return nil // "depot-all" shows all 60+ titles
-            }
-        }()
-
-        return store.depotItems.filter { item in
-            let matchesChannel = (channelFilter == nil) || (item.channel == channelFilter)
-            let q = depotSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            let matchesQuery = q.isEmpty
-                || item.title.lowercased().contains(q)
-                || item.subtitle.lowercased().contains(q)
-                || item.architecture.lowercased().contains(q)
-                || item.bootStandard.lowercased().contains(q)
-                || item.channel.lowercased().contains(q)
-            return matchesChannel && matchesQuery
-        }
-    }
-
-    var depotHeroSelectedItem: KroutonPantryCatalogItem {
-        let items = filteredDepotItems
-        if let selID = store.selectedDepotHeroItemID,
-           let match = items.first(where: { $0.id == selID }) {
-            return match
-        }
-        return items.first ?? store.depotItems[0]
-    }
-
-    var depotChannelHeadline: (badge: String, title: String, subtitle: String) {
-        switch store.selectedTaskID {
-        case "depot-rescue":
-            return (
-                "SYSTEM RESCUE & BIOS SUB-LIBRARY",
-                "System Rescue & BIOS",
-                "Bare-metal El Torito BIOS/UEFI recovery discs, partition editors, RAM analyzers & drive sanitizers."
-            )
-        case "depot-linux":
-            return (
-                "LIVE LINUX & BSD SUB-LIBRARY",
-                "Live Linux & BSD",
-                "Cryptographically verified hybrid ISO/UDF images ready for physical DVD/BD burning or VM test-boot."
-            )
-        case "depot-vintage":
-            return (
-                "VINTAGE APPLE & ARCHIVE.ORG SUB-LIBRARY",
-                "Vintage Mac & Apple",
-                "Bootable HFS Standard & Blessed System Folders for 680x0, PowerPC G3/G4/G5, A/UX & Apple IIgs."
-            )
-        case "depot-homebrew":
-            return (
-                "CONSOLE HOMEBREW & BOOT ROMS SUB-LIBRARY",
-                "Console Homebrew & ROMs",
-                "Legal optical boot discs (Swiss, FreeDVDBoot, UniROM, DreamShell, Pseudo Saturn Kai & 240p Test Suite)."
-            )
-        case "depot-coverdiscs":
-            return (
-                "90S COVER DISCS & DEMOSCENE SUB-LIBRARY",
-                "90s Cover Discs & Scene",
-                "Preserved MacAddict, Macworld, PC Gamer, Next Generation, Amiga Format & Assembly/Scene.org discs."
-            )
-        case "depot-retropc":
-            return (
-                "RETRO PC, DOS & ALT OS SUB-LIBRARY",
-                "Retro PC, DOS & Alt OS",
-                "Bootable optical releases for FreeDOS 1.4, Haiku, BeOS R5, IBM OS/2 Warp 4.52, ReactOS, Plan 9 & IRIX."
-            )
-        case "depot-ia-live":
-            return (
-                "INTERNET ARCHIVE LIVE API RESULTS",
-                "Internet Archive Optical Software Query",
-                "Live results fetched directly from archive.org/advancedsearch.php for optical ISO, BIN/CUE & CD-ROM media."
-            )
-        default:
-            return (
-                "COMPLETE OPTICAL LIBRARY (60+ VERIFIED TITLES)",
-                "All Depot Library",
-                "Select any sub-library in the left column or click any title card below to inspect its details in the Hero deck."
-            )
-        }
-    }
-
-
-
-
-
-
 
 
 

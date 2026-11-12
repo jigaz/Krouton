@@ -11,8 +11,14 @@ import UniformTypeIdentifiers
 import Foundation
 import Combine
 
-extension KroutonMainWorkspaceView {
-    func depotInteractiveHeroBanner(for item: KroutonPantryCatalogItem, isNarrow: Bool) -> some View {
+// MARK: - Standalone Depot Hero Banner & App-Store Card Views
+
+struct KroutonDepotHeroBannerView: View {
+    @ObservedObject var store: KroutonStateStore
+    let item: KroutonPantryCatalogItem
+    let isNarrow: Bool
+
+    var body: some View {
         let isStaged = (store.stagedDepotItemID == item.id && !store.stagedFiles.isEmpty)
         let activeProgress = store.depotDownloadProgress[item.id]
         let segments = item.blueprintSectorSegments
@@ -204,7 +210,14 @@ extension KroutonMainWorkspaceView {
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(isStaged ? Color.green.opacity(0.75) : store.activeAccent.opacity(0.55), lineWidth: 1.5))
     }
 
-    func depotAppStoreCard(for item: KroutonPantryCatalogItem, isSelectedInHero: Bool) -> some View {
+}
+
+struct KroutonDepotAppStoreCardView: View {
+    @ObservedObject var store: KroutonStateStore
+    let item: KroutonPantryCatalogItem
+    let isSelectedInHero: Bool
+
+    var body: some View {
         let isStaged = (store.stagedDepotItemID == item.id && !store.stagedFiles.isEmpty)
         let activeProgress = store.depotDownloadProgress[item.id]
         let useHarmony = store.enableSecondaryAccentUITints
