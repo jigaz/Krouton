@@ -9,6 +9,7 @@ let package = Package(
     ],
     products: [
         .executable(name: "Krouton", targets: ["KroutonApp"]),
+        .executable(name: "krouton-verify", targets: ["KroutonVerify"]),
         .library(name: "OpticalDough", targets: ["OpticalDough"]),
         .library(name: "Marmalade", targets: ["Marmalade"]),
         .library(name: "VideoOven", targets: ["VideoOven"]),
@@ -35,6 +36,17 @@ let package = Package(
             ],
             resources: [
                 .process("Resources")
+            ]
+        ),
+        .executableTarget(
+            name: "KroutonVerify",
+            dependencies: [
+                "OpticalDough",
+                "Marmalade",
+                "VideoOven",
+                "Tartine",
+                "Galette",
+                "Crustini"
             ]
         )
     ]

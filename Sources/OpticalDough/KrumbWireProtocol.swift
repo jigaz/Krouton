@@ -205,6 +205,26 @@ public struct KrumbBakeRequest: Codable, Sendable {
         case seasoning
         case cubes
     }
+
+    public init(
+        batchId: UUID,
+        pantryLoafId: UUID,
+        toasterIds: [String],
+        heatX: UInt8,
+        mode: KrumbBakeMode,
+        doggyBag: KrumbDoggyBagPolicy,
+        seasoning: KrumbSeasoning?,
+        cubes: [KrumbCubePayload]
+    ) {
+        self.batchId = batchId
+        self.pantryLoafId = pantryLoafId
+        self.toasterIds = toasterIds
+        self.heatX = heatX
+        self.mode = mode
+        self.doggyBag = doggyBag
+        self.seasoning = seasoning
+        self.cubes = cubes
+    }
 }
 
 public struct KrumbKitchenEventMessage: Codable, Sendable {
