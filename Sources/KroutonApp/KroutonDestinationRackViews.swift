@@ -236,8 +236,8 @@ extension KroutonMainWorkspaceView {
                     }
                 }
 
-                // Consolidated Single-Row: Speed ('Max') + Copies ('1x')
-                HStack(spacing: 6) {
+                // Consolidated Single-Row: Speed ('Max') + Sim + Verify + Copies ('1x')
+                HStack(spacing: 5) {
                     let activeSpd = validSpeeds.contains(item.speedOrCodec) ? item.speedOrCodec : "Max Safe (Auto)"
                     let shortSpd = activeSpd.hasPrefix("Max") ? "Max" : (activeSpd.components(separatedBy: " ").first ?? activeSpd)
 
@@ -253,25 +253,52 @@ extension KroutonMainWorkspaceView {
                             }
                         }
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 3) {
                             Image(systemName: "gauge.with.dots.needle.67percent")
-                                .font(.system(size: 10))
+                                .font(.system(size: 9.5))
                                 .foregroundStyle(store.uiSecondaryAccent)
                             Text(shortSpd)
-                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
                                 .foregroundStyle(.primary)
                                 .lineLimit(1)
                             Image(systemName: "chevron.up.chevron.down")
-                                .font(.system(size: 8.5, weight: .bold))
+                                .font(.system(size: 8, weight: .bold))
                                 .foregroundStyle(.secondary)
                         }
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
                         .background(Color.primary.opacity(0.06))
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
                     .buttonStyle(.plain)
+                    .fixedSize()
                     .help("Write Speed: \(activeSpd)")
+
+                    Toggle(isOn: Binding(
+                        get: { item.simulationMode },
+                        set: { val in updateQueueItem(cardID) { $0.simulationMode = val } }
+                    )) {
+                        Text(isRightQueueCompact ? "Sim" : KroutonL10n.tr("Simulate"))
+                            .font(.system(size: 10.5, weight: .medium))
+                            .lineLimit(1)
+                    }
+                    .toggleStyle(.checkbox)
+                    .controlSize(.small)
+                    .fixedSize()
+                    .help("Simulate Burn (Test laser write without committing to media)")
+
+                    Toggle(isOn: Binding(
+                        get: { item.verifyAfterBurn },
+                        set: { val in updateQueueItem(cardID) { $0.verifyAfterBurn = val } }
+                    )) {
+                        Text(KroutonL10n.tr("Verify"))
+                            .font(.system(size: 10.5, weight: .medium))
+                            .lineLimit(1)
+                    }
+                    .toggleStyle(.checkbox)
+                    .controlSize(.small)
+                    .fixedSize()
+                    .help("Verify written sectors against source image/files after burn")
 
                     Spacer(minLength: 2)
 
@@ -279,45 +306,46 @@ extension KroutonMainWorkspaceView {
                         get: { item.copiesToBurn },
                         set: { newCopies in updateQueueItem(cardID) { $0.copiesToBurn = max(1, min(99, newCopies)) } }
                     ), in: 1...99) {
-                        HStack(spacing: 3) {
-                            Image(systemName: item.copiesToBurn > 1 ? "square.stack.3d.up.fill" : "doc.on.doc")
-                                .font(.system(size: 10))
-                                .foregroundStyle(item.copiesToBurn > 1 ? store.uiSecondaryAccent : .secondary)
-                            Text("\(item.copiesToBurn)×")
-                                .font(.system(size: 11, weight: item.copiesToBurn > 1 ? .bold : .semibold, design: .monospaced))
-                                .lineLimit(1)
-                        }
+                        Text("\(item.copiesToBurn)×")
+                            .font(.system(size: 10.5, weight: item.copiesToBurn > 1 ? .bold : .semibold, design: .monospaced))
+                            .lineLimit(1)
                     }
                     .controlSize(.small)
+                    .fixedSize()
+                    .help("Copies to burn: \(item.copiesToBurn)")
+                }
 
-                    if store.forceDVDROMBookType && !isRightQueueCompact {
-                        HStack(spacing: 3) {
-                            Image(systemName: "seal.fill")
-                                .font(.system(size: 8))
-                            Text(isRightQueueCompact ? "DVD-ROM" : KroutonL10n.tr("DVD-ROM Bitset")).lineLimit(1)
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                if (store.forceDVDROMBookType && !isRightQueueCompact) || (item.copiesToBurn > 1 && store.autoLoadNextDiscBatchMode) {
+                    HStack(spacing: 6) {
+                        if store.forceDVDROMBookType && !isRightQueueCompact {
+                            HStack(spacing: 3) {
+                                Image(systemName: "seal.fill")
+                                    .font(.system(size: 8))
+                                Text(KroutonL10n.tr("DVD-ROM Bitset")).lineLimit(1)
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.uiSecondaryAccent).opacity(0.16))
+                            .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.uiSecondaryAccent))
+                            .clipShape(Capsule())
+                            .help("MMC Bitsetting Active: Stamps DVD+R / DVD+R DL lead-in Book Type as DVD-ROM (0x00)")
                         }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.uiSecondaryAccent).opacity(0.16))
-                        .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.uiSecondaryAccent))
-                        .clipShape(Capsule())
-                        .help("MMC Bitsetting Active: Stamps DVD+R / DVD+R DL lead-in Book Type as DVD-ROM (0x00)")
-                    }
 
-                    if item.copiesToBurn > 1 && store.autoLoadNextDiscBatchMode {
-                        HStack(spacing: 3) {
-                            Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
-                                .font(.system(size: 9))
-                            Text("Auto-Load (\(store.autoLoadCountdownSeconds)s)")
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        if item.copiesToBurn > 1 && store.autoLoadNextDiscBatchMode {
+                            HStack(spacing: 3) {
+                                Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                                    .font(.system(size: 9))
+                                Text("Auto-Load (\(store.autoLoadCountdownSeconds)s)")
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(store.uiSecondaryAccent.opacity(0.18))
+                            .foregroundStyle(store.uiSecondaryAccent)
+                            .clipShape(Capsule())
                         }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(store.uiSecondaryAccent.opacity(0.18))
-                        .foregroundStyle(store.uiSecondaryAccent)
-                        .clipShape(Capsule())
-                        .help("Hands-Free Duplication: Auto-ejects finished disc and starts next burn \(store.autoLoadCountdownSeconds)s after a fresh blank disc is inserted")
+                        Spacer(minLength: 0)
                     }
                 }
 
