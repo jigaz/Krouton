@@ -516,5 +516,19 @@ harness.runSuite("21. Phase 4 Workspace Modularization & 600-LOC File Ceiling Ga
             }
         }
     }
-}
+
+    // Verify that standalone workspaces adopt KroutonMasteringDeckCard and KroutonEmptyDropZoneView
+    let sharedComponentWorkspaces = [
+        "Sources/KroutonApp/Workspaces/AudioMasteringWorkspaces.swift",
+        "Sources/KroutonApp/Workspaces/DataAndArchivalWorkspaces.swift",
+        "Sources/KroutonApp/Workspaces/DiscImageInspectorWorkspace.swift",
+        "Sources/KroutonApp/Workspaces/RetroConsoleWorkspaces.swift",
+        "Sources/KroutonApp/Workspaces/VideoAuthoringWorkspaces.swift"
+    ]
+    for wp in sharedComponentWorkspaces {
+        let wpText = (try? String(contentsOfFile: wp, encoding: .utf8)) ?? ""
+        h.check(wpText.contains("KroutonMasteringDeckCard"), "\(wp) must adopt KroutonMasteringDeckCard")
+        h.check(wpText.contains("KroutonEmptyDropZoneView"), "\(wp) must adopt KroutonEmptyDropZoneView")
+    }
+    }
 }

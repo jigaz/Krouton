@@ -34,7 +34,8 @@ struct KroutonRedBookAudioWorkspaceView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             // WaveBurner CD-TEXT, UPC/MCN & HTOA Mastering Deck
-            VStack(alignment: .leading, spacing: 8) {
+            KroutonMasteringDeckCard(store: store) {
+                VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 10) {
                     Image(systemName: "waveform.path.ecg.rectangle.fill")
                         .foregroundStyle(store.activeAccent)
@@ -166,12 +167,8 @@ struct KroutonRedBookAudioWorkspaceView: View {
                         }
                     }
                 }
+                }
             }
-            .padding(10)
-            .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-            .background(Color.kroutonControlSurface)
-            .clipShape(RoundedRectangle(cornerRadius: 9))
-            .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
 
             // Red Book PQ Tracklist Table
             ZStack {
@@ -186,20 +183,13 @@ struct KroutonRedBookAudioWorkspaceView: View {
                     )
 
                 if store.stagedFiles.isEmpty {
-                    VStack(spacing: 10) {
-                        Image(systemName: "waveform.circle.fill")
-                            .font(.system(size: 36))
-                            .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
-                        Text(isCenterWorkspaceNarrow ? KroutonL10n.tr("Drop Any Audio Format") : KroutonL10n.tr("Drop Any Audio Format (WAV, AIFF, FLAC, ALAC, APE, WavPack, DSD .DSF/.DFF, Opus, Ogg, AC-3, DTS, MP3, M4A)"))
-                            .font(.headline)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
-                        Text(KroutonL10n.tr("Krouton decodes all audio to 44.1 kHz / 16-bit Stereo PCM on disk before burning (Zero Underrun Guarantee)."))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 36)
-                    }
+                    KroutonEmptyDropZoneView(
+                        store: store,
+                        isDropTargeted: isDropTargeted,
+                        sfSymbol: "waveform.circle.fill",
+                        headline: isCenterWorkspaceNarrow ? "Drop Any Audio Format" : "Drop Any Audio Format (WAV, AIFF, FLAC, ALAC, APE, WavPack, DSD .DSF/.DFF, Opus, Ogg, AC-3, DTS, MP3, M4A)",
+                        subtitle: "Krouton decodes all audio to 44.1 kHz / 16-bit Stereo PCM on disk before burning (Zero Underrun Guarantee)."
+                    )
                 } else {
                     VStack(spacing: 0) {
                         HStack(spacing: 10) {
@@ -345,7 +335,8 @@ struct KroutonCarSafeAudioWorkspaceView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 8) {
+            KroutonMasteringDeckCard(store: store) {
+                VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 10) {
                     Image(systemName: "car.rear.waves.up.fill")
                         .foregroundStyle(store.activeAccent)
@@ -402,12 +393,8 @@ struct KroutonCarSafeAudioWorkspaceView: View {
                         .toggleStyle(.checkbox)
                         .font(.caption)
                 }
+                }
             }
-            .padding(10)
-            .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-            .background(Color.kroutonControlSurface)
-            .clipShape(RoundedRectangle(cornerRadius: 9))
-            .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
 
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
@@ -421,20 +408,13 @@ struct KroutonCarSafeAudioWorkspaceView: View {
                     )
 
                 if store.stagedFiles.isEmpty {
-                    VStack(spacing: 10) {
-                        Image(systemName: "music.note.list")
-                            .font(.system(size: 36))
-                            .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
-                        Text(KroutonL10n.tr("Drop MP3, FLAC, M4A, or Album Folders to Build a Car-Safe Audio Disc"))
-                            .font(.headline)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
-                        Text(KroutonL10n.tr("Automatically numbers files in raw FAT/ISO directory order and strips hidden macOS resource forks so car stereos never freeze."))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 36)
-                    }
+                    KroutonEmptyDropZoneView(
+                        store: store,
+                        isDropTargeted: isDropTargeted,
+                        sfSymbol: "music.note.list",
+                        headline: "Drop MP3, FLAC, M4A, or Album Folders to Build a Car-Safe Audio Disc",
+                        subtitle: "Automatically numbers files in raw FAT/ISO directory order and strips hidden macOS resource forks so car stereos never freeze."
+                    )
                 } else {
                     VStack(spacing: 0) {
                         HStack(spacing: 10) {

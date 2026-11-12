@@ -34,7 +34,8 @@ struct KroutonVideoAuthoringWorkspaceView: View {
         let isDualLayer = spec.technicalName.contains("DL") || spec.technicalName.contains("DVD-9") || spec.colloquialName.contains("50 GB") || spec.colloquialName.contains("UHD")
         let isBluRay = spec.technicalName.contains("BD") || spec.technicalName.contains("AVCHD")
         return VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 8) {
+            KroutonMasteringDeckCard(store: store) {
+                VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 10) {
                     Image(systemName: "film.stack.fill")
                         .foregroundStyle(store.activeAccent)
@@ -173,12 +174,8 @@ struct KroutonVideoAuthoringWorkspaceView: View {
                         }
                     }
                 }
+                }
             }
-            .padding(10)
-            .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-            .background(Color.kroutonControlSurface)
-            .clipShape(RoundedRectangle(cornerRadius: 9))
-            .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
 
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
@@ -192,20 +189,13 @@ struct KroutonVideoAuthoringWorkspaceView: View {
                     )
 
                 if store.stagedFiles.isEmpty {
-                    VStack(spacing: 10) {
-                        Image(systemName: "film.circle.fill")
-                            .font(.system(size: 36))
-                            .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
-                        Text(isCenterWorkspaceNarrow ? KroutonL10n.tr("Drop Any Video or Container") : KroutonL10n.tr("Drop Any Video or Container (MKV, M2TS, MP4, MOV ProRes, AV1, HEVC 10-Bit, WebM, AVI, VOB, VIDEO_TS, BDMV)"))
-                            .font(.headline)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
-                        Text(KroutonL10n.tr("Author standalone set-top player discs with AC-3 / DTS audio, chapter markers, and 32 KB IFO/BUP ECC sector padding."))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 36)
-                    }
+                    KroutonEmptyDropZoneView(
+                        store: store,
+                        isDropTargeted: isDropTargeted,
+                        sfSymbol: "film.circle.fill",
+                        headline: isCenterWorkspaceNarrow ? "Drop Any Video or Container" : "Drop Any Video or Container (MKV, M2TS, MP4, MOV ProRes, AV1, HEVC 10-Bit, WebM, AVI, VOB, VIDEO_TS, BDMV)",
+                        subtitle: "Author standalone set-top player discs with AC-3 / DTS audio, chapter markers, and 32 KB IFO/BUP ECC sector padding."
+                    )
                 } else {
                     VStack(spacing: 0) {
                         HStack(spacing: 10) {

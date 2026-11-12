@@ -30,7 +30,8 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             // Top Mastering Bar
-            VStack(alignment: .leading, spacing: 8) {
+            KroutonMasteringDeckCard(store: store) {
+                VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 10) {
                     Image(systemName: "opticaldisc.fill")
                         .foregroundStyle(store.activeAccent)
@@ -79,12 +80,8 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                             .font(.caption.bold())
                     }
                 }
+                }
             }
-            .padding(10)
-            .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-            .background(Color.kroutonControlSurface)
-            .clipShape(RoundedRectangle(cornerRadius: 9))
-            .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
 
             // Full-Workspace Single Disc Image Deck
             ZStack {
@@ -480,33 +477,16 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                     }
                 } else {
                     // Empty State: Interactive Drop Zone & Quick Image Picker
-                    VStack(spacing: 12) {
-                        Image(systemName: "opticaldisc.fill")
-                            .font(.system(size: 46))
-                            .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
-                        Text(KroutonL10n.tr("Drop a Disc Image (.ISO, .DMG, .BIN/.CUE, .CDR, .IMG, or .TOAST) to Launch the Sector & Hex Inspector"))
-                            .font(.headline)
-                        Text(KroutonL10n.tr("Displays radial track geometry, live LBA 0/16/17/256 hexadecimal sector dumps, El Torito / APM boot records, and 1-Click .BIN <-> .ISO framing conversion."))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        Button {
-                            onPromptToAddFiles()
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "folder.badge.plus")
-                                Text("Choose Disc Image File...")
-                            }
-                            .font(.system(size: 12, weight: .bold))
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(store.activeAccent)
-                            .foregroundStyle(store.activeOnAccentText)
-                            .clipShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.top, 4)
-                    }
+                    KroutonEmptyDropZoneView(
+                        store: store,
+                        isDropTargeted: isDropTargeted,
+                        sfSymbol: "opticaldisc.fill",
+                        symbolSize: 46,
+                        headline: "Drop a Disc Image (.ISO, .DMG, .BIN/.CUE, .CDR, .IMG, or .TOAST) to Launch the Sector & Hex Inspector",
+                        subtitle: "Displays radial track geometry, live LBA 0/16/17/256 hexadecimal sector dumps, El Torito / APM boot records, and 1-Click .BIN <-> .ISO framing conversion.",
+                        actionTitle: "Choose Disc Image File...",
+                        onAction: onPromptToAddFiles
+                    )
                 }
             }
             .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in

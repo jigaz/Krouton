@@ -36,7 +36,8 @@ struct KroutonDataAndArchivalWorkspaceView: View {
 
         return VStack(alignment: .leading, spacing: 10) {
             // File System Topology & Universal Compatibility Deck
-            VStack(alignment: .leading, spacing: 8) {
+            KroutonMasteringDeckCard(store: store) {
+                VStack(alignment: .leading, spacing: 8) {
                 if activeSpec.isMDiscParityFormat {
                     ViewThatFits(in: .horizontal) {
                         HStack(spacing: 12) {
@@ -199,12 +200,8 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                         }
                     }
                 }
+                }
             }
-            .padding(10)
-            .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-            .background(Color.kroutonControlSurface)
-            .clipShape(RoundedRectangle(cornerRadius: 9))
-            .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
 
             if activeDataWorkspaceTab == 1 && enableCustomFinderLayoutTab {
                 VStack(alignment: .leading, spacing: 12) {
@@ -252,22 +249,16 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                         )
 
                     if store.stagedFiles.isEmpty {
-                        VStack(spacing: 10) {
-                            Image(systemName: "folder.badge.plus")
-                                .font(.system(size: 34))
-                                .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
-                            Text(KroutonL10n.tr("Drag & Drop Files or Folders Here to Author a New Data Disc"))
-                                .font(.headline)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 24)
-                            Text(isUniversalHybrid
-                                 ? KroutonL10n.tr("Shared data extents are linked into HFS+ (Mac), Joliet/UDF (Windows), and Rock Ridge (Linux) simultaneously. Toggle [Mac] / [PC] to hide platform-specific installers.")
-                                 : KroutonL10n.tr("Add files and directories from Finder to build the optical volume directory tree."))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 36)
-                        }
+                        KroutonEmptyDropZoneView(
+                            store: store,
+                            isDropTargeted: isDropTargeted,
+                            sfSymbol: "folder.badge.plus",
+                            symbolSize: 34,
+                            headline: "Drag & Drop Files or Folders Here to Author a New Data Disc",
+                            subtitle: isUniversalHybrid
+                                ? "Shared data extents are linked into HFS+ (Mac), Joliet/UDF (Windows), and Rock Ridge (Linux) simultaneously. Toggle [Mac] / [PC] to hide platform-specific installers."
+                                : "Add files and directories from Finder to build the optical volume directory tree."
+                        )
                     } else {
                         VStack(spacing: 0) {
                             HStack(spacing: 12) {

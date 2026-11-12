@@ -5,30 +5,31 @@ import OpticalDough
 
 public struct KroutonMasteringDeckCard<Content: View>: View {
     @ObservedObject var store: KroutonStateStore
+    let paddingAmount: CGFloat
     let cornerRadius: CGFloat
     let content: Content
 
     public init(
         store: KroutonStateStore,
+        paddingAmount: CGFloat = 10,
         cornerRadius: CGFloat = 9,
         @ViewBuilder content: () -> Content
     ) {
         self.store = store
+        self.paddingAmount = paddingAmount
         self.cornerRadius = cornerRadius
         self.content = content()
     }
 
     public var body: some View {
         content
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
-            .background(
+            .padding(paddingAmount)
+            .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
+            .background(Color.kroutonControlSurface)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(store.activeAccent.opacity(0.06))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .strokeBorder(store.activeAccent.opacity(0.30), lineWidth: 1)
-                    )
+                    .stroke(store.activeAccent.opacity(0.30), lineWidth: 1)
             )
     }
 }
@@ -37,51 +38,68 @@ public struct KroutonEmptyDropZoneView: View {
     @ObservedObject var store: KroutonStateStore
     let isDropTargeted: Bool
     let sfSymbol: String
+    let symbolSize: CGFloat
     let headline: String
     let subtitle: String
+    let actionTitle: String?
+    let actionSymbol: String
+    let onAction: (() -> Void)?
 
     public init(
         store: KroutonStateStore,
-        isDropTargeted: Bool,
+        isDropTargeted: Bool = false,
         sfSymbol: String,
+        symbolSize: CGFloat = 36,
         headline: String,
-        subtitle: String
+        subtitle: String,
+        actionTitle: String? = nil,
+        actionSymbol: String = "folder.badge.plus",
+        onAction: (() -> Void)? = nil
     ) {
         self.store = store
         self.isDropTargeted = isDropTargeted
         self.sfSymbol = sfSymbol
+        self.symbolSize = symbolSize
         self.headline = headline
         self.subtitle = subtitle
+        self.actionTitle = actionTitle
+        self.actionSymbol = actionSymbol
+        self.onAction = onAction
     }
 
     public var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color.black.opacity(isDropTargeted ? 0.34 : 0.22))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(
-                            isDropTargeted ? store.activeAccent : Color.primary.opacity(0.14),
-                            style: StrokeStyle(lineWidth: isDropTargeted ? 2 : 1, dash: isDropTargeted ? [6, 4] : [])
-                        )
-                )
+        VStack(spacing: 10) {
+            Image(systemName: sfSymbol)
+                .font(.system(size: symbolSize))
+                .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
+            Text(KroutonL10n.tr(headline))
+                .font(.headline)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+            Text(KroutonL10n.tr(subtitle))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 36)
 
-            VStack(spacing: 12) {
-                Image(systemName: sfSymbol)
-                    .font(.system(size: 36))
-                    .foregroundStyle(store.activeAccent)
-                Text(KroutonL10n.tr(headline))
-                    .font(.system(size: 13, weight: .bold))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-                Text(KroutonL10n.tr(subtitle))
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 36)
+            if let actionTitle, let onAction {
+                Button(action: onAction) {
+                    HStack(spacing: 6) {
+                        Image(systemName: actionSymbol)
+                        Text(KroutonL10n.tr(actionTitle))
+                    }
+                    .font(.system(size: 12, weight: .bold))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(store.activeAccent)
+                    .foregroundStyle(store.activeOnAccentText)
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
             }
-            .padding(24)
         }
+        .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

@@ -74,20 +74,13 @@ struct KroutonRetroConsoleWorkspaceView: View {
                             return KroutonL10n.tr("Krouton verifies 2,352-byte Mode 2 XA sector headers, System Area boot licenses, and Dual-Layer XGD break offsets.")
                         }
                     }()
-                    VStack(spacing: 10) {
-                        Image(systemName: spec.sfSymbol)
-                            .font(.system(size: 36))
-                            .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
-                        Text(consoleHeadline)
-                            .font(.headline)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
-                        Text(consoleSubtext)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 36)
-                    }
+                    KroutonEmptyDropZoneView(
+                        store: store,
+                        isDropTargeted: isDropTargeted,
+                        sfSymbol: spec.sfSymbol,
+                        headline: consoleHeadline,
+                        subtitle: consoleSubtext
+                    )
                 } else {
                     VStack(spacing: 0) {
                         HStack(spacing: 10) {
@@ -206,7 +199,8 @@ struct KroutonRetroConsoleWorkspaceView: View {
     }
 
     func retroConsoleROMMasteringDeck(for spec: KroutonRecipeSpec) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        KroutonMasteringDeckCard(store: store, paddingAmount: 12) {
+            VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "gamecontroller.fill")
                     .foregroundStyle(store.activeAccent)
@@ -404,12 +398,8 @@ struct KroutonRetroConsoleWorkspaceView: View {
                     }
                 }
             }
+            }
         }
-        .padding(12)
-        .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-        .background(Color.kroutonControlSurface)
-        .clipShape(RoundedRectangle(cornerRadius: 9))
-        .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
     }
 
 
