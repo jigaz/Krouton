@@ -1143,7 +1143,7 @@ public struct KroutonSettingsWindowView: View {
             settingsCard(title: "VoiceOver & Spoken Hardware Telemetry") {
                 Toggle(KroutonL10n.tr("Announce optical drive events, disc insertions, and burn phase changes via macOS VoiceOver"), isOn: $store.voiceOverSpokenTelemetry)
                     .fontWeight(.semibold)
-                Text(KroutonL10n.tr("Posts priority NSAccessibility announcements when blank media is locked, when the 5-second Auto-Load timer counts down, and when verification completes."))
+                Text(KroutonL10n.tr("Posts priority VoiceOver Accessibility announcements when blank media is locked, when the 5-second Auto-Load timer counts down, and when verification completes."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Divider()
