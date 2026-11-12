@@ -467,10 +467,11 @@ extension KroutonMainWorkspaceView {
                             size: 28,
                             symbolSize: 15
                         )
-                        Text(isCenterWorkspaceNarrow ? activeSpec.exactShortDisplayName : activeSpec.technicalName)
+                        let isCDDA = (activeSpec.id == "cd-da")
+                        Text(isCDDA ? KroutonL10n.tr("Audio CD") : (isCenterWorkspaceNarrow ? activeSpec.exactShortDisplayName : activeSpec.technicalName))
                             .font(.title3.bold())
                             .lineLimit(1)
-                        if !isCenterWorkspaceNarrow {
+                        if !isCenterWorkspaceNarrow && !isCDDA {
                             Text(activeSpec.colloquialName)
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : Color.secondary)
