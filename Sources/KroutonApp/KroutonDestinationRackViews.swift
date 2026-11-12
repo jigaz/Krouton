@@ -88,8 +88,7 @@ extension KroutonMainWorkspaceView {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: isFloatingOpen ? "arrow.down.right.and.arrow.up.left" : "waveform.path.ecg")
-                            Text(isFloatingOpen ? "Dock Scope" : "Scope")
-                                .lineLimit(1)
+                            if !isRightQueueCompact { Text(isFloatingOpen ? "Dock" : "Scope").lineLimit(1) }
                         }
                         .font(.system(size: 10, weight: .bold))
                         .padding(.horizontal, 8)
@@ -427,26 +426,32 @@ extension KroutonMainWorkspaceView {
 
                 Spacer(minLength: 4)
 
-                Button {
-                    executeSingleDestination(item)
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: cardActionSymbol(for: item.kind))
-                            .font(.system(size: 10, weight: .bold))
-                        Text(KroutonL10n.tr(cardActionTitle(for: item.kind)))
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .lineLimit(1)
+                // Only show per-card action button when multiple destinations are queued
+                // (avoids duplicating the primary green action button at the bottom of the column!)
+                if store.destinationQueue.count > 1 {
+                    Button {
+                        executeSingleDestination(item)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: cardActionSymbol(for: item.kind))
+                                .font(.system(size: 10, weight: .bold))
+                            if !isRightQueueCompact {
+                                Text(KroutonL10n.tr(cardActionTitle(for: item.kind)))
+                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .lineLimit(1)
+                            }
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(store.uiSecondaryAccent)
+                        .foregroundStyle(store.activeOnAccentText)
+                        .clipShape(Capsule())
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 5)
-                    .background(store.uiSecondaryAccent)
-                    .foregroundStyle(store.activeOnAccentText)
-                    .clipShape(Capsule())
+                    .buttonStyle(.plain)
+                    .fixedSize()
+                    .disabled(driveManager.isExecutingQueue)
+                    .help("Execute only this destination card (\(item.kind.rawValue))")
                 }
-                .buttonStyle(.plain)
-                .fixedSize()
-                .disabled(driveManager.isExecutingQueue)
-                .help("Execute only this destination card (\(item.kind.rawValue))")
             }
 
             // Per-Burner Inline Mini Phase Scope (Shown when active OR manually pinned via Scope button, and not popped out)

@@ -277,10 +277,10 @@ struct KroutonMainWorkspaceView: View {
             GeometryReader { windowGeo in
                 let totalW = windowGeo.size.width
                 let minCenterW: CGFloat = 380
-                let maxAllowedLeft = max(165, min(360, totalW - rightColumnLiveWidth - minCenterW))
-                let clampedLeft = min(max(165, leftColumnLiveWidth), maxAllowedLeft)
-                let maxAllowedRight = max(225, min(460, totalW - clampedLeft - minCenterW))
-                let clampedRight = min(max(225, rightColumnLiveWidth), maxAllowedRight)
+                let maxAllowedLeft = max(150, min(340, totalW - rightColumnLiveWidth - minCenterW))
+                let clampedLeft = min(max(150, leftColumnLiveWidth), maxAllowedLeft)
+                let maxAllowedRight = max(205, min(440, totalW - clampedLeft - minCenterW))
+                let clampedRight = min(max(205, rightColumnLiveWidth), maxAllowedRight)
 
                 let centerLiveW = max(minCenterW, totalW - clampedLeft - clampedRight - 14)
 
@@ -312,22 +312,22 @@ struct KroutonMainWorkspaceView: View {
                                 if leftSidebarDragStartWidth == nil {
                                     leftSidebarDragStartWidth = startW
                                 }
-                                let maxL = max(165, min(360, totalW - clampedRight - minCenterW - 14))
-                                let newW = min(max(165, startW + val.translation.width), maxL)
+                                let maxL = max(150, min(340, totalW - clampedRight - minCenterW - 14))
+                                let newW = min(max(150, startW + val.translation.width), maxL)
                                 if abs(newW - leftColumnLiveWidth) > 0.5 {
                                     var tx = Transaction()
                                     tx.disablesAnimations = true
                                     withTransaction(tx) {
                                         leftColumnLiveWidth = newW
-                                        // Hysteresis deadband (228pt <-> 244pt) so names NEVER flicker!
-                                        if !isLeftSidebarCompact && newW < 228 {
+                                        // Hysteresis deadband: use short titles < 248pt, hide 2nd-line subtitle < 222pt!
+                                        if !isLeftSidebarCompact && newW < 248 {
                                             isLeftSidebarCompact = true
-                                        } else if isLeftSidebarCompact && newW > 244 {
+                                        } else if isLeftSidebarCompact && newW > 260 {
                                             isLeftSidebarCompact = false
                                         }
-                                        if !isLeftSidebarUltraSkinny && newW < 204 {
+                                        if !isLeftSidebarUltraSkinny && newW < 222 {
                                             isLeftSidebarUltraSkinny = true
-                                        } else if isLeftSidebarUltraSkinny && newW > 218 {
+                                        } else if isLeftSidebarUltraSkinny && newW > 234 {
                                             isLeftSidebarUltraSkinny = false
                                         }
                                     }
@@ -365,8 +365,8 @@ struct KroutonMainWorkspaceView: View {
                                 if rightSidebarDragStartWidth == nil {
                                     rightSidebarDragStartWidth = startW
                                 }
-                                let maxR = max(225, min(460, totalW - clampedLeft - minCenterW - 14))
-                                let newW = min(max(225, startW - val.translation.width), maxR)
+                                let maxR = max(205, min(440, totalW - clampedLeft - minCenterW - 14))
+                                let newW = min(max(205, startW - val.translation.width), maxR)
                                 if abs(newW - rightColumnLiveWidth) > 0.5 {
                                     var tx = Transaction()
                                     tx.disablesAnimations = true
@@ -393,8 +393,8 @@ struct KroutonMainWorkspaceView: View {
                 }
                 .coordinateSpace(name: "KroutonSplitSpace")
                 .onAppear {
-                    isLeftSidebarCompact = clampedLeft < 235
-                    isLeftSidebarUltraSkinny = clampedLeft < 210
+                    isLeftSidebarCompact = clampedLeft < 248
+                    isLeftSidebarUltraSkinny = clampedLeft < 222
                     isRightQueueCompact = clampedRight < 285
                     isCenterWorkspaceNarrow = centerLiveW < 720
                 }
@@ -528,22 +528,28 @@ struct KroutonMainWorkspaceView: View {
     // MARK: - CENTER COLUMN: ADAPTABLE WORKSPACE + INTEGRATED CAPACITY BAR (Global graph removed)
     var centerAdaptableWorkspace: some View {
         VStack(alignment: .leading, spacing: 12) {
-            switch store.selectedCategory {
-            case .burn:
-                burnWorkspaceView
-                    .offset(x: sin(dropRejectShakePhase * .pi * 4) * 8)
-            case .depot:
-                depotWorkspaceView
-            case .copy:
-                copyWorkspaceView
-            case .label:
-                labelWorkspaceView
+            Group {
+                switch store.selectedCategory {
+                case .burn:
+                    burnWorkspaceView
+                        .offset(x: sin(dropRejectShakePhase * .pi * 4) * 8)
+                case .depot:
+                    depotWorkspaceView
+                case .copy:
+                    copyWorkspaceView
+                case .label:
+                    labelWorkspaceView
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
-            // Integrated Central Workspace Capacity Allocation Bar
-            centralWorkspaceCapacityBar
+            // Integrated Central Workspace Capacity Allocation Bar (Hidden in Label Designer mode)
+            if store.selectedCategory != .label {
+                centralWorkspaceCapacityBar
+            }
         }
-        .padding(16)
+        .padding(14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
 
