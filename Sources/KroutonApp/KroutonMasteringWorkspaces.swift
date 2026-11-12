@@ -977,7 +977,7 @@ extension KroutonMainWorkspaceView {
                         Image(systemName: "waveform.circle.fill")
                             .font(.system(size: 36))
                             .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
-                        Text(KroutonL10n.tr("Drop Any Audio Format (WAV, AIFF, FLAC, ALAC, APE, WavPack, DSD .DSF/.DFF, Opus, Ogg, AC-3, DTS, MP3, M4A)"))
+                        Text(isCenterWorkspaceNarrow ? KroutonL10n.tr("Drop Any Audio Format") : KroutonL10n.tr("Drop Any Audio Format (WAV, AIFF, FLAC, ALAC, APE, WavPack, DSD .DSF/.DFF, Opus, Ogg, AC-3, DTS, MP3, M4A)"))
                             .font(.headline)
                         Text(KroutonL10n.tr("Krouton decodes all audio to 44.1 kHz / 16-bit Stereo PCM on disk before burning (Zero Underrun Guarantee)."))
                             .font(.caption)
