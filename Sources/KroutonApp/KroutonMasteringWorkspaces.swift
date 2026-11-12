@@ -1545,11 +1545,15 @@ extension KroutonMainWorkspaceView {
                         Image(systemName: "gamecontroller.fill")
                             .font(.system(size: 36))
                             .foregroundStyle(store.uiSecondaryAccent.opacity(0.85))
-                        Text(KroutonL10n.tr("Drop Console Disc Image (.CUE + .BIN, .ISO, .GCM, .RVZ, .WBFS, or .DVD)"))
+                        Text(isCenterWorkspaceNarrow ? KroutonL10n.tr("Drop Console Disc Image") : KroutonL10n.tr("Drop Console Disc Image (.CHD, .RVZ, .WBFS, .CUE + .BIN, .ISO, .GCM)"))
                             .font(.headline)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
                         Text(KroutonL10n.tr("Krouton verifies 2,352-byte Mode 2 XA sector headers, System Area boot licenses, and Dual-Layer XGD break offsets."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 36)
                     }
                 } else {
                     VStack(spacing: 0) {
@@ -1686,7 +1690,7 @@ extension KroutonMainWorkspaceView {
 
             Divider().opacity(0.5)
 
-            if spec.id == "game-ps1" {
+            if spec.id == "console-ps1" {
                 VStack(alignment: .leading, spacing: 6) {
                     ViewThatFits(in: .horizontal) {
                         HStack(spacing: 14) {
@@ -1717,7 +1721,7 @@ extension KroutonMainWorkspaceView {
                             .lineLimit(1)
                     }
                 }
-            } else if spec.id == "game-ps2" {
+            } else if spec.id == "console-ps2" {
                 VStack(alignment: .leading, spacing: 6) {
                     ViewThatFits(in: .horizontal) {
                         HStack(spacing: 14) {
@@ -1748,7 +1752,7 @@ extension KroutonMainWorkspaceView {
                             .lineLimit(1)
                     }
                 }
-            } else if spec.id == "game-gc" {
+            } else if spec.id == "console-gc" {
                 VStack(alignment: .leading, spacing: 6) {
                     ViewThatFits(in: .horizontal) {
                         HStack(spacing: 14) {
@@ -1779,7 +1783,7 @@ extension KroutonMainWorkspaceView {
                             .lineLimit(1)
                     }
                 }
-            } else if spec.id == "game-wii" {
+            } else if spec.id == "console-wii" {
                 VStack(alignment: .leading, spacing: 6) {
                     ViewThatFits(in: .horizontal) {
                         HStack(spacing: 12) {
@@ -1818,7 +1822,7 @@ extension KroutonMainWorkspaceView {
                             .lineLimit(1)
                     }
                 }
-            } else if spec.id == "game-xbox" {
+            } else if spec.id == "console-xbox" {
                 VStack(alignment: .leading, spacing: 6) {
                     ViewThatFits(in: .horizontal) {
                         HStack(spacing: 12) {

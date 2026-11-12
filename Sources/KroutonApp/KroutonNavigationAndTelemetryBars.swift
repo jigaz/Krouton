@@ -555,7 +555,7 @@ extension KroutonMainWorkspaceView {
                 videoDiscAuthoringWorkspace(for: activeSpec)
             } else if activeSpec.isDiscImageBurnFormat {
                 discImageInspectorWorkspace(for: activeSpec)
-            } else if activeSpec.id.hasPrefix("game-") {
+            } else if activeSpec.filterGroup == .console || activeSpec.id.hasPrefix("console-") {
                 retroConsoleROMWorkspace(for: activeSpec)
             } else {
                 dataAndArchivalMasteringWorkspace(for: activeSpec)

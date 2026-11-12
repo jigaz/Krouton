@@ -655,7 +655,7 @@ struct KroutonMainWorkspaceView: View {
             return "Add Video Titles (MKV / MP4 / MOV / VIDEO_TS)..."
         } else if spec.isDiscImageBurnFormat {
             return "Select Disc Image (.ISO / .DMG / .BIN / .CUE / .CDR / .TOAST)..."
-        } else if spec.id.hasPrefix("game-") {
+        } else if (spec.filterGroup == .console || spec.id.hasPrefix("console-")) {
             return "Select Console Disc Image (.CHD / .RVZ / .WBFS / .CUE / .BIN / .ISO)..."
         } else {
             return "Add Files or Folders..."
@@ -669,7 +669,7 @@ struct KroutonMainWorkspaceView: View {
             return "film.stack.fill"
         } else if spec.isDiscImageBurnFormat {
             return "opticaldisc.fill"
-        } else if spec.id.hasPrefix("game-") {
+        } else if (spec.filterGroup == .console || spec.id.hasPrefix("console-")) {
             return "gamecontroller.fill"
         } else {
             return "plus.rectangle.on.folder.fill"
@@ -712,10 +712,10 @@ struct KroutonMainWorkspaceView: View {
 
 
     func currentPreFlightSanityWarning(for spec: KroutonRecipeSpec) -> String? {
-        if spec.id.hasPrefix("game-"), let drive = primarySelectedDrive, drive.isMediaPresent && drive.isMediaErasable {
+        if (spec.filterGroup == .console || spec.id.hasPrefix("console-")), let drive = primarySelectedDrive, drive.isMediaPresent && drive.isMediaErasable {
             return "Retro Console Pickup Warning: \(drive.displayName) has rewritable \(drive.mediaType) loaded (~20% reflectivity). Vintage PS1/PS2/GameCube/Dreamcast optical pickups require high-reflectivity write-once CD-R or DVD-R media at 4x–8x."
         }
-        if spec.id == "game-ps1" && !store.stagedFiles.isEmpty {
+        if spec.id == "console-ps1" && !store.stagedFiles.isEmpty {
             let hasBin = store.stagedFiles.contains { $0.name.lowercased().hasSuffix(".bin") }
             let hasCue = store.stagedFiles.contains { $0.name.lowercased().hasSuffix(".cue") || $0.name.lowercased().hasSuffix(".ccd") }
             if hasBin && !hasCue {
