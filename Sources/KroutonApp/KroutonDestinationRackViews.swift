@@ -39,7 +39,6 @@ extension KroutonMainWorkspaceView {
 
         let isDriveBusy = driveManager.isExecutingQueue || (scopeTel?.isActive == true)
         let canEject = (cardDrive?.isMediaPresent == true) && !isDriveBusy
-        let canErase = (cardDrive?.isMediaPresent == true) && (cardDrive?.isMediaErasable == true) && !isDriveBusy
 
         return VStack(alignment: .leading, spacing: 10) {
             // Top Row: Output Kind Picker + Scope Toggle/Dock Button + (Conditional) Eject + Remove Card
