@@ -211,6 +211,7 @@ struct KroutonMainWorkspaceView: View {
     @State var isLeftSidebarUltraSkinny: Bool = false
     @State var isRightQueueCompact: Bool = false
     @State var isCenterWorkspaceNarrow: Bool = false
+    @State var isCenterWorkspaceUltraCompact: Bool = false
     @State var isDropTargeted: Bool = false
     @State var activeDiscPopoverCardID: UUID? = nil
     @State var romWriteModeDAO96SubQ: Bool = true
@@ -325,9 +326,9 @@ struct KroutonMainWorkspaceView: View {
                                         } else if isLeftSidebarCompact && newW > 260 {
                                             isLeftSidebarCompact = false
                                         }
-                                        if !isLeftSidebarUltraSkinny && newW < 252 {
+                                        if !isLeftSidebarUltraSkinny && newW < 215 {
                                             isLeftSidebarUltraSkinny = true
-                                        } else if isLeftSidebarUltraSkinny && newW > 262 {
+                                        } else if isLeftSidebarUltraSkinny && newW > 228 {
                                             isLeftSidebarUltraSkinny = false
                                         }
                                     }
@@ -372,10 +373,10 @@ struct KroutonMainWorkspaceView: View {
                                     tx.disablesAnimations = true
                                     withTransaction(tx) {
                                         rightColumnLiveWidth = newW
-                                        // Hysteresis deadband (278pt <-> 294pt) so right queue labels NEVER flicker!
-                                        if !isRightQueueCompact && newW < 278 {
+                                        // Hysteresis deadband (325pt <-> 338pt) so Eject becomes icon-only before any card edge clips!
+                                        if !isRightQueueCompact && newW < 325 {
                                             isRightQueueCompact = true
-                                        } else if isRightQueueCompact && newW > 294 {
+                                        } else if isRightQueueCompact && newW > 338 {
                                             isRightQueueCompact = false
                                         }
                                     }
@@ -394,8 +395,9 @@ struct KroutonMainWorkspaceView: View {
                 .coordinateSpace(name: "KroutonSplitSpace")
                 .onAppear {
                     isLeftSidebarCompact = clampedLeft < 248
-                    isLeftSidebarUltraSkinny = clampedLeft < 252
-                    isRightQueueCompact = clampedRight < 285
+                    isLeftSidebarUltraSkinny = clampedLeft < 215
+                    isRightQueueCompact = clampedRight < 330
+                    isCenterWorkspaceUltraCompact = centerLiveW < 500
                     isCenterWorkspaceNarrow = centerLiveW < 720
                 }
                 .onChange(of: centerLiveW) { _, newCenterW in
@@ -407,6 +409,11 @@ struct KroutonMainWorkspaceView: View {
                             isCenterWorkspaceNarrow = true
                         } else if isCenterWorkspaceNarrow && newCenterW > 735 {
                             isCenterWorkspaceNarrow = false
+                        }
+                        if !isCenterWorkspaceUltraCompact && newCenterW < 495 {
+                            isCenterWorkspaceUltraCompact = true
+                        } else if isCenterWorkspaceUltraCompact && newCenterW > 515 {
+                            isCenterWorkspaceUltraCompact = false
                         }
                     }
                 }
@@ -499,10 +506,18 @@ struct KroutonMainWorkspaceView: View {
                 )
 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(KroutonL10n.tr(effectiveTitle))
-                        .font(.system(size: store.sidebarIconSize.titleFontSize, weight: .semibold))
-                        .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
-                        .lineLimit(1)
+                    ViewThatFits(in: .horizontal) {
+                        Text(KroutonL10n.tr(title))
+                            .font(.system(size: store.sidebarIconSize.titleFontSize, weight: .semibold))
+                            .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+
+                        Text(KroutonL10n.tr(shortTitle ?? title))
+                            .font(.system(size: store.sidebarIconSize.titleFontSize, weight: .semibold))
+                            .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
+                            .lineLimit(1)
+                    }
                     if !isLeftSidebarUltraSkinny {
                         Text(KroutonL10n.tr(colloquial))
                             .font(.system(size: max(9.5, store.sidebarIconSize.titleFontSize - 2.0)))

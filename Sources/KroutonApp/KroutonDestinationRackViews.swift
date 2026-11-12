@@ -59,7 +59,7 @@ extension KroutonMainWorkspaceView {
                     }
                 }
                 .labelsHidden()
-                .frame(minWidth: 95, maxWidth: 175)
+                .frame(minWidth: 74, maxWidth: 175)
                 .layoutPriority(1)
 
                 Spacer(minLength: 4)
@@ -110,13 +110,22 @@ extension KroutonMainWorkspaceView {
                         Button {
                             driveManager.ejectDrive(id: activeCardDriveID)
                         } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "eject.fill")
-                                if !isRightQueueCompact { Text(KroutonL10n.tr("Eject")).lineLimit(1) }
+                            Group {
+                                if isRightQueueCompact {
+                                    Image(systemName: "eject.fill")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .padding(.horizontal, 7)
+                                        .padding(.vertical, 4)
+                                } else {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "eject.fill")
+                                        Text(KroutonL10n.tr("Eject")).lineLimit(1)
+                                    }
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                }
                             }
-                            .font(.system(size: 10, weight: .semibold))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
                             .background(Color.secondary.opacity(0.15))
                             .clipShape(Capsule())
                         }
@@ -379,17 +388,19 @@ extension KroutonMainWorkspaceView {
             // Bottom Row: Options on Left + Dedicated Per-Card Action Button on Right
             HStack(spacing: 10) {
                 if item.kind == .physicalBurner || item.kind == .networkBurner {
-                    HStack(spacing: 10) {
-                        Toggle(KroutonL10n.tr("Simulate"), isOn: Binding(
+                    HStack(spacing: isRightQueueCompact ? 6 : 10) {
+                        Toggle(isRightQueueCompact ? "Sim" : KroutonL10n.tr("Simulate"), isOn: Binding(
                             get: { item.simulationMode },
                             set: { val in updateQueueItem(cardID) { $0.simulationMode = val } }
                         ))
                         .font(.caption)
+                        .lineLimit(1)
                         Toggle(KroutonL10n.tr("Verify"), isOn: Binding(
                             get: { item.verifyAfterBurn },
                             set: { val in updateQueueItem(cardID) { $0.verifyAfterBurn = val } }
                         ))
                         .font(.caption)
+                        .lineLimit(1)
                     }
                 } else if item.kind == .discImage {
                     Toggle(KroutonL10n.tr("Compress Image"), isOn: Binding(
