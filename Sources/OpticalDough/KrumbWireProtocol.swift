@@ -1,12 +1,6 @@
 //
 //  KrumbWireProtocol.swift
-//  OpticalDough — The Bakery Ecosystem (Krouton Client <-> Krumb Port 7420 Rust Daemon)
-//
-//  Complete implementation of:
-//  1. ZeroConf mDNS Browser (`_krumb._tcp.` port 7420)
-//  2. Spool-and-Burn Pipeline (`POST /api/v1/pantry/slot` -> Spool -> `POST /api/v1/bake`)
-//  3. Live WebSocket Telemetry Stream (`WS /api/v1/kitchen` -> `KroutonKitchenThermometer`)
-//  4. 1-Click `KitchenThermometer` Flight Recorder & `DoggyBag` Post-Mortem Exporters
+//  OpticalDough — The Bakery Ecosystem (Kruton Client <-> Krumb Port 7420 Rust Daemon)
 //
 
 import Foundation
@@ -14,47 +8,26 @@ import Combine
 import Network
 import AppKit
 
-// MARK: - 1. Canonical Bakery Typealias Safety Net
-public typealias OpticalDriveTelemetry    = KroutonKitchenThermometer
-public typealias DrivePhaseScopeSample    = KroutonToastingSample
-public typealias ToasterBank              = KroutonToasterBank
-public typealias ToasterInfo              = KroutonToasterInfo
-public typealias KitchenThermometer       = KroutonKitchenThermometer
-public typealias Cube                     = KroutonAudioCube
-public typealias DriveManager = KroutonToasterBank
-public typealias KroutonOvenManager = KroutonToasterBank
-public typealias OpticalDriveDevice = KroutonToasterInfo
-public typealias KroutonOvenDevice = KroutonToasterInfo
-public typealias DrivePhaseScopeTelemetry = KroutonKitchenThermometer
-public typealias KroutonThermometerTelemetry = KroutonKitchenThermometer
-public typealias NeroTelemetrySample = KroutonToastingSample
-public typealias KrumbThermometerSample = KroutonToastingSample
-public typealias StagedFileEntry = KroutonLoafFileEntry
-public typealias KrumbFileEntry = KroutonLoafFileEntry
-public typealias RedBookAudioTrack = KroutonAudioCube
-public typealias KrumbAudioSlice = KroutonAudioCube
-public typealias AudioTransitionStyle = KroutonCubePregapStyle
-public typealias KrumbCrustTransition = KroutonCubePregapStyle
-public typealias CDTextSanitizer = KroutonSeasoningSanitizer
-public typealias KrumbLabelGlazer = KroutonSeasoningSanitizer
-public typealias RedBookAuditionEngine = KroutonCubeTasterEngine
-public typealias KroutonTasteTestEngine = KroutonCubeTasterEngine
-public typealias BootableImageInspector = KroutonLoafBootInspector
-public typealias KroutonSourdoughStarterInspector = KroutonLoafBootInspector
-public typealias MountedVolumePartition = KroutonMountedSlice
-public typealias KrumbMountedLoaf = KroutonMountedSlice
-public typealias BatchDuplicationState = KroutonBatchToastState
-public typealias KroutonBatchBakeState = KroutonBatchToastState
-public typealias BurnCompletionReport = KroutonToastReport
-public typealias KroutonBakeCompletionReport = KroutonToastReport
-public typealias HardwareAccelerationTier = KroutonHeatTier
-public typealias KroutonConvectionTier = KroutonHeatTier
-public typealias MediaStreamProbeResult = KroutonCubeProbeResult
-public typealias KrumbIngredientProbe = KroutonCubeProbeResult
-public typealias CodecCapabilityRow = KroutonRecipeCodecRow
-public typealias KrumbEnzymeCodecRow = KroutonRecipeCodecRow
+// MARK: - 1. Canonical Bakery Typealiases (Old Names -> Real Bakery Structs in OpticalDough.swift)
+public typealias DriveManager                = KroutonToasterBank
+public typealias OpticalDriveDevice          = KroutonToasterInfo
+public typealias DrivePhaseScopeTelemetry    = KroutonKitchenThermometer
+public typealias NeroTelemetrySample         = KroutonToastingSample
+public typealias StagedFileEntry             = KroutonLoafFileEntry
+public typealias RedBookAudioTrack           = KroutonAudioCube
+public typealias AudioTransitionStyle        = KroutonCubePregapStyle
+public typealias CDTextSanitizer             = KroutonSeasoningSanitizer
+public typealias RedBookAuditionEngine       = KroutonCubeTasterEngine
+public typealias BootableImageInspector      = KroutonLoafBootInspector
+public typealias MountedVolumePartition      = KroutonMountedSlice
+public typealias BatchDuplicationState       = KroutonBatchToastState
+public typealias BurnCompletionReport        = KroutonToastReport
+public typealias HardwareAccelerationTier    = KroutonHeatTier
+public typealias MediaStreamProbeResult      = KroutonCubeProbeResult
+public typealias CodecCapabilityRow          = KroutonRecipeCodecRow
 public typealias UniversalMediaDecoderEngine = KroutonPantryPrepEngine
-public typealias KroutonDoughMixerEngine = KroutonPantryPrepEngine
+public typealias OpticalDriveTelemetry       = KroutonKitchenThermometer
+public typealias DrivePhaseScopeSample       = KroutonToastingSample
 
 // MARK: - 2. Krumb LAN Daemon Constants & `crates/recipe` Wire Structs (Port 7420)
 public enum KrumbNetworkConstants {
@@ -80,8 +53,8 @@ public enum KrumbSliceMedia: String, Codable, Sendable {
 }
 
 public enum KrumbBakeMode: String, Codable, Sendable {
-    case proofOnly = "ProofOnly" // Simulation (--simulate): real drive, laser writing disabled
-    case toast     = "Toast"     // Real DAO/SAO laser write
+    case proofOnly = "ProofOnly"
+    case toast     = "Toast"
 }
 
 public enum KrumbDoggyBagPolicy: String, Codable, Sendable, CaseIterable, Identifiable {
@@ -106,11 +79,11 @@ public struct KrumbDiscoveredNode: Identifiable, Hashable, Sendable {
 }
 
 public struct KrumbRemoteToasterInfo: Codable, Identifiable, Sendable {
-    public let id: String          // Stable hardware ID (by-path / by-id / IOKit location)
+    public let id: String
     public let name: String
     public let rackState: KrumbRackState
     public let sliceMedia: KrumbSliceMedia
-    public let isEasyBake: Bool    // True when running `krumb --easy-bake --slots N`
+    public let isEasyBake: Bool
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -201,18 +174,6 @@ public struct KrumbPantryCalibrationResult: Codable, Sendable {
     }
 }
 
-public struct KrumbPantrySlotResponse: Codable, Sendable {
-    public let pantryLoafId: UUID
-    public let spoolPath: String
-    public let freeBytes: UInt64
-
-    enum CodingKeys: String, CodingKey {
-        case pantryLoafId = "pantry_loaf_id"
-        case spoolPath    = "spool_path"
-        case freeBytes    = "free_bytes"
-    }
-}
-
 public struct KrumbBakeRequest: Codable, Sendable {
     public let batchId: UUID
     public let pantryLoafId: UUID
@@ -236,7 +197,7 @@ public struct KrumbBakeRequest: Codable, Sendable {
 }
 
 public struct KrumbKitchenEventMessage: Codable, Sendable {
-    public let event: String // TOASTER_UPDATED, PREHEATING, TOASTING_PROGRESS, DING_BATCH_READY, BURNT_TOAST
+    public let event: String
     public let batchId: UUID?
     public let toasterId: String?
     public let currentCube: UInt8?
@@ -257,7 +218,7 @@ public struct KrumbKitchenEventMessage: Codable, Sendable {
     }
 }
 
-// MARK: - 3. Complete `KrumbKitchenClient` (mDNS + REST + Spool-and-Burn + WebSocket -> Phase Scope)
+// MARK: - 3. `KrumbKitchenClient` (mDNS + REST + Spool-and-Burn + WebSocket -> Phase Scope)
 @MainActor
 public final class KrumbKitchenClient: ObservableObject {
     public static let shared = KrumbKitchenClient()
@@ -312,7 +273,6 @@ public final class KrumbKitchenClient: ObservableObject {
         }
     }
 
-    // MARK: Subsystem 3A — ZeroConf (`_krumb._tcp.`) mDNS Browser
     public func startZeroConfDiscovery() {
         mdnsBrowser?.cancel()
         let params = NWParameters()
@@ -356,7 +316,6 @@ public final class KrumbKitchenClient: ObservableObject {
         URL(string: "http://\(normalizedHostPort(from: hostOrPath))")
     }
 
-    // MARK: REST `/api/v1/toasters` & `/api/v1/toasters/:id/rack` & `/api/v1/pantry/calibrate`
     public func refreshToasters(endpoint: String? = nil) async {
         let target = endpoint ?? activeEndpointHost
         guard let base = normalizedBaseURL(from: target),
@@ -435,7 +394,6 @@ public final class KrumbKitchenClient: ObservableObject {
         appendEventLog("POST /api/v1/pantry/calibrate -> \(statusBannerText)")
     }
 
-    // MARK: Subsystem 1 — Real-Time WebSocket Stream (`WS /api/v1/kitchen` -> `KroutonKitchenThermometer`)
     public func connectKitchenWebSocket(endpoint: String? = nil, driveManager: KroutonToasterBank? = nil, targetDriveKey: String = "krumb-network-toaster") {
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         let hostPort = normalizedHostPort(from: endpoint ?? activeEndpointHost)
@@ -542,7 +500,6 @@ public final class KrumbKitchenClient: ObservableObject {
         bank.driveTelemetry[targetDriveKey] = tel
     }
 
-    // MARK: Subsystem 2 — Spool-and-Burn Pipeline (`POST /api/v1/pantry/slot` -> Spool -> `POST /api/v1/bake`)
     public func executeSpoolAndBurn(
         endpoint: String,
         stagedFiles: [KroutonLoafFileEntry],
@@ -565,7 +522,6 @@ public final class KrumbKitchenClient: ObservableObject {
             return lastCalibration?.maxSafeDvdHeatX ?? 16
         }()
 
-        // Step A: Allocate Pantry Spool Slot (`POST /api/v1/pantry/slot`) & Spool Loaf First!
         isSpoolingLoaf = true
         spoolProgressFraction = 0.0
         statusBannerText = "Allocating Pantry Slot on \(normalizedHostPort(from: endpoint))..."
@@ -589,7 +545,6 @@ public final class KrumbKitchenClient: ObservableObject {
         isSpoolingLoaf = false
         appendEventLog("Pantry Spool 100% Complete -> Dispatching POST /api/v1/bake")
 
-        // Step B: Build `KrumbBakeRequest` with Seasoning (CD-TEXT) & Cubes
         let cubePayloads: [KrumbCubePayload] = audioCubes.enumerated().map { idx, c in
             KrumbCubePayload(
                 trackNumber: UInt8(idx + 1),
@@ -623,7 +578,6 @@ public final class KrumbKitchenClient: ObservableObject {
             }
         }
 
-        // Step C: Stream real-time `PREHEATING` -> `TOASTING_PROGRESS` -> `DING_BATCH_READY` into the Phase Scope!
         applyKitchenEventToThermometer(
             KrumbKitchenEventMessage(
                 event: "PREHEATING",
@@ -686,7 +640,6 @@ public final class KrumbKitchenClient: ObservableObject {
         return true
     }
 
-    // MARK: Subsystem 3B — 1-Click `GET /api/v1/kitchen/thermometer` & `GET /api/v1/pantry/doggy-bags/:batch_id`
     public func exportKitchenThermometerReport(endpoint: String? = nil) async {
         let target = endpoint ?? activeEndpointHost
         var reportBody = """
@@ -705,13 +658,13 @@ public final class KrumbKitchenClient: ObservableObject {
         CD_TEXT {
           LANGUAGE_MAP { 0 : EN }
           LANGUAGE 0 {
-            TITLE "KROUTON_DISC"
-            PERFORMER "The Kroutons"
+            TITLE "KRUTON_DISC"
+            PERFORMER "Kruton"
             UPC_EAN "0123456789012"
           }
         }
         TRACK AUDIO
-        ISRC "USKRO2600001"
+        ISRC "USKRU2600001"
         FILE "cube_01.wav" 0
         """
 
