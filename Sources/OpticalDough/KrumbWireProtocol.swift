@@ -1,3 +1,4 @@
+import CryptoKit
 //
 //  KrumbWireProtocol.swift
 //  OpticalDough — The Bakery Ecosystem (Krouton Client <-> Krumb Port 7420 Rust Daemon)
@@ -813,5 +814,127 @@ public final class KrumbKitchenClient: ObservableObject {
         let filename = "Krumb_DoggyBag_\(lastBatchID.uuidString.prefix(8)).txt"
         appendEventLog("Prepared DoggyBag bundle for Batch \(lastBatchID.uuidString.prefix(8))")
         return KrumbExportedArtifact(defaultFilename: filename, contentText: finalBody)
+    }
+}
+
+
+// MARK: - Chunk 1: Krumb LAN Security Engine (RFC-1918 Subnet Guard + HMAC-SHA256 + Replay Protection)
+public struct KrumbSignedEnvelope: Codable, Sendable, Equatable {
+    public let timestampEpochSeconds: Int64
+    public let nonce: String
+    public let signatureHex: String
+    public let payloadBase64: String
+
+    public init(timestampEpochSeconds: Int64, nonce: String, signatureHex: String, payloadBase64: String) {
+        self.timestampEpochSeconds = timestampEpochSeconds
+        self.nonce = nonce
+        self.signatureHex = signatureHex
+        self.payloadBase64 = payloadBase64
+    }
+}
+
+public enum KrumbLANSecurityEngine {
+    public static let maxClockSkewSeconds: Int64 = 30
+
+    /// Validates that an endpoint host belongs strictly to loopback, mDNS (.local), or RFC-1918 / RFC-3927 private LAN ranges.
+    public static func isAllowedLANEndpoint(_ rawEndpoint: String) -> Bool {
+        let trimmed = rawEndpoint.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !trimmed.isEmpty else { return false }
+
+        // Strip scheme if present
+        var hostPart = trimmed
+        for prefix in ["http://", "https://", "ws://", "wss://"] {
+            if hostPart.hasPrefix(prefix) {
+                hostPart = String(hostPart.dropFirst(prefix.count))
+                break
+            }
+        }
+        // Strip path if present
+        if let slashIdx = hostPart.firstIndex(of: "/") {
+            hostPart = String(hostPart[..<slashIdx])
+        }
+        // Handle IPv6 brackets [::1]:7420 or host:port
+        if hostPart.hasPrefix("[") {
+            if let closeBracket = hostPart.firstIndex(of: "]") {
+                let ipv6 = String(hostPart[hostPart.index(after: hostPart.startIndex)..<closeBracket])
+                return ipv6 == "::1" || ipv6.hasPrefix("fe80:") || ipv6.hasPrefix("fd") || ipv6.hasPrefix("fc")
+            }
+            return false
+        }
+        if let colonIdx = hostPart.firstIndex(of: ":") {
+            hostPart = String(hostPart[..<colonIdx])
+        }
+
+        if hostPart == "localhost" || hostPart.hasSuffix(".local") || hostPart.hasSuffix(".local.") || hostPart.hasSuffix(".lan") {
+            return true
+        }
+
+        // Check IPv4 octets
+        let parts = hostPart.split(separator: ".", omittingEmptySubsequences: false)
+        if parts.count == 4, let o0 = Int(parts[0]), let o1 = Int(parts[1]), let o2 = Int(parts[2]), let o3 = Int(parts[3]) {
+            guard (0...255).contains(o0), (0...255).contains(o1), (0...255).contains(o2), (0...255).contains(o3) else {
+                return false
+            }
+            if o0 == 127 { return true }                                  // 127.0.0.0/8 Loopback
+            if o0 == 10 { return true }                                   // 10.0.0.0/8 RFC-1918 Class A
+            if o0 == 172 && (16...31).contains(o1) { return true }        // 172.16.0.0/12 RFC-1918 Class B
+            if o0 == 192 && o1 == 168 { return true }                     // 192.168.0.0/16 RFC-1918 Class C
+            if o0 == 169 && o1 == 254 { return true }                     // 169.254.0.0/16 Link-Local Bonjour
+            return false
+        }
+
+        return false
+    }
+
+    /// Computes a deterministic HMAC-SHA256 signature over `timestamp.nonce.payloadBase64`
+    public static func signPayload(
+        _ payload: Data,
+        sharedSecret: String,
+        timestampEpochSeconds: Int64 = Int64(Date().timeIntervalSince1970),
+        nonce: String = UUID().uuidString.lowercased()
+    ) -> KrumbSignedEnvelope {
+        let b64 = payload.base64EncodedString()
+        let canonicalMessage = "\(timestampEpochSeconds).\(nonce).\(b64)"
+        let key = SymmetricKey(data: Data(sharedSecret.utf8))
+        let mac = HMAC<SHA256>.authenticationCode(for: Data(canonicalMessage.utf8), using: key)
+        let sigHex = mac.map { String(format: "%02x", $0) }.joined()
+        return KrumbSignedEnvelope(
+            timestampEpochSeconds: timestampEpochSeconds,
+            nonce: nonce,
+            signatureHex: sigHex,
+            payloadBase64: b64
+        )
+    }
+
+    /// Verifies HMAC-SHA256 authenticity, clock skew window (+/- 30s), and optional nonce replay set
+    public static func verifyEnvelope(
+        _ envelope: KrumbSignedEnvelope,
+        sharedSecret: String,
+        nowEpochSeconds: Int64 = Int64(Date().timeIntervalSince1970),
+        seenNonces: inout Set<String>
+    ) -> Data? {
+        guard !envelope.nonce.isEmpty else { return nil }
+        guard abs(nowEpochSeconds - envelope.timestampEpochSeconds) <= maxClockSkewSeconds else {
+            return nil
+        }
+        guard !seenNonces.contains(envelope.nonce) else {
+            return nil
+        }
+        guard let rawPayload = Data(base64Encoded: envelope.payloadBase64) else {
+            return nil
+        }
+
+        let expected = signPayload(
+            rawPayload,
+            sharedSecret: sharedSecret,
+            timestampEpochSeconds: envelope.timestampEpochSeconds,
+            nonce: envelope.nonce
+        )
+
+        guard expected.signatureHex == envelope.signatureHex.lowercased() else {
+            return nil
+        }
+        seenNonces.insert(envelope.nonce)
+        return rawPayload
     }
 }

@@ -248,6 +248,74 @@ harness.runSuite("9. IEEE-754 RGB <-> HSB Round-Trip & 10-Swatch Display-P3 Harm
     }
 }
 
+
+// 10. LAN Network Security (RFC-1918 Subnet Guard, HMAC-SHA256 Wire Signing & Replay Protection)
+harness.runSuite("10. Krumb LAN Security Engine (RFC-1918 Subnet Guard, HMAC-SHA256 & Anti-Replay)") { h in
+    // 10a. Allowed LAN / Loopback / mDNS endpoints
+    let allowedEndpoints = [
+        "localhost:7420",
+        "http://127.0.0.1:7420/api/v1/toasters",
+        "ws://192.168.1.42:7420/ws/kitchen",
+        "10.0.14.8:7420",
+        "172.16.0.5:7420",
+        "172.31.255.254:7420",
+        "169.254.12.34:7420",
+        "krumb-pi3b.local:7420",
+        "[::1]:7420",
+        "[fe80::1]:7420"
+    ]
+    for ep in allowedEndpoints {
+        h.check(KrumbLANSecurityEngine.isAllowedLANEndpoint(ep), "Expected LAN endpoint '\(ep)' to be allowed")
+    }
+
+    // 10b. Blocked Public WAN / Malformed endpoints
+    let blockedEndpoints = [
+        "8.8.8.8:7420",
+        "1.1.1.1:7420",
+        "172.15.0.1:7420",
+        "172.32.0.1:7420",
+        "192.169.1.1:7420",
+        "http://evil.example.com:7420",
+        "999.999.999.999:7420",
+        ""
+    ]
+    for ep in blockedEndpoints {
+        h.check(!KrumbLANSecurityEngine.isAllowedLANEndpoint(ep), "Expected public/invalid endpoint '\(ep)' to be BLOCKED")
+    }
+
+    // 10c. HMAC-SHA256 Signing, Tamper Rejection, Clock Skew & Nonce Replay Protection
+    let secret = "krouton-kitchen-lan-key-2026"
+    let payload = Data("{\"action\":\"toast\",\"heat_x\":16}".utf8)
+    let now: Int64 = 1_775_000_000
+    var seenNonces: Set<String> = []
+
+    let env = KrumbLANSecurityEngine.signPayload(payload, sharedSecret: secret, timestampEpochSeconds: now, nonce: "nonce-001")
+    h.check(env.signatureHex.count == 64, "HMAC-SHA256 hex signature must be 64 characters")
+
+    // First verification succeeds
+    let verifiedData = KrumbLANSecurityEngine.verifyEnvelope(env, sharedSecret: secret, nowEpochSeconds: now + 5, seenNonces: &seenNonces)
+    h.check(verifiedData == payload, "Authentic HMAC-SHA256 envelope must verify and return exact payload")
+
+    // Replay with same nonce must fail
+    let replayAttempt = KrumbLANSecurityEngine.verifyEnvelope(env, sharedSecret: secret, nowEpochSeconds: now + 6, seenNonces: &seenNonces)
+    h.check(replayAttempt == nil, "Replayed nonce must be rejected")
+
+    // Expired timestamp (> 30s skew) must fail
+    let expiredEnv = KrumbLANSecurityEngine.signPayload(payload, sharedSecret: secret, timestampEpochSeconds: now - 60, nonce: "nonce-002")
+    let expiredAttempt = KrumbLANSecurityEngine.verifyEnvelope(expiredEnv, sharedSecret: secret, nowEpochSeconds: now, seenNonces: &seenNonces)
+    h.check(expiredAttempt == nil, "Stale timestamp outside +/-30s window must be rejected")
+
+    // Tampered payload must fail
+    let tamperedEnv = KrumbSignedEnvelope(
+        timestampEpochSeconds: now,
+        nonce: "nonce-003",
+        signatureHex: env.signatureHex,
+        payloadBase64: Data("{\"action\":\"toast\",\"heat_x\":99}".utf8).base64EncodedString()
+    )
+    let tamperedAttempt = KrumbLANSecurityEngine.verifyEnvelope(tamperedEnv, sharedSecret: secret, nowEpochSeconds: now, seenNonces: &seenNonces)
+    h.check(tamperedAttempt == nil, "Tampered payload with forged signature must be rejected")
+}
+
 print("\n🎯 SUMMARY: \(harness.passed) assertions passed, \(harness.failed) failed.")
 if harness.failed > 0 {
     exit(1)
