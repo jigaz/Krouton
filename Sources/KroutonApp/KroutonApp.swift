@@ -451,7 +451,6 @@ struct KroutonMainWorkspaceView: View {
 
     func taskRowButton(id: String, category: KroutonBakeryStation, title: String,
         shortTitle: String? = nil, colloquial: String, badge: String = "", sfSymbol: String) -> some View {
-        let effectiveTitle = isLeftSidebarCompact ? (shortTitle ?? title) : title
         let isSelected = (store.selectedTaskID == id)
         return Button {
             store.selectedCategory = category
@@ -530,7 +529,7 @@ struct KroutonMainWorkspaceView: View {
                 centralWorkspaceCapacityBar
             }
         }
-        .padding(14)
+        .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
