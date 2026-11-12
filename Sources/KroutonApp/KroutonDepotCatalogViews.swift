@@ -5,7 +5,6 @@
 //  Disc Image Depot Interactive Hero Banner & App-Store Style Catalog Cards.
 //
 
-import AppKit
 import OpticalDough
 import SwiftUI
 import UniformTypeIdentifiers
@@ -330,7 +329,7 @@ extension KroutonMainWorkspaceView {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 11)
-                .fill(isSelectedInHero ? store.activeAccent.opacity(0.08) : Color(NSColor.controlBackgroundColor))
+                .fill(isSelectedInHero ? store.activeAccent.opacity(0.08) : Color.kroutonControlSurface)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 11)

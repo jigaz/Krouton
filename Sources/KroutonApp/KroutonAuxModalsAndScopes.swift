@@ -144,7 +144,7 @@ struct KroutonSliceArtworkView: View {
                     .fill(Color.white.opacity(0.18))
                     .frame(width: 22, height: 22)
                 Circle()
-                    .fill(Color(NSColor.windowBackgroundColor))
+                    .fill(Color.kroutonWindowSurface)
                     .frame(width: 13, height: 13)
                     .overlay(Circle().stroke(Color.secondary.opacity(0.55), lineWidth: 1))
             }
@@ -171,7 +171,7 @@ struct KroutonSliceMediaPopover: View {
         }
         .padding(16)
         .frame(width: 500)
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(Color.kroutonWindowSurface)
     }
 
     var heroBannerSection: some View {
@@ -206,7 +206,7 @@ struct KroutonSliceMediaPopover: View {
         .padding(12)
         .background(
             LinearGradient(
-                colors: [accent.opacity(0.12), Color(NSColor.controlBackgroundColor)],
+                colors: [accent.opacity(0.12), Color.kroutonControlSurface],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -226,7 +226,7 @@ struct KroutonSliceMediaPopover: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(12)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color.kroutonControlSurface)
         .clipShape(RoundedRectangle(cornerRadius: 9))
     }
 
@@ -255,7 +255,7 @@ struct KroutonSliceMediaPopover: View {
                     Spacer()
                 }
                 .padding(10)
-                .background(Color(NSColor.controlBackgroundColor))
+                .background(Color.kroutonControlSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 9))
                 .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.primary.opacity(0.07), lineWidth: 1))
             } else {
@@ -311,7 +311,7 @@ struct KroutonSliceMediaPopover: View {
             .help("Reveal \(vol.mountPath) in macOS Finder")
         }
         .padding(10)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color.kroutonControlSurface)
         .clipShape(RoundedRectangle(cornerRadius: 9))
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.primary.opacity(0.07), lineWidth: 1))
     }
@@ -364,7 +364,7 @@ struct KroutonSliceMediaPopover: View {
             }
         }
         .padding(10)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color.kroutonControlSurface)
         .clipShape(RoundedRectangle(cornerRadius: 9))
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.primary.opacity(0.07), lineWidth: 1))
     }
@@ -418,7 +418,7 @@ struct KroutonSliceMediaPopover: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(9)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color.kroutonControlSurface)
         .clipShape(RoundedRectangle(cornerRadius: 9))
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.primary.opacity(0.07), lineWidth: 1))
     }
@@ -442,7 +442,7 @@ struct KroutonSliceMediaPopover: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(9)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color.kroutonControlSurface)
         .clipShape(RoundedRectangle(cornerRadius: 9))
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.primary.opacity(0.07), lineWidth: 1))
     }
@@ -485,7 +485,7 @@ struct KroutonMasteringReportSheet: View {
                 reportDetailRow(label: "Elapsed Mastering Time", value: report.elapsedDurationText)
             }
             .padding(14)
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(Color.kroutonControlSurface)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08), lineWidth: 1))
 
@@ -528,7 +528,7 @@ struct KroutonMasteringReportSheet: View {
         }
         .padding(24)
         .frame(width: 580, height: 420)
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(Color.kroutonWindowSurface)
     }
 
     func reportDetailRow(label: String, value: String) -> some View {
@@ -1076,7 +1076,7 @@ struct KroutonFloatingThermometerView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
             .background(store.harmonizedCardFill)
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(Color.kroutonControlSurface)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -1391,7 +1391,7 @@ struct KroutonFloatingThermometerView: View {
         .padding(18)
         .frame(minWidth: 740, idealWidth: 800, minHeight: 510, idealHeight: 570)
         .background(store.mainPanelTintOverlay)
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(Color.kroutonWindowSurface)
         .preferredColorScheme(store.appearanceMode.colorScheme)
         .environment(\.locale, store.activeLocale)
         .tint(store.activeAccent)
@@ -1476,7 +1476,7 @@ struct KroutonFloatingThermometerView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
         .background(store.harmonizedCardFill)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color.kroutonControlSurface)
         .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 9, style: .continuous)

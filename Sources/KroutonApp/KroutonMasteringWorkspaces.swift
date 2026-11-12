@@ -52,14 +52,14 @@ extension KroutonMainWorkspaceView {
             }
             .padding(10)
             .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(Color.kroutonControlSurface)
             .clipShape(RoundedRectangle(cornerRadius: 9))
             .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
 
             // Full-Workspace Single Disc Image Deck
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(NSColor.controlBackgroundColor))
+                    .fill(Color.kroutonControlSurface)
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
                             .strokeBorder(
@@ -251,7 +251,7 @@ extension KroutonMainWorkspaceView {
 
                                             // Clamping Hub & 15mm Spindle Hole
                                             Circle()
-                                                .fill(Color(NSColor.windowBackgroundColor))
+                                                .fill(Color.kroutonWindowSurface)
                                                 .frame(width: 34, height: 34)
                                                 .overlay(Circle().stroke(Color.secondary.opacity(0.5), lineWidth: 1.5))
 
@@ -618,7 +618,7 @@ extension KroutonMainWorkspaceView {
             }
             .padding(10)
             .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(Color.kroutonControlSurface)
             .clipShape(RoundedRectangle(cornerRadius: 9))
             .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
 
@@ -658,7 +658,7 @@ extension KroutonMainWorkspaceView {
             } else {
                 ZStack {
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(NSColor.controlBackgroundColor))
+                        .fill(Color.kroutonControlSurface)
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
                                 .strokeBorder(
@@ -872,14 +872,14 @@ extension KroutonMainWorkspaceView {
             }
             .padding(10)
             .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(Color.kroutonControlSurface)
             .clipShape(RoundedRectangle(cornerRadius: 9))
             .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
 
             // Red Book PQ Tracklist Table
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(NSColor.controlBackgroundColor))
+                    .fill(Color.kroutonControlSurface)
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
                             .strokeBorder(
@@ -1088,13 +1088,13 @@ extension KroutonMainWorkspaceView {
             }
             .padding(10)
             .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(Color.kroutonControlSurface)
             .clipShape(RoundedRectangle(cornerRadius: 9))
             .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
 
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(NSColor.controlBackgroundColor))
+                    .fill(Color.kroutonControlSurface)
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
                             .strokeBorder(
@@ -1252,13 +1252,13 @@ extension KroutonMainWorkspaceView {
             }
             .padding(10)
             .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(Color.kroutonControlSurface)
             .clipShape(RoundedRectangle(cornerRadius: 9))
             .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
 
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(NSColor.controlBackgroundColor))
+                    .fill(Color.kroutonControlSurface)
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
                             .strokeBorder(
@@ -1374,7 +1374,7 @@ extension KroutonMainWorkspaceView {
 
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(NSColor.controlBackgroundColor))
+                    .fill(Color.kroutonControlSurface)
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
                             .strokeBorder(
@@ -1564,7 +1564,7 @@ extension KroutonMainWorkspaceView {
         }
         .padding(10)
         .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(Color.kroutonControlSurface)
         .clipShape(RoundedRectangle(cornerRadius: 9))
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.activeAccent.opacity(0.30), lineWidth: 1))
     }

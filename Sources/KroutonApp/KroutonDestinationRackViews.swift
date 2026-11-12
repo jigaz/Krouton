@@ -186,7 +186,7 @@ extension KroutonMainWorkspaceView {
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
                         .background(store.enableSecondaryAccentUITints ? store.uiSecondaryAccent.opacity(0.11) : Color.clear)
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(Color.kroutonControlSurface)
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.primary.opacity(0.12), lineWidth: 1))
                     }
@@ -471,7 +471,7 @@ extension KroutonMainWorkspaceView {
         }
         .padding(12)
         .background(store.enableSecondaryAccentUITints ? store.uiSecondaryAccent.opacity(0.11) : Color.clear)
-            .background(Color(NSColor.windowBackgroundColor))
+            .background(Color.kroutonWindowSurface)
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(store.uiSecondaryAccent.opacity(0.35), lineWidth: 1))
     }

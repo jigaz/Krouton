@@ -301,3 +301,13 @@ extension KroutonStateStore {
         enableSecondaryAccentUITints ? activeSecondaryAccent.opacity(resolvedColorScheme == .light ? 0.42 : 0.28) : Color.primary.opacity(0.08)
     }
 }
+
+// MARK: - Native SwiftUI Semantic Surface Colors (Replaces Direct NSColor View Calls)
+public extension Color {
+    static var kroutonWindowSurface: Color {
+        Color(nsColor: .windowBackgroundColor)
+    }
+    static var kroutonControlSurface: Color {
+        Color(nsColor: .controlBackgroundColor)
+    }
+}

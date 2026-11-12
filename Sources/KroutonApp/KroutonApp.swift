@@ -408,7 +408,7 @@ struct KroutonMainWorkspaceView: View {
         }
         .frame(minWidth: 820, idealWidth: 1360, minHeight: 640, idealHeight: 860)
         .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(Color.kroutonWindowSurface)
         .preferredColorScheme(store.appearanceMode.colorScheme)
         .environment(\.locale, store.activeLocale)
         .tint(store.activeAccent)
@@ -815,7 +815,7 @@ struct KroutonMainWorkspaceView: View {
                 playlistRow(num: "VTS_02", title: "Director Commentary & Making-Of Featurettes", duration: "00:32:40", transition: "Requantized -> 420 MB", info: "Preserved")
             }
             .padding(14)
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(Color.kroutonControlSurface)
             .clipShape(RoundedRectangle(cornerRadius: 10))
 
             Spacer()

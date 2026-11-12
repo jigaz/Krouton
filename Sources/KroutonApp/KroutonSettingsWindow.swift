@@ -70,7 +70,7 @@ public struct KroutonSettingsWindowView: View {
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(Color(NSColor.controlBackgroundColor))
+                .background(Color.kroutonControlSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 7))
                 .padding(.horizontal, 10)
                 .padding(.top, 8)
@@ -153,7 +153,7 @@ public struct KroutonSettingsWindowView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-            .background(Color(NSColor.windowBackgroundColor))
+            .background(Color.kroutonWindowSurface)
         }
         .frame(minWidth: 980, idealWidth: 1120, minHeight: 600, idealHeight: 720)
         .preferredColorScheme(store.appearanceMode.colorScheme)
@@ -1194,7 +1194,7 @@ public struct KroutonSettingsWindowView: View {
                 content()
             }
             .padding(14)
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(Color.kroutonControlSurface)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.30) : Color.primary.opacity(0.08), lineWidth: 1))
         }
@@ -1210,7 +1210,7 @@ public struct KroutonSettingsWindowView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(isSelected ? store.uiSecondaryAccent.opacity(0.22) : Color(NSColor.windowBackgroundColor))
+            .background(isSelected ? store.uiSecondaryAccent.opacity(0.22) : Color.kroutonWindowSurface)
             .clipShape(Capsule())
             .overlay(Capsule().stroke(isSelected ? store.uiSecondaryAccent : Color.secondary.opacity(0.3), lineWidth: isSelected ? 1.5 : 1.0))
         }

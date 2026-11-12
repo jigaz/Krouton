@@ -187,7 +187,7 @@ extension KroutonMainWorkspaceView {
             }
         }
         .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color.kroutonControlSurface)
     }
 
     var centralWorkspaceCapacityBar: some View {
@@ -261,7 +261,7 @@ extension KroutonMainWorkspaceView {
         }
         .padding(10)
         .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.14) : Color.clear)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color.kroutonControlSurface)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.32) : Color.clear, lineWidth: 1))
         .accessibilityLabel(String(format: "Disc capacity %.1f percent full", ratio * 100.0))
@@ -345,7 +345,7 @@ extension KroutonMainWorkspaceView {
                     .padding(.leading, 10)
                     .padding(.trailing, 4)
                     .padding(.vertical, 3)
-                    .background(Color(NSColor.controlBackgroundColor))
+                    .background(Color.kroutonControlSurface)
                     .clipShape(Capsule())
                     .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 1))
                 }
@@ -491,7 +491,7 @@ extension KroutonMainWorkspaceView {
                         .font(.system(size: 11, weight: .medium))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(Color(NSColor.controlBackgroundColor))
+                        .background(Color.kroutonControlSurface)
                         .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
@@ -874,7 +874,7 @@ extension KroutonMainWorkspaceView {
             .padding(14)
         }
         .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color.kroutonControlSurface)
     }
 }
 
@@ -1085,7 +1085,7 @@ struct KroutonDiscLabelArtworkCanvas: View {
                 .frame(width: holeDiameter + 18, height: holeDiameter + 18)
 
             Circle()
-                .fill(isExportMode ? Color.white : Color(NSColor.windowBackgroundColor))
+                .fill(isExportMode ? Color.white : Color.kroutonWindowSurface)
                 .frame(width: holeDiameter, height: holeDiameter)
                 .overlay(
                     Circle()

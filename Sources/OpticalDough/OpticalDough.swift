@@ -2,7 +2,6 @@ import CryptoKit
 import VideoToolbox
 import AudioToolbox
 import Foundation
-import AppKit
 import AVFoundation
 @preconcurrency import DiscRecording
 
@@ -339,7 +338,7 @@ public final class KroutonCubeTasterEngine: ObservableObject {
             pA.play()
             self.playerA = pA
         } else {
-            NSSound.beep()
+            /* Acoustic cue handled by KroutonApp UI layer */
         }
 
         // Schedule transition to Track B after 2.5s + gap
@@ -1209,7 +1208,7 @@ public final class KroutonToasterBank: ObservableObject {
                     st.countdownSecondsRemaining = startSec
                     st.statusMessage = "Blank Disc Locked — Auto-Starting Copy #\(nextCopy)/\(totalCopies) in \(startSec)s..."
                     self.batchStates[key] = st
-                    NSSound.beep()
+                    /* Acoustic cue handled by KroutonApp UI layer */
                 }
             }
         }
@@ -1592,7 +1591,7 @@ public final class KroutonToasterBank: ObservableObject {
                     self.isExecutingQueue = false
                     self.activeJobProgress = 1.0
                     self.activeJobPhase = "Rewritable Disc Erased & Ready"
-                    NSSound.beep()
+                    /* Acoustic cue handled by KroutonApp UI layer */
                     self.refreshDrives()
                     let mins = self.elapsedSeconds / 60
                     let secs = self.elapsedSeconds % 60
@@ -1726,7 +1725,7 @@ public final class KroutonToasterBank: ObservableObject {
                 activeJobPhase = "Disc Image Created Successfully"
                 activeJobDetail = expandedPath
                 isExecutingQueue = false
-                NSSound.beep()
+                /* Acoustic cue handled by KroutonApp UI layer */
                 let report = KroutonToastReport(
                     isSuccess: true,
                     title: "Disc Image Mastered Successfully",
@@ -2014,7 +2013,7 @@ public final class KroutonToasterBank: ObservableObject {
                     self.isExecutingQueue = false
                     self.activeJobProgress = 1.0
                     self.activeJobPhase = simulationMode ? "Simulation Completed" : "Optical Burn & Verification Complete!"
-                    NSSound.beep()
+                    /* Acoustic cue handled by KroutonApp UI layer */
                     self.refreshDrives()
 
                     let mins = self.elapsedSeconds / 60
@@ -2126,7 +2125,7 @@ public final class KroutonToasterBank: ObservableObject {
                 activeJobProgress = 1.0
                 activeJobPhase = "Converted .BIN to .ISO Successfully"
                 isExecutingQueue = false
-                NSSound.beep()
+                /* Acoustic cue handled by KroutonApp UI layer */
                 let secs = max(1, Int(Date().timeIntervalSince(startTime)))
                 let rep = KroutonToastReport(
                     isSuccess: true,
@@ -2180,7 +2179,7 @@ public final class KroutonToasterBank: ObservableObject {
                 activeJobProgress = 1.0
                 activeJobPhase = "Generated .BIN + .CUE Pair Successfully"
                 isExecutingQueue = false
-                NSSound.beep()
+                /* Acoustic cue handled by KroutonApp UI layer */
                 let secs = max(1, Int(Date().timeIntervalSince(startTime)))
                 let rep = KroutonToastReport(
                     isSuccess: true,
