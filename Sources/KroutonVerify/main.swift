@@ -743,7 +743,7 @@ harness.runSuite("18. VideoOven DVD-9 -> DVD-5 Menu-Preserving Shrink, .IFO Reli
 
 harness.runSuite("19. Type-Safe Optical Recipe Catalog, Workspace Routing & File Extension Invariants") { h in
     let formats = KroutonOpticalRecipeCatalog.defaultFormats
-    h.check(formats.count == 29, "Expected 29 canonical optical recipes, found \(formats.count)")
+    h.check(formats.count == 32, "Expected 32 canonical optical recipes, found \(formats.count)")
 
     for spec in formats {
         h.check(spec.formatID != nil, "Recipe '\(spec.id)' must map to a valid KroutonFormatID enum case")
