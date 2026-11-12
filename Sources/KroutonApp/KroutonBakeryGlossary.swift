@@ -1,0 +1,49 @@
+//
+//  KroutonBakeryGlossary.swift
+//  KroutonApp — Canonical Bakery UI Type Glossary & Scope Safety Net
+//
+
+import SwiftUI
+import OpticalDough
+
+// MARK: - Bidirectional App-Layer Bakery Typealiases (Auto-Verified Against Declarations)
+public typealias AccentColorPreset = KroutonSeasoningColorPreset
+public typealias KroutonGlazePreset = KroutonSeasoningColorPreset
+public typealias AppAppearanceMode = KroutonRoastAppearanceMode
+public typealias SanitySeverity = KroutonBurntToastSeverity
+public typealias KroutonSmokeSeverity = KroutonBurntToastSeverity
+public typealias PreFlightSanityDiagnostic = KroutonPantryCalibrationCheck
+public typealias KroutonOvenPreHeatDiagnostic = KroutonPantryCalibrationCheck
+public typealias IconWidgetStyleMode = KroutonGarnishStyleMode
+public typealias SidebarIconSizeMode = KroutonCubeIconSizeMode
+public typealias KroutonCrumbSizeMode = KroutonCubeIconSizeMode
+public typealias FolderColorMode = KroutonPantryFolderColorMode
+public typealias KroutonBasketColorMode = KroutonPantryFolderColorMode
+public typealias DiscLabelTemplateStyle = KroutonCroutonLabelStyle
+public typealias KroutonLabelStencilStyle = KroutonCroutonLabelStyle
+public typealias TaskMasterCategory = KroutonBakeryStation
+public typealias KroutonKitchenStation = KroutonBakeryStation
+public typealias FormatFilterGroup = KroutonRecipeFilterGroup
+public typealias KroutonRecipeGroup = KroutonRecipeFilterGroup
+public typealias DiscFormatSpec = KroutonRecipeSpec
+public typealias DepotCatalogItem = KroutonPantryCatalogItem
+public typealias DepotChannelSubscription = KroutonPantryFeedSubscription
+public typealias KroutonPantrySubscription = KroutonPantryFeedSubscription
+public typealias LabelGeometryPreset = KroutonSliceLabelGeometry
+public typealias DiscLabelGeometryPreset = KroutonSliceLabelGeometry
+public typealias KroutonPlatterGeometryPreset = KroutonSliceLabelGeometry
+public typealias NotificationEventRow = KroutonKitchenEventRow
+public typealias KroutonKitchenTimerEventRow = KroutonKitchenEventRow
+public typealias DestinationOutputKind = KroutonToasterOutputKind
+public typealias KroutonBakeOutputKind = KroutonToasterOutputKind
+public typealias DestinationQueueItem = KroutonBakeBatchItem
+public typealias KroutonBakingTrayItem = KroutonBakeBatchItem
+typealias PhaseScopeWindowCloseDelegate = KroutonThermometerCloseDelegate
+typealias OpticalDiscArtworkView = KroutonSliceArtworkView
+typealias KroutonWaferArtworkView = KroutonSliceArtworkView
+typealias DiscMediaInspectorPopover = KroutonSliceMediaPopover
+typealias KroutonWaferInspectorPopover = KroutonSliceMediaPopover
+typealias InlineMiniPhaseScopeView = KroutonMiniThermometerView
+typealias FloatingPhaseScopeWindowView = KroutonFloatingThermometerView
+typealias DepotBlueprintArtStudioView = KroutonRecipeBlueprintView
+typealias KroutonPantryBlueprintStudioView = KroutonRecipeBlueprintView
