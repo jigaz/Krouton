@@ -510,6 +510,54 @@ harness.runSuite("14. Galette Disc Image Depot (.cue Parser, 2352B->2048B BIN Ex
     h.check(depotClass.recommendedMediaBadge == "DVD-5 (4.7 GB SL)", "4.1 GB image must recommend DVD-5")
 }
 
+
+// 15. Crustini Optical Rescue Copy State Machine & Polar 300-DPI Disc Label Geometry Engine
+harness.runSuite("15. Crustini Optical Rescue Copy Engine & Polar 300-DPI Label Geometry") { h in
+    // 15a. Optical Rescue 3-stage state machine (Clean -> 2x CLV Downshift -> Zero-Pad Substitute)
+    let clean = KroutonKrustiniModule.evaluateSectorRescue(lba: 1000, c2ErrorCount: 0, retryAttempt: 0)
+    h.check(clean.action == .readCleanFullSpeed && clean.nextCursorLBA == 1001, "Clean sector advances LBA by 1 at full speed")
+
+    let retry = KroutonKrustiniModule.evaluateSectorRescue(lba: 1000, c2ErrorCount: 4, retryAttempt: 2, maxRetries: 5)
+    h.check(retry.action == .downshiftRetry2xCLV && retry.recommendedSpindleSpeedX == 2 && retry.nextCursorLBA == 1000,
+            "Damaged sector under retry threshold downshifts to 2x CLV and re-reads same LBA")
+
+    let exhausted = KroutonKrustiniModule.evaluateSectorRescue(
+        lba: 1000,
+        c2ErrorCount: 12,
+        retryAttempt: 5,
+        maxRetries: 5,
+        sectorSizeBytes: 2048,
+        fastSkipStepLBA: 16
+    )
+    h.check(exhausted.action == .substituteZeroSector && exhausted.replacementSectorBytes == 2048 && exhausted.nextCursorLBA == 1016,
+            "Exhausted sector substitutes 2048B zero-pad and fast-skips 16 LBA sectors")
+
+    // 15b. 300-DPI Disc Label Canvas (120mm @ 300 DPI = 1417 px) & Hub Annulus Hit-Testing
+    let fullFace = KroutonDiscHubGeometry.fullFace120mmHub22mm
+    h.check(fullFace.canvasPixelDimension(dpi: 300.0) == 1417, "120mm disc at 300 DPI must equal 1417 x 1417 pixels")
+
+    // Center spindle hole (0, 0) must be rejected; mid-disc ring (r = 35mm) must be accepted; outside disc (r = 65mm) rejected
+    h.check(!KroutonKrustiniModule.isPointInsidePrintableAnnulus(dxMM: 0.0, dyMM: 0.0, geometry: fullFace),
+            "Spindle center (0,0) must be excluded from printable ink annulus")
+    h.check(KroutonKrustiniModule.isPointInsidePrintableAnnulus(dxMM: 35.0, dyMM: 0.0, geometry: fullFace),
+            "35mm radius must lie inside printable ink annulus")
+    h.check(!KroutonKrustiniModule.isPointInsidePrintableAnnulus(dxMM: 65.0, dyMM: 0.0, geometry: fullFace),
+            "65mm radius (outside 118mm diameter) must be excluded from printable ink annulus")
+
+    // 15c. Polar-to-Cartesian curved text glyph placement invariant (every glyph sits exactly at radius R)
+    let glyphs = KroutonKrustiniModule.computePolarArcGlyphLayout(
+        text: "KROUTON MASTER ARCHIVE",
+        centerX: 708.5,
+        centerY: 708.5,
+        radiusPoints: 500.0
+    )
+    h.check(glyphs.count == 22, "22-char title must produce 22 polar glyph placements")
+    for g in glyphs {
+        let dist = hypot(g.xPoints - 708.5, g.yPoints - 708.5)
+        h.check(abs(dist - 500.0) < 1e-6, "Glyph '\(g.character)' must sit at exact polar radius 500.0 pt (got \(dist))")
+    }
+}
+
 print("\n🎯 SUMMARY: \(harness.passed) assertions passed, \(harness.failed) failed.")
 if harness.failed > 0 {
     exit(1)
