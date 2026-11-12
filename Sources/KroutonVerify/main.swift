@@ -381,6 +381,57 @@ harness.runSuite("11. Marmalade Red Book CUE Sheet Compiler, 18B CD-Text CRC-16 
     h.check(cue.contains("INDEX 01 00:12:00"), "Track 2 gapless start at exact cumulative frame 00:12:00")
 }
 
+
+// 12. Tartine Hybrid Data Loaf LBA Planner (ISO-9660, Joliet, UDF 2.60, El Torito & Dual-Tree Deduplication)
+harness.runSuite("12. Tartine Hybrid Data LBA Planner (PVD LBA 16, El Torito LBA 17, UDF LBA 256 & Deduplication)") { h in
+    let vol = KroutonTartineModule.sanitizeVolumeIdentifier("Krouton Master 2026! (v1.0)")
+    h.check(vol == "KROUTON_MASTER_2026___V1_0", "ECMA-119 d-character volume label sanitization")
+
+    let isoFile = KroutonTartineModule.sanitizeISO9660FileIdentifier("my-super-archive-2026.tar.gz")
+    h.check(isoFile.hasSuffix(".GZ;1") && isoFile.count <= 31, "ISO-9660 Level 2 filename + ;1 version")
+
+    let fiveGiB: Int64 = 5 * 1024 * 1024 * 1024
+    let entries = [
+        KroutonLoafFileEntry(
+            url: URL(fileURLWithPath: "/tmp/SharedInstaller.pkg"),
+            name: "SharedInstaller.pkg",
+            isDirectory: false,
+            byteSize: 4096, // 2 sectors
+            itemCount: 1,
+            posixPermissions: "rwxr-xr-x",
+            modifiedDate: Date(),
+            showOnMac: true,
+            showOnPC: true
+        ),
+        KroutonLoafFileEntry(
+            url: URL(fileURLWithPath: "/tmp/Giant4KMaster.mov"),
+            name: "Giant4KMaster.mov",
+            isDirectory: false,
+            byteSize: fiveGiB,
+            itemCount: 1,
+            posixPermissions: "rw-r--r--",
+            modifiedDate: Date(),
+            showOnMac: true,
+            showOnPC: true
+        )
+    ]
+
+    let plan = KroutonTartineModule.planHybridDataLayout(
+        volumeLabel: "Krouton Boot Hybrid",
+        entries: entries,
+        isElToritoBootable: true
+    )
+
+    h.check(plan.pvdSectorLBA == 16, "ISO-9660 PVD must sit at LBA 16")
+    h.check(plan.elToritoBootRecordLBA == 17, "El Torito Boot Record must sit at LBA 17")
+    h.check(plan.jolietSVDSectorLBA == 18, "Joliet SVD must shift to LBA 18 when El Torito is at LBA 17")
+    h.check(plan.udfAnchorAVDPLBA == 256, "ECMA-167 UDF Anchor Volume Descriptor Pointer must sit at LBA 256")
+    h.check(plan.sharedHybridExtents.count == 2, "Shared Mac+PC files must deduplicate into single physical LBA extents")
+    h.check(plan.sharedHybridExtents[0].startLBA == 288 && plan.sharedHybridExtents[0].sectorCountLBA == 2, "First file starts at LBA 288 (2 sectors)")
+    h.check(plan.sharedHybridExtents[1].startLBA == 290 && plan.sharedHybridExtents[1].requiresUDFMultiExtent, "Second file (>4GiB) starts monotonically at LBA 290 and flags UDF multi-extent")
+    h.check(!plan.warnings.isEmpty, ">4GiB file must emit UDF multi-extent advisory")
+}
+
 print("\n🎯 SUMMARY: \(harness.passed) assertions passed, \(harness.failed) failed.")
 if harness.failed > 0 {
     exit(1)
