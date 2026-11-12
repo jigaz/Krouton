@@ -1,151 +1,180 @@
 import SwiftUI
 import AppKit
+import AudioToolbox
 import UniformTypeIdentifiers
 import OpticalDough
 
+// MARK: - Centralized Desktop OS Services Bridge (Single OS Boundary Adapter)
+public enum KroutonOSDesktopBridge {
+    public static func playAcousticCue() {
+        AudioServicesPlaySystemSound(kSystemSoundID_UserPreferredAlert)
+    }
+
+    public static func copyTextToClipboard(_ text: String) {
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.setString(text, forType: .string)
+    }
+
+    public static func revealURLsInFinder(_ urls: [URL]) {
+        NSWorkspace.shared.activateFileViewerSelecting(urls)
+    }
+
+    public static func revealFolderInFinder(path: String) {
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
+    }
+
+    @MainActor
+    public static func printSwiftUIView<V: View>(_ view: V) {
+        NSPrintOperation(view: NSHostingView(rootView: view)).run()
+    }
+
+    public static func isSystemDarkMode() -> Bool {
+        UserDefaults.standard.string(forKey: "AppleInterfaceStyle") == "Dark"
+    }
+
+    public static func postVoiceOverAnnouncement(_ message: String) {
+        Task { @MainActor in
+            if let mainWin = NSApp?.mainWindow {
+                NSAccessibility.post(
+                    element: mainWin,
+                    notification: .announcementRequested,
+                    userInfo: [
+                        .announcement: message,
+                        .priority: NSAccessibilityPriorityLevel.high.rawValue
+                    ]
+                )
+            }
+        }
+    }
+
+    public static var didBecomeActiveNotification: Notification.Name {
+        NSApplication.didBecomeActiveNotification
+    }
+
+    public static var didResignActiveNotification: Notification.Name {
+        NSApplication.didResignActiveNotification
+    }
+
+    public static var didChangeWindowOcclusionNotification: Notification.Name {
+        NSWindow.didChangeOcclusionStateNotification
+    }
+
+    public static func isApplicationVisiblyActive() -> Bool {
+        MainActor.assumeIsolated {
+            guard let app = NSApp else { return true }
+            let anyVisible = app.windows.contains { $0.isVisible && $0.occlusionState.contains(.visible) }
+            return app.isActive && anyVisible
+        }
+    }
+}
+
 @MainActor
-final class KroutonWindowManager {
+final class KroutonWindowManager: NSObject, NSApplicationDelegate, NSWindowDelegate {
     static let shared = KroutonWindowManager()
     let store = KroutonStateStore()
     let driveManager = KroutonToasterBank()
 
-    var mainWindow: NSWindow?
-    var settingsWindow: NSWindow?
-    var phaseScopeWindows: [String: NSWindow] = [:]
-    var phaseScopeDelegates: [String: KroutonThermometerCloseDelegate] = [:]
+    private var hostedWindows: [String: NSWindow] = [:]
+
+    private func presentWindow<V: View>(id: String, title: String, width: CGFloat, height: CGFloat, autosave: String? = nil, rootView: V) {
+        if let existing = hostedWindows[id] {
+            existing.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        let win = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: width, height: height),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        win.title = title
+        win.identifier = NSUserInterfaceItemIdentifier(id)
+        win.contentViewController = NSHostingController(rootView: rootView)
+        win.center()
+        if let saveName = autosave { win.setFrameAutosaveName(saveName) }
+        win.isReleasedWhenClosed = false
+        win.delegate = self
+        win.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        hostedWindows[id] = win
+    }
 
     func openFloatingPhaseScopeWindow(driveID: String) {
         let resolvedDrive = driveManager.driveForID(driveID)
         let targetID = resolvedDrive?.id ?? driveID
         guard !targetID.isEmpty else { return }
         let driveTitle = resolvedDrive?.displayName ?? "Optical Burner"
-
         driveManager.setFloatingScopeOpen(for: targetID, isOpen: true)
 
-        if let existing = phaseScopeWindows[targetID] {
-            existing.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
-
-        let rootView = KroutonFloatingThermometerView(
-            driveID: targetID,
-            store: store,
-            driveManager: driveManager,
-            onDockInline: { [weak self] in
-                self?.closeFloatingPhaseScopeWindow(driveID: targetID)
-            }
+        presentWindow(
+            id: "scope:\(targetID)",
+            title: "Phase Scope — \(driveTitle)",
+            width: 780,
+            height: 520,
+            rootView: KroutonFloatingThermometerView(
+                driveID: targetID,
+                store: store,
+                driveManager: driveManager,
+                onDockInline: { [weak self] in
+                    self?.closeFloatingPhaseScopeWindow(driveID: targetID)
+                }
+            )
         )
-        let hostingController = NSHostingController(rootView: rootView)
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 780, height: 520),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "Phase Scope — \(driveTitle)"
-        window.contentViewController = hostingController
-        window.center()
-        window.isReleasedWhenClosed = false
-
-        let del = KroutonThermometerCloseDelegate(driveID: targetID, driveManager: driveManager)
-        self.phaseScopeDelegates[targetID] = del
-        window.delegate = del
-
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        self.phaseScopeWindows[targetID] = window
     }
 
     func closeFloatingPhaseScopeWindow(driveID: String, suckIntoMiniGraph: Bool = true) {
         driveManager.setFloatingScopeOpen(for: driveID, isOpen: false, keepInlineVisible: suckIntoMiniGraph)
-        phaseScopeWindows[driveID]?.orderOut(nil)
+        hostedWindows["scope:\(driveID)"]?.orderOut(nil)
     }
 
     func openMainWindow() {
-        if let existing = mainWindow {
-            existing.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
-
-        let rootView = KroutonMainWorkspaceView(store: store, driveManager: driveManager)
-        let hostingController = NSHostingController(rootView: rootView)
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1380, height: 880),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
+        presentWindow(
+            id: "main",
+            title: "Krouton",
+            width: 1380,
+            height: 880,
+            autosave: "KroutonMainWorkspaceWindow",
+            rootView: KroutonMainWorkspaceView(store: store, driveManager: driveManager)
         )
-        window.title = "Krouton"
-        window.contentViewController = hostingController
-        window.center()
-        window.setFrameAutosaveName("KroutonMainWorkspaceWindow")
-        window.isReleasedWhenClosed = false
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        self.mainWindow = window
     }
 
     func openSettingsWindow(store: KroutonStateStore, driveManager: KroutonToasterBank, pane: KroutonSettingsCategory? = nil) {
         if let targetPane = pane { store.selectedSettingsPane = targetPane }
-        if let existing = settingsWindow {
-            existing.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
-
-        let hostingController = NSHostingController(rootView: KroutonSettingsWindowView(store: store, driveManager: driveManager))
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1120, height: 720),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
+        presentWindow(
+            id: "settings",
+            title: "Krouton Settings",
+            width: 1120,
+            height: 720,
+            autosave: "KroutonSettingsWindow",
+            rootView: KroutonSettingsWindowView(store: store, driveManager: driveManager)
         )
-        window.title = "Krouton Settings"
-        window.contentViewController = hostingController
-        window.center()
-        window.setFrameAutosaveName("KroutonSettingsWindow")
-        window.isReleasedWhenClosed = false
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        self.settingsWindow = window
-    }
-}
-
-@MainActor
-final class KroutonThermometerCloseDelegate: NSObject, NSWindowDelegate {
-    let driveID: String
-    weak var driveManager: KroutonToasterBank?
-
-    init(driveID: String, driveManager: KroutonToasterBank) {
-        self.driveID = driveID
-        self.driveManager = driveManager
     }
 
     func windowWillClose(_ notification: Notification) {
-        driveManager?.setFloatingScopeOpen(for: driveID, isOpen: false, keepInlineVisible: true)
+        if let win = notification.object as? NSWindow,
+           let rawID = win.identifier?.rawValue,
+           rawID.hasPrefix("scope:") {
+            let driveID = String(rawID.dropFirst("scope:".count))
+            driveManager.setFloatingScopeOpen(for: driveID, isOpen: false, keepInlineVisible: true)
+        }
     }
-}
 
-@MainActor
-final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        KroutonWindowManager.shared.openMainWindow()
+        openMainWindow()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag {
-            KroutonWindowManager.shared.openMainWindow()
-        }
+        if !flag { openMainWindow() }
         return true
     }
 }
 
 @main
 struct KroutonApp: App {
-    @NSApplicationDelegateAdaptor(KroutonAppDelegate.self) var appDelegate
+    @NSApplicationDelegateAdaptor(KroutonWindowManager.self) var appDelegate
 
     var body: some Scene {
         Settings {
