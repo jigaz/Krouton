@@ -468,6 +468,48 @@ harness.runSuite("13. VideoOven Optical Bitrate Budget (DVD-5/DVD-9/BD-25/BD-50)
             "Stripping extras must yield higher video quality retention ratio for the main feature")
 }
 
+
+// 14. Galette Disc Image Depot (.cue Parser, 2352B Mode 1 / Mode 2 -> 2048B ISO Extractor & Boot Classifier)
+harness.runSuite("14. Galette Disc Image Depot (.cue Parser, 2352B->2048B BIN Extractor & Boot Classifier)") { h in
+    // 14a. Multi-track Mixed-Mode .cue sheet parsing
+    let sampleCue = """
+    FILE "KROUTON_MIXED_MASTER.BIN" BINARY
+      TRACK 01 MODE1/2352
+        TITLE "Data Track"
+        INDEX 01 00:00:00
+      TRACK 02 AUDIO
+        TITLE "Red Book Theme"
+        INDEX 00 02:00:00
+        INDEX 01 02:02:00
+    """
+    let parsedTracks = KroutonGaletteModule.parseCueSheet(sampleCue)
+    h.check(parsedTracks.count == 2, "Mixed-mode CUE sheet must parse 2 tracks")
+    h.check(parsedTracks[0].mode == .mode1_2352 && parsedTracks[0].index01LBA == 0, "Track 1 Mode1/2352 @ LBA 0")
+    h.check(parsedTracks[1].mode == .audio2352 && parsedTracks[1].index00LBA == 9000 && parsedTracks[1].index01LBA == 9150,
+            "Track 2 Audio INDEX 00 @ 02:00:00 (9000 LBA) and INDEX 01 @ 02:02:00 (9150 LBA)")
+
+    // 14b. Raw 2352-byte Mode 1 & Mode 2 Form 1 -> 2048-byte ISO payload extraction
+    var mode1Raw = Data(KroutonGaletteModule.cdRomSyncPattern) // 12 bytes
+    mode1Raw.append(contentsOf: [0x00, 0x02, 0x00, 0x01])      // 4B header (00:02:00, Mode 1 = 0x01)
+    let expectedPayload = Data(repeating: 0x5A, count: 2048)
+    mode1Raw.append(expectedPayload)                           // 2048B user payload
+    mode1Raw.append(Data(repeating: 0xEE, count: 288))         // 288B EDC/ECC parity
+    h.check(mode1Raw.count == 2352, "Synthetic Mode 1 raw sector must be 2352 bytes")
+
+    let extractedISO = KroutonGaletteModule.extractISO2048SectorFromRaw2352(mode1Raw)
+    h.check(extractedISO == expectedPayload && extractedISO?.count == 2048,
+            "Mode 1 2352B sector extractor must strip 16B header and 288B ECC to yield exact 2048B ISO payload")
+
+    // 14c. Depot Boot & Media Badge classification
+    let depotClass = KroutonGaletteModule.classifyDepotImage(
+        byteSize: 4_100_000_000,
+        signatureSampleASCII: "CD001 EL TORITO SPECIFICATION UDF NSR03"
+    )
+    h.check(depotClass.isBootable && depotClass.bootStandard == "El Torito x86/EFI", "El Torito boot detection")
+    h.check(depotClass.detectedFilesystems.contains("ISO-9660") && depotClass.detectedFilesystems.contains("UDF"), "ISO+UDF bridge detection")
+    h.check(depotClass.recommendedMediaBadge == "DVD-5 (4.7 GB SL)", "4.1 GB image must recommend DVD-5")
+}
+
 print("\n🎯 SUMMARY: \(harness.passed) assertions passed, \(harness.failed) failed.")
 if harness.failed > 0 {
     exit(1)
