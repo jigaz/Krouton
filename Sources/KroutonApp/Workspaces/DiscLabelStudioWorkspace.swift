@@ -10,17 +10,15 @@ import Crustini
 struct KroutonDiscLabelStudioWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
 
-    @State private var labelDiscTitle: String = "THE KROUTON ARCHIVE"
-    @State private var labelSubtitle: String = "2026 MASTER EDITION"
-    @State private var autoLabelSearchQuery: String = "Dark Side of the Moon"
+    // Bound directly to KroutonStateStore so label edits persist across sidebar switches & .krut saves
 
     @MainActor
     private func exportDiscLabelAsPNG(preset: KroutonSliceLabelGeometry) {
         let exportView = KroutonDiscLabelArtworkCanvas(
             preset: preset,
             template: store.selectedLabelTemplate,
-            title: labelDiscTitle,
-            subtitle: labelSubtitle,
+            title: store.labelDiscTitle,
+            subtitle: store.labelSubtitle,
             performer: store.discPerformer,
             mcnBarcode: store.discMCNBarcode,
             trackLines: resolvedLabelTracklistLines,
@@ -42,7 +40,7 @@ struct KroutonDiscLabelStudioWorkspaceView: View {
         let pngData = mutableData as Data
         KroutonLabelExportBridge.shared.presentPNGExport(
             pngData: pngData,
-            defaultFilename: "\(labelDiscTitle.replacingOccurrences(of: " ", with: "_"))_120mm_Label.png"
+            defaultFilename: "\(store.labelDiscTitle.replacingOccurrences(of: " ", with: "_"))_120mm_Label.png"
         )
     }
 
@@ -57,31 +55,29 @@ struct KroutonDiscLabelStudioWorkspaceView: View {
 
     var body: some View {
         let preset = store.labelPresets[min(store.selectedLabelPresetIndex, store.labelPresets.count - 1)]
-        let arcGlyphs = store.computeLiveDiscLabelArcGlyphs(title: labelDiscTitle, radiusPoints: 500.0)
+        let arcGlyphs = store.computeLiveDiscLabelArcGlyphs(title: store.labelDiscTitle, radiusPoints: 500.0)
 
         return GeometryReader { labelGeo in
-            let availW = labelGeo.size.width
+            let availW = max(260, labelGeo.size.width)
             let availH = labelGeo.size.height
             let useStackedLayout = availW < 650
+            let isUltraCompactLabel = availW < 420
             let dynamicDiscDiameter: CGFloat = useStackedLayout
-                ? min(max(210, availW - 48), 280)
-                : min(max(220, availW - 350), min(340, max(220, availH - 110)))
+                ? min(max(195, availW - 56), 265)
+                : min(max(240, availW - 350), min(380, max(240, availH - 105)))
 
             VStack(alignment: .leading, spacing: 10) {
-                // Responsive Header Bar: Wraps cleanly onto 2 rows when narrow (Zero Vertical Green Cucumber!)
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 10) {
-                        labelHeaderTitleBlock(preset: preset)
-                        Spacer(minLength: 8)
-                        labelHeaderControlsBlock(preset: preset)
+                // Responsive Header Bar: Deterministic 2-row stack when narrow, 1-row when wide
+                if useStackedLayout {
+                    VStack(alignment: .leading, spacing: 6) {
+                        labelHeaderTitleBlock(preset: preset, isCompact: isUltraCompactLabel)
+                        labelHeaderControlsBlock(preset: preset, isCompact: isUltraCompactLabel)
                     }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        labelHeaderTitleBlock(preset: preset)
-                        HStack(spacing: 10) {
-                            labelHeaderControlsBlock(preset: preset)
-                            Spacer(minLength: 0)
-                        }
+                } else {
+                    HStack(spacing: 10) {
+                        labelHeaderTitleBlock(preset: preset, isCompact: false)
+                        Spacer(minLength: 8)
+                        labelHeaderControlsBlock(preset: preset, isCompact: false)
                     }
                 }
 
@@ -118,12 +114,12 @@ struct KroutonDiscLabelStudioWorkspaceView: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(width: availW, height: availH, alignment: .topLeading)
         }
     }
 
     @ViewBuilder
-    private func labelHeaderTitleBlock(preset: KroutonSliceLabelGeometry) -> some View {
+    private func labelHeaderTitleBlock(preset: KroutonSliceLabelGeometry, isCompact: Bool) -> some View {
         HStack(spacing: 10) {
             KroutonStyledIconBadge(
                 sfSymbol: store.selectedTaskID == "label-auto" ? "wand.and.stars" : "printer.dotmatrix.fill",
@@ -133,10 +129,11 @@ struct KroutonDiscLabelStudioWorkspaceView: View {
                 symbolSize: 14
             )
             VStack(alignment: .leading, spacing: 1) {
-                Text(store.selectedTaskID == "label-auto" ? "Automatic Disc Label Studio" : "120mm / 80mm Optical Disc Label Studio")
+                Text(store.selectedTaskID == "label-auto" ? (isCompact ? "Auto Disc Label Studio" : "Automatic Disc Label Studio") : (isCompact ? "Manual Disc Label Studio" : "120mm / 80mm Optical Disc Label Studio"))
                     .font(.title3.bold())
                     .lineLimit(1)
-                Text(String(format: "%@ • Outer %.0fmm / Hub %.0fmm • Offset X:%.1f Y:%.1fmm", preset.name, preset.outerDiameterMM, preset.innerDiameterMM, preset.offsetXMM, preset.offsetYMM))
+                    .minimumScaleFactor(0.82)
+                Text(isCompact ? String(format: "%@ • %.0fmm / %.0fmm Hub", preset.name, preset.outerDiameterMM, preset.innerDiameterMM) : String(format: "%@ • Outer %.0fmm / Hub %.0fmm • Offset X:%.1f Y:%.1fmm", preset.name, preset.outerDiameterMM, preset.innerDiameterMM, preset.offsetXMM, preset.offsetYMM))
                     .font(.caption)
                     .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : .secondary)
                     .lineLimit(1)
@@ -145,7 +142,7 @@ struct KroutonDiscLabelStudioWorkspaceView: View {
     }
 
     @ViewBuilder
-    private func labelHeaderControlsBlock(preset: KroutonSliceLabelGeometry) -> some View {
+    private func labelHeaderControlsBlock(preset: KroutonSliceLabelGeometry, isCompact: Bool) -> some View {
         HStack(spacing: 8) {
             Picker("Tray:", selection: $store.selectedLabelPresetIndex) {
                 ForEach(Array(store.labelPresets.enumerated()), id: \.offset) { idx, item in
@@ -153,14 +150,14 @@ struct KroutonDiscLabelStudioWorkspaceView: View {
                 }
             }
             .labelsHidden()
-            .frame(minWidth: 145, maxWidth: 205)
+            .frame(maxWidth: isCompact ? .infinity : 215)
 
             Button {
                 exportDiscLabelAsPNG(preset: preset)
             } label: {
                 HStack(spacing: 5) {
                     Image(systemName: "square.and.arrow.down.fill")
-                    Text("Export 300-DPI PNG...")
+                    Text(isCompact ? "Export PNG..." : "Export 300-DPI PNG...")
                         .lineLimit(1)
                 }
                 .font(.system(size: 11, weight: .bold))
@@ -184,12 +181,12 @@ struct KroutonDiscLabelStudioWorkspaceView: View {
                     Text(KroutonL10n.tr("Automatic Cover & Metadata Lookup"))
                         .font(.subheadline.bold())
                     HStack(spacing: 6) {
-                        TextField("Album, Movie, or Game...", text: $autoLabelSearchQuery)
+                        TextField("Album, Movie, or Game...", text: $store.autoLabelSearchQuery)
                             .textFieldStyle(.roundedBorder)
                         Button {
-                            if !autoLabelSearchQuery.trimmingCharacters(in: .whitespaces).isEmpty {
-                                labelDiscTitle = autoLabelSearchQuery.uppercased()
-                                labelSubtitle = "MASTERED IN KROUTON • SHA-256 VERIFIED"
+                            if !store.autoLabelSearchQuery.trimmingCharacters(in: .whitespaces).isEmpty {
+                                store.labelDiscTitle = store.autoLabelSearchQuery.uppercased()
+                                store.labelSubtitle = "MASTERED IN KROUTON • SHA-256 VERIFIED"
                             }
                         } label: {
                             Text("Fetch")
@@ -251,11 +248,11 @@ struct KroutonDiscLabelStudioWorkspaceView: View {
                         .font(.subheadline.bold())
                     Spacer()
                     Button {
-                        labelDiscTitle = store.discVolumeTitle
+                        store.labelDiscTitle = store.discVolumeTitle
                         if !store.stagedFiles.isEmpty {
-                            labelSubtitle = "\(store.stagedFiles.count) ITEMS • \(ByteCountFormatter.string(fromByteCount: store.totalStagedBytes, countStyle: .file))"
+                            store.labelSubtitle = "\(store.stagedFiles.count) ITEMS • \(ByteCountFormatter.string(fromByteCount: store.totalStagedBytes, countStyle: .file))"
                         } else {
-                            labelSubtitle = "44.1 KHZ 16-BIT RED BOOK PCM • \(store.discPerformer.uppercased())"
+                            store.labelSubtitle = "44.1 KHZ 16-BIT RED BOOK PCM • \(store.discPerformer.uppercased())"
                         }
                     } label: {
                         HStack(spacing: 4) {
@@ -279,13 +276,13 @@ struct KroutonDiscLabelStudioWorkspaceView: View {
                     Text("Primary Title (Top Polar Arc):")
                         .font(.caption.bold())
                         .foregroundStyle(.secondary)
-                    TextField("Primary Arc Title", text: $labelDiscTitle)
+                    TextField("Primary Arc Title", text: $store.labelDiscTitle)
                         .textFieldStyle(.roundedBorder)
 
                     Text("Bottom Subtitle / Format Spec:")
                         .font(.caption.bold())
                         .foregroundStyle(.secondary)
-                    TextField("Bottom Subtitle / Track Summary", text: $labelSubtitle)
+                    TextField("Bottom Subtitle / Track Summary", text: $store.labelSubtitle)
                         .textFieldStyle(.roundedBorder)
 
                     HStack(spacing: 8) {
@@ -311,6 +308,141 @@ struct KroutonDiscLabelStudioWorkspaceView: View {
                     .toggleStyle(.checkbox)
                     .font(.caption.bold())
             }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Label("Vector Background & Curved Arc", systemImage: "beziercurve")
+                        .font(.subheadline.bold())
+                    Spacer()
+                    Picker("", selection: $store.labelBackgroundStyle) {
+                        ForEach(KroutonVectorBackgroundStyle.allCases) { style in
+                            Text(style.rawValue).tag(style)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: 155)
+                }
+
+                if store.labelBackgroundStyle != .templateDefault {
+                    HStack(spacing: 12) {
+                        ColorPicker("Color 1:", selection: $store.labelBgPrimaryColor)
+                            .font(.caption.bold())
+                        if store.labelBackgroundStyle != .solidColor {
+                            ColorPicker("Color 2:", selection: $store.labelBgSecondaryColor)
+                                .font(.caption.bold())
+                        }
+                        if store.labelBackgroundStyle == .linearGradient || store.labelBackgroundStyle == .angularGradient {
+                            Slider(value: $store.labelGradientAngle, in: 0...360, step: 15)
+                                .frame(maxWidth: 95)
+                                .help("Gradient Sweep Angle: \(Int(store.labelGradientAngle))°")
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    Text("Arc Curve:").font(.caption.bold()).foregroundStyle(.secondary).frame(width: 66, alignment: .leading)
+                    Slider(value: $store.labelTopArcRadiusMM, in: 28...55)
+                        .help("Top Polar Arc Radius: \(Int(store.labelTopArcRadiusMM)) mm")
+                    Text("Kerning:").font(.caption.bold()).foregroundStyle(.secondary)
+                    Slider(value: $store.labelArcLetterSpacing, in: 0.65...1.65)
+                        .frame(maxWidth: 85)
+                        .help("Polar Arc Letter Spacing")
+                }
+
+                Divider()
+
+                HStack(spacing: 8) {
+                    Toggle(isOn: $store.isLabelVectorDrawMode) {
+                        Label(store.isLabelVectorDrawMode ? "Drawing on Disc (Drag Mouse)" : "Draw Vector Shapes on Disc", systemImage: "pencil.and.outline")
+                            .font(.caption.bold())
+                    }
+                    .toggleStyle(.button)
+                    .tint(store.isLabelVectorDrawMode ? .green : store.activeAccent)
+
+                    Toggle("Auto-Snap", isOn: $store.labelDrawAutoSnap)
+                        .toggleStyle(.checkbox)
+                        .font(.caption)
+                }
+
+                HStack(spacing: 6) {
+                    Button {
+                        let (r, g, b, _) = KroutonPureColorMath.extractSRGB(store.uiSecondaryAccent)
+                        let star = KroutonKrustiniModule.makeParametricVectorShape(
+                            kind: .star,
+                            strokeColor: KroutonRGBAColor(r: Double(r), g: Double(g), b: Double(b), a: 1.0)
+                        )
+                        store.labelVectorShapes.append(star)
+                    } label: {
+                        Label("+ Star", systemImage: "star.fill").font(.system(size: 10, weight: .bold))
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(store.activeAccent.opacity(0.16)).clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        let (r, g, b, _) = KroutonPureColorMath.extractSRGB(store.activeAccent)
+                        let ring = KroutonKrustiniModule.makeParametricVectorShape(
+                            kind: .concentricRing,
+                            strokeColor: KroutonRGBAColor(r: Double(r), g: Double(g), b: Double(b), a: 0.85)
+                        )
+                        store.labelVectorShapes.append(ring)
+                    } label: {
+                        Label("+ Ring", systemImage: "circle.circle").font(.system(size: 10, weight: .bold))
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(store.activeAccent.opacity(0.16)).clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        traceDiscEmblemWithAppleVision(preset: preset)
+                    } label: {
+                        Label("Vision Auto-Trace", systemImage: "sparkles").font(.system(size: 10, weight: .bold))
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(store.uiSecondaryAccent.opacity(0.18))
+                            .foregroundStyle(store.uiSecondaryAccent)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+
+                    if !store.labelVectorShapes.isEmpty {
+                        Button {
+                            store.labelVectorShapes.removeAll()
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func traceDiscEmblemWithAppleVision(preset: KroutonSliceLabelGeometry) {
+        let symbolView = ZStack {
+            Color.white
+            Image(systemName: "opticaldisc.fill")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 160, height: 160)
+                .foregroundStyle(.black)
+        }
+        .frame(width: 240, height: 240)
+
+        let renderer = ImageRenderer(content: symbolView)
+        guard let cgImg = renderer.cgImage else { return }
+        let (r, g, b, _) = KroutonPureColorMath.extractSRGB(store.uiSecondaryAccent)
+        let traced = KroutonKrustiniModule.traceImageContoursWithVision(
+            cgImage: cgImg,
+            strokeColor: KroutonRGBAColor(r: Double(r), g: Double(g), b: Double(b), a: 0.95)
+        )
+        if !traced.isEmpty {
+            store.labelVectorShapes.append(contentsOf: traced.prefix(4))
         }
     }
 
@@ -320,8 +452,8 @@ struct KroutonDiscLabelStudioWorkspaceView: View {
             KroutonDiscLabelArtworkCanvas(
                 preset: preset,
                 template: store.selectedLabelTemplate,
-                title: labelDiscTitle,
-                subtitle: labelSubtitle,
+                title: store.labelDiscTitle,
+                subtitle: store.labelSubtitle,
                 performer: store.discPerformer,
                 mcnBarcode: store.discMCNBarcode,
                 trackLines: resolvedLabelTracklistLines,
@@ -334,7 +466,7 @@ struct KroutonDiscLabelStudioWorkspaceView: View {
             HStack(spacing: 6) {
                 Image(systemName: "circle.dashed.inset.filled")
                     .foregroundStyle(store.activeAccent)
-                Text("Crustini 300-DPI Polar Engine (\(glyphCount) Arc Glyphs • \(Int(preset.outerDiameterMM))mm/\(Int(preset.innerDiameterMM))mm)")
+                Text("300-DPI Polar Vector Engine • \(glyphCount) Arc Glyphs")
                     .lineLimit(1)
             }
             .font(.system(size: 10, weight: .semibold, design: .monospaced))

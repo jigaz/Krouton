@@ -19,37 +19,22 @@ struct KroutonBurnStationWorkspaceView: View {
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 
     func addButtonTitle(for spec: KroutonRecipeSpec) -> String {
-        if spec.isRedBookAudioFormat {
-            return "Add Audio Tracks (WAV / AIFF / FLAC / MP3)..."
-        } else if spec.isCarSafeAudioFormat {
-            return "Add Audio Files or Album Folders..."
-        } else if spec.isVideoAuthoringFormat {
-            return "Add Video Titles (MKV / MP4 / MOV / VIDEO_TS)..."
-        } else if spec.isDiscImageBurnFormat {
-            return "Select Disc Image (.ISO / .DMG / .BIN / .CUE / .CDR / .TOAST)..."
-        } else if spec.id == "console-wii" {
-            return "Select Wii Image (.RVZ / .WBFS / .ISO)..."
-        } else if spec.id == "console-gc" {
-            return "Select GameCube Image (.RVZ / .GCM / .ISO)..."
-        } else if spec.id == "console-ps2" {
-            return "Select PS2 Image (.ISO / .CHD / .BIN+.CUE)..."
-        } else if spec.id == "console-ps1" {
-            return "Select PS1 Image (.CUE+.BIN / .CHD / .CCD)..."
-        } else if spec.id == "console-xbox" {
-            return "Select Xbox Image (.ISO / .XISO / .DVD)..."
-        } else if (spec.filterGroup == .console || spec.id.hasPrefix("console-")) {
-            return "Select Console Image..."
-        } else {
-            return "Add Files or Folders..."
+        switch spec.workspaceKind {
+        case .redBookAudio:       return "Add Audio Tracks..."
+        case .carSafeMP3Audio:    return "Add Audio or Folders..."
+        case .videoAuthoring:     return "Add Video Titles..."
+        case .discImageInspector: return "Select Disc Image..."
+        case .retroConsole:       return "Select Disc Image..."
+        case .dataAndArchival:    return "Add Files or Folders..."
         }
     }
 
     func addButtonSymbol(for spec: KroutonRecipeSpec) -> String {
-        if spec.isRedBookAudioFormat || spec.isCarSafeAudioFormat {
+        if spec.workspaceKind == .redBookAudio || spec.workspaceKind == .carSafeMP3Audio {
             return "waveform.badge.plus"
-        } else if spec.isVideoAuthoringFormat {
+        } else if spec.workspaceKind == .videoAuthoring {
             return "film.stack.fill"
-        } else if spec.isDiscImageBurnFormat {
+        } else if spec.workspaceKind == .discImageInspector {
             return "opticaldisc.fill"
         } else if (spec.filterGroup == .console || spec.id.hasPrefix("console-")) {
             return "gamecontroller.fill"
@@ -129,14 +114,24 @@ struct KroutonBurnStationWorkspaceView: View {
                             symbolSize: 15
                         )
                         let isCDDA = (activeSpec.id == "cd-da")
-                        Text(isCDDA ? KroutonL10n.tr("Audio CD") : (isCenterWorkspaceNarrow ? activeSpec.exactShortDisplayName : activeSpec.technicalName))
-                            .font(.title3.bold())
-                            .lineLimit(1)
-                        if !isCenterWorkspaceNarrow && !isCDDA {
-                            Text(activeSpec.colloquialName)
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : Color.secondary)
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 8) {
+                                Text(isCDDA ? KroutonL10n.tr("Audio CD") : (isCenterWorkspaceNarrow ? activeSpec.exactShortDisplayName : activeSpec.technicalName))
+                                    .font(.title3.bold())
+                                    .lineLimit(1)
+                                    .fixedSize(horizontal: true, vertical: false)
+                                if !isCenterWorkspaceNarrow && !isCDDA && !activeSpec.colloquialName.isEmpty {
+                                    Text(activeSpec.colloquialName)
+                                        .font(.subheadline.weight(.medium))
+                                        .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : Color.secondary)
+                                        .lineLimit(1)
+                                        .fixedSize(horizontal: true, vertical: false)
+                                }
+                            }
+                            Text(isCDDA ? KroutonL10n.tr("Audio CD") : (isCenterWorkspaceNarrow ? activeSpec.exactShortDisplayName : activeSpec.technicalName))
+                                .font(.title3.bold())
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.82)
                         }
                     }
                     if !isCenterWorkspaceNarrow {
@@ -146,6 +141,9 @@ struct KroutonBurnStationWorkspaceView: View {
                             .lineLimit(1)
                     }
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(activeSpec.technicalName), \(activeSpec.colloquialName)")
+                .accessibilityValue("Spec: \(activeSpec.bookOrFileSystem), Laser: \(activeSpec.laserType), Source: \(activeSpec.sourceSupport)")
                 Spacer(minLength: 6)
 
                 if !store.stagedFiles.isEmpty {
@@ -208,8 +206,9 @@ struct KroutonBurnStationWorkspaceView: View {
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.orange.opacity(0.4), lineWidth: 1))
             }
 
-            // FORMAT-ADAPTIVE WORKSPACE ROUTER (Standalone Scoped View Structs)
-            if activeSpec.isRedBookAudioFormat {
+            // FORMAT-ADAPTIVE WORKSPACE ROUTER (Exhaustive Switch on Canonical workspaceKind)
+            switch activeSpec.workspaceKind {
+            case .redBookAudio:
                 KroutonRedBookAudioWorkspaceView(
                     store: store,
                     spec: activeSpec,
@@ -220,7 +219,7 @@ struct KroutonBurnStationWorkspaceView: View {
                     isDropTargeted: $isDropTargeted,
                     onHandleFinderDrop: onHandleFinderDrop
                 )
-            } else if activeSpec.isCarSafeAudioFormat {
+            case .carSafeMP3Audio:
                 KroutonCarSafeAudioWorkspaceView(
                     store: store,
                     spec: activeSpec,
@@ -228,7 +227,7 @@ struct KroutonBurnStationWorkspaceView: View {
                     isDropTargeted: $isDropTargeted,
                     onHandleFinderDrop: onHandleFinderDrop
                 )
-            } else if activeSpec.isVideoAuthoringFormat {
+            case .videoAuthoring:
                 KroutonVideoAuthoringWorkspaceView(
                     store: store,
                     spec: activeSpec,
@@ -238,7 +237,7 @@ struct KroutonBurnStationWorkspaceView: View {
                     isDropTargeted: $isDropTargeted,
                     onHandleFinderDrop: onHandleFinderDrop
                 )
-            } else if activeSpec.isDiscImageBurnFormat {
+            case .discImageInspector:
                 KroutonDiscImageInspectorWorkspaceView(
                     store: store,
                     spec: activeSpec,
@@ -246,7 +245,7 @@ struct KroutonBurnStationWorkspaceView: View {
                     onPromptToAddFiles: onPromptToAddFiles,
                     onHandleFinderDrop: onHandleFinderDrop
                 )
-            } else if activeSpec.filterGroup == .console || activeSpec.id.hasPrefix("console-") {
+            case .retroConsole:
                 KroutonRetroConsoleWorkspaceView(
                     store: store,
                     spec: activeSpec,
@@ -254,7 +253,7 @@ struct KroutonBurnStationWorkspaceView: View {
                     isDropTargeted: $isDropTargeted,
                     onHandleFinderDrop: onHandleFinderDrop
                 )
-            } else {
+            case .dataAndArchival:
                 KroutonDataAndArchivalWorkspaceView(
                     store: store,
                     activeSpec: activeSpec,
@@ -266,5 +265,4 @@ struct KroutonBurnStationWorkspaceView: View {
             }
         }
     }
-
 }

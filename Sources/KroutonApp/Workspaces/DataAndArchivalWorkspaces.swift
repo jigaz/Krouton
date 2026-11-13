@@ -33,6 +33,8 @@ struct KroutonDataAndArchivalWorkspaceView: View {
         let isUniversalHybrid = (activeSpec.id == "data-hybrid" || activeSpec.id == "mdisc-vault")
         let isAppleOnly = (activeSpec.id == "data-apple-apfs")
         let isRetro83 = (activeSpec.id == "data-retro-iso")
+        let isClassicHFS = (activeSpec.id == "macos9-hfs")
+        let isPhotoCD = (activeSpec.id == "photo-cd")
 
         return VStack(alignment: .leading, spacing: 10) {
             // File System Topology & Universal Compatibility Deck
@@ -59,22 +61,26 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                             Spacer(minLength: 0)
                         }
                         VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 8) {
+                            HStack(spacing: 6) {
                                 Image(systemName: "lock.shield.fill")
                                     .foregroundStyle(store.activeAccent)
-                                Text(KroutonL10n.tr("M-DISC VAULT + PAR2 RECOVERY PARITY"))
+                                    .accessibilityHidden(true)
+                                Text(KroutonL10n.tr("M-DISC ROCK-LAYER VAULT"))
                                     .font(.system(size: 10, weight: .heavy, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
-                                Spacer()
-                                Text("PAR2 Redundancy: \(Int(mdiscPar2RedundancyPct))%")
+                                Spacer(minLength: 4)
+                                Text("PAR2: \(Int(mdiscPar2RedundancyPct))%")
                                     .font(.caption.bold())
                                     .foregroundStyle(store.activeAccent)
+                                    .fixedSize(horizontal: true, vertical: false)
                             }
-                            HStack(spacing: 10) {
+                            HStack(spacing: 8) {
                                 Slider(value: $mdiscPar2RedundancyPct, in: 5...30, step: 5)
-                                    .frame(maxWidth: 180)
-                                Text(KroutonL10n.tr("Generates .par2 blocks + SHA-256 manifest"))
+                                    .frame(maxWidth: 135)
+                                    .accessibilityLabel("M-DISC PAR2 Parity Percentage")
+                                    .accessibilityValue("\(Int(mdiscPar2RedundancyPct)) percent")
+                                Text(KroutonL10n.tr("Reed-Solomon .par2 + SHA-256"))
                                     .font(.system(size: 10, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
@@ -99,7 +105,12 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                         }
                         .fixedSize(horizontal: true, vertical: false)
 
-                        if activeSpec.id == "data-udf-modern" {
+                        if activeSpec.id == "dvd-ram" {
+                            Label("Zoned CLV Defect Management (UDF 1.50 / 2.01 Hardware Verified)", systemImage: "memorychip.fill")
+                                .font(.caption.bold())
+                                .foregroundStyle(.green)
+                                .lineLimit(1)
+                        } else if activeSpec.id == "data-udf-modern" {
                             Label("Pure UDF 2.60 (Files >4 GiB up to 128 GB)", systemImage: "checkmark.seal.fill")
                                 .font(.caption.bold())
                                 .foregroundStyle(.green)
@@ -108,6 +119,16 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                             Toggle(KroutonL10n.tr("Preserve macOS Extended Attributes (xattr) & Resource Forks"), isOn: $preserveMacExtendedAttributes)
                                 .toggleStyle(.checkbox)
                                 .font(.caption.bold())
+                                .lineLimit(1)
+                        } else if isClassicHFS {
+                            Label("Apple Partition Map (APM) + Blessed Classic HFS (System 7 / Mac OS 9)", systemImage: "desktopcomputer")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        } else if isPhotoCD {
+                            Label("Kodak Beige Book CD-ROM XA (Multi-Resolution .PCD Image Pac)", systemImage: "camera.aperture")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
                                 .lineLimit(1)
                         } else if isRetro83 {
                             Toggle(KroutonL10n.tr("Enforce Strict 8.3 Uppercase Filenames (DOS / Win95 / System 7)"), isOn: $enforce8Dot3RetroCompatibility)
@@ -128,7 +149,7 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "memorychip.fill")
-                                Text(KroutonL10n.tr("Tartine LBA Map"))
+                                Text(KroutonL10n.tr("LBA Sector Map"))
                             }
                             .font(.system(size: 10, weight: .bold, design: .monospaced))
                             .padding(.horizontal, 8)
@@ -154,49 +175,85 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                         }
                     }
 
-                    // 2. Narrow Stacked Fallback (Zero Vertical Word-Towers!)
+                    // 2. Narrow Stacked Fallback (Zero Vertical Word-Towers & Zero Clipping!)
                     VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 6) {
                             Image(systemName: "opticaldisc")
                                 .foregroundStyle(store.activeAccent)
+                                .accessibilityHidden(true)
                             Text(KroutonL10n.tr("Disc Title:"))
                                 .font(.caption.bold())
                                 .lineLimit(1)
                             TextField("KROUTON_DISC", text: $store.discVolumeTitle)
                                 .textFieldStyle(.roundedBorder)
-                                .frame(maxWidth: 180)
-                            Spacer()
+                                .accessibilityLabel(KroutonL10n.tr("Disc Volume Title"))
+                            Button {
+                                showTartineLBAMapPopover.toggle()
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "memorychip.fill")
+                                    Text("LBA Map")
+                                }
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 4)
+                                .background(store.activeAccent.opacity(0.16))
+                                .foregroundStyle(store.activeAccent)
+                                .clipShape(Capsule())
+                                .fixedSize(horizontal: true, vertical: false)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Inspect LBA Sector Allocation Map")
+                        }
+
+                        HStack(spacing: 8) {
+                            if activeSpec.id == "dvd-ram" {
+                                Label("UDF 2.01 Zoned Defect Mgmt", systemImage: "memorychip.fill")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.green)
+                                    .lineLimit(1)
+                            } else if activeSpec.id == "data-udf-modern" {
+                                Label("Pure UDF 2.60 (>4 GiB Files)", systemImage: "checkmark.seal.fill")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.green)
+                                    .lineLimit(1)
+                            } else if isAppleOnly {
+                                Toggle(KroutonL10n.tr("Preserve macOS xattr & Resource Forks"), isOn: $preserveMacExtendedAttributes)
+                                    .toggleStyle(.checkbox)
+                                    .font(.caption.bold())
+                                    .lineLimit(1)
+                            } else if isClassicHFS {
+                                Label("APM + Blessed Classic HFS", systemImage: "desktopcomputer")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            } else if isPhotoCD {
+                                Label("Beige Book CD-ROM XA (.PCD)", systemImage: "camera.aperture")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            } else if isRetro83 {
+                                Toggle(KroutonL10n.tr("Enforce 8.3 Uppercase Filenames"), isOn: $enforce8Dot3RetroCompatibility)
+                                    .toggleStyle(.checkbox)
+                                    .font(.caption.bold())
+                                    .lineLimit(1)
+                            } else {
+                                Label("4-Way: HFS+ • UDF • Rock Ridge", systemImage: "globe")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                            Spacer(minLength: 4)
                             if !isRetro83 {
-                                Toggle(KroutonL10n.tr("Finder Layout"), isOn: $enableCustomFinderLayoutTab)
+                                Toggle(KroutonL10n.tr("Finder View"), isOn: $enableCustomFinderLayoutTab)
                                     .toggleStyle(.checkbox)
                                     .font(.caption)
                                     .lineLimit(1)
+                                    .fixedSize(horizontal: true, vertical: false)
                                     .onChange(of: enableCustomFinderLayoutTab) { _, enabled in
                                         activeDataWorkspaceTab = enabled ? 1 : 0
                                     }
                             }
-                        }
-
-                        if activeSpec.id == "data-udf-modern" {
-                            Label("Pure UDF 2.60 (Files >4 GiB up to 128 GB)", systemImage: "checkmark.seal.fill")
-                                .font(.caption.bold())
-                                .foregroundStyle(.green)
-                                .lineLimit(1)
-                        } else if isAppleOnly {
-                            Toggle(KroutonL10n.tr("Preserve macOS xattr & Resource Forks"), isOn: $preserveMacExtendedAttributes)
-                                .toggleStyle(.checkbox)
-                                .font(.caption.bold())
-                                .lineLimit(1)
-                        } else if isRetro83 {
-                            Toggle(KroutonL10n.tr("Enforce 8.3 Uppercase Filenames"), isOn: $enforce8Dot3RetroCompatibility)
-                                .toggleStyle(.checkbox)
-                                .font(.caption.bold())
-                                .lineLimit(1)
-                        } else {
-                            Label("4-Way Bridge: macOS (HFS+), Windows (UDF) & Linux (Rock Ridge)", systemImage: "globe")
-                                .font(.caption.bold())
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
                         }
                     }
                 }

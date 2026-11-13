@@ -55,8 +55,8 @@ fileprivate final class KroutonColorHarmonyLUT: @unchecked Sendable {
         return val
     }
 
-    func cachedSurface(for color: Color, compute: () -> Color) -> Color {
-        let key = quantizedKey(for: color)
+    func cachedSurface(for color: Color, isDark: Bool = true, compute: () -> Color) -> Color {
+        let key = (quantizedKey(for: color) << 1) | (isDark ? 1 : 0)
         lock.lock()
         if let hit = surfaceCache[key] {
             lock.unlock()
@@ -222,7 +222,7 @@ extension KroutonStateStore {
             return Color.kroutonWindowSurface
         }
         let isDark = (resolvedColorScheme == .dark)
-        return KroutonColorHarmonyLUT.shared.cachedSurface(for: activeAccent) {
+        return KroutonColorHarmonyLUT.shared.cachedSurface(for: activeAccent, isDark: isDark) {
             let baseVal: CGFloat = isDark ? 0.12 : 0.95
             let (tr, tg, tb, _) = KroutonPureColorMath.extractSRGB(activeAccent)
             let frac: CGFloat = 0.12
@@ -254,16 +254,26 @@ extension KroutonStateStore {
 
 // MARK: - Native SwiftUI Semantic Surface Colors (Zero NSColor Dependency)
 public extension Color {
+    private static var isEffectiveDarkAppearance: Bool {
+        if let raw = UserDefaults.standard.string(forKey: "krouton.pref.appearanceMode"),
+           let mode = KroutonRoastAppearanceMode(rawValue: raw) {
+            switch mode {
+            case .dark: return true
+            case .light: return false
+            case .auto: break
+            }
+        }
+        return KroutonOSDesktopBridge.isSystemDarkMode()
+    }
+
     static var kroutonWindowSurface: Color {
-        let isDark = KroutonOSDesktopBridge.isSystemDarkMode()
-        return isDark
+        isEffectiveDarkAppearance
             ? Color(.sRGB, red: 0.12, green: 0.12, blue: 0.13, opacity: 1.0)
             : Color(.sRGB, red: 0.95, green: 0.95, blue: 0.96, opacity: 1.0)
     }
 
     static var kroutonControlSurface: Color {
-        let isDark = KroutonOSDesktopBridge.isSystemDarkMode()
-        return isDark
+        isEffectiveDarkAppearance
             ? Color(.sRGB, red: 0.16, green: 0.16, blue: 0.18, opacity: 1.0)
             : Color(.sRGB, red: 1.00, green: 1.00, blue: 1.00, opacity: 1.0)
     }

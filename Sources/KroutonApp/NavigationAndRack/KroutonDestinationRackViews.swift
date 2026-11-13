@@ -27,12 +27,13 @@ struct KroutonDestinationCardView: View {
                 .map { $0.targetDriveID }
         )
 
-        // Resolve THIS card's drive without falling back to a drive already claimed by another card!
+        // Resolve THIS card's drive strictly from unclaimed drives (never steal a drive in otherUsedDriveIDs!)
+        let hasUnclaimedPhysicalBurner = driveManager.availableDrives.contains(where: { !otherUsedDriveIDs.contains($0.id) })
         let cardDrive: KroutonToasterInfo? = {
-            if let exact = driveManager.availableDrives.first(where: { $0.id == item.targetDriveID }) {
+            if let exact = driveManager.availableDrives.first(where: { $0.id == item.targetDriveID && !otherUsedDriveIDs.contains($0.id) }) {
                 return exact
             }
-            return driveManager.availableDrives.first(where: { !otherUsedDriveIDs.contains($0.id) }) ?? driveManager.availableDrives.first
+            return driveManager.availableDrives.first(where: { !otherUsedDriveIDs.contains($0.id) })
         }()
 
         let activeCardDriveID = (item.kind == .networkBurner) ? "krumb-network-toaster" : (cardDrive?.id ?? "")
@@ -50,24 +51,60 @@ struct KroutonDestinationCardView: View {
             HStack(spacing: 5) {
                 Menu {
                     ForEach(store.allowedDestinationsForCurrentCategory) { kind in
+                        let isUSBAlreadyExhausted = (kind == .physicalBurner && item.kind != .physicalBurner && !hasUnclaimedPhysicalBurner)
                         Button {
-                            store.updateQueueItem(cardID) { $0.kind = kind }
+                            guard !isUSBAlreadyExhausted else { return }
+                            store.updateQueueItem(cardID) { qItem in
+                                qItem.kind = kind
+                                switch kind {
+                                case .physicalBurner:
+                                    if let freeDrive = driveManager.availableDrives.first(where: { !otherUsedDriveIDs.contains($0.id) }) {
+                                        qItem.targetDriveID = freeDrive.id
+                                        qItem.hardwareOrPath = freeDrive.displayName
+                                    }
+                                case .networkBurner:
+                                    qItem.targetDriveID = ""
+                                    if !krumb.discoveredNodes.map(\.hostPort).contains(qItem.hardwareOrPath) {
+                                        qItem.hardwareOrPath = krumb.discoveredNodes.first?.hostPort ?? "localhost:7420"
+                                    }
+                                case .discImage:
+                                    let imgTarget = store.defaultDiscImageTarget
+                                    qItem.targetDriveID = ""
+                                    qItem.hardwareOrPath = imgTarget.path
+                                    qItem.speedOrCodec = imgTarget.description
+                                case .audioRip:
+                                    qItem.targetDriveID = ""
+                                    qItem.hardwareOrPath = "~/Music/Krouton Rips/Apple Lossless"
+                                case .videoExtract:
+                                    qItem.targetDriveID = ""
+                                    qItem.hardwareOrPath = "~/Movies/Krouton Extracts"
+                                case .discPrinter:
+                                    qItem.targetDriveID = ""
+                                    qItem.hardwareOrPath = "Epson EcoTank Photo ET-8550 (CD/DVD Tray)"
+                                case .pdfVector:
+                                    qItem.targetDriveID = ""
+                                    qItem.hardwareOrPath = "~/Desktop/\(store.discVolumeTitle)_Label.pdf"
+                                }
+                            }
                             store.reconcileUniqueDriveAssignments(driveManager: driveManager)
                         } label: {
                             HStack {
                                 if item.kind == kind { Image(systemName: "checkmark") }
-                                Text(kind == .physicalBurner ? KroutonL10n.tr("USB Burner") : KroutonL10n.tr(kind.rawValue))
+                                Text(
+                                    kind == .physicalBurner
+                                        ? (isUSBAlreadyExhausted ? KroutonL10n.tr("USB Burner — In Use") : KroutonL10n.tr("USB Burner"))
+                                        : KroutonL10n.tr(kind.rawValue)
+                                )
                             }
                         }
+                        .disabled(isUSBAlreadyExhausted)
                     }
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: item.kind.sfSymbol)
                             .foregroundStyle(store.uiSecondaryAccent)
                         Text(
-                            item.kind == .physicalBurner
-                                ? (isRightQueueCompact ? "USB" : KroutonL10n.tr("USB Burner"))
-                                : (isRightQueueCompact ? "ISO" : KroutonL10n.tr(item.kind.rawValue))
+                            isRightQueueCompact ? item.kind.compactBadgeTitle : (item.kind == .physicalBurner ? KroutonL10n.tr("USB Burner") : KroutonL10n.tr(item.kind.rawValue))
                         )
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.primary)
@@ -119,6 +156,7 @@ struct KroutonDestinationCardView: View {
                     }
                     .buttonStyle(.plain)
                     .fixedSize()
+                    .accessibilityLabel(isFloatingOpen ? "Dock Phase Scope Inline" : "Toggle Phase Scope")
                     .help(isFloatingOpen ? "Pull Floating Phase Scope window back into inline mini graph" : "Toggle inline Phase Scope mini graph")
 
                     if canEject {
@@ -146,6 +184,7 @@ struct KroutonDestinationCardView: View {
                         }
                         .buttonStyle(.plain)
                         .fixedSize()
+                        .accessibilityLabel("Eject \(cardDrive?.displayName ?? "Disc")")
                         .help("Eject \(cardDrive?.displayName ?? "Disc")")
                     }
                 }
@@ -241,87 +280,32 @@ struct KroutonDestinationCardView: View {
                     }
                 }
 
-                // Consolidated Single-Row: Speed ('Max') + Sim + Verify + Copies ('1x')
-                HStack(spacing: 5) {
-                    let activeSpd = validSpeeds.contains(item.speedOrCodec) ? item.speedOrCodec : "Max Safe (Auto)"
-                    let shortSpd = activeSpd.hasPrefix("Max") ? "Max" : (activeSpd.components(separatedBy: " ").first ?? activeSpd)
+                // Adaptive Single-Row / Two-Row: Speed ('Max') + Sim + Verify + Copies ('1x')
+                let activeSpd = validSpeeds.contains(item.speedOrCodec) ? item.speedOrCodec : "Max Safe (Auto)"
+                let shortSpd = activeSpd.hasPrefix("Max") ? "Max" : (activeSpd.components(separatedBy: " ").first ?? activeSpd)
 
-                    Menu {
-                        ForEach(validSpeeds, id: \.self) { spd in
-                            Button {
-                                store.updateQueueItem(cardID) { $0.speedOrCodec = spd }
-                            } label: {
-                                HStack {
-                                    if activeSpd == spd { Image(systemName: "checkmark") }
-                                    Text(spd)
-                                }
-                            }
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 4) {
+                        speedPickerMenu(cardID: cardID, validSpeeds: validSpeeds, activeSpd: activeSpd, shortSpd: shortSpd).fixedSize()
+                        Spacer(minLength: 2)
+                        simCheckboxToggle(cardID: cardID, label: isRightQueueCompact ? "Sim" : KroutonL10n.tr("Simulate")).fixedSize()
+                        Spacer(minLength: 2)
+                        verifyCheckboxToggle(cardID: cardID).fixedSize()
+                        Spacer(minLength: 2)
+                        copiesStepperView(cardID: cardID).fixedSize()
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            speedPickerMenu(cardID: cardID, validSpeeds: validSpeeds, activeSpd: activeSpd, shortSpd: shortSpd)
+                            Spacer(minLength: 4)
+                            copiesStepperView(cardID: cardID)
                         }
-                    } label: {
-                        HStack(spacing: 3) {
-                            Image(systemName: "gauge.with.dots.needle.67percent")
-                                .font(.system(size: 9.5))
-                                .foregroundStyle(store.uiSecondaryAccent)
-                            Text(shortSpd)
-                                .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
-                                .foregroundStyle(.primary)
-                                .lineLimit(1)
-                            Image(systemName: "chevron.up.chevron.down")
-                                .font(.system(size: 8, weight: .bold))
-                                .foregroundStyle(.secondary)
+                        HStack(spacing: 10) {
+                            simCheckboxToggle(cardID: cardID, label: "Sim")
+                            verifyCheckboxToggle(cardID: cardID)
+                            Spacer(minLength: 0)
                         }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(Color.primary.opacity(0.06))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
-                    .buttonStyle(.plain)
-                    .fixedSize()
-                    .help("Write Speed: \(activeSpd)")
-
-                    Spacer(minLength: 2)
-
-                    Toggle(isOn: Binding(
-                        get: { item.simulationMode },
-                        set: { val in store.updateQueueItem(cardID) { $0.simulationMode = val } }
-                    )) {
-                        Text(isRightQueueCompact ? "Sim" : KroutonL10n.tr("Simulate"))
-                            .font(.system(size: 10.5, weight: .medium))
-                            .lineLimit(1)
-                    }
-                    .toggleStyle(.checkbox)
-                    .controlSize(.small)
-                    .fixedSize()
-                    .help("Simulate Burn (Test laser write without committing to media)")
-
-                    Spacer(minLength: 2)
-
-                    Toggle(isOn: Binding(
-                        get: { item.verifyAfterBurn },
-                        set: { val in store.updateQueueItem(cardID) { $0.verifyAfterBurn = val } }
-                    )) {
-                        Text(KroutonL10n.tr("Verify"))
-                            .font(.system(size: 10.5, weight: .medium))
-                            .lineLimit(1)
-                    }
-                    .toggleStyle(.checkbox)
-                    .controlSize(.small)
-                    .fixedSize()
-                    .help("Verify written sectors against source image/files after burn")
-
-                    Spacer(minLength: 2)
-
-                    Stepper(value: Binding(
-                        get: { item.copiesToBurn },
-                        set: { newCopies in store.updateQueueItem(cardID) { $0.copiesToBurn = max(1, min(99, newCopies)) } }
-                    ), in: 1...99) {
-                        Text("\(item.copiesToBurn)×")
-                            .font(.system(size: 10.5, weight: item.copiesToBurn > 1 ? .bold : .semibold, design: .monospaced))
-                            .lineLimit(1)
-                    }
-                    .controlSize(.small)
-                    .fixedSize()
-                    .help("Copies to burn: \(item.copiesToBurn)")
                 }
 
                 if (store.forceDVDROMBookType && !isRightQueueCompact) || (item.copiesToBurn > 1 && store.autoLoadNextDiscBatchMode) {
@@ -531,5 +515,59 @@ struct KroutonDiscImageTargetRowView: View {
                 }
             }
         }
+    }
+
+}
+
+extension KroutonDestinationCardView {
+    @ViewBuilder
+    private func speedPickerMenu(cardID: UUID, validSpeeds: [String], activeSpd: String, shortSpd: String) -> some View {
+        Menu {
+            ForEach(validSpeeds, id: \.self) { spd in
+                Button { store.updateQueueItem(cardID) { $0.speedOrCodec = spd } } label: {
+                    HStack { if activeSpd == spd { Image(systemName: "checkmark") }; Text(spd) }
+                }
+            }
+        } label: {
+            HStack(spacing: 3) {
+                Image(systemName: "gauge.with.dots.needle.67percent").font(.system(size: 9.5)).foregroundStyle(store.uiSecondaryAccent)
+                Text(shortSpd).font(.system(size: 10.5, weight: .semibold, design: .monospaced)).foregroundStyle(.primary).lineLimit(1)
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 6).padding(.vertical, 3)
+            .background(Color.primary.opacity(0.06)).clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Write Speed")
+        .accessibilityValue(activeSpd)
+        .help("Write Speed: \(activeSpd)")
+    }
+
+    @ViewBuilder
+    private func simCheckboxToggle(cardID: UUID, label: String) -> some View {
+        Toggle(isOn: Binding(get: { item.simulationMode }, set: { val in store.updateQueueItem(cardID) { $0.simulationMode = val } })) {
+            Text(label).font(.system(size: 10.5, weight: .medium)).lineLimit(1)
+        }
+        .toggleStyle(.checkbox).controlSize(.small)
+        .accessibilityLabel(KroutonL10n.tr("Simulate Burn"))
+        .help("Simulate Burn (Test laser write without committing to media)")
+    }
+
+    @ViewBuilder
+    private func verifyCheckboxToggle(cardID: UUID) -> some View {
+        Toggle(isOn: Binding(get: { item.verifyAfterBurn }, set: { val in store.updateQueueItem(cardID) { $0.verifyAfterBurn = val } })) {
+            Text(KroutonL10n.tr("Verify")).font(.system(size: 10.5, weight: .medium)).lineLimit(1)
+        }
+        .toggleStyle(.checkbox).controlSize(.small)
+        .help("Verify written sectors against source image/files after burn")
+    }
+
+    @ViewBuilder
+    private func copiesStepperView(cardID: UUID) -> some View {
+        Stepper(value: Binding(get: { item.copiesToBurn }, set: { n in store.updateQueueItem(cardID) { $0.copiesToBurn = max(1, min(99, n)) } }), in: 1...99) {
+            Text("\(item.copiesToBurn)×").font(.system(size: 10.5, weight: item.copiesToBurn > 1 ? .bold : .semibold, design: .monospaced)).lineLimit(1)
+        }
+        .controlSize(.small)
+        .help("Copies to burn: \(item.copiesToBurn)")
     }
 }

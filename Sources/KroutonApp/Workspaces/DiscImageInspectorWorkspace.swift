@@ -32,54 +32,84 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
             // Top Mastering Bar
             KroutonMasteringDeckCard(store: store) {
                 VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 10) {
-                    Image(systemName: "opticaldisc.fill")
-                        .foregroundStyle(store.activeAccent)
-                    Text(KroutonL10n.tr("SECTOR-EXACT DISC IMAGE INSPECTOR & BOOTABLE OS BURNER"))
-                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    if !imageActionStatusBanner.isEmpty {
-                        Text("[ \(imageActionStatusBanner) ]")
-                            .font(.system(size: 9.5, weight: .bold, design: .monospaced))
-                            .foregroundStyle(store.activeAccent)
-                    } else {
-                        Text("FORMATS: .ISO • .DMG • .CDR • .BIN/.CUE • .IMG • .TOAST • .NRG • .MDS")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 14) {
-                        Picker(KroutonL10n.tr("Laser Write Topology:"), selection: $discImageWriteMethod) {
-                            Text("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)").tag("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)")
-                            Text("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)").tag("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)")
-                            Text("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)").tag("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)")
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "opticaldisc.fill")
+                                .foregroundStyle(store.activeAccent)
+                                .accessibilityHidden(true)
+                            Text(KroutonL10n.tr("SECTOR-EXACT DISC IMAGE INSPECTOR & BOOTABLE OS BURNER"))
+                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                            Spacer(minLength: 8)
+                            Text(imageActionStatusBanner.isEmpty ? "FORMATS: .ISO • .DMG • .CDR • .BIN/.CUE • .IMG • .TOAST" : "[ \(imageActionStatusBanner) ]")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(imageActionStatusBanner.isEmpty ? .secondary : store.activeAccent)
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
                         }
-                        .frame(maxWidth: 420)
-                        .font(.caption)
 
-                        Toggle(KroutonL10n.tr("Verify SHA-256 Digest Before Write"), isOn: $verifyImageSHA256BeforeBurn)
-                            .toggleStyle(.checkbox)
-                            .font(.caption.bold())
-                            .lineLimit(1)
-                        Spacer(minLength: 0)
-                    }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Picker(KroutonL10n.tr("Write Mode:"), selection: $discImageWriteMethod) {
-                            Text("DAO / SAO Sector-Exact (Preserve Boot Catalog)").tag("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)")
-                            Text("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW)").tag("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)")
-                            Text("DVD+R / BD-R Seamless Layer Break (16-Sector ECC)").tag("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)")
+                        HStack(spacing: 6) {
+                            Image(systemName: "opticaldisc.fill")
+                                .foregroundStyle(store.activeAccent)
+                                .accessibilityHidden(true)
+                            Text(KroutonL10n.tr("DISC IMAGE INSPECTOR"))
+                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                            Spacer(minLength: 4)
+                            Text(".ISO • .DMG • .BIN")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
                         }
-                        .font(.caption)
-
-                        Toggle(KroutonL10n.tr("Compute & Verify SHA-256 Digest Before Write"), isOn: $verifyImageSHA256BeforeBurn)
-                            .toggleStyle(.checkbox)
-                            .font(.caption.bold())
                     }
-                }
+
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 14) {
+                            HStack(spacing: 6) {
+                                Text(KroutonL10n.tr("Laser Write Topology:")).font(.caption.bold()).lineLimit(1)
+                                Picker("", selection: $discImageWriteMethod) {
+                                    Text("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)").tag("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)")
+                                    Text("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)").tag("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)")
+                                    Text("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)").tag("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)")
+                                }
+                                .labelsHidden()
+                                .fixedSize(horizontal: true, vertical: false)
+                                .font(.caption)
+                                .accessibilityLabel(KroutonL10n.tr("Laser Write Topology"))
+                            }
+
+                            Toggle(KroutonL10n.tr("Verify SHA-256 Digest Before Write"), isOn: $verifyImageSHA256BeforeBurn)
+                                .toggleStyle(.checkbox)
+                                .font(.caption.bold())
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                            Spacer(minLength: 0)
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 6) {
+                                Text(KroutonL10n.tr("Write:")).font(.caption.bold()).lineLimit(1)
+                                Picker("", selection: $discImageWriteMethod) {
+                                    Text("DAO / SAO Sector-Exact").tag("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)")
+                                    Text("RAW DAO/96 (2,352B + SubQ)").tag("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)")
+                                    Text("Seamless Layer Break (16-Sec ECC)").tag("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)")
+                                }
+                                .labelsHidden()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .font(.caption)
+                                .accessibilityLabel(KroutonL10n.tr("Write Mode"))
+                            }
+
+                            Toggle(KroutonL10n.tr("Verify SHA-256 Digest Before Write"), isOn: $verifyImageSHA256BeforeBurn)
+                                .toggleStyle(.checkbox)
+                                .font(.caption.bold())
+                                .lineLimit(1)
+                        }
+                    }
                 }
             }
 
@@ -482,7 +512,7 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                         isDropTargeted: isDropTargeted,
                         sfSymbol: "opticaldisc.fill",
                         symbolSize: 46,
-                        headline: "Drop a Disc Image (.ISO, .DMG, .BIN/.CUE, .CDR, .IMG, or .TOAST) to Launch the Sector & Hex Inspector",
+                        headline: "Drop a Disc Image (.ISO, .DMG, .BIN/.CUE, .IMG, or .TOAST)",
                         subtitle: "Displays radial track geometry, live LBA 0/16/17/256 hexadecimal sector dumps, El Torito / APM boot records, and 1-Click .BIN <-> .ISO framing conversion.",
                         actionTitle: "Choose Disc Image File...",
                         onAction: onPromptToAddFiles

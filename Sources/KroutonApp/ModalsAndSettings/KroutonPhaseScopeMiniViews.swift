@@ -181,6 +181,10 @@ struct KroutonMiniThermometerView: View {
             onPopOut()
         }
         .help("Click anywhere on the mini Phase Scope to pop out the full hardware telemetry analyzer")
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Inline Phase Scope Telemetry")
+        .accessibilityValue(String(format: "%.0f kilobytes per second, %d RPM", telemetry.currentSpeedKBs, telemetry.currentSpindleRPM))
+        .accessibilityHint("Double-click to open the floating Phase Scope window")
     }
 
     private var miniHeaderRow: some View {

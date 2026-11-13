@@ -469,6 +469,62 @@ harness.runSuite("20. Mastering & Extraction Domain Models (TOC, Video Titles & 
     let data = try JSONEncoder().encode(consoleCfg)
     let decoded = try JSONDecoder().decode(KroutonConsoleMasteringConfig.self, from: data)
     h.check(decoded == consoleCfg, "KroutonConsoleMasteringConfig Codable round-trip must match")
+
+    // Verify krouton.app Web Endpoints, Unified KroutonKrutCoreSpec Wire Ticket, Cross-FS Guard & ChaCha20-Poly1305
+    h.check(KroutonWebEndpoints.homeURLString == "https://krouton.app", "Home URL must be https://krouton.app")
+    h.check(KroutonKrutSecurityEngine.isSafeRelativePath("Audio/Track01.wav"), "Relative child path must be allowed")
+    h.check(!KroutonKrutSecurityEngine.isSafeRelativePath("../../etc/passwd"), "Path traversal '..' must be blocked")
+    let winPath = KroutonKrutSecurityEngine.normalizeCrossFilesystemPath("Subfolder\\Track_01.flac")
+    h.check(winPath == "Subfolder/Track_01.flac", "Windows backslash path must normalize to POSIX forward slash")
+
+    let coreSpec = KroutonKrutCoreSpec(
+        formatID: "dvd-video",
+        volumeTitle: "KROUTON_DVD9",
+        sectorSizeBytes: 2048,
+        totalSectorsLBA: 4_173_824,
+        expectedPayloadBytes: 8_547_991_552,
+        payloadSHA256Hex: String(repeating: "a", count: 64),
+        dualLayerBreakSectorLBA: 2_086_912,
+        ephemeralAutoPurgeOnComplete: true
+    )
+    let coreData = try JSONEncoder().encode(coreSpec)
+    let coreDecoded = try JSONDecoder().decode(KroutonKrutCoreSpec.self, from: coreData)
+    h.check(coreDecoded == coreSpec && coreDecoded.ephemeralAutoPurgeOnComplete, "KroutonKrutCoreSpec wire round-trip & ephemeral auto-purge")
+
+    let sampleKrut = Data("{\"schemaVersion\":\"1.0\",\"discVolumeTitle\":\"KROUTON_VAULT\"}".utf8)
+    let salt = Data("krouton-2026-krut-salt-32bytes!!".utf8)
+    let sealed = try KroutonKrutSecurityEngine.sealKrutPayload(sampleKrut, passphrase: "correct-horse-battery", salt: salt)
+    h.check(KroutonKrutSecurityEngine.openKrutPayload(sealed, passphrase: "correct-horse-battery", salt: salt) == sampleKrut, "ChaCha20-Poly1305 decrypt")
+    h.check(KroutonKrutSecurityEngine.openKrutPayload(sealed, passphrase: "wrong-pass", salt: salt) == nil, "ChaCha20-Poly1305 wrong password reject")
+
+    // Verify First-Class KroutonEmbeddedLabelSpec & Freehand Drawn Stroke -> Crisp Vector Circle Recognition
+    var embeddedLabel = KroutonEmbeddedLabelSpec(
+        primaryArcTitle: "DARK SIDE OF THE MOON",
+        bottomSubtitle: "50TH ANNIVERSARY RED BOOK MASTER",
+        performer: "Pink Floyd",
+        mcnCatalogBarcode: "5099902894521",
+        templateStyleRaw: "Concentric Studio Rings",
+        trayPresetName: "Epson ET-8550 Full Hub (120mm / 18mm)",
+        outerDiameterMM: 120.0,
+        innerDiameterMM: 18.0,
+        offsetXMM: -0.4,
+        offsetYMM: 0.2,
+        showTracklistOnDisc: true,
+        stampedTracklistLines: ["01. Speak to Me", "02. Breathe (In the Air)", "03. Time"]
+    )
+    let roughCirclePts = (0..<24).map { i -> KroutonNormalizedPoint in
+        let ang = Double(i) * (2.0 * Double.pi / 24.0)
+        return KroutonNormalizedPoint(nx: 0.25 + cos(ang) * 0.20, ny: -0.20 + sin(ang) * 0.20)
+    }
+    let snappedCircle = KroutonKrustiniModule.recognizeAndVectorizeDrawnStroke(rawPoints: roughCirclePts, autoSnapGeometry: true)
+    h.check(snappedCircle.kind == .circle && snappedCircle.isClosed && snappedCircle.points.count == 36, "Freehand circular stroke must auto-snap to 36-vertex vector circle")
+    embeddedLabel.vectorShapeLayers = [snappedCircle]
+    embeddedLabel.backgroundStyle = .linearGradient
+    let lblData = try JSONEncoder().encode(embeddedLabel)
+    let lblDecoded = try JSONDecoder().decode(KroutonEmbeddedLabelSpec.self, from: lblData)
+    h.check(lblDecoded == embeddedLabel && lblDecoded.vectorShapeLayers.count == 1, "KroutonEmbeddedLabelSpec round-trip with editable vector shapes & gradient")
+
+
 }
 
 harness.runSuite("21. Phase 4 Workspace Modularization & 600-LOC File Ceiling Gate") { h in
@@ -481,6 +537,7 @@ harness.runSuite("21. Phase 4 Workspace Modularization & 600-LOC File Ceiling Ga
 
     let expectedWorkspaceFiles = [
         "AudioMasteringWorkspaces.swift",
+        "CarSafeAudioWorkspace.swift",
         "CopyAndRipWorkspaces.swift",
         "DataAndArchivalWorkspaces.swift",
         "DiscImageInspectorWorkspace.swift",
@@ -520,6 +577,7 @@ harness.runSuite("21. Phase 4 Workspace Modularization & 600-LOC File Ceiling Ga
     // Verify that standalone workspaces adopt KroutonMasteringDeckCard and KroutonEmptyDropZoneView
     let sharedComponentWorkspaces = [
         "Sources/KroutonApp/Workspaces/AudioMasteringWorkspaces.swift",
+        "Sources/KroutonApp/Workspaces/CarSafeAudioWorkspace.swift",
         "Sources/KroutonApp/Workspaces/DataAndArchivalWorkspaces.swift",
         "Sources/KroutonApp/Workspaces/DiscImageInspectorWorkspace.swift",
         "Sources/KroutonApp/Workspaces/RetroConsoleWorkspaces.swift",

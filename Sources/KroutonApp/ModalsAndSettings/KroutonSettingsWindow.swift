@@ -156,7 +156,7 @@ public struct KroutonSettingsWindowView: View {
             .background(Color.kroutonWindowSurface)
         }
         .frame(minWidth: 980, idealWidth: 1120, minHeight: 600, idealHeight: 720)
-        .preferredColorScheme(store.appearanceMode.colorScheme)
+        .preferredColorScheme(store.resolvedColorScheme)
         .tint(store.activeAccent)
     }
 

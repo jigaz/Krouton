@@ -276,6 +276,18 @@ public enum KroutonToasterOutputKind: String, CaseIterable, Identifiable, Sendab
         case .pdfVector: return "doc.richtext.fill"
         }
     }
+
+    public var compactBadgeTitle: String {
+        switch self {
+        case .physicalBurner: return "USB"
+        case .networkBurner:  return "LAN"
+        case .discImage:      return "ISO"
+        case .audioRip:       return "Rip"
+        case .videoExtract:   return "Video"
+        case .discPrinter:    return "Print"
+        case .pdfVector:      return "PDF"
+        }
+    }
 }
 
 public struct KroutonBakeBatchItem: Identifiable, Hashable, Sendable {

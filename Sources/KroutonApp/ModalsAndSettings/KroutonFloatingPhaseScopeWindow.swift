@@ -434,7 +434,7 @@ struct KroutonFloatingThermometerView: View {
         .frame(minWidth: 740, idealWidth: 800, minHeight: 510, idealHeight: 570)
         .background(store.mainPanelTintOverlay)
         .background(Color.kroutonWindowSurface)
-        .preferredColorScheme(store.appearanceMode.colorScheme)
+        .preferredColorScheme(store.resolvedColorScheme)
         .environment(\.locale, store.activeLocale)
         .tint(store.activeAccent)
     }

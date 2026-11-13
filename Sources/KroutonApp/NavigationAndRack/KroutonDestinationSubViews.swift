@@ -64,8 +64,9 @@ struct KroutonDestinationRackColumnView: View {
                         )
                     }
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, isRightQueueCompact ? 10 : 12)
                 .padding(.vertical, 12)
+                .frame(maxWidth: .infinity)
             }
 
             Divider()
@@ -97,13 +98,16 @@ struct KroutonDestinationRackColumnView: View {
                 Button {
                     store.executeDestinationQueue(driveManager: driveManager, primarySelectedDrive: primarySelectedDrive, enableCustomFinderLayoutTab: enableCustomFinderLayoutTab, finderIconSize: finderIconSize)
                 } label: {
-                    HStack {
+                    HStack(spacing: 8) {
                         Image(systemName: driveManager.isExecutingQueue ? "stop.circle.fill" : store.primaryActionSymbol)
-                            .font(.system(size: 15, weight: .bold))
-                        Text(driveManager.isExecutingQueue ? "ABORT BURN" : store.primaryActionTitle)
-                            .font(.system(size: 14, weight: .heavy, design: .rounded))
+                            .font(.system(size: 14, weight: .bold))
+                        Text(driveManager.isExecutingQueue ? "ABORT OPERATION" : store.primaryActionTitle)
+                            .font(.system(size: 13.5, weight: .heavy, design: .rounded))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
                     }
                     .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 18)
                     .padding(.vertical, 12)
                     .background(driveManager.isExecutingQueue ? Color.red : store.activeAccent)
                     .foregroundStyle(driveManager.isExecutingQueue ? Color.white : store.activeOnAccentText)
@@ -111,11 +115,13 @@ struct KroutonDestinationRackColumnView: View {
                 }
                 .buttonStyle(.plain)
 
-                Text("Queue Ready • \(store.stagedFiles.count) Items (\(ByteCountFormatter.string(fromByteCount: store.totalStagedBytes, countStyle: .file)))")
+                Text(store.queueStatusSummaryText)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
-            .padding(14)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
         }
         .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
         .background(Color.kroutonControlSurface)
@@ -141,8 +147,13 @@ struct KrumbNetworkToasterCardSectionView: View {
                 Image(systemName: "server.rack")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(store.uiSecondaryAccent)
+                let validHosts = krumb.discoveredNodes.map(\.hostPort)
+                let resolvedHost = validHosts.contains(item.hardwareOrPath)
+                    ? item.hardwareOrPath
+                    : (krumb.discoveredNodes.first?.hostPort ?? "localhost:7420")
+
                 Picker("", selection: Binding(
-                    get: { item.hardwareOrPath.isEmpty ? "localhost:7420" : item.hardwareOrPath },
+                    get: { resolvedHost },
                     set: { newHost in
                         onUpdateHost(newHost)
                         krumb.activeEndpointHost = newHost
@@ -153,6 +164,7 @@ struct KrumbNetworkToasterCardSectionView: View {
                     }
                 }
                 .labelsHidden()
+                .accessibilityLabel("Krumb Network Server Node")
 
                 Spacer(minLength: 4)
 
@@ -195,6 +207,7 @@ struct KrumbNetworkToasterCardSectionView: View {
                     .background((isFloatingOpen || isInlineVisible) ? store.uiSecondaryAccent : store.uiSecondaryAccent.opacity(0.18))
                     .foregroundStyle((isFloatingOpen || isInlineVisible) ? Color.black.opacity(0.9) : store.uiSecondaryAccent)
                     .clipShape(Capsule())
+                    .fixedSize(horizontal: true, vertical: false)
                 }
                 .buttonStyle(.plain)
                 .help("Stream Krumb WS /api/v1/kitchen telemetry directly into the Phase Scope")
@@ -223,13 +236,14 @@ struct KrumbNetworkToasterCardSectionView: View {
                         await krumb.refreshToasters(endpoint: item.hardwareOrPath)
                     }
                 } label: {
-                    Label("Probe 7420", systemImage: "antenna.radiowaves.left.and.right")
+                    Label("Refresh", systemImage: "arrow.clockwise")
                         .font(.system(size: 9.5, weight: .bold))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(store.uiSecondaryAccent.opacity(0.16))
                         .foregroundStyle(store.uiSecondaryAccent)
                         .clipShape(Capsule())
+                    .fixedSize(horizontal: true, vertical: false)
                 }
                 .buttonStyle(.plain)
 
@@ -238,13 +252,14 @@ struct KrumbNetworkToasterCardSectionView: View {
                         await krumb.runPantryCalibration(endpoint: item.hardwareOrPath)
                     }
                 } label: {
-                    Label("Calibrate Pantry", systemImage: "gauge.with.dots.needle.67percent")
+                    Label("Test Cache", systemImage: "gauge.with.dots.needle.67percent")
                         .font(.system(size: 9.5, weight: .bold))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(store.activeAccent.opacity(0.16))
                         .foregroundStyle(store.activeAccent)
                         .clipShape(Capsule())
+                    .fixedSize(horizontal: true, vertical: false)
                 }
                 .buttonStyle(.plain)
 
@@ -254,7 +269,7 @@ struct KrumbNetworkToasterCardSectionView: View {
                             await krumb.toggleToasterRack(toasterID: toaster.id, endpoint: item.hardwareOrPath)
                         }
                     } label: {
-                        Label(toaster.rackState == .open ? "Close Rack" : "Wink Rack", systemImage: "eject.fill")
+                        Label(toaster.rackState == .open ? "Close Tray" : "Identify", systemImage: "eject.fill")
                             .font(.system(size: 9.5, weight: .bold))
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)

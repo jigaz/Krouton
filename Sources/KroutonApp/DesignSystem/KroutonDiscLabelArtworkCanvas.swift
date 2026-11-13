@@ -6,6 +6,7 @@ import Crustini
 
 // MARK: - 120mm Optical Disc Label Studio Artwork Renderer (Primary + Secondary Harmony)
 struct KroutonDiscLabelArtworkCanvas: View {
+    @State private var activeDragPoints: [KroutonNormalizedPoint] = []
     let preset: KroutonSliceLabelGeometry
     let template: KroutonCroutonLabelStyle
     let title: String
@@ -199,6 +200,125 @@ struct KroutonDiscLabelArtworkCanvas: View {
                     .padding(.bottom, diameterPoints * 0.085)
             }
             .frame(width: diameterPoints, height: diameterPoints)
+
+                        // Custom Vector Background Gradient, Curved Polar Arc Text & Interactive Vector Shapes
+            if let store = KroutonStateStore.shared {
+                if store.labelBackgroundStyle != .templateDefault {
+                    let c1 = store.labelBgPrimaryColor
+                    let c2 = store.labelBgSecondaryColor
+                    let ang = Angle.degrees(store.labelGradientAngle)
+                    Group {
+                        switch store.labelBackgroundStyle {
+                        case .solidColor:
+                            Circle().fill(c1)
+                        case .linearGradient:
+                            Circle().fill(
+                                LinearGradient(
+                                    colors: [c1, c2],
+                                    startPoint: UnitPoint(x: 0.5 - 0.5 * cos(ang.radians), y: 0.5 - 0.5 * sin(ang.radians)),
+                                    endPoint: UnitPoint(x: 0.5 + 0.5 * cos(ang.radians), y: 0.5 + 0.5 * sin(ang.radians))
+                                )
+                            )
+                        case .radialGradient:
+                            Circle().fill(
+                                RadialGradient(colors: [c2, c1], center: .center, startRadius: holeDiameter * 0.45, endRadius: diameterPoints * 0.5)
+                            )
+                        case .angularGradient:
+                            Circle().fill(
+                                AngularGradient(colors: [c1, c2, primaryColor, c1], center: .center, angle: ang)
+                            )
+                        case .templateDefault:
+                            EmptyView()
+                        }
+                    }
+                    .frame(width: diameterPoints, height: diameterPoints)
+                    .allowsHitTesting(false)
+                }
+
+                Canvas { context, size in
+                    let center = CGPoint(x: size.width * 0.5, y: size.height * 0.5)
+                    let radiusScale = (size.width * 0.5) / 60.0
+
+                    for shape in store.labelVectorShapes where shape.points.count >= 2 {
+                        var path = Path()
+                        for (idx, pt) in shape.points.enumerated() {
+                            let px = center.x + CGFloat(pt.nx) * (size.width * 0.5)
+                            let py = center.y + CGFloat(pt.ny) * (size.height * 0.5)
+                            if idx == 0 { path.move(to: CGPoint(x: px, y: py)) }
+                            else { path.addLine(to: CGPoint(x: px, y: py)) }
+                        }
+                        if shape.isClosed { path.closeSubpath() }
+                        if let fill = shape.fillColor {
+                            context.fill(path, with: .color(Color(red: fill.r, green: fill.g, blue: fill.b, opacity: fill.a)))
+                        }
+                        let sCol = Color(red: shape.strokeColor.r, green: shape.strokeColor.g, blue: shape.strokeColor.b, opacity: shape.strokeColor.a)
+                        context.stroke(path, with: .color(sCol), style: StrokeStyle(lineWidth: CGFloat(shape.strokeWidthPoints), lineCap: .round, lineJoin: .round))
+                    }
+
+                    if activeDragPoints.count >= 2 {
+                        var livePath = Path()
+                        for (idx, pt) in activeDragPoints.enumerated() {
+                            let px = center.x + CGFloat(pt.nx) * (size.width * 0.5)
+                            let py = center.y + CGFloat(pt.ny) * (size.height * 0.5)
+                            if idx == 0 { livePath.move(to: CGPoint(x: px, y: py)) }
+                            else { livePath.addLine(to: CGPoint(x: px, y: py)) }
+                        }
+                        context.stroke(livePath, with: .color(harmonyColor), style: StrokeStyle(lineWidth: 2.4, lineCap: .round, dash: [4, 2]))
+                    }
+
+                    if store.labelTopArcRadiusMM != 47.0 || store.labelArcLetterSpacing != 1.0 || store.labelBackgroundStyle != .templateDefault {
+                        let topR = CGFloat(store.labelTopArcRadiusMM) * radiusScale
+                        let span = min(Double.pi * 1.35, Double(max(1, title.count)) * 0.068 * store.labelArcLetterSpacing)
+                        let topGlyphs = KroutonKrustiniModule.computePolarArcGlyphLayout(
+                            text: title.uppercased(),
+                            centerX: Double(center.x),
+                            centerY: Double(center.y),
+                            radiusPoints: Double(topR),
+                            centerAngleRadians: -.pi / 2.0,
+                            arcSpanRadians: span
+                        )
+                        for g in topGlyphs {
+                            var ctx = context
+                            ctx.translateBy(x: CGFloat(g.xPoints), y: CGFloat(g.yPoints))
+                            ctx.rotate(by: .radians(g.tangentRotationRadians))
+                            let resolved = ctx.resolve(
+                                Text(String(g.character))
+                                    .font(.system(size: diameterPoints * 0.036, weight: .heavy, design: .rounded))
+                                    .foregroundStyle(.white)
+                            )
+                            ctx.draw(resolved, at: .zero, anchor: .center)
+                        }
+                    }
+                }
+                .frame(width: diameterPoints, height: diameterPoints)
+                .clipShape(Circle())
+                .gesture(
+                    DragGesture(minimumDistance: 2)
+                        .onChanged { val in
+                            guard store.isLabelVectorDrawMode, !isExportMode else { return }
+                            let half = max(1.0, diameterPoints * 0.5)
+                            let nx = Double((val.location.x - half) / half)
+                            let ny = Double((val.location.y - half) / half)
+                            if hypot(nx, ny) <= 0.98 {
+                                activeDragPoints.append(KroutonNormalizedPoint(nx: nx, ny: ny))
+                            }
+                        }
+                        .onEnded { _ in
+                            guard store.isLabelVectorDrawMode, activeDragPoints.count >= 3 else {
+                                activeDragPoints.removeAll()
+                                return
+                            }
+                            let (sr, sg, sb, _) = KroutonPureColorMath.extractSRGB(harmonyColor)
+                            let snapped = KroutonKrustiniModule.recognizeAndVectorizeDrawnStroke(
+                                rawPoints: activeDragPoints,
+                                autoSnapGeometry: store.labelDrawAutoSnap,
+                                strokeColor: KroutonRGBAColor(r: Double(sr), g: Double(sg), b: Double(sb), a: 1.0)
+                            )
+                            store.labelVectorShapes.append(snapped)
+                            activeDragPoints.removeAll()
+                        }
+                )
+            }
 
             // 4. Outer Polycarbonate Rim & Clamping Ring + Center Spindle Cutout
             Circle()

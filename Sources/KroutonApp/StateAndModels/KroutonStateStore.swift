@@ -60,6 +60,20 @@ public final class KroutonStateStore: ObservableObject {
         }
     }
     @Published public var labelShowTracklistOnDisc: Bool = true
+    @Published public var labelDiscTitle: String = "THE KROUTON ARCHIVE"
+    @Published public var labelSubtitle: String = "2026 MASTER EDITION"
+    @Published public var autoLabelSearchQuery: String = "Dark Side of the Moon"
+    @Published public var labelBackgroundStyle: KroutonVectorBackgroundStyle = .templateDefault
+    @Published public var labelBgPrimaryColor: Color = Color(red: 0.09, green: 0.12, blue: 0.20)
+    @Published public var labelBgSecondaryColor: Color = Color(red: 0.20, green: 0.48, blue: 0.78)
+    @Published public var labelGradientAngle: Double = 45.0
+    @Published public var labelTopArcRadiusMM: Double = 47.0
+    @Published public var labelBottomArcRadiusMM: Double = 45.0
+    @Published public var labelArcLetterSpacing: Double = 1.0
+    @Published public var labelVectorShapes: [KroutonVectorShapeLayer] = []
+    @Published public var labelDrawAutoSnap: Bool = true
+    @Published public var isLabelVectorDrawMode: Bool = false
+    public var savedQueuesByDomain: [String: [KroutonBakeBatchItem]] = [:]
     @Published public var tintWindowWithWallpaper: Bool = false
     // Accessibility & VoiceOver Support
     @Published public var appLanguage: KroutonLanguage = .english {

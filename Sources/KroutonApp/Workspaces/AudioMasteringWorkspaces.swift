@@ -1,12 +1,6 @@
 import VideoOven
 import Tartine
 import Marmalade
-//
-//  KroutonMasteringWorkspaces.swift
-//  Krouton — Optical Media Mastering Studio
-//
-//  Format-Specific Mastering Workspaces (Data/Archival, Red Book Audio, Video Authoring, Car-Safe Audio, Retro Console ROMs, and Disc Image Inspector).
-//
 
 import OpticalDough
 import SwiftUI
@@ -31,142 +25,210 @@ struct KroutonRedBookAudioWorkspaceView: View {
     @State private var cdExtraDataVolumeName: String = "BONUS_EXTRA"
     @State private var cdExtraIncludeLinerNotes: Bool = true
 
+    @ViewBuilder
+    private func trackSplicePicker(compact: Bool) -> some View {
+        Picker("", selection: $defaultAudioTransition) {
+            Text(KroutonL10n.tr(compact ? "2.0s Standard Pre-Gap (IDX 00)" : "2.0s Standard Pre-Gap (INDEX 00)")).tag("2.0s Standard Pre-Gap (INDEX 00)")
+            Text(KroutonL10n.tr(compact ? "0.0s Gapless Live (DAO)" : "0.0s Gapless Live Album (DAO)")).tag("0.0s Gapless Live Album (DAO)")
+            Text(KroutonL10n.tr("2.5s Equal-Power Crossfade")).tag("2.5s Equal-Power Crossfade")
+        }
+        .labelsHidden()
+        .font(.caption)
+        .accessibilityLabel(KroutonL10n.tr("Default Track Splice"))
+    }
+
+    private var deckHeaderTitle: String {
+        switch spec.id {
+        case "cd-extra":
+            return isCenterWorkspaceNarrow ? "BLUE BOOK CD-EXTRA DECK" : "BLUE BOOK 2-SESSION AUDIO + XA DATA DECK (S1 CD-DA • S2 ISO9660/HFS+)"
+        case "dts-cd":
+            return isCenterWorkspaceNarrow ? "DTS-CD 5.1 SURROUND DECK" : "IEC 61937 5.1 DTS-CD SURROUND MASTERING DECK (14-BIT PCM WRAPPER)"
+        case "dvd-audio":
+            return isCenterWorkspaceNarrow ? "DVD-AUDIO HI-RES DECK" : "DVD-AUDIO HIGH-RESOLUTION MASTERING DECK (AUDIO_TS • 24-BIT / 192 kHz MLP)"
+        case "sacd-r":
+            return isCenterWorkspaceNarrow ? "SCARLET BOOK SACD DECK" : "SCARLET BOOK DSD / SACD-R MASTERING DECK (1-BIT 2.8224 MHz DSD64)"
+        case "cd-g":
+            return isCenterWorkspaceNarrow ? "RED BOOK + R-W KARAOKE DECK" : "RED BOOK CD+G KARAOKE MASTERING DECK (96-BYTE R-W SUBCHANNEL GRAPHICS)"
+        default:
+            return isCenterWorkspaceNarrow ? "RED BOOK CD-DA DECK" : "RED BOOK CD-DA & CD-TEXT MASTERING DECK (44.1 kHz / 16-BIT PCM • 2,352 B/SECTOR)"
+        }
+    }
+
+    private var deckSafetyBadgeText: String {
+        switch spec.id {
+        case "dts-cd": return "5.1 Coax / TOSLINK Bitstream Safe"
+        case "dvd-audio": return "24-Bit / 192 kHz Lossless MLP"
+        case "sacd-r": return "1-Bit DSD64 Scarlet Book"
+        default: return KroutonL10n.tr("CD-TEXT: 7-Bit ASCII Hardware Safe")
+        }
+    }
+
+    private var dropZoneFormatSubtitle: String {
+        switch spec.id {
+        case "dts-cd": return "Encapsulates 5.1 Surround DTS/AC-3 streams into 44.1 kHz / 16-bit IEC 61937 Red Book frames for S/PDIF receivers."
+        case "dvd-audio": return "Authors high-resolution 24-bit / 96–192 kHz Stereo & 5.1 MLP PCM streams into an AUDIO_TS optical volume."
+        case "sacd-r": return "Packages 1-Bit 2.8224 MHz DSD (.DSF / .DFF) or high-res PCM into a Scarlet Book UDF 1.02 SACD-R disc image."
+        case "cd-g": return "Interleaves 44.1 kHz Stereo PCM audio with raw 96-byte R–W subchannel graphics packets (.cdg + .wav/.mp3 or .bin/.cue)."
+        default:
+            return "Krouton decodes all audio to 44.1 kHz / 16-bit Stereo PCM on disk before burning (Zero Underrun Guarantee)."
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             // WaveBurner CD-TEXT, UPC/MCN & HTOA Mastering Deck
             KroutonMasteringDeckCard(store: store) {
                 VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 10) {
-                    Image(systemName: "waveform.path.ecg.rectangle.fill")
-                        .foregroundStyle(store.activeAccent)
-                    if !isCenterWorkspaceNarrow {
-                        Text(KroutonL10n.tr("RED BOOK CD-DA & CD-TEXT MASTERING DECK (44.1 kHz / 16-BIT PCM • 2,352 B/SECTOR)"))
+                    HStack(spacing: 8) {
+                        Image(systemName: spec.sfSymbol)
+                            .foregroundStyle(store.activeAccent)
+                            .accessibilityHidden(true)
+
+                        Text(deckHeaderTitle)
                             .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                            .foregroundStyle(.secondary).lineLimit(1)
-                    }
-                    Spacer()
-                    if !isCenterWorkspaceNarrow {
-                        Text(KroutonL10n.tr("CD-TEXT: 7-Bit ASCII Hardware Safe"))
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.green)
-                    }
-
-                    Button {
-                        showMarmaladeCuePopover.toggle()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "doc.text.magnifyingglass")
-                            Text("Marmalade .CUE (\(store.computeLiveMarmaladeCDTextPackCount(albumTitle: cdTextAlbumTitle, albumPerformer: cdTextAlbumPerformer, tracks: store.redBookTracks)) Packs)")
-                        }
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(store.activeAccent.opacity(0.16))
-                        .foregroundStyle(store.activeAccent)
-                        .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showMarmaladeCuePopover, arrowEdge: .bottom) {
-                        KroutonMarmaladeCuePopoverView(store: store, cdTextAlbumTitle: cdTextAlbumTitle, cdTextAlbumPerformer: cdTextAlbumPerformer, cdTextUPCBarcode: cdTextUPCBarcode)
-                    }
-                }
-
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 12) {
-                        HStack(spacing: 5) {
-                            Text(KroutonL10n.tr("Album Title:")).font(.caption.bold()).lineLimit(1)
-                            TextField("ALBUM TITLE", text: $cdTextAlbumTitle).textFieldStyle(.roundedBorder).frame(width: 160)
-                        }
-                        HStack(spacing: 5) {
-                            Text(KroutonL10n.tr("Performer:")).font(.caption.bold()).lineLimit(1)
-                            TextField("ARTIST / PERFORMER", text: $cdTextAlbumPerformer).textFieldStyle(.roundedBorder).frame(width: 150)
-                        }
-                        HStack(spacing: 5) {
-                            Text(KroutonL10n.tr("UPC / MCN:")).font(.caption.bold()).lineLimit(1)
-                            TextField("012345678905", text: $cdTextUPCBarcode).textFieldStyle(.roundedBorder).font(.system(size: 11, design: .monospaced)).frame(width: 110)
-                        }
-                        Spacer(minLength: 0)
-                    }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 6) {
-                            Text(KroutonL10n.tr("Album:")).font(.caption.bold()).frame(width: 48, alignment: .leading)
-                            TextField("ALBUM TITLE", text: $cdTextAlbumTitle).textFieldStyle(.roundedBorder)
-                        }
-                        HStack(spacing: 6) {
-                            Text(KroutonL10n.tr("Artist:")).font(.caption.bold()).frame(width: 48, alignment: .leading)
-                            TextField("ARTIST / PERFORMER", text: $cdTextAlbumPerformer).textFieldStyle(.roundedBorder)
-                        }
-                        HStack(spacing: 6) {
-                            Text(KroutonL10n.tr("UPC:")).font(.caption.bold()).frame(width: 48, alignment: .leading)
-                            TextField("012345678905", text: $cdTextUPCBarcode).textFieldStyle(.roundedBorder).font(.system(size: 11, design: .monospaced)).frame(width: 125)
-                            Spacer()
-                        }
-                    }
-                }
-
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 14) {
-                        Picker("Default Track Splice:", selection: $defaultAudioTransition) {
-                            Text(KroutonL10n.tr("2.0s Standard Pre-Gap (INDEX 00)")).tag("2.0s Standard Pre-Gap (INDEX 00)")
-                            Text(KroutonL10n.tr("0.0s Gapless Live Album (DAO)")).tag("0.0s Gapless Live Album (DAO)")
-                            Text(KroutonL10n.tr("2.5s Equal-Power Crossfade")).tag("2.5s Equal-Power Crossfade")
-                        }
-                        .frame(maxWidth: 285)
-                        .font(.caption)
-
-                        Toggle(KroutonL10n.tr("Hidden Track One Audio (HTOA)"), isOn: $enableHiddenTrackOneHTOA)
-                            .toggleStyle(.checkbox)
-                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
                             .lineLimit(1)
 
-                        Spacer(minLength: 0)
-                    }
+                        Spacer(minLength: 4)
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Picker("Track Splice:", selection: $defaultAudioTransition) {
-                            Text(KroutonL10n.tr("2.0s Standard Pre-Gap (INDEX 00)")).tag("2.0s Standard Pre-Gap (INDEX 00)")
-                            Text(KroutonL10n.tr("0.0s Gapless Live Album (DAO)")).tag("0.0s Gapless Live Album (DAO)")
-                            Text(KroutonL10n.tr("2.5s Equal-Power Crossfade")).tag("2.5s Equal-Power Crossfade")
+                        if !isCenterWorkspaceNarrow {
+                            Text(deckSafetyBadgeText)
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.green)
+                                .lineLimit(1)
                         }
-                        .font(.caption)
 
-                        Toggle(KroutonL10n.tr("Hidden Track One Audio (HTOA in INDEX 00)"), isOn: $enableHiddenTrackOneHTOA)
-                            .toggleStyle(.checkbox)
-                            .font(.caption.bold())
+                        Button {
+                            showMarmaladeCuePopover.toggle()
+                        } label: {
+                            let packs = store.computeLiveMarmaladeCDTextPackCount(albumTitle: cdTextAlbumTitle, albumPerformer: cdTextAlbumPerformer, tracks: store.redBookTracks)
+                            HStack(spacing: 4) {
+                                Image(systemName: "doc.text.magnifyingglass")
+                                Text(isCenterWorkspaceNarrow ? ".CUE (\(packs) Packs)" : "Marmalade .CUE (\(packs) Packs)")
+                                    .lineLimit(1)
+                            }
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(store.activeAccent.opacity(0.16))
+                            .foregroundStyle(store.activeAccent)
+                            .clipShape(Capsule())
+                            .fixedSize(horizontal: true, vertical: false)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Inspect Marmalade Red Book CUE Sheet and CD-Text Packs")
+                        .popover(isPresented: $showMarmaladeCuePopover, arrowEdge: .bottom) {
+                            KroutonMarmaladeCuePopoverView(store: store, cdTextAlbumTitle: cdTextAlbumTitle, cdTextAlbumPerformer: cdTextAlbumPerformer, cdTextUPCBarcode: cdTextUPCBarcode)
+                        }
                     }
-                }
 
-                if spec.id == "cd-extra" || spec.technicalName.contains("Extra") {
-                    Divider().opacity(0.5)
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 12) {
-                            Label("Blue Book 2-Session (S1 Audio → S2 XA Data):", systemImage: "opticaldisc.fill")
-                                .font(.caption.bold())
-                                .foregroundStyle(store.uiSecondaryAccent)
-                            TextField("BONUS_EXTRA", text: $cdExtraDataVolumeName)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 135)
-                            Toggle(KroutonL10n.tr("Auto-Bundle Artwork & Liner Notes in Session 2"), isOn: $cdExtraIncludeLinerNotes)
+                    if isCenterWorkspaceNarrow {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 6) {
+                                Text(KroutonL10n.tr("Album:")).font(.caption.bold()).frame(width: 52, alignment: .leading)
+                                TextField("ALBUM TITLE", text: $cdTextAlbumTitle)
+                                    .textFieldStyle(.roundedBorder)
+                                    .accessibilityLabel(KroutonL10n.tr("Album Title"))
+                            }
+                            HStack(spacing: 6) {
+                                Text(KroutonL10n.tr("Artist:")).font(.caption.bold()).frame(width: 52, alignment: .leading)
+                                TextField("ARTIST / PERFORMER", text: $cdTextAlbumPerformer)
+                                    .textFieldStyle(.roundedBorder)
+                                    .accessibilityLabel(KroutonL10n.tr("Performer"))
+                            }
+                            HStack(spacing: 6) {
+                                Text(KroutonL10n.tr("UPC:")).font(.caption.bold()).frame(width: 52, alignment: .leading)
+                                TextField("012345678905", text: $cdTextUPCBarcode)
+                                    .textFieldStyle(.roundedBorder)
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .frame(maxWidth: 145)
+                                    .accessibilityLabel(KroutonL10n.tr("UPC or MCN Barcode"))
+                                Spacer(minLength: 0)
+                            }
+                            HStack(spacing: 6) {
+                                Text(KroutonL10n.tr("Splice:")).font(.caption.bold()).frame(width: 52, alignment: .leading)
+                                trackSplicePicker(compact: true)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            Toggle(KroutonL10n.tr("Hidden Track One Audio (HTOA in INDEX 00)"), isOn: $enableHiddenTrackOneHTOA)
                                 .toggleStyle(.checkbox)
-                                .font(.caption)
+                                .font(.caption.bold())
+                                .lineLimit(1)
+                        }
+                    } else {
+                        HStack(spacing: 12) {
+                            HStack(spacing: 6) {
+                                Text(KroutonL10n.tr("Album Title:")).font(.caption.bold()).lineLimit(1)
+                                TextField("ALBUM TITLE", text: $cdTextAlbumTitle)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(minWidth: 185, maxWidth: .infinity)
+                                    .accessibilityLabel(KroutonL10n.tr("Album Title"))
+                            }
+                            HStack(spacing: 6) {
+                                Text(KroutonL10n.tr("Performer:")).font(.caption.bold()).lineLimit(1)
+                                TextField("ARTIST / PERFORMER", text: $cdTextAlbumPerformer)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(minWidth: 185, maxWidth: .infinity)
+                                    .accessibilityLabel(KroutonL10n.tr("Performer"))
+                            }
+                        }
+
+                        HStack(spacing: 14) {
+                            HStack(spacing: 6) {
+                                Text(KroutonL10n.tr("UPC / MCN:")).font(.caption.bold()).lineLimit(1)
+                                TextField("012345678905", text: $cdTextUPCBarcode)
+                                    .textFieldStyle(.roundedBorder)
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .frame(width: 120)
+                                    .accessibilityLabel(KroutonL10n.tr("UPC or MCN Barcode"))
+                            }
+
+                            HStack(spacing: 6) {
+                                Text(KroutonL10n.tr("Default Track Splice:")).font(.caption.bold()).lineLimit(1)
+                                trackSplicePicker(compact: false)
+                                    .fixedSize(horizontal: true, vertical: false)
+                            }
+
+                            Toggle(KroutonL10n.tr("Hidden Track One Audio (HTOA)"), isOn: $enableHiddenTrackOneHTOA)
+                                .toggleStyle(.checkbox)
+                                .font(.caption.bold())
+                                .lineLimit(1)
+
                             Spacer(minLength: 0)
                         }
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 8) {
-                                Label("Session 2 Data Label:", systemImage: "opticaldisc.fill")
+                    }
+
+                    if spec.id == "cd-extra" || spec.technicalName.contains("Extra") {
+                        Divider().opacity(0.5)
+                        if isCenterWorkspaceNarrow {
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack(spacing: 8) {
+                                    Label("Session 2 Data Label:", systemImage: "opticaldisc.fill")
+                                        .font(.caption.bold())
+                                        .foregroundStyle(store.uiSecondaryAccent)
+                                    TextField("BONUS_EXTRA", text: $cdExtraDataVolumeName)
+                                        .textFieldStyle(.roundedBorder)
+                                }
+                                Toggle(KroutonL10n.tr("Bundle Artwork & Liner Notes in Session 2"), isOn: $cdExtraIncludeLinerNotes)
+                                    .toggleStyle(.checkbox)
+                                    .font(.caption)
+                                    .lineLimit(1)
+                            }
+                        } else {
+                            HStack(spacing: 12) {
+                                Label("Blue Book 2-Session (S1 Audio → S2 XA Data):", systemImage: "opticaldisc.fill")
                                     .font(.caption.bold())
                                     .foregroundStyle(store.uiSecondaryAccent)
                                 TextField("BONUS_EXTRA", text: $cdExtraDataVolumeName)
                                     .textFieldStyle(.roundedBorder)
-                                    .frame(maxWidth: 160)
+                                    .frame(width: 145)
+                                Toggle(KroutonL10n.tr("Auto-Bundle Artwork & Liner Notes in Session 2"), isOn: $cdExtraIncludeLinerNotes)
+                                    .toggleStyle(.checkbox)
+                                    .font(.caption)
+                                Spacer(minLength: 0)
                             }
-                            Toggle(KroutonL10n.tr("Bundle Artwork & Liner Notes in Session 2 (ISO9660/HFS+)"), isOn: $cdExtraIncludeLinerNotes)
-                                .toggleStyle(.checkbox)
-                                .font(.caption)
                         }
                     }
-                }
                 }
             }
 
@@ -188,7 +250,7 @@ struct KroutonRedBookAudioWorkspaceView: View {
                         isDropTargeted: isDropTargeted,
                         sfSymbol: "waveform.circle.fill",
                         headline: isCenterWorkspaceNarrow ? "Drop Any Audio Format" : "Drop Any Audio Format (WAV, AIFF, FLAC, ALAC, APE, WavPack, DSD .DSF/.DFF, Opus, Ogg, AC-3, DTS, MP3, M4A)",
-                        subtitle: "Krouton decodes all audio to 44.1 kHz / 16-bit Stereo PCM on disk before burning (Zero Underrun Guarantee)."
+                        subtitle: dropZoneFormatSubtitle
                     )
                 } else {
                     VStack(spacing: 0) {
@@ -317,192 +379,5 @@ struct KroutonRedBookAudioWorkspaceView: View {
         }
     }
 
-
-}
-
-struct KroutonCarSafeAudioWorkspaceView: View {
-    @ObservedObject var store: KroutonStateStore
-    let spec: KroutonRecipeSpec
-    let isCenterWorkspaceNarrow: Bool
-    @Binding var isDropTargeted: Bool
-    let onHandleFinderDrop: ([NSItemProvider]) -> Bool
-
-    @State private var carSafeZeroPadNumbers: Bool = true
-    @State private var carSafeStripAppleDouble: Bool = true
-    @State private var carSafeEnforceID3v23: Bool = true
-    @State private var carSafeGenerateM3U: Bool = true
-    @State private var carSafeTranscodeTarget: String = "320 kbps CBR MP3 (Universal Car Deck)"
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            KroutonMasteringDeckCard(store: store) {
-                VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 10) {
-                    Image(systemName: "car.rear.waves.up.fill")
-                        .foregroundStyle(store.activeAccent)
-                    Text(KroutonL10n.tr("CAR-SAFE ISO9660 + JOLIET AUDIO ENGINE (PIONEER / ALPINE / SONY / OEM HEAD-UNIT SAFE)"))
-                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(KroutonL10n.tr("AppleDouble ._* & .DS_Store Purged"))
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.green)
-                }
-
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 14) {
-                        HStack(spacing: 6) {
-                            Text(KroutonL10n.tr("Disc Volume Title:")).font(.caption.bold()).lineLimit(1)
-                            TextField("CAR_MP3_DISC", text: $store.discVolumeTitle).textFieldStyle(.roundedBorder).frame(width: 150)
-                        }
-                        Picker("Audio Output Profile:", selection: $carSafeTranscodeTarget) {
-                            Text(KroutonL10n.tr("320 kbps CBR MP3 (Universal Car Deck)")).tag("320 kbps CBR MP3 (Universal Car Deck)")
-                            Text(KroutonL10n.tr("192 kbps CBR MP3 (Extended 12-Hour Roadtrip)")).tag("192 kbps CBR MP3 (Extended 12-Hour Roadtrip)")
-                            Text(KroutonL10n.tr("16-Bit FLAC / WAV Passthrough (Modern Head Units)")).tag("16-Bit FLAC / WAV Passthrough (Modern Head Units)")
-                        }
-                        .frame(maxWidth: 320)
-                        .font(.caption)
-                        Spacer(minLength: 0)
-                    }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 6) {
-                            Text(KroutonL10n.tr("Disc Title:")).font(.caption.bold())
-                            TextField("CAR_MP3_DISC", text: $store.discVolumeTitle).textFieldStyle(.roundedBorder)
-                        }
-                        Picker("Profile:", selection: $carSafeTranscodeTarget) {
-                            Text(KroutonL10n.tr("320 kbps CBR MP3")).tag("320 kbps CBR MP3 (Universal Car Deck)")
-                            Text(KroutonL10n.tr("192 kbps CBR MP3")).tag("192 kbps CBR MP3 (Extended 12-Hour Roadtrip)")
-                            Text(KroutonL10n.tr("16-Bit FLAC / WAV")).tag("16-Bit FLAC / WAV Passthrough (Modern Head Units)")
-                        }
-                        .font(.caption)
-                    }
-                }
-
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 225), alignment: .leading)], spacing: 6) {
-                    Toggle(KroutonL10n.tr("Zero-Pad Prefixes (001 - Title.mp3)"), isOn: $carSafeZeroPadNumbers)
-                        .toggleStyle(.checkbox)
-                        .font(.caption.bold())
-                    Toggle(KroutonL10n.tr("Strip macOS .DS_Store & ._* Forks"), isOn: $carSafeStripAppleDouble)
-                        .toggleStyle(.checkbox)
-                        .font(.caption.bold())
-                    Toggle(KroutonL10n.tr("Enforce ID3v2.3 ISO-8859-1 Tags"), isOn: $carSafeEnforceID3v23)
-                        .toggleStyle(.checkbox)
-                        .font(.caption)
-                    Toggle(KroutonL10n.tr("Write Root .M3U Playlist"), isOn: $carSafeGenerateM3U)
-                        .toggleStyle(.checkbox)
-                        .font(.caption)
-                }
-                }
-            }
-
-            ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.kroutonControlSurface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .strokeBorder(
-                                isDropTargeted ? store.activeAccent : Color.primary.opacity(0.08),
-                                style: StrokeStyle(lineWidth: isDropTargeted ? 2.5 : 1.0, dash: store.stagedFiles.isEmpty ? [6, 4] : [])
-                            )
-                    )
-
-                if store.stagedFiles.isEmpty {
-                    KroutonEmptyDropZoneView(
-                        store: store,
-                        isDropTargeted: isDropTargeted,
-                        sfSymbol: "music.note.list",
-                        headline: "Drop MP3, FLAC, M4A, or Album Folders to Build a Car-Safe Audio Disc",
-                        subtitle: "Automatically numbers files in raw FAT/ISO directory order and strips hidden macOS resource forks so car stereos never freeze."
-                    )
-                } else {
-                    VStack(spacing: 0) {
-                        HStack(spacing: 10) {
-                            Text(KroutonL10n.tr("ORDER"))
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 44, alignment: .leading)
-                            Text(KroutonL10n.tr("CAR-SAFE JOLIET / ISO9660 FILENAME"))
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text(KroutonL10n.tr("TAG & CODEC PROFILE"))
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 185, alignment: .center)
-                            Text(KroutonL10n.tr("SECTORS"))
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 86, alignment: .trailing)
-                            Text(KroutonL10n.tr("SIZE"))
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 72, alignment: .trailing)
-                            Spacer().frame(width: 20)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(ZStack { Color.black.opacity(0.18); store.sidebarTintOverlay })
-                        Divider()
-
-                        ScrollView {
-                            VStack(spacing: 0) {
-                                ForEach(Array(store.stagedFiles.enumerated()), id: \.element.id) { idx, entry in
-                                    let baseName = entry.url.deletingPathExtension().lastPathComponent
-                                    let displayFile = carSafeZeroPadNumbers
-                                        ? String(format: "%03d - %@.mp3", idx + 1, String(baseName.prefix(48)))
-                                        : "\(baseName).mp3"
-                                    HStack(spacing: 10) {
-                                        Text(String(format: "#%03d", idx + 1))
-                                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                            .foregroundStyle(store.activeAccent)
-                                            .frame(width: 44, alignment: .leading)
-
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(displayFile)
-                                                .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                                                .lineLimit(1)
-                                            Text("Source: \(entry.name) • AppleDouble Fork Stripped")
-                                                .font(.system(size: 10))
-                                                .foregroundStyle(.secondary)
-                                                .lineLimit(1)
-                                        }
-                                        Spacer()
-                                        Text(carSafeEnforceID3v23 ? "ID3v2.3 • 320k CBR" : "ID3v2.4 • Passthrough")
-                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                                            .foregroundStyle(.green)
-                                            .frame(width: 185, alignment: .center)
-                                        Text("\(entry.sectorsLBA) LBA")
-                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                                            .contentTransition(.numericText())
-                                            .foregroundStyle(store.activeAccent)
-                                            .frame(width: 86, alignment: .trailing)
-                                        Text(ByteCountFormatter.string(fromByteCount: entry.byteSize, countStyle: .file))
-                                            .font(.system(size: 11, design: .monospaced))
-                                            .foregroundStyle(.secondary)
-                                            .frame(width: 72, alignment: .trailing)
-                                        Button {
-                                            store.removeStagedFile(id: entry.id)
-                                        } label: {
-                                            Image(systemName: "xmark.circle.fill")
-                                                .foregroundStyle(.secondary)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .frame(width: 18, alignment: .center)
-                                    }
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 8)
-                                    Divider()
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-                onHandleFinderDrop(providers)
-            }
-        }
-    }
 
 }

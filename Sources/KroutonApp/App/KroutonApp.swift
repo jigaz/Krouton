@@ -143,6 +143,11 @@ struct KroutonApp: App {
         .defaultSize(width: 1380, height: 880)
         .commands {
             CommandGroup(replacing: .newItem) {
+                Button("Open Project (.krut)...") { wm.store.presentOpenKrutProjectSheet() }
+                    .keyboardShortcut("o", modifiers: .command)
+                Button("Save Project (.krut)...") { wm.store.presentSaveKrutProjectSheet() }
+                    .keyboardShortcut("s", modifiers: .command)
+                Divider()
                 Button("Show Krouton Workspace") { KroutonWindowManager.shared.openMainWindow() }
                     .keyboardShortcut("0", modifiers: .command)
             }
@@ -242,11 +247,16 @@ struct KroutonMainWorkspaceView: View {
 
             GeometryReader { windowGeo in
                 let totalW = windowGeo.size.width
-                let minCenterW: CGFloat = 320
-                let maxAllowedLeft = max(182, min(340, totalW - rightColumnLiveWidth - minCenterW - 22))
-                let clampedLeft = min(max(182, leftColumnLiveWidth), maxAllowedLeft)
-                let maxAllowedRight = max(195, min(440, totalW - clampedLeft - minCenterW - 22))
-                let clampedRight = min(max(195, rightColumnLiveWidth), maxAllowedRight)
+                let minLeftW: CGFloat = 182
+                let maxLeftW: CGFloat = 340
+                let minCenterW: CGFloat = 345
+                let minRightW: CGFloat = 262
+                let maxRightW: CGFloat = 440
+                let splittersW: CGFloat = 22
+                let maxAllowedLeft = max(minLeftW, min(maxLeftW, totalW - max(minRightW, rightColumnLiveWidth) - minCenterW - splittersW))
+                let clampedLeft = min(max(minLeftW, leftColumnLiveWidth), maxAllowedLeft)
+                let maxAllowedRight = max(minRightW, min(maxRightW, totalW - clampedLeft - minCenterW - splittersW))
+                let clampedRight = min(max(minRightW, rightColumnLiveWidth), maxAllowedRight)
 
                 let centerLiveW = max(0, totalW - clampedLeft - clampedRight - 22)
 
@@ -304,8 +314,8 @@ struct KroutonMainWorkspaceView: View {
                             .onChanged { val in
                                 if rightSidebarDragStartWidth == nil { rightSidebarDragStartWidth = clampedRight }
                                 let startW = rightSidebarDragStartWidth ?? clampedRight
-                                let maxR = max(195, min(440, totalW - clampedLeft - minCenterW - 22))
-                                let newW = min(max(195, startW - val.translation.width), maxR)
+                                let maxR = max(minRightW, min(440, totalW - clampedLeft - minCenterW - 22))
+                                let newW = min(max(minRightW, startW - val.translation.width), maxR)
                                 var tx = Transaction(); tx.disablesAnimations = true
                                 withTransaction(tx) {
                                     rightColumnLiveWidth = newW
@@ -338,16 +348,32 @@ struct KroutonMainWorkspaceView: View {
                     isLeftSidebarUltraSkinny = clampedLeft < 215
                     isRightQueueCompact = clampedRight < 355
                     isCenterWorkspaceUltraCompact = centerLiveW < 500
-                    isCenterWorkspaceNarrow = centerLiveW < 720
+                    isCenterWorkspaceNarrow = centerLiveW < 520
+                }
+                .onChange(of: clampedRight) { _, newRightW in
+                    var tx = Transaction(); tx.disablesAnimations = true
+                    withTransaction(tx) {
+                        if !isRightQueueCompact && newRightW < 355 { isRightQueueCompact = true }
+                        else if isRightQueueCompact && newRightW > 368 { isRightQueueCompact = false }
+                    }
+                }
+                .onChange(of: clampedLeft) { _, newLeftW in
+                    var tx = Transaction(); tx.disablesAnimations = true
+                    withTransaction(tx) {
+                        if !isLeftSidebarCompact && newLeftW < 258 { isLeftSidebarCompact = true }
+                        else if isLeftSidebarCompact && newLeftW > 272 { isLeftSidebarCompact = false }
+                        if !isLeftSidebarUltraSkinny && newLeftW < 215 { isLeftSidebarUltraSkinny = true }
+                        else if isLeftSidebarUltraSkinny && newLeftW > 228 { isLeftSidebarUltraSkinny = false }
+                    }
                 }
                 .onChange(of: centerLiveW) { _, newCenterW in
                     // Hysteresis deadband (705pt <-> 735pt) for Center Workspace 1-Column / 2-Column & Hero Schematic box!
                     var tx = Transaction()
                     tx.disablesAnimations = true
                     withTransaction(tx) {
-                        if !isCenterWorkspaceNarrow && newCenterW < 705 {
+                        if !isCenterWorkspaceNarrow && newCenterW < 510 {
                             isCenterWorkspaceNarrow = true
-                        } else if isCenterWorkspaceNarrow && newCenterW > 735 {
+                        } else if isCenterWorkspaceNarrow && newCenterW > 535 {
                             isCenterWorkspaceNarrow = false
                         }
                         if !isCenterWorkspaceUltraCompact && newCenterW < 495 {
@@ -362,7 +388,7 @@ struct KroutonMainWorkspaceView: View {
         .frame(minWidth: 820, idealWidth: 1360, minHeight: 640, idealHeight: 860)
         .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
         .background(Color.kroutonWindowSurface)
-        .preferredColorScheme(store.appearanceMode.colorScheme)
+        .preferredColorScheme(store.resolvedColorScheme)
         .environment(\.locale, store.activeLocale)
         .tint(store.activeAccent)
         .onAppear {
@@ -371,12 +397,19 @@ struct KroutonMainWorkspaceView: View {
         .onChange(of: driveManager.availableDrives) { _, _ in
             store.reconcileUniqueDriveAssignments(driveManager: driveManager)
         }
+        .onChange(of: store.selectedTaskID) { _, _ in
+            store.reconcileUniqueDriveAssignments(driveManager: driveManager)
+        }
+        .onChange(of: store.selectedCategory) { _, _ in
+            store.reconcileUniqueDriveAssignments(driveManager: driveManager)
+        }
         .sheet(item: $driveManager.completionReport) { report in
             KroutonMasteringReportSheet(report: report, accent: store.activeAccent) {
                 driveManager.completionReport = nil
             }
         }
         .modifier(KroutonStageImporterModifier(store: store))
+        .modifier(KroutonProjectSheetModifier(store: store, driveManager: driveManager))
     }
 
     var topProToolbar: some View {
@@ -527,5 +560,33 @@ struct KroutonMainWorkspaceView: View {
             }
         }
         return acceptedAny
+    }
+}
+
+struct KroutonProjectSheetModifier: ViewModifier {
+    @ObservedObject var store: KroutonStateStore
+    @ObservedObject var driveManager: KroutonToasterBank
+    @ObservedObject private var bridge = KroutonProjectDialogBridge.shared
+
+    func body(content: Content) -> some View {
+        content
+            .fileExporter(
+                isPresented: $bridge.isShowingExporter,
+                document: bridge.exportDocument,
+                contentType: .kroutonProject,
+                defaultFilename: bridge.defaultFilename
+            ) { _ in }
+            .fileImporter(
+                isPresented: $bridge.isShowingImporter,
+                allowedContentTypes: [.kroutonProject, .json],
+                allowsMultipleSelection: false
+            ) { result in
+                if case .success(let urls) = result,
+                   let url = urls.first,
+                   let data = try? Data(contentsOf: url),
+                   let manifest = try? KroutonProjectManifest.decode(from: data) {
+                    store.applyProjectManifest(manifest, projectURL: url, driveManager: driveManager)
+                }
+            }
     }
 }

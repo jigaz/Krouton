@@ -195,16 +195,18 @@ public struct KrumbBakeRequest: Codable, Sendable {
     public let doggyBag: KrumbDoggyBagPolicy
     public let seasoning: KrumbSeasoning?
     public let cubes: [KrumbCubePayload]
+    public let krutCoreSpec: KroutonKrutCoreSpec?
 
     enum CodingKeys: String, CodingKey {
-        case batchId      = "batch_id"
+        case batchId = "batch_id"
         case pantryLoafId = "pantry_loaf_id"
-        case toasterIds   = "toaster_ids"
-        case heatX        = "heat_x"
+        case toasterIds = "toaster_ids"
+        case heatX = "heat_x"
         case mode
-        case doggyBag     = "doggy_bag"
+        case doggyBag = "doggy_bag"
         case seasoning
         case cubes
+        case krutCoreSpec = "krut_core_spec"
     }
 
     public init(
@@ -215,7 +217,8 @@ public struct KrumbBakeRequest: Codable, Sendable {
         mode: KrumbBakeMode,
         doggyBag: KrumbDoggyBagPolicy,
         seasoning: KrumbSeasoning?,
-        cubes: [KrumbCubePayload]
+        cubes: [KrumbCubePayload],
+        krutCoreSpec: KroutonKrutCoreSpec? = nil
     ) {
         self.batchId = batchId
         self.pantryLoafId = pantryLoafId
@@ -225,6 +228,7 @@ public struct KrumbBakeRequest: Codable, Sendable {
         self.doggyBag = doggyBag
         self.seasoning = seasoning
         self.cubes = cubes
+        self.krutCoreSpec = krutCoreSpec
     }
 }
 
@@ -269,12 +273,12 @@ public final class KrumbKitchenClient: ObservableObject {
     @Published public var activeEndpointHost: String = "localhost:7420"
     @Published public var doggyBagPolicy: KrumbDoggyBagPolicy = .notesOnlyOnFailure
     @Published public var discoveredNodes: [KrumbDiscoveredNode] = [
-        KrumbDiscoveredNode(id: "local-easybake", name: "Krumb Localhost (OrbStack / EasyBake)", hostPort: "localhost:7420", isEasyBakeFallback: true),
-        KrumbDiscoveredNode(id: "lan-pi3b", name: "krumb-pi3b._krumb._tcp.local.", hostPort: "krumb-pi3b.local:7420", isEasyBakeFallback: true)
+        KrumbDiscoveredNode(id: "local-easybake", name: "Local Burn Server", hostPort: "localhost:7420", isEasyBakeFallback: true),
+        KrumbDiscoveredNode(id: "lan-pi3b", name: "LAN Optical Server (pi3b)", hostPort: "krumb-pi3b.local:7420", isEasyBakeFallback: true)
     ]
     @Published public var remoteToasters: [KrumbRemoteToasterInfo] = [
-        KrumbRemoteToasterInfo(id: "usb-pioneer-slot-0", name: "Krumb EasyBake Slot #1 (PIONEER BD-RW)", rackState: .closed, sliceMedia: .blankCdR, isEasyBake: true),
-        KrumbRemoteToasterInfo(id: "usb-plextor-slot-1", name: "Krumb EasyBake Slot #2 (PLEXTOR PX-716A)", rackState: .closed, sliceMedia: .blankDvdR, isEasyBake: true)
+        KrumbRemoteToasterInfo(id: "usb-pioneer-slot-0", name: "Remote Drive #1 (PIONEER BD-RW)", rackState: .closed, sliceMedia: .blankCdR, isEasyBake: true),
+        KrumbRemoteToasterInfo(id: "usb-plextor-slot-1", name: "Remote Drive #2 (PLEXTOR PX-716A)", rackState: .closed, sliceMedia: .blankDvdR, isEasyBake: true)
     ]
     @Published public var lastCalibration: KrumbPantryCalibrationResult? = KrumbPantryCalibrationResult(
         freeBytes: 48_318_382_080,
@@ -283,7 +287,7 @@ public final class KrumbKitchenClient: ObservableObject {
         maxSafeBdHeatX: 6,
         canSustain16xDvd: true
     )
-    @Published public var statusBannerText: String = "Krumb Port 7420 Ready • EasyBake 2-Slot Standby"
+    @Published public var statusBannerText: String = "Burn Server Online • 2 Remote Drives Ready"
     @Published public var isDaemonReachable: Bool = false
     @Published public var isWebSocketConnected: Bool = false
     @Published public var isSpoolingLoaf: Bool = false
@@ -325,7 +329,7 @@ public final class KrumbKitchenClient: ObservableObject {
             Task { @MainActor in
                 guard let self else { return }
                 var found: [KrumbDiscoveredNode] = [
-                    KrumbDiscoveredNode(id: "local-easybake", name: "Krumb Localhost (OrbStack / EasyBake)", hostPort: "localhost:7420", isEasyBakeFallback: true)
+                    KrumbDiscoveredNode(id: "local-easybake", name: "Local Burn Server", hostPort: "localhost:7420", isEasyBakeFallback: true)
                 ]
                 for res in results {
                     if case let .service(name, _, _, _) = res.endpoint {
@@ -334,7 +338,7 @@ public final class KrumbKitchenClient: ObservableObject {
                     }
                 }
                 if found.count == 1 {
-                    found.append(KrumbDiscoveredNode(id: "lan-pi3b", name: "krumb-pi3b._krumb._tcp.local. (Standby)", hostPort: "krumb-pi3b.local:7420", isEasyBakeFallback: true))
+                    found.append(KrumbDiscoveredNode(id: "lan-pi3b", name: "LAN Optical Server (Standby)", hostPort: "krumb-pi3b.local:7420", isEasyBakeFallback: true))
                 }
                 self.discoveredNodes = found
             }

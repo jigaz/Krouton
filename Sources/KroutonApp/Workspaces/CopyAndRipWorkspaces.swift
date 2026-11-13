@@ -45,55 +45,65 @@ struct KroutonCopyAndRipWorkspaceView: View {
         }()
 
         return VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: isAudioRipTask ? "waveform.circle.fill" : (isShrinkTask ? "doc.on.doc.fill" : "film.stack.fill"))
-                    .font(.title2)
-                    .foregroundStyle(store.activeAccent)
-                VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 8) {
+                KroutonStyledIconBadge(
+                    sfSymbol: isAudioRipTask ? "waveform.circle.fill" : (isShrinkTask ? "doc.on.doc.fill" : "film.stack.fill"),
+                    tintColor: store.activeAccent,
+                    style: store.iconWidgetStyle,
+                    size: 28,
+                    symbolSize: 14
+                )
+                VStack(alignment: .leading, spacing: 1) {
                     Text(
-                        isAudioRipTask
-                            ? KroutonL10n.tr("Audio CD Ripper & AccurateRip Archiver")
-                            : (isShrinkTask ? KroutonL10n.tr("Duplicate Disc & Fit-to-Disc Requantizer") : KroutonL10n.tr("Video Disc Extractor (MKV Remux / VideoToolbox)"))
+                        isCenterWorkspaceNarrow
+                            ? (isAudioRipTask ? KroutonL10n.tr("Rip Audio") : (isShrinkTask ? KroutonL10n.tr("Duplicate") : KroutonL10n.tr("Rip Video")))
+                            : (isAudioRipTask ? KroutonL10n.tr("Audio CD Ripper & AccurateRip Archiver") : (isShrinkTask ? KroutonL10n.tr("Duplicate Disc & Fit-to-Disc Requantizer") : KroutonL10n.tr("Video Disc Extractor (MKV Remux / VideoToolbox)")))
                     )
                     .font(.title3.bold())
                     .lineLimit(1)
-                    Text(sourceDescription)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                    if !isCenterWorkspaceNarrow {
+                        Text(sourceDescription)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
-                Spacer(minLength: 8)
+                Spacer(minLength: 4)
 
-                // Interactive Action Buttons in Copy/Extract Header
                 Button {
                     rescanOpticalDiscForCopyTask(isAudioRipTask: isAudioRipTask, isShrinkTask: isShrinkTask)
                 } label: {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 4) {
                         Image(systemName: "arrow.clockwise.circle.fill")
                         Text(isCenterWorkspaceNarrow ? "Scan" : (isAudioRipTask ? "Scan CD TOC" : "Scan Disc"))
+                            .lineLimit(1)
                     }
-                    .font(.system(size: 11.5, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(store.uiSecondaryAccent.opacity(0.18))
                     .foregroundStyle(store.uiSecondaryAccent)
                     .clipShape(Capsule())
+                    .fixedSize(horizontal: true, vertical: false)
                 }
                 .buttonStyle(.plain)
 
                 Button {
                     promptForCopySourceOrFolder(isAudioRipTask: isAudioRipTask, isShrinkTask: isShrinkTask)
                 } label: {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 4) {
                         Image(systemName: isAudioRipTask ? "folder.badge.gearshape" : "opticaldisc.fill")
                         Text(isCenterWorkspaceNarrow ? "Choose..." : (isAudioRipTask ? "Choose Rip Folder..." : "Load VIDEO_TS / ISO..."))
+                            .lineLimit(1)
                     }
-                    .font(.system(size: 11.5, weight: .semibold))
-                    .padding(.horizontal, 12)
+                    .font(.system(size: 11, weight: .semibold))
+                    .padding(.horizontal, 11)
                     .padding(.vertical, 6)
                     .background(store.activeAccent)
                     .foregroundStyle(store.activeOnAccentText)
                     .clipShape(Capsule())
+                    .fixedSize(horizontal: true, vertical: false)
                 }
                 .buttonStyle(.plain)
             }
@@ -175,13 +185,48 @@ struct KroutonCopyAndRipWorkspaceView: View {
     }
 
     var audioCDRipWorkspaceDeck: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 10) {
-                ViewThatFits(in: .horizontal) {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
+                if isCenterWorkspaceNarrow {
+                    HStack(spacing: 6) {
+                        Text(KroutonL10n.tr("Codec:")).font(.caption.bold()).foregroundStyle(.secondary)
+                        Picker("", selection: $audioRipCodec) {
+                            Text("FLAC (Lossless)").tag("FLAC (Lossless)")
+                            Text("ALAC (Apple Lossless)").tag("ALAC (Apple Lossless)")
+                            Text("WAV (16-bit PCM)").tag("WAV (16-bit / 44.1 kHz PCM)")
+                            Text("AIFF").tag("AIFF (Uncompressed)")
+                            Text("MP3 (320 kbps)").tag("MP3 (320 kbps CBR)")
+                        }
+                        .labelsHidden()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Button {
+                            cdTextAlbumTitle = "Polycarbonate Horizons (1994 Master)"
+                            cdTextAlbumPerformer = "The Optical Pickups"
+                            audioRipTracks = KroutonRipTrackItem.musicBrainzMatchedTOC
+                            copyStatusBanner = "Matched Disc ID 45059B05 via MusicBrainz & CD-TEXT."
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "magnifyingglass")
+                                Text("CD-TEXT")
+                            }
+                            .font(.system(size: 10, weight: .bold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(store.activeAccent.opacity(0.16))
+                            .foregroundStyle(store.activeAccent)
+                            .clipShape(Capsule())
+                            .fixedSize(horizontal: true, vertical: false)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Toggle(KroutonL10n.tr("Verify Checksums via AccurateRip v2"), isOn: $audioRipAccurateRip)
+                        .toggleStyle(.checkbox).font(.caption.bold()).lineLimit(1)
+                    Toggle(KroutonL10n.tr("Generate .CUE Sheet & Rip Log"), isOn: $audioRipGenerateCueLog)
+                        .toggleStyle(.checkbox).font(.caption).lineLimit(1)
+                } else {
                     HStack(spacing: 12) {
-                        Text(KroutonL10n.tr("Output Codec:"))
-                            .font(.caption.bold())
-                            .foregroundStyle(.secondary)
+                        Text(KroutonL10n.tr("Output Codec:")).font(.caption.bold()).foregroundStyle(.secondary)
                         Picker("", selection: $audioRipCodec) {
                             Text("FLAC (Lossless)").tag("FLAC (Lossless)")
                             Text("ALAC (Apple Lossless)").tag("ALAC (Apple Lossless)")
@@ -214,56 +259,33 @@ struct KroutonCopyAndRipWorkspaceView: View {
                         Spacer(minLength: 8)
 
                         HStack(spacing: 4) {
-                            Image(systemName: "checkmark.seal.fill")
-                                .font(.system(size: 10))
-                            Text("Drive Offset: +6 Samples")
-                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            Image(systemName: "checkmark.seal.fill").font(.system(size: 10))
+                            Text("Drive Offset: +6 Samples").font(.system(size: 10, weight: .semibold, design: .monospaced))
                         }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(store.uiSecondaryAccent.opacity(0.16))
-                        .foregroundStyle(store.uiSecondaryAccent)
-                        .clipShape(Capsule())
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(store.uiSecondaryAccent.opacity(0.16)).foregroundStyle(store.uiSecondaryAccent).clipShape(Capsule())
                     }
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 8) {
-                            Text(KroutonL10n.tr("Codec:")).font(.caption.bold()).foregroundStyle(.secondary)
-                            Picker("", selection: $audioRipCodec) {
-                                Text("FLAC (Lossless)").tag("FLAC (Lossless)")
-                                Text("ALAC (Apple Lossless)").tag("ALAC (Apple Lossless)")
-                                Text("WAV (16-bit PCM)").tag("WAV (16-bit / 44.1 kHz PCM)")
-                                Text("AIFF").tag("AIFF (Uncompressed)")
-                                Text("MP3 (320 kbps)").tag("MP3 (320 kbps CBR)")
-                            }
-                            .labelsHidden()
-                        }
+                    HStack(spacing: 16) {
+                        Toggle(KroutonL10n.tr("Verify Checksums via AccurateRip v2"), isOn: $audioRipAccurateRip).toggleStyle(.checkbox).font(.caption)
+                        Toggle(KroutonL10n.tr("Generate .CUE Sheet & Rip Log"), isOn: $audioRipGenerateCueLog).toggleStyle(.checkbox).font(.caption)
+                        Spacer(minLength: 0)
+                        Text("Dest: \(copyOutputFolderPath)").font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary).lineLimit(1)
                     }
-                }
-
-                HStack(spacing: 16) {
-                    Toggle(KroutonL10n.tr("Verify Checksums via AccurateRip v2"), isOn: $audioRipAccurateRip)
-                        .toggleStyle(.checkbox)
-                        .font(.caption)
-                    Toggle(KroutonL10n.tr("Generate .CUE Sheet & Rip Log"), isOn: $audioRipGenerateCueLog)
-                        .toggleStyle(.checkbox)
-                        .font(.caption)
-                    Spacer(minLength: 0)
-                    Text("Dest: \(copyOutputFolderPath)")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
                 }
             }
-            .padding(14)
+            .padding(12)
             .background(Color.kroutonControlSurface)
             .clipShape(RoundedRectangle(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text("AUDIO CD TABLE OF CONTENTS (\(audioRipSelectedTracks.count)/\(audioRipTracks.count) SELECTED)")
+                    Text(isCenterWorkspaceNarrow
+                         ? "CD TABLE OF CONTENTS (\(audioRipSelectedTracks.count)/\(audioRipTracks.count))"
+                         : "AUDIO CD TABLE OF CONTENTS (\(audioRipSelectedTracks.count)/\(audioRipTracks.count) SELECTED)")
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
                     Spacer()
                     Button(audioRipSelectedTracks.count == audioRipTracks.count ? "Deselect All" : "Select All") {
                         if audioRipSelectedTracks.count == audioRipTracks.count {
@@ -275,12 +297,13 @@ struct KroutonCopyAndRipWorkspaceView: View {
                     .buttonStyle(.plain)
                     .font(.caption.bold())
                     .foregroundStyle(store.activeAccent)
+                    .fixedSize(horizontal: true, vertical: false)
                 }
                 .padding(.horizontal, 4)
 
                 ForEach(audioRipTracks, id: \.num) { trk in
                     let isChecked = audioRipSelectedTracks.contains(trk.num)
-                    HStack(spacing: 10) {
+                    HStack(spacing: 8) {
                         Toggle("", isOn: Binding(
                             get: { isChecked },
                             set: { val in
@@ -291,36 +314,37 @@ struct KroutonCopyAndRipWorkspaceView: View {
                         .labelsHidden()
                         .toggleStyle(.checkbox)
 
-                        Text(String(format: "TRK %02d", trk.num))
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                            .foregroundStyle(store.activeAccent)
-                            .frame(width: 48, alignment: .leading)
-
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(trk.title)
-                                .font(.system(size: 12, weight: .medium))
-                                .lineLimit(1)
-                            Text(trk.performer)
-                                .font(.system(size: 10))
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Text(String(format: "TRK %02d", trk.num))
+                                    .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(store.activeAccent)
+                                Text(trk.title)
+                                    .font(.system(size: 11.5, weight: .medium))
+                                    .lineLimit(1)
+                                Spacer(minLength: 4)
+                                Text(trk.duration)
+                                    .font(.system(size: 10.5, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: true, vertical: false)
+                            }
+                            HStack(spacing: 6) {
+                                Text(trk.performer)
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                Spacer(minLength: 4)
+                                if audioRipAccurateRip {
+                                    Text(trk.arStatus)
+                                        .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
+                                        .foregroundStyle(store.uiSecondaryAccent)
+                                        .fixedSize(horizontal: true, vertical: false)
+                                }
+                            }
                         }
-
-                        Spacer(minLength: 8)
-
-                        if audioRipAccurateRip {
-                            Text(trk.arStatus)
-                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                                .foregroundStyle(store.uiSecondaryAccent)
-                        }
-
-                        Text(trk.duration)
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 68, alignment: .trailing)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
                     .background(Color.kroutonControlSurface)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
@@ -329,56 +353,77 @@ struct KroutonCopyAndRipWorkspaceView: View {
     }
 
     var videoDiscExtractWorkspaceDeck: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 12) {
-                    Text(KroutonL10n.tr("Extract Mode:"))
-                        .font(.caption.bold())
-                        .foregroundStyle(.secondary)
-                    Picker("", selection: $videoExtractMode) {
-                        Text("Lossless MKV Remux (Zero Re-Encode)").tag("Lossless MKV Remux")
-                        Text("Apple MP4 (VideoToolbox H.264)").tag("Apple MP4 (VideoToolbox H.264)")
-                        Text("Apple HEVC 10-Bit (Hardware)").tag("Apple HEVC 10-Bit")
-                        Text("Full Decrypted Disc Backup").tag("Full Disc Backup")
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: 260)
-
-                    Spacer(minLength: 8)
-
-                    Picker("Min Title:", selection: $videoExtractMinSeconds) {
-                        Text("All Titles").tag(0)
-                        Text("> 2 min (Skip Warnings)").tag(120)
-                        Text("> 10 min (Features Only)").tag(600)
-                    }
-                    .frame(maxWidth: 210)
-                    .font(.caption)
-                }
-
-                HStack {
-                    Toggle(KroutonL10n.tr("Preserve Chapter Markers, Forced Subtitles & Original Audio Tracks"), isOn: $videoExtractKeepChapters)
-                        .toggleStyle(.checkbox)
-                        .font(.caption)
-                    Spacer()
-                    Button("Choose Output Folder...") {
-                        KroutonStageImporterBridge.shared.presentImporter(allowedTypes: [.folder], allowsMultiple: false) { urls in
-                            guard let url = urls.first else { return }
-                            copyOutputFolderPath = url.path
-                            copyStatusBanner = "Video extraction folder set to: \(url.path)"
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
+                if isCenterWorkspaceNarrow {
+                    HStack(spacing: 6) {
+                        Text(KroutonL10n.tr("Mode:")).font(.caption.bold()).foregroundStyle(.secondary).frame(width: 56, alignment: .leading)
+                        Picker("", selection: $videoExtractMode) {
+                            Text("Lossless MKV Remux").tag("Lossless MKV Remux")
+                            Text("Apple MP4 (H.264)").tag("Apple MP4 (VideoToolbox H.264)")
+                            Text("Apple HEVC 10-Bit").tag("Apple HEVC 10-Bit")
+                            Text("Full Disc Backup").tag("Full Disc Backup")
                         }
+                        .labelsHidden()
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .buttonStyle(.plain)
-                    .font(.caption.bold())
-                    .foregroundStyle(store.activeAccent)
+                    HStack(spacing: 6) {
+                        Text(KroutonL10n.tr("Filter:")).font(.caption.bold()).foregroundStyle(.secondary).frame(width: 56, alignment: .leading)
+                        Picker("", selection: $videoExtractMinSeconds) {
+                            Text("All Video Titles").tag(0)
+                            Text("> 2 min (Skip Warnings)").tag(120)
+                            Text("> 10 min (Features Only)").tag(600)
+                        }
+                        .labelsHidden()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    Toggle(KroutonL10n.tr("Preserve Chapters, Subtitles & Audio"), isOn: $videoExtractKeepChapters)
+                        .toggleStyle(.checkbox).font(.caption.bold()).lineLimit(1)
+                } else {
+                    HStack(spacing: 12) {
+                        Text(KroutonL10n.tr("Extract Mode:")).font(.caption.bold()).foregroundStyle(.secondary)
+                        Picker("", selection: $videoExtractMode) {
+                            Text("Lossless MKV Remux (Zero Re-Encode)").tag("Lossless MKV Remux")
+                            Text("Apple MP4 (VideoToolbox H.264)").tag("Apple MP4 (VideoToolbox H.264)")
+                            Text("Apple HEVC 10-Bit (Hardware)").tag("Apple HEVC 10-Bit")
+                            Text("Full Decrypted Disc Backup").tag("Full Disc Backup")
+                        }
+                        .labelsHidden()
+                        .frame(maxWidth: 260)
+
+                        Spacer(minLength: 8)
+
+                        Picker("Min Title:", selection: $videoExtractMinSeconds) {
+                            Text("All Titles").tag(0)
+                            Text("> 2 min (Skip Warnings)").tag(120)
+                            Text("> 10 min (Features Only)").tag(600)
+                        }
+                        .frame(maxWidth: 210)
+                        .font(.caption)
+                    }
+
+                    HStack {
+                        Toggle(KroutonL10n.tr("Preserve Chapter Markers, Forced Subtitles & Original Audio Tracks"), isOn: $videoExtractKeepChapters)
+                            .toggleStyle(.checkbox).font(.caption)
+                        Spacer()
+                        Button("Choose Output Folder...") {
+                            KroutonStageImporterBridge.shared.presentImporter(allowedTypes: [.folder], allowsMultiple: false) { urls in
+                                guard let url = urls.first else { return }
+                                copyOutputFolderPath = url.path
+                                copyStatusBanner = "Video extraction folder set to: \(url.path)"
+                            }
+                        }
+                        .buttonStyle(.plain).font(.caption.bold()).foregroundStyle(store.activeAccent)
+                    }
                 }
             }
-            .padding(14)
+            .padding(12)
             .background(Color.kroutonControlSurface)
             .clipShape(RoundedRectangle(cornerRadius: 10))
 
             ForEach(videoExtractTitles.filter { $0.seconds >= videoExtractMinSeconds }, id: \.id) { item in
                 let isSelected = videoExtractSelectedTitles.contains(item.id)
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     Toggle("", isOn: Binding(
                         get: { isSelected },
                         set: { val in
@@ -390,28 +435,31 @@ struct KroutonCopyAndRipWorkspaceView: View {
                     .toggleStyle(.checkbox)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(item.name)
-                            .font(.system(size: 12, weight: .semibold))
-                            .lineLimit(1)
-                        Text(item.streamInfo)
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                        HStack(spacing: 6) {
+                            Text(item.name)
+                                .font(.system(size: 11.5, weight: .semibold))
+                                .lineLimit(1)
+                            Spacer(minLength: 4)
+                            Text(item.duration)
+                                .font(.system(size: 10.5, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: true, vertical: false)
+                        }
+                        HStack(spacing: 6) {
+                            Text(item.streamInfo)
+                                .font(.system(size: 10))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                            Spacer(minLength: 4)
+                            Text(item.sizeLabel)
+                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(store.activeAccent)
+                                .fixedSize(horizontal: true, vertical: false)
+                        }
                     }
-
-                    Spacer(minLength: 8)
-
-                    Text(item.sizeLabel)
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(store.activeAccent)
-
-                    Text(item.duration)
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 68, alignment: .trailing)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
                 .background(Color.kroutonControlSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
@@ -419,26 +467,55 @@ struct KroutonCopyAndRipWorkspaceView: View {
     }
 
     var shrinkDVDVideoWorkspaceDeck: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                Toggle(KroutonL10n.tr("Fit to Disc — Requantize DVD-9 (8.5 GB) to standard 4.7 GB DVD-5"), isOn: $fitToDiscDVD9Shrink)
-                    .font(.headline)
-                Spacer(minLength: 8)
-                Text(fitToDiscDVD9Shrink ? "Ratio: 68.4% • 4.37 GB" : "1:1 Dual-Layer • 7.92 GB")
-                    .font(.system(size: 10.5, weight: .bold, design: .monospaced))
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 4)
-                    .background(store.uiSecondaryAccent.opacity(0.18))
-                    .foregroundStyle(store.uiSecondaryAccent)
-                    .clipShape(Capsule())
+        VStack(alignment: .leading, spacing: 10) {
+            if isCenterWorkspaceNarrow {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("DVD-9 → DVD-5 FIT-TO-DISC TRANSCODER")
+                            .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(fitToDiscDVD9Shrink ? "Ratio: 68.4% • 4.37 GB" : "1:1 DL • 7.92 GB")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(store.uiSecondaryAccent.opacity(0.18))
+                            .foregroundStyle(store.uiSecondaryAccent)
+                            .clipShape(Capsule())
+                    }
+                    Toggle(KroutonL10n.tr("Fit to Disc (8.5 GB DVD-9 → 4.7 GB DVD-5)"), isOn: $fitToDiscDVD9Shrink)
+                        .toggleStyle(.checkbox)
+                        .font(.caption.bold())
+                        .lineLimit(1)
+                    Toggle(KroutonL10n.tr("Preserve Menus, Chapters (.IFO) & Extras"), isOn: $preserveMenusAndExtras)
+                        .toggleStyle(.checkbox)
+                        .font(.caption)
+                        .lineLimit(1)
+                }
+            } else {
+                HStack(spacing: 12) {
+                    Toggle(KroutonL10n.tr("Fit to Disc — Requantize DVD-9 (8.5 GB) to standard 4.7 GB DVD-5"), isOn: $fitToDiscDVD9Shrink)
+                        .font(.headline)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    Text(fitToDiscDVD9Shrink ? "Ratio: 68.4% • 4.37 GB" : "1:1 Dual-Layer • 7.92 GB")
+                        .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 4)
+                        .background(store.uiSecondaryAccent.opacity(0.18))
+                        .foregroundStyle(store.uiSecondaryAccent)
+                        .clipShape(Capsule())
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+                Toggle(KroutonL10n.tr("Preserve Interactive Menus, Chapter Tables (.IFO Relink) & Bonus Extras"), isOn: $preserveMenusAndExtras)
+                    .font(.subheadline)
+                    .lineLimit(1)
             }
-            Toggle(KroutonL10n.tr("Preserve Interactive Menus, Chapter Tables (.IFO Relink) & Bonus Extras"), isOn: $preserveMenusAndExtras)
-                .font(.subheadline)
             Divider()
             playlistRow(num: "VTS_01", title: "Main Feature Movie (480p MPEG-2)", duration: "01:58:14", transition: fitToDiscDVD9Shrink ? "Requantized -> 3.62 GB" : "Original 6.40 GB", info: "AC-3 5.1 + Subtitles")
-            playlistRow(num: "VMGM", title: "Interactive Motion Menus & Chapter Selector", duration: "00:04:12", transition: "100% Intact (340 MB)", info: "Zero Menu Loss")
+            playlistRow(num: "VMGM", title: "Interactive Motion Menus & Chapters", duration: "00:04:12", transition: "100% Intact (340 MB)", info: "Zero Menu Loss")
             if preserveMenusAndExtras {
-                playlistRow(num: "VTS_02", title: "Director Commentary & Making-Of Featurettes", duration: "00:32:40", transition: fitToDiscDVD9Shrink ? "Requantized -> 420 MB" : "Original 1.18 GB", info: "Preserved")
+                playlistRow(num: "VTS_02", title: "Director Commentary & Featurettes", duration: "00:32:40", transition: fitToDiscDVD9Shrink ? "Requantized -> 420 MB" : "Original 1.18 GB", info: "Preserved")
             }
         }
         .padding(14)
@@ -446,30 +523,64 @@ struct KroutonCopyAndRipWorkspaceView: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
+    @ViewBuilder
     func playlistRow(num: String, title: String, duration: String, transition: String, info: String) -> some View {
-        HStack(spacing: 12) {
-            Text(num)
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .foregroundStyle(store.activeAccent)
-                .frame(width: 48, alignment: .leading)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 12, weight: .semibold))
-                Text(info)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+        if isCenterWorkspaceNarrow {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(num)
+                        .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                        .foregroundStyle(store.activeAccent)
+                    Text(title)
+                        .font(.system(size: 11.5, weight: .semibold))
+                        .lineLimit(1)
+                    Spacer(minLength: 4)
+                    Text(duration)
+                        .font(.system(size: 10.5, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+                HStack(spacing: 6) {
+                    Text(info)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Spacer(minLength: 4)
+                    Text(transition)
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(store.activeAccent)
+                        .lineLimit(1)
+                }
             }
-            Spacer()
-            Text(transition)
-                .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                .foregroundStyle(store.activeAccent)
-            Text(duration)
-                .font(.system(size: 11, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .frame(width: 70, alignment: .trailing)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+        } else {
+            HStack(spacing: 12) {
+                Text(num)
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundStyle(store.activeAccent)
+                    .frame(width: 48, alignment: .leading)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 12, weight: .semibold))
+                        .lineLimit(1)
+                    Text(info)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                Spacer()
+                Text(transition)
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(store.activeAccent)
+                    .lineLimit(1)
+                Text(duration)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 70, alignment: .trailing)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
     }
-
 }

@@ -265,7 +265,7 @@ struct KroutonRecipeBlueprintView: View {
                 }
                 drawCADNode(CGPoint(x: cx, y: cy), handle: CGPoint(x: cx + 62, y: cy - 36))
 
-            } else if item.channel.contains("Live Linux") || key.contains("linux") || key.contains("arch") || key.contains("mint") || key.contains("bsd") || key.contains("alpine") {
+            } else if item.channel.contains("Live Linux") || key.contains("linux") || (key.contains("archlinux") || key.contains("arch linux")) || key.contains("mint") || key.contains("bsd") || key.contains("alpine") {
                 // --- 4. LINUX TUX (1:1 High-Precision Line-Art Seated Penguin Reconstruction) ---
                 // 1) Outer Crown, Neck S-Curve & Seated Hip Contour (Exact match to Screenshot 6.26.35 PM)
                 var outerTux = Path()

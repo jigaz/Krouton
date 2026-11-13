@@ -14,6 +14,7 @@ struct KroutonLeftFormatChooserColumnView: View {
         shortTitle: String? = nil, colloquial: String, badge: String = "", sfSymbol: String) -> some View {
         let isSelected = (store.selectedTaskID == id)
         return Button {
+            store.snapshotCurrentDestinationQueue()
             store.selectedCategory = category
             store.selectedTaskID = id
             store.rejectedDropNotice = nil
@@ -252,26 +253,77 @@ struct KroutonCentralWorkspaceCapacityBarView: View {
     let activeDiscCapacityBytes: Int64
     let primarySelectedDrive: KroutonToasterInfo?
 
-    var body: some View {
+    private var capacityTelemetry: (headerLabel: String, compactLabel: String, usedBytes: Int64, totalBytes: Int64, sectorsText: String) {
+        // 1. Rip Audio CD / Extract Video Disc -> Local SSD Extraction Target
+        if store.selectedCategory == .copy {
+            if store.selectedTaskID == "copy-rip-audio" || store.selectedTaskID == "copy-audio-rip" {
+                let estBytes: Int64 = 285_000_000 // ~285 MB Lossless Audio Rip
+                let ssdFree: Int64 = 64_000_000_000
+                return ("EXTRACTION TARGET (LOCAL SSD)", "SSD Target", estBytes, ssdFree, "5 PCM Tracks")
+            } else if store.selectedTaskID == "copy-rip-video" {
+                let estBytes: Int64 = 4_380_000_000 // ~4.38 GB MKV / HEVC Extract
+                let ssdFree: Int64 = 64_000_000_000
+                return ("EXTRACTION TARGET (LOCAL SSD)", "SSD Target", estBytes, ssdFree, "2 Video Titles")
+            } else {
+                // Duplicate Disc (DVD-9 -> DVD-5 Fit-to-Disc)
+                let used: Int64 = 4_370_000_000
+                let total: Int64 = 4_700_372_992
+                return ("TARGET DISC SPACE (DVD-5 4.7 GB)", "DVD-5", used, total, "2,133,789 LBA")
+            }
+        }
+
+        // 2. Disc Image Depot -> Selected Hero ISO Size vs Recommended Optical Medium
+        if store.selectedCategory == .depot {
+            let hero = store.depotItems.first(where: { $0.id == store.selectedDepotHeroItemID }) ?? store.depotItems[0]
+            let imgBytes = store.parseSizeDisplayToBytes(hero.sizeDisplay)
+            let isMiniDVD = hero.sizeDisplay.contains("80mm")
+            let isCD = imgBytes <= 734_003_200 && !isMiniDVD
+            let targetBytes: Int64 = isCD ? 700_000_000 : (isMiniDVD ? 1_459_978_240 : 4_700_372_992)
+            let mediumName = isCD ? "CD-R 700 MB" : (isMiniDVD ? "Mini-DVD 1.46 GB" : "DVD-5 4.7 GB")
+            let compactName = isCD ? "CD-R" : (isMiniDVD ? "80mm DVD" : "DVD-5")
+            let lba = max(1, imgBytes / 2048)
+            return ("DISC SPACE (\(mediumName))", compactName, imgBytes, targetBytes, "\(lba) LBA")
+        }
+
+        // 3. Burn Station -> Use physical drive mediaType ONLY when a writable blank disc (freeBytes > 0) is loaded
         let usedB = store.totalStagedBytes
         let totalB = max(1, activeDiscCapacityBytes)
+        if let drive = primarySelectedDrive, drive.isMediaPresent, drive.freeBytes > 0 {
+            return ("DISC SPACE (\(drive.mediaType))", drive.mediaType, usedB, totalB, "\(store.totalStagedSectorsLBA) LBA")
+        }
+
+        let spec = store.activeFormatSpec()
+        let gb = spec.capacityGB
+        let targetMedium: (full: String, short: String) = {
+            if gb <= 0.75 { return ("CD-R (700 MB)", "CD-R") }
+            if gb <= 1.50 { return ("Mini-DVD (1.46 GB)", "80mm DVD") }
+            if gb <= 4.75 { return ("DVD-5 (4.7 GB)", "DVD-5") }
+            if gb <= 8.60 { return ("DVD-9 DL (8.5 GB)", "DVD-9") }
+            if gb <= 25.5 { return ("BD-R SL (25 GB)", "BD-25") }
+            if gb <= 50.5 { return ("BD-R DL (50 GB)", "BD-50") }
+            return ("BDXL UHD (100 GB)", "BDXL")
+        }()
+        return ("DISC SPACE (\(targetMedium.full))", targetMedium.short, usedB, totalB, "\(store.totalStagedSectorsLBA) LBA")
+    }
+
+    var body: some View {
+        let info = capacityTelemetry
+        let usedB = info.usedBytes
+        let totalB = max(1, info.totalBytes)
         let freeB = max(0, totalB - usedB)
         let ratio = min(1.0, Double(usedB) / Double(totalB))
         let isOverburn = usedB > totalB
-        let mediaLabel = primarySelectedDrive?.isMediaPresent == true
-            ? (primarySelectedDrive?.mediaType ?? "Optical Disc")
-            : (store.discFormats.first(where: { $0.id == store.selectedTaskID })?.capacity ?? "4.7 GB Target")
 
         return VStack(alignment: .leading, spacing: 5) {
             ViewThatFits(in: .horizontal) {
                 // 1. Wide Workspace Layout
                 HStack(spacing: 6) {
-                    Label("DISC SPACE (\(mediaLabel))", systemImage: "chart.bar.xaxis")
+                    Label(info.headerLabel, systemImage: "chart.bar.xaxis")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                     Spacer(minLength: 8)
-                    Text("Used: \(ByteCountFormatter.string(fromByteCount: usedB, countStyle: .file)) (\(store.totalStagedSectorsLBA) LBA)")
+                    Text("Used: \(ByteCountFormatter.string(fromByteCount: usedB, countStyle: .file)) (\(info.sectorsText))")
                         .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
                         .foregroundStyle(isOverburn ? .red : .primary)
                         .lineLimit(1)
@@ -288,9 +340,9 @@ struct KroutonCentralWorkspaceCapacityBarView: View {
                         .lineLimit(1)
                 }
 
-                // 2. Compact / Narrow Workspace Fallback (Zero Multi-Line Wrapping!)
+                // 2. Compact / Narrow Workspace Fallback
                 HStack(spacing: 6) {
-                    Text("\(mediaLabel):")
+                    Text("\(info.compactLabel):")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -326,7 +378,8 @@ struct KroutonCentralWorkspaceCapacityBarView: View {
         .background(Color.kroutonControlSurface)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.32) : Color.clear, lineWidth: 1))
-        .accessibilityLabel(String(format: "Disc capacity %.1f percent full", ratio * 100.0))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(info.headerLabel)
+        .accessibilityValue(String(format: "%.1f percent full", ratio * 100.0))
     }
-
 }

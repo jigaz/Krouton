@@ -108,113 +108,146 @@ struct KroutonDepotWorkspaceView: View {
 
 
 
+    @ViewBuilder
+    private var depotSearchBarPill: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            TextField(KroutonL10n.tr(isCenterWorkspaceNarrow ? "Filter or search Archive.org..." : "Filter or search archive.org..."), text: $depotSearchQuery)
+                .textFieldStyle(.plain)
+                .frame(minWidth: isCenterWorkspaceNarrow ? 90 : 140, maxWidth: isCenterWorkspaceNarrow ? .infinity : 210)
+                .accessibilityLabel(KroutonL10n.tr("Filter Depot or Search Internet Archive"))
+                .onSubmit {
+                    store.selectedTaskID = "depot-ia-live"
+                    store.queryInternetArchiveLive(query: depotSearchQuery)
+                }
+            if !depotSearchQuery.isEmpty {
+                Button {
+                    depotSearchQuery = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search query")
+            }
+            Button {
+                store.selectedTaskID = "depot-ia-live"
+                store.queryInternetArchiveLive(query: depotSearchQuery)
+            } label: {
+                HStack(spacing: 4) {
+                    if store.isSearchingInternetArchive {
+                        ProgressView().controlSize(.mini)
+                    } else {
+                        Image(systemName: "building.columns.fill")
+                            .font(.system(size: 9))
+                    }
+                    Text(isCenterWorkspaceNarrow ? "Archive.org" : "Archive.org API")
+                        .font(.system(size: 9.5, weight: .bold))
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(store.activeAccent)
+                .foregroundStyle(store.activeOnAccentText)
+                .clipShape(Capsule())
+                .fixedSize(horizontal: true, vertical: false)
+            }
+            .buttonStyle(.plain)
+            .help("Query live Internet Archive REST API (archive.org/advancedsearch.php) for optical ISO / CD-ROM images")
+        }
+        .padding(.leading, 10)
+        .padding(.trailing, 4)
+        .padding(.vertical, 3)
+        .background(Color.kroutonControlSurface)
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 1))
+    }
+
     var body: some View {
         let heroMeta = depotChannelHeadline
         let heroItem = depotHeroSelectedItem
 
-        return GeometryReader { geo in
+        return GeometryReader { _ in
             let isNarrowWorkspace = isCenterWorkspaceNarrow
 
             VStack(alignment: .leading, spacing: 10) {
-                // Row 1: Clean Sub-Library Header + Search Bar (NO top category pills!)
-                HStack(spacing: 10) {
-                    KroutonStyledIconBadge(
-                        sfSymbol: heroItem.sfSymbol,
-                        tintColor: store.activeAccent,
-                        style: store.iconWidgetStyle,
-                        size: 28,
-                        symbolSize: 14
-                    )
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(KroutonL10n.tr(heroMeta.title))
-                            .font(.title3.bold())
-                            .lineLimit(1)
-                        Text(KroutonL10n.tr(heroMeta.subtitle))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                    Spacer(minLength: 8)
-
-                    HStack(spacing: 6) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                        TextField(KroutonL10n.tr("Filter or search archive.org..."), text: $depotSearchQuery)
-                            .textFieldStyle(.plain)
-                            .frame(minWidth: 140, maxWidth: 210)
-                            .onSubmit {
-                                store.selectedTaskID = "depot-ia-live"
-                                store.queryInternetArchiveLive(query: depotSearchQuery)
-                            }
-                        if !depotSearchQuery.isEmpty {
-                            Button {
-                                depotSearchQuery = ""
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
+                // Row 1: Responsive Sub-Library Header + Search Bar
+                if isNarrowWorkspace {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            KroutonStyledIconBadge(
+                                sfSymbol: heroItem.sfSymbol,
+                                tintColor: store.activeAccent,
+                                style: store.iconWidgetStyle,
+                                size: 28,
+                                symbolSize: 14
+                            )
+                            Text(KroutonL10n.tr(heroMeta.title))
+                                .font(.title3.bold())
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.80)
+                            Spacer(minLength: 4)
+                            Text("\(filteredDepotItems.count) Titles")
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent)
+                                .lineLimit(1)
                         }
-                        Button {
-                            store.selectedTaskID = "depot-ia-live"
-                            store.queryInternetArchiveLive(query: depotSearchQuery)
-                        } label: {
-                            HStack(spacing: 4) {
-                                if store.isSearchingInternetArchive {
-                                    ProgressView().controlSize(.mini)
-                                } else {
-                                    Image(systemName: "building.columns.fill")
-                                        .font(.system(size: 9))
-                                }
-                                Text("Archive.org API")
-                                .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : Color.primary)
-                                    .font(.system(size: 9.5, weight: .bold))
-                                    .lineLimit(1)
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(store.activeAccent)
-                            .foregroundStyle(store.activeOnAccentText)
-                            .clipShape(Capsule())
-                            .fixedSize(horizontal: true, vertical: false)
-                        }
-                        .buttonStyle(.plain)
-                        .help("Query live Internet Archive REST API (archive.org/advancedsearch.php) for optical ISO / CD-ROM images")
+                        depotSearchBarPill
                     }
-                    .padding(.leading, 10)
-                    .padding(.trailing, 4)
-                    .padding(.vertical, 3)
-                    .background(Color.kroutonControlSurface)
-                    .clipShape(Capsule())
-                    .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 1))
+                } else {
+                    HStack(spacing: 10) {
+                        KroutonStyledIconBadge(
+                            sfSymbol: heroItem.sfSymbol,
+                            tintColor: store.activeAccent,
+                            style: store.iconWidgetStyle,
+                            size: 28,
+                            symbolSize: 14
+                        )
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(KroutonL10n.tr(heroMeta.title))
+                                .font(.title3.bold())
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.80)
+                            Text(KroutonL10n.tr(heroMeta.subtitle))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 8)
+                        depotSearchBarPill
+                    }
                 }
 
-                // Row 2: Interactive Hero Inspector Zone (Shows details of whichever title card is clicked!)
+                // Row 2: Interactive Hero Inspector Zone
                 KroutonDepotHeroBannerView(store: store, item: heroItem, isNarrow: isNarrowWorkspace)
 
                 // Row 3: Active Staged Image Ready-to-Burn Dock
                 if let stagedEntry = store.stagedFiles.first {
-                    HStack(spacing: 10) {
+                    HStack(spacing: 8) {
                         Image(systemName: "checkmark.seal.fill")
-                            .font(.system(size: 15))
+                            .font(.system(size: 14))
                             .foregroundStyle(.green)
 
                         VStack(alignment: .leading, spacing: 1) {
                             HStack(spacing: 6) {
-                                Text("STAGED IN BURN QUEUE:")
+                                Text(isNarrowWorkspace ? "STAGED:" : "STAGED IN BURN QUEUE:")
                                     .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
                                     .foregroundStyle(.green)
                                     .lineLimit(1)
                                 Text(stagedEntry.name)
-                                    .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
                                     .lineLimit(1)
                             }
-                            Text("\(ByteCountFormatter.string(fromByteCount: stagedEntry.byteSize, countStyle: .file)) (\(stagedEntry.sectorsLBA) LBA Sectors) — Ready for physical burn or hex sector inspection.")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
+                            if !isNarrowWorkspace {
+                                Text("\(ByteCountFormatter.string(fromByteCount: stagedEntry.byteSize, countStyle: .file)) (\(stagedEntry.sectorsLBA) LBA Sectors) — Ready for physical burn or hex sector inspection.")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
                         }
 
                         Spacer(minLength: 4)
@@ -223,13 +256,13 @@ struct KroutonDepotWorkspaceView: View {
                             store.selectedCategory = .burn
                             store.selectedTaskID = "image-burn"
                         } label: {
-                            HStack(spacing: 5) {
+                            HStack(spacing: 4) {
                                 Image(systemName: "waveform.path.ecg.rectangle.fill")
-                                Text("Inspect Sector & Hex Map")
+                                Text(isNarrowWorkspace ? "Hex Map" : "Inspect Sector & Hex Map")
                                     .lineLimit(1)
                             }
                             .font(.system(size: 10, weight: .bold))
-                            .padding(.horizontal, 11)
+                            .padding(.horizontal, 10)
                             .padding(.vertical, 5)
                             .background(store.activeAccent)
                             .foregroundStyle(store.activeOnAccentText)
@@ -242,38 +275,32 @@ struct KroutonDepotWorkspaceView: View {
                             store.clearStagedFiles()
                             store.stagedDepotItemID = nil
                         } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "xmark.circle.fill")
-                                Text("Unstage")
-                                    .lineLimit(1)
-                            }
-                            .font(.system(size: 10, weight: .semibold))
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 5)
-                            .background(Color.primary.opacity(0.08))
-                            .clipShape(Capsule())
-                            .fixedSize(horizontal: true, vertical: false)
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 13))
+                                .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel("Unstage image")
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
                     .background(store.uiSecondaryAccent.opacity(0.12))
                     .clipShape(RoundedRectangle(cornerRadius: 9))
                     .overlay(RoundedRectangle(cornerRadius: 9).stroke(store.uiSecondaryAccent.opacity(0.42), lineWidth: 1))
                 }
 
                 // Row 4: Sub-Library Grid Header
-                HStack {
-                    Text("\(heroMeta.badge)  •  CLICK ANY TITLE BELOW TO INSPECT IN HERO DECK")
+                HStack(spacing: 6) {
+                    Text(isNarrowWorkspace ? "CLICK ANY TITLE TO INSPECT" : "\(heroMeta.badge) • CLICK ANY CARD TO INSPECT")
                         .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-                    Spacer()
-                    Text("\(filteredDepotItems.count) Titles in Sub-Library  •  SHA-256 Verified")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    Spacer(minLength: 4)
+                    Text(isNarrowWorkspace ? "SHA-256 Verified" : "\(filteredDepotItems.count) Titles in Sub-Library  •  SHA-256 Verified")
+                        .font(.system(size: 9.5, weight: .bold, design: .monospaced))
                         .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent))
                         .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
 
                 // Row 5: Scrollable Responsive 1-or-2 Column Sub-Library Card Grid
@@ -281,7 +308,7 @@ struct KroutonDepotWorkspaceView: View {
                     LazyVGrid(
                         columns: isNarrowWorkspace
                             ? [GridItem(.flexible(), spacing: 10)]
-                            : [GridItem(.flexible(minimum: 300), spacing: 10), GridItem(.flexible(minimum: 300), spacing: 10)],
+                            : [GridItem(.adaptive(minimum: 295, maximum: 520), spacing: 10)],
                         spacing: 10
                     ) {
                         ForEach(filteredDepotItems) { item in
@@ -293,5 +320,4 @@ struct KroutonDepotWorkspaceView: View {
             }
         }
     }
-
 }

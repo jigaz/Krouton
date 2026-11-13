@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 // MARK: - Phase 3: Strongly-Typed Mastering & Extraction Domain Models
@@ -97,4 +98,298 @@ public struct KroutonVideoAuthoringConfig: Equatable, Codable, Sendable {
     public var uhdPreserveHDR10DolbyVision: Bool = true
 
     public init() {}
+}
+
+// MARK: - Official krouton.app Web & CDN Endpoint Registry (Cloudflare Edge + iWebFusion Mirror)
+
+public enum KroutonWebEndpoints {
+    public static let homeURLString = "https://krouton.app"
+    public static let docsURLString = "https://krouton.app/docs"
+    public static let krutSchemaURLString = "https://krouton.app/schema/krut/v1.json"
+
+    public static let depotManifestURLString = "https://krouton.app/v1/depot/manifest.json"
+    public static let driveOffsetsDBURLString = "https://krouton.app/v1/hardware/drives.json"
+    public static let mediaMIDDatabaseURLString = "https://krouton.app/v1/media/atip-mid.json"
+    public static let printerTrayProfilesURLString = "https://krouton.app/v1/labels/trays.json"
+
+    public static let isoMirrorBaseURLString = "https://mirror.krouton.app/depot"
+    public static let appReleasesURLString = "https://mirror.krouton.app/releases/appcast.xml"
+
+    public static var homeURL: URL { URL(string: homeURLString)! }
+    public static var depotManifestURL: URL { URL(string: depotManifestURLString)! }
+}
+
+// MARK: - Unified Hardware-Agnostic .krut Core Mastering Spec (Shared by Local .krut Sidecars & Krumb LAN Wire Protocol)
+
+public struct KroutonKrutCoreSpec: Codable, Hashable, Sendable {
+    public var specVersion: String
+    public var formatID: String
+    public var volumeTitle: String
+    public var sectorSizeBytes: Int
+    public var totalSectorsLBA: Int64
+    public var expectedPayloadBytes: Int64
+    public var payloadSHA256Hex: String
+    public var writeMethod: String
+    public var dualLayerBreakSectorLBA: Int64?
+    public var forceDVDROMBookType: Bool
+    public var performOPCBeforeWrite: Bool
+    public var ephemeralAutoPurgeOnComplete: Bool
+
+    public init(
+        specVersion: String = "1.0",
+        formatID: String = "data-hybrid",
+        volumeTitle: String = "KROUTON_DISC",
+        sectorSizeBytes: Int = 2048,
+        totalSectorsLBA: Int64 = 0,
+        expectedPayloadBytes: Int64 = 0,
+        payloadSHA256Hex: String = "",
+        writeMethod: String = "DAO / SAO Sector-Exact",
+        dualLayerBreakSectorLBA: Int64? = nil,
+        forceDVDROMBookType: Bool = true,
+        performOPCBeforeWrite: Bool = true,
+        ephemeralAutoPurgeOnComplete: Bool = true
+    ) {
+        self.specVersion = specVersion
+        self.formatID = formatID
+        self.volumeTitle = volumeTitle
+        self.sectorSizeBytes = sectorSizeBytes
+        self.totalSectorsLBA = totalSectorsLBA
+        self.expectedPayloadBytes = expectedPayloadBytes
+        self.payloadSHA256Hex = payloadSHA256Hex
+        self.writeMethod = writeMethod
+        self.dualLayerBreakSectorLBA = dualLayerBreakSectorLBA
+        self.forceDVDROMBookType = forceDVDROMBookType
+        self.performOPCBeforeWrite = performOPCBeforeWrite
+        self.ephemeralAutoPurgeOnComplete = ephemeralAutoPurgeOnComplete
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case specVersion = "spec_version"
+        case formatID = "format_id"
+        case volumeTitle = "volume_title"
+        case sectorSizeBytes = "sector_size_bytes"
+        case totalSectorsLBA = "total_sectors_lba"
+        case expectedPayloadBytes = "expected_payload_bytes"
+        case payloadSHA256Hex = "payload_sha256_hex"
+        case writeMethod = "write_method"
+        case dualLayerBreakSectorLBA = "dual_layer_break_lba"
+        case forceDVDROMBookType = "force_dvdrom_book_type"
+        case performOPCBeforeWrite = "perform_opc_before_write"
+        case ephemeralAutoPurgeOnComplete = "ephemeral_auto_purge_on_complete"
+    }
+}
+
+// MARK: - Cross-Filesystem Path Sanitizer & ChaCha20-Poly1305 .krut Encryption Engine
+
+public enum KroutonKrutSecurityEngine {
+    /// Rejects relative paths attempting directory traversal ('..') or root escapes across NTFS, exFAT, ext4, Btrfs & APFS
+    public static func isSafeRelativePath(_ relPath: String) -> Bool {
+        let normalized = relPath.replacingOccurrences(of: "\\", with: "/")
+        if normalized.hasPrefix("/") || normalized.hasPrefix("~") { return false }
+        let parts = normalized.split(separator: "/", omittingEmptySubsequences: false).map(String.init)
+        return !parts.contains("..")
+    }
+
+    /// Normalizes Windows backslashes and NFD decomposed Unicode to NFC for NTFS / exFAT / ext4 / Btrfs compatibility
+    public static func normalizeCrossFilesystemPath(_ rawPath: String) -> String {
+        rawPath.replacingOccurrences(of: "\\", with: "/").precomposedStringWithCanonicalMapping
+    }
+
+    /// Encrypts a .krut payload with AEAD ChaCha20-Poly1305 and HKDF-SHA256
+    public static func sealKrutPayload(_ plainData: Data, passphrase: String, salt: Data) throws -> Data {
+        let key = HKDF<SHA256>.deriveKey(
+            inputKeyMaterial: SymmetricKey(data: Data(passphrase.precomposedStringWithCanonicalMapping.utf8)),
+            salt: salt,
+            info: Data("com.opticaldough.krouton.krut.v1".utf8),
+            outputByteCount: 32
+        )
+        return try ChaChaPoly.seal(plainData, using: key).combined
+    }
+
+    /// Opens and authenticates an AEAD ChaCha20-Poly1305 .krut payload (rejects wrong passphrase or bit-tampering)
+    public static func openKrutPayload(_ combinedData: Data, passphrase: String, salt: Data) -> Data? {
+        let key = HKDF<SHA256>.deriveKey(
+            inputKeyMaterial: SymmetricKey(data: Data(passphrase.precomposedStringWithCanonicalMapping.utf8)),
+            salt: salt,
+            info: Data("com.opticaldough.krouton.krut.v1".utf8),
+            outputByteCount: 32
+        )
+        guard let box = try? ChaChaPoly.SealedBox(combined: combinedData) else { return nil }
+        return try? ChaChaPoly.open(box, using: key)
+    }
+}
+
+// MARK: - Editable Vector Disc Label Scene Graph Models (Stored in Every .krut File)
+
+public struct KroutonRGBAColor: Codable, Hashable, Sendable {
+    public var r: Double
+    public var g: Double
+    public var b: Double
+    public var a: Double
+
+    public init(r: Double, g: Double, b: Double, a: Double = 1.0) {
+        self.r = r
+        self.g = g
+        self.b = b
+        self.a = a
+    }
+}
+
+public enum KroutonVectorBackgroundStyle: String, Codable, CaseIterable, Identifiable, Sendable {
+    case templateDefault = "Template Default"
+    case solidColor      = "Solid Color"
+    case linearGradient  = "Linear Gradient"
+    case radialGradient  = "Radial Gradient"
+    case angularGradient = "Angular Sweep"
+    public var id: String { rawValue }
+}
+
+public enum KroutonVectorShapeKind: String, Codable, CaseIterable, Identifiable, Sendable {
+    case circle         = "Circle"
+    case concentricRing = "Ring"
+    case rectangle      = "Rectangle"
+    case star           = "5-Point Star"
+    case polygon        = "Polygon"
+    case smoothBezier   = "Smooth Curve"
+    case visionContour  = "Vision Contour"
+    public var id: String { rawValue }
+}
+
+public struct KroutonNormalizedPoint: Codable, Hashable, Sendable {
+    public var nx: Double
+    public var ny: Double
+
+    public init(nx: Double, ny: Double) {
+        self.nx = nx
+        self.ny = ny
+    }
+}
+
+public struct KroutonPolarArcTextLayer: Codable, Hashable, Identifiable, Sendable {
+    public var id: UUID
+    public var text: String
+    public var radiusMillimeters: Double
+    public var centerAngleDegrees: Double
+    public var fontSizePoints: Double
+    public var letterSpacingMultiplier: Double
+    public var isClockwiseTopArc: Bool
+    public var color: KroutonRGBAColor
+
+    public init(
+        id: UUID = UUID(),
+        text: String,
+        radiusMillimeters: Double = 46.0,
+        centerAngleDegrees: Double = -90.0,
+        fontSizePoints: Double = 13.0,
+        letterSpacingMultiplier: Double = 1.0,
+        isClockwiseTopArc: Bool = true,
+        color: KroutonRGBAColor = KroutonRGBAColor(r: 0.96, g: 0.97, b: 0.99, a: 1.0)
+    ) {
+        self.id = id
+        self.text = text
+        self.radiusMillimeters = radiusMillimeters
+        self.centerAngleDegrees = centerAngleDegrees
+        self.fontSizePoints = fontSizePoints
+        self.letterSpacingMultiplier = letterSpacingMultiplier
+        self.isClockwiseTopArc = isClockwiseTopArc
+        self.color = color
+    }
+}
+
+public struct KroutonVectorShapeLayer: Codable, Hashable, Identifiable, Sendable {
+    public var id: UUID
+    public var name: String
+    public var kind: KroutonVectorShapeKind
+    public var points: [KroutonNormalizedPoint]
+    public var strokeWidthPoints: Double
+    public var isClosed: Bool
+    public var strokeColor: KroutonRGBAColor
+    public var fillColor: KroutonRGBAColor?
+
+    public init(
+        id: UUID = UUID(),
+        name: String,
+        kind: KroutonVectorShapeKind,
+        points: [KroutonNormalizedPoint],
+        strokeWidthPoints: Double = 2.2,
+        isClosed: Bool = true,
+        strokeColor: KroutonRGBAColor = KroutonRGBAColor(r: 0.25, g: 0.88, b: 0.96, a: 1.0),
+        fillColor: KroutonRGBAColor? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.kind = kind
+        self.points = points
+        self.strokeWidthPoints = strokeWidthPoints
+        self.isClosed = isClosed
+        self.strokeColor = strokeColor
+        self.fillColor = fillColor
+    }
+}
+
+public struct KroutonEmbeddedLabelSpec: Codable, Hashable, Sendable {
+    public var specVersion: String
+    public var primaryArcTitle: String
+    public var bottomSubtitle: String
+    public var performer: String
+    public var mcnCatalogBarcode: String
+    public var templateStyleRaw: String
+    public var trayPresetName: String
+    public var outerDiameterMM: Double
+    public var innerDiameterMM: Double
+    public var offsetXMM: Double
+    public var offsetYMM: Double
+    public var showTracklistOnDisc: Bool
+    public var stampedTracklistLines: [String]
+    public var accentPresetIndex: Int
+    public var useHarmonySplitComplement: Bool
+    public var autoSearchQuery: String
+    public var backgroundStyle: KroutonVectorBackgroundStyle = .templateDefault
+    public var backgroundPrimaryColor: KroutonRGBAColor = KroutonRGBAColor(r: 0.08, g: 0.10, b: 0.15)
+    public var backgroundSecondaryColor: KroutonRGBAColor = KroutonRGBAColor(r: 0.18, g: 0.36, b: 0.62)
+    public var gradientAngleDegrees: Double = 45.0
+    public var topArcRadiusMM: Double = 47.0
+    public var bottomArcRadiusMM: Double = 45.0
+    public var arcLetterSpacing: Double = 1.0
+    public var customArcTextLayers: [KroutonPolarArcTextLayer] = []
+    public var vectorShapeLayers: [KroutonVectorShapeLayer] = []
+    public var renderedPreviewPNGBase64: String?
+
+    public init(
+        specVersion: String = "1.0",
+        primaryArcTitle: String = "THE KROUTON ARCHIVE",
+        bottomSubtitle: String = "2026 MASTER EDITION",
+        performer: String = "The Kroutons",
+        mcnCatalogBarcode: String = "0123456789012",
+        templateStyleRaw: String = "Synth Technical Grid",
+        trayPresetName: String = "Epson ET-8550 Full Hub (120mm / 18mm)",
+        outerDiameterMM: Double = 120.0,
+        innerDiameterMM: Double = 18.0,
+        offsetXMM: Double = 0.0,
+        offsetYMM: Double = 0.0,
+        showTracklistOnDisc: Bool = true,
+        stampedTracklistLines: [String] = [],
+        accentPresetIndex: Int = 8,
+        useHarmonySplitComplement: Bool = true,
+        autoSearchQuery: String = "",
+        renderedPreviewPNGBase64: String? = nil
+    ) {
+        self.specVersion = specVersion
+        self.primaryArcTitle = primaryArcTitle
+        self.bottomSubtitle = bottomSubtitle
+        self.performer = performer
+        self.mcnCatalogBarcode = mcnCatalogBarcode
+        self.templateStyleRaw = templateStyleRaw
+        self.trayPresetName = trayPresetName
+        self.outerDiameterMM = outerDiameterMM
+        self.innerDiameterMM = innerDiameterMM
+        self.offsetXMM = offsetXMM
+        self.offsetYMM = offsetYMM
+        self.showTracklistOnDisc = showTracklistOnDisc
+        self.stampedTracklistLines = stampedTracklistLines
+        self.accentPresetIndex = accentPresetIndex
+        self.useHarmonySplitComplement = useHarmonySplitComplement
+        self.autoSearchQuery = autoSearchQuery
+        self.renderedPreviewPNGBase64 = renderedPreviewPNGBase64
+    }
 }

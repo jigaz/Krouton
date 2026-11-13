@@ -125,7 +125,7 @@ struct KroutonMarmaladeCuePopoverView: View {
             HStack {
                 Image(systemName: "waveform.badge.magnifyingglass")
                     .foregroundStyle(store.activeAccent)
-                Text("MARMALADE RED BOOK .CUE & 18-BYTE CD-TEXT INSPECTOR")
+                Text("RED BOOK .CUE SHEET & 18-BYTE CD-TEXT INSPECTOR")
                     .font(.system(size: 11, weight: .heavy, design: .monospaced))
                 Spacer()
                 Button {
@@ -242,7 +242,7 @@ struct KroutonVideoOvenPopoverView: View {
                 HStack {
                     Image(systemName: "arrow.down.right.and.arrow.up.left")
                         .foregroundStyle(.orange)
-                    Text("DVD-9 (8.54 GB DL) -> DVD-5 (4.70 GB SL) REQUIEM DCT REQUANTIZATION PLAN")
+                    Text("DVD-9 (8.54 GB DL) -> DVD-5 (4.70 GB SL) FIT-TO-DISC REQUANTIZATION PLAN")
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .foregroundStyle(.orange)
                 }
