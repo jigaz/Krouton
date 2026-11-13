@@ -73,6 +73,16 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var labelVectorShapes: [KroutonVectorShapeLayer] = []
     @Published public var labelDrawAutoSnap: Bool = true
     @Published public var isLabelVectorDrawMode: Bool = false
+    @Published public var labelGPUSeedPattern: KroutonGPUSeedPattern = .neonLaserPrism
+    @Published public var labelKaleidoscopeFacets: Int = 8
+    @Published public var labelTinyPlanetRadius: Double = 0.75
+    @Published public var labelUseVisionForeground: Bool = false
+    @Published public var labelPolarSymmetryCount: Int = 1
+    @Published public var labelTextElements: [KroutonLabelTextElement] = []
+    @Published public var labelSelectedTextID: UUID? = nil
+    @Published public var labelGradientMidpoint: Double = 0.50
+    @Published public var labelShowAlignmentGrid: Bool = false
+    @Published public var labelCanvasZoom: Double = 1.0
     public var savedQueuesByDomain: [String: [KroutonBakeBatchItem]] = [:]
     @Published public var tintWindowWithWallpaper: Bool = false
     // Accessibility & VoiceOver Support

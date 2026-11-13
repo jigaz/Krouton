@@ -241,14 +241,33 @@ public enum KroutonVectorBackgroundStyle: String, Codable, CaseIterable, Identif
     case linearGradient  = "Linear Gradient"
     case radialGradient  = "Radial Gradient"
     case angularGradient = "Angular Sweep"
+    case gpuKaleidoscope = "GPU Kaleidoscope"
+    case tinyPlanetGlobe = "360° Tiny Planet"
+    public var id: String { rawValue }
+}
+
+public enum KroutonGPUSeedPattern: String, Codable, CaseIterable, Identifiable, Sendable {
+    case neonLaserPrism   = "Neon Laser Prism"
+    case cyberSunburst    = "Cyber Sunburst Horizon"
+    case holographicFoil  = "Holographic Lenticular Foil"
+    case cmykHalftone     = "Retro CMYK Halftone"
     public var id: String { rawValue }
 }
 
 public enum KroutonVectorShapeKind: String, Codable, CaseIterable, Identifiable, Sendable {
+    case line           = "Diagonal Line"
+    case curveArc       = "Bezier Arc"
+    case roundedRect    = "Rounded Square"
     case circle         = "Circle"
-    case concentricRing = "Ring"
-    case rectangle      = "Rectangle"
+    case triangle       = "Triangle"
+    case pentagon       = "Pentagon"
+    case rectangle      = "Square"
+    case diamond        = "Diamond"
+    case capsule        = "Capsule Pill"
+    case parallelogram  = "Parallelogram"
+    case arrow          = "Arrow"
     case star           = "5-Point Star"
+    case concentricRing = "Concentric Ring"
     case polygon        = "Polygon"
     case smoothBezier   = "Smooth Curve"
     case visionContour  = "Vision Contour"
@@ -262,6 +281,47 @@ public struct KroutonNormalizedPoint: Codable, Hashable, Sendable {
     public init(nx: Double, ny: Double) {
         self.nx = nx
         self.ny = ny
+    }
+}
+
+
+public struct KroutonLabelTextElement: Codable, Hashable, Identifiable, Sendable {
+    public var id: UUID
+    public var text: String
+    public var isCurvedArc: Bool
+    public var radiusMM: Double
+    public var angleDegrees: Double
+    public var fontSizePoints: Double
+    public var letterTracking: Double
+    public var isBottomUpright: Bool
+    public var isBold: Bool
+    public var fontDesignRaw: String
+    public var color: KroutonRGBAColor
+
+    public init(
+        id: UUID = UUID(),
+        text: String = "NEW DISC TITLE",
+        isCurvedArc: Bool = true,
+        radiusMM: Double = 44.0,
+        angleDegrees: Double = 0.0,
+        fontSizePoints: Double = 16.0,
+        letterTracking: Double = 1.0,
+        isBottomUpright: Bool = false,
+        isBold: Bool = true,
+        fontDesignRaw: String = "Default",
+        color: KroutonRGBAColor = KroutonRGBAColor(r: 0.10, g: 0.11, b: 0.14, a: 1.0)
+    ) {
+        self.id = id
+        self.text = text
+        self.isCurvedArc = isCurvedArc
+        self.radiusMM = radiusMM
+        self.angleDegrees = angleDegrees
+        self.fontSizePoints = fontSizePoints
+        self.letterTracking = letterTracking
+        self.isBottomUpright = isBottomUpright
+        self.isBold = isBold
+        self.fontDesignRaw = fontDesignRaw
+        self.color = color
     }
 }
 
@@ -348,10 +408,16 @@ public struct KroutonEmbeddedLabelSpec: Codable, Hashable, Sendable {
     public var backgroundPrimaryColor: KroutonRGBAColor = KroutonRGBAColor(r: 0.08, g: 0.10, b: 0.15)
     public var backgroundSecondaryColor: KroutonRGBAColor = KroutonRGBAColor(r: 0.18, g: 0.36, b: 0.62)
     public var gradientAngleDegrees: Double = 45.0
+    public var gpuSeedPattern: KroutonGPUSeedPattern = .neonLaserPrism
+    public var kaleidoscopeFacetCount: Int = 8
+    public var tinyPlanetRadiusRatio: Double = 0.72
+    public var useVisionForegroundCutout: Bool = false
     public var topArcRadiusMM: Double = 47.0
     public var bottomArcRadiusMM: Double = 45.0
     public var arcLetterSpacing: Double = 1.0
     public var customArcTextLayers: [KroutonPolarArcTextLayer] = []
+    public var textElements: [KroutonLabelTextElement] = []
+    public var gradientMidpointRatio: Double = 0.50
     public var vectorShapeLayers: [KroutonVectorShapeLayer] = []
     public var renderedPreviewPNGBase64: String?
 

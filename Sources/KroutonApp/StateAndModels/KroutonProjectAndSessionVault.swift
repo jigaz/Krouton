@@ -247,6 +247,12 @@ extension KroutonStateStore {
         embeddedLabel.bottomArcRadiusMM = labelBottomArcRadiusMM
         embeddedLabel.arcLetterSpacing = labelArcLetterSpacing
         embeddedLabel.vectorShapeLayers = labelVectorShapes
+        embeddedLabel.textElements = labelTextElements
+        embeddedLabel.gradientMidpointRatio = labelGradientMidpoint
+        embeddedLabel.gpuSeedPattern = labelGPUSeedPattern
+        embeddedLabel.kaleidoscopeFacetCount = labelKaleidoscopeFacets
+        embeddedLabel.tinyPlanetRadiusRatio = labelTinyPlanetRadius
+        embeddedLabel.useVisionForegroundCutout = labelUseVisionForeground
 
         return KroutonProjectManifest(
             savedAtISO8601: ISO8601DateFormatter().string(from: Date()),
@@ -314,6 +320,12 @@ extension KroutonStateStore {
         labelBottomArcRadiusMM = lbl.bottomArcRadiusMM
         labelArcLetterSpacing = lbl.arcLetterSpacing
         labelVectorShapes = lbl.vectorShapeLayers
+        labelTextElements = lbl.textElements
+        labelGradientMidpoint = lbl.gradientMidpointRatio
+        labelGPUSeedPattern = lbl.gpuSeedPattern
+        labelKaleidoscopeFacets = lbl.kaleidoscopeFacetCount
+        labelTinyPlanetRadius = lbl.tinyPlanetRadiusRatio
+        labelUseVisionForeground = lbl.useVisionForegroundCutout
         if let breakLBA = manifest.coreSpec.dualLayerBreakSectorLBA {
             dualLayerBreakSectorLBA = breakLBA
         }

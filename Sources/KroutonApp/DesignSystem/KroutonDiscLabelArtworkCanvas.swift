@@ -1,392 +1,375 @@
 import SwiftUI
-import Foundation
-import UniformTypeIdentifiers
 import OpticalDough
 import Crustini
 
-// MARK: - 120mm Optical Disc Label Studio Artwork Renderer (Primary + Secondary Harmony)
-struct KroutonDiscLabelArtworkCanvas: View {
-    @State private var activeDragPoints: [KroutonNormalizedPoint] = []
-    let preset: KroutonSliceLabelGeometry
-    let template: KroutonCroutonLabelStyle
-    let title: String
-    let subtitle: String
-    let performer: String
-    let mcnBarcode: String
-    let trackLines: [String]
-    let showTracklist: Bool
-    let primaryColor: Color
-    let harmonyColor: Color
-    let isExportMode: Bool
-    let diameterPoints: CGFloat
+// MARK: - Stage 1 Clean Printable Disc Canvas (Live Reactive Inputs + Interactive Drag-on-Disc)
 
-    var body: some View {
-        let holeRatio = CGFloat(max(0.12, min(0.45, preset.innerDiameterMM / max(1.0, preset.outerDiameterMM))))
-        let holeDiameter = diameterPoints * holeRatio
+public struct KroutonDiscLabelArtworkCanvas: View {
+    public let preset: KroutonSliceLabelGeometry
+    public let template: KroutonCroutonLabelStyle
+    public let title: String
+    public let subtitle: String
+    public let performer: String
+    public let mcnBarcode: String
+    public let trackLines: [String]
+    public let showTracklist: Bool
+    public let primaryColor: Color
+    public let harmonyColor: Color
+    public let isExportMode: Bool
+    public let diameterPoints: CGFloat
 
+    // Stage 1 explicit reactive inputs (with defaults for backward compatibility)
+    public var backgroundStyle: KroutonVectorBackgroundStyle
+    public var bgPrimaryColor: Color
+    public var bgSecondaryColor: Color
+    public var gradientMidpoint: Double
+    public var gradientAngle: Double
+    public var textElements: [KroutonLabelTextElement]
+    public var selectedTextID: UUID?
+    public var showAlignmentGrid: Bool
+    public var onSelectOrDragText: ((UUID, Double, Double) -> Void)?
+
+    public init(
+        preset: KroutonSliceLabelGeometry,
+        template: KroutonCroutonLabelStyle,
+        title: String,
+        subtitle: String,
+        performer: String,
+        mcnBarcode: String,
+        trackLines: [String],
+        showTracklist: Bool,
+        primaryColor: Color,
+        harmonyColor: Color,
+        isExportMode: Bool = false,
+        diameterPoints: CGFloat = 360.0,
+        backgroundStyle: KroutonVectorBackgroundStyle = .templateDefault,
+        bgPrimaryColor: Color = .white,
+        bgSecondaryColor: Color = Color(red: 0.16, green: 0.42, blue: 0.82),
+        gradientMidpoint: Double = 0.50,
+        gradientAngle: Double = 45.0,
+        textElements: [KroutonLabelTextElement] = [],
+        selectedTextID: UUID? = nil,
+        showAlignmentGrid: Bool = false,
+        onSelectOrDragText: ((UUID, Double, Double) -> Void)? = nil
+    ) {
+        self.preset = preset
+        self.template = template
+        self.title = title
+        self.subtitle = subtitle
+        self.performer = performer
+        self.mcnBarcode = mcnBarcode
+        self.trackLines = trackLines
+        self.showTracklist = showTracklist
+        self.primaryColor = primaryColor
+        self.harmonyColor = harmonyColor
+        self.isExportMode = isExportMode
+        self.diameterPoints = diameterPoints
+        self.backgroundStyle = backgroundStyle
+        self.bgPrimaryColor = bgPrimaryColor
+        self.bgSecondaryColor = bgSecondaryColor
+        self.gradientMidpoint = gradientMidpoint
+        self.gradientAngle = gradientAngle
+        self.textElements = textElements
+        self.selectedTextID = selectedTextID
+        self.showAlignmentGrid = showAlignmentGrid
+        self.onSelectOrDragText = onSelectOrDragText
+    }
+
+    private var outerMM: Double {
+        max(70.0, min(120.0, preset.outerDiameterMM))
+    }
+
+    private var innerMM: Double {
+        max(15.0, min(54.0, preset.innerDiameterMM))
+    }
+
+    private var holeDiameter: CGFloat {
+        diameterPoints * CGFloat(innerMM / outerMM)
+    }
+
+    public var body: some View {
         ZStack {
-            // 1. Base Disc Surface by Template
-            switch template {
-            case .synthGrid:
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                Color(red: 0.08, green: 0.09, blue: 0.12),
-                                Color(red: 0.04, green: 0.05, blue: 0.07)
-                            ],
-                            center: .center,
-                            startRadius: holeDiameter * 0.4,
-                            endRadius: diameterPoints * 0.52
-                        )
-                    )
-                    .overlay(
-                        Circle()
-                            .fill(primaryColor.opacity(0.24))
-                    )
-            case .vinylGrooves:
-                Circle()
-                    .fill(
-                        AngularGradient(
-                            colors: [
-                                primaryColor.opacity(0.85),
-                                Color.black.opacity(0.92),
-                                harmonyColor.opacity(0.75),
-                                Color.black.opacity(0.92),
-                                primaryColor.opacity(0.85)
-                            ],
-                            center: .center
-                        )
-                    )
-            case .dualHalftone:
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [primaryColor, Color(red: 0.07, green: 0.08, blue: 0.10), harmonyColor],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            case .archivalSpec:
-                Circle()
-                    .fill(Color(red: 0.96, green: 0.95, blue: 0.92))
-                    .overlay(
-                        Circle().strokeBorder(primaryColor, lineWidth: diameterPoints * 0.035)
-                    )
+            // 1. Printable Disc Surface (Blank White Disc, Solid Color, or Circular Radial Gradient)
+            discSurfaceBackground
+
+            // 2. Optional 10mm Alignment Grid
+            if showAlignmentGrid && !isExportMode {
+                alignmentGridOverlay
             }
 
-            // 2. Precision CAD Grid / Concentric Telemetry Rings
-            Canvas { context, size in
-                let center = CGPoint(x: size.width / 2, y: size.height / 2)
-                let maxR = size.width / 2
-
-                if template == .synthGrid || template == .archivalSpec {
-                    let step: CGFloat = size.width / 16.0
-                    var grid = Path()
-                    for x in stride(from: CGFloat(0), through: size.width, by: step) {
-                        grid.move(to: CGPoint(x: x, y: 0))
-                        grid.addLine(to: CGPoint(x: x, y: size.height))
-                    }
-                    for y in stride(from: CGFloat(0), through: size.height, by: step) {
-                        grid.move(to: CGPoint(x: 0, y: y))
-                        grid.addLine(to: CGPoint(x: size.width, y: y))
-                    }
-                    context.stroke(
-                        grid,
-                        with: .color(template == .archivalSpec ? primaryColor.opacity(0.16) : harmonyColor.opacity(0.18)),
-                        lineWidth: 0.75
-                    )
+            // 3. User Text Elements (Curved on Disc Arc or Straight Horizontal)
+            ForEach(textElements) { item in
+                if !item.text.isEmpty {
+                    renderTextElementView(item)
                 }
-
-                // Concentric LBA / Groove rings
-                for frac in [0.92, 0.78, 0.64, 0.46] {
-                    let r = maxR * CGFloat(frac)
-                    let rect = CGRect(x: center.x - r, y: center.y - r, width: r * 2, height: r * 2)
-                    let ringPath = Path(ellipseIn: rect)
-                    context.stroke(
-                        ringPath,
-                        with: .color(frac == 0.78 ? harmonyColor.opacity(0.65) : primaryColor.opacity(0.40)),
-                        style: StrokeStyle(lineWidth: frac == 0.92 ? 2.0 : 1.0, dash: frac == 0.64 ? [5, 3] : [])
-                    )
-                }
-
-                // Crosshair registration ticks around the hub
-                var ticks = Path()
-                ticks.move(to: CGPoint(x: center.x, y: size.height * 0.04))
-                ticks.addLine(to: CGPoint(x: center.x, y: size.height * 0.12))
-                ticks.move(to: CGPoint(x: center.x, y: size.height * 0.88))
-                ticks.addLine(to: CGPoint(x: center.x, y: size.height * 0.96))
-                ticks.move(to: CGPoint(x: size.width * 0.04, y: center.y))
-                ticks.addLine(to: CGPoint(x: size.width * 0.12, y: center.y))
-                ticks.move(to: CGPoint(x: size.width * 0.88, y: center.y))
-                ticks.addLine(to: CGPoint(x: size.width * 0.96, y: center.y))
-                context.stroke(ticks, with: .color(harmonyColor.opacity(0.75)), lineWidth: 1.2)
-            }
-            .clipShape(Circle())
-
-            // 3. Disc Typography & Staged Tracklist Manifest (Left & Right of Spindle Hub)
-            let fgText: Color = (template == .archivalSpec) ? Color.black.opacity(0.88) : .white
-            let badgeBg: Color = (template == .archivalSpec) ? primaryColor : harmonyColor
-
-            VStack(spacing: 2) {
-                Text("KROUTON OPTICAL MASTER")
-                    .font(.system(size: diameterPoints * 0.026, weight: .heavy, design: .monospaced))
-                    .foregroundStyle(template == .archivalSpec ? primaryColor : harmonyColor)
-                    .padding(.top, diameterPoints * 0.085)
-
-                Text(title.isEmpty ? "KROUTON_DISC" : title)
-                    .font(.system(size: diameterPoints * 0.046, weight: .black, design: .rounded))
-                    .foregroundStyle(fgText)
-                    .lineLimit(1)
-                    .frame(maxWidth: diameterPoints * 0.68)
-
-                Spacer()
-
-                // Left & Right Wing Panels flanking the spindle hole
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("DISC SPEC")
-                            .font(.system(size: diameterPoints * 0.024, weight: .heavy, design: .monospaced))
-                            .foregroundStyle(badgeBg)
-                        Text("120mm OPTICAL")
-                        Text("MCN \(mcnBarcode.prefix(8))")
-                        Text("ECC VERIFIED")
-                    }
-                    .font(.system(size: diameterPoints * 0.023, weight: .bold, design: .monospaced))
-                    .foregroundStyle(fgText.opacity(0.86))
-                    .frame(width: diameterPoints * 0.27, alignment: .leading)
-
-                    Spacer(minLength: holeDiameter + 14)
-
-                    if showTracklist {
-                        VStack(alignment: .leading, spacing: 1.5) {
-                            Text("MANIFEST")
-                                .font(.system(size: diameterPoints * 0.024, weight: .heavy, design: .monospaced))
-                                .foregroundStyle(badgeBg)
-                            ForEach(Array(trackLines.prefix(5).enumerated()), id: \.offset) { _, line in
-                                Text(line)
-                                    .lineLimit(1)
-                            }
-                        }
-                        .font(.system(size: diameterPoints * 0.022, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(fgText.opacity(0.88))
-                        .frame(width: diameterPoints * 0.29, alignment: .leading)
-                    } else {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text("PERFORMER")
-                                .font(.system(size: diameterPoints * 0.024, weight: .heavy, design: .monospaced))
-                                .foregroundStyle(badgeBg)
-                            Text(performer)
-                                .lineLimit(1)
-                        }
-                        .font(.system(size: diameterPoints * 0.024, weight: .bold, design: .monospaced))
-                        .foregroundStyle(fgText.opacity(0.88))
-                        .frame(width: diameterPoints * 0.27, alignment: .trailing)
-                    }
-                }
-                .padding(.horizontal, diameterPoints * 0.06)
-
-                Spacer()
-
-                Text(subtitle.isEmpty ? "ISO9660 / UDF / RED BOOK MASTER" : subtitle)
-                    .font(.system(size: diameterPoints * 0.030, weight: .bold, design: .monospaced))
-                    .foregroundStyle(fgText.opacity(0.90))
-                    .lineLimit(1)
-                    .frame(maxWidth: diameterPoints * 0.64)
-
-                Text(String(format: "OUTER %.0fMM • HUB %.0fMM", preset.outerDiameterMM, preset.innerDiameterMM))
-                    .font(.system(size: diameterPoints * 0.023, weight: .heavy, design: .monospaced))
-                    .foregroundStyle(template == .archivalSpec ? primaryColor : harmonyColor)
-                    .padding(.bottom, diameterPoints * 0.085)
-            }
-            .frame(width: diameterPoints, height: diameterPoints)
-
-                        // Custom Vector Background Gradient, Curved Polar Arc Text & Interactive Vector Shapes
-            if let store = KroutonStateStore.shared {
-                if store.labelBackgroundStyle != .templateDefault {
-                    let c1 = store.labelBgPrimaryColor
-                    let c2 = store.labelBgSecondaryColor
-                    let ang = Angle.degrees(store.labelGradientAngle)
-                    Group {
-                        switch store.labelBackgroundStyle {
-                        case .solidColor:
-                            Circle().fill(c1)
-                        case .linearGradient:
-                            Circle().fill(
-                                LinearGradient(
-                                    colors: [c1, c2],
-                                    startPoint: UnitPoint(x: 0.5 - 0.5 * cos(ang.radians), y: 0.5 - 0.5 * sin(ang.radians)),
-                                    endPoint: UnitPoint(x: 0.5 + 0.5 * cos(ang.radians), y: 0.5 + 0.5 * sin(ang.radians))
-                                )
-                            )
-                        case .radialGradient:
-                            Circle().fill(
-                                RadialGradient(colors: [c2, c1], center: .center, startRadius: holeDiameter * 0.45, endRadius: diameterPoints * 0.5)
-                            )
-                        case .angularGradient:
-                            Circle().fill(
-                                AngularGradient(colors: [c1, c2, primaryColor, c1], center: .center, angle: ang)
-                            )
-                        case .templateDefault:
-                            EmptyView()
-                        }
-                    }
-                    .frame(width: diameterPoints, height: diameterPoints)
-                    .allowsHitTesting(false)
-                }
-
-                Canvas { context, size in
-                    let center = CGPoint(x: size.width * 0.5, y: size.height * 0.5)
-                    let radiusScale = (size.width * 0.5) / 60.0
-
-                    for shape in store.labelVectorShapes where shape.points.count >= 2 {
-                        var path = Path()
-                        for (idx, pt) in shape.points.enumerated() {
-                            let px = center.x + CGFloat(pt.nx) * (size.width * 0.5)
-                            let py = center.y + CGFloat(pt.ny) * (size.height * 0.5)
-                            if idx == 0 { path.move(to: CGPoint(x: px, y: py)) }
-                            else { path.addLine(to: CGPoint(x: px, y: py)) }
-                        }
-                        if shape.isClosed { path.closeSubpath() }
-                        if let fill = shape.fillColor {
-                            context.fill(path, with: .color(Color(red: fill.r, green: fill.g, blue: fill.b, opacity: fill.a)))
-                        }
-                        let sCol = Color(red: shape.strokeColor.r, green: shape.strokeColor.g, blue: shape.strokeColor.b, opacity: shape.strokeColor.a)
-                        context.stroke(path, with: .color(sCol), style: StrokeStyle(lineWidth: CGFloat(shape.strokeWidthPoints), lineCap: .round, lineJoin: .round))
-                    }
-
-                    if activeDragPoints.count >= 2 {
-                        var livePath = Path()
-                        for (idx, pt) in activeDragPoints.enumerated() {
-                            let px = center.x + CGFloat(pt.nx) * (size.width * 0.5)
-                            let py = center.y + CGFloat(pt.ny) * (size.height * 0.5)
-                            if idx == 0 { livePath.move(to: CGPoint(x: px, y: py)) }
-                            else { livePath.addLine(to: CGPoint(x: px, y: py)) }
-                        }
-                        context.stroke(livePath, with: .color(harmonyColor), style: StrokeStyle(lineWidth: 2.4, lineCap: .round, dash: [4, 2]))
-                    }
-
-                    if store.labelTopArcRadiusMM != 47.0 || store.labelArcLetterSpacing != 1.0 || store.labelBackgroundStyle != .templateDefault {
-                        let topR = CGFloat(store.labelTopArcRadiusMM) * radiusScale
-                        let span = min(Double.pi * 1.35, Double(max(1, title.count)) * 0.068 * store.labelArcLetterSpacing)
-                        let topGlyphs = KroutonKrustiniModule.computePolarArcGlyphLayout(
-                            text: title.uppercased(),
-                            centerX: Double(center.x),
-                            centerY: Double(center.y),
-                            radiusPoints: Double(topR),
-                            centerAngleRadians: -.pi / 2.0,
-                            arcSpanRadians: span
-                        )
-                        for g in topGlyphs {
-                            var ctx = context
-                            ctx.translateBy(x: CGFloat(g.xPoints), y: CGFloat(g.yPoints))
-                            ctx.rotate(by: .radians(g.tangentRotationRadians))
-                            let resolved = ctx.resolve(
-                                Text(String(g.character))
-                                    .font(.system(size: diameterPoints * 0.036, weight: .heavy, design: .rounded))
-                                    .foregroundStyle(.white)
-                            )
-                            ctx.draw(resolved, at: .zero, anchor: .center)
-                        }
-                    }
-                }
-                .frame(width: diameterPoints, height: diameterPoints)
-                .clipShape(Circle())
-                .gesture(
-                    DragGesture(minimumDistance: 2)
-                        .onChanged { val in
-                            guard store.isLabelVectorDrawMode, !isExportMode else { return }
-                            let half = max(1.0, diameterPoints * 0.5)
-                            let nx = Double((val.location.x - half) / half)
-                            let ny = Double((val.location.y - half) / half)
-                            if hypot(nx, ny) <= 0.98 {
-                                activeDragPoints.append(KroutonNormalizedPoint(nx: nx, ny: ny))
-                            }
-                        }
-                        .onEnded { _ in
-                            guard store.isLabelVectorDrawMode, activeDragPoints.count >= 3 else {
-                                activeDragPoints.removeAll()
-                                return
-                            }
-                            let (sr, sg, sb, _) = KroutonPureColorMath.extractSRGB(harmonyColor)
-                            let snapped = KroutonKrustiniModule.recognizeAndVectorizeDrawnStroke(
-                                rawPoints: activeDragPoints,
-                                autoSnapGeometry: store.labelDrawAutoSnap,
-                                strokeColor: KroutonRGBAColor(r: Double(sr), g: Double(sg), b: Double(sb), a: 1.0)
-                            )
-                            store.labelVectorShapes.append(snapped)
-                            activeDragPoints.removeAll()
-                        }
-                )
             }
 
-            // 4. Outer Polycarbonate Rim & Clamping Ring + Center Spindle Cutout
-            Circle()
-                .strokeBorder(harmonyColor.opacity(0.75), lineWidth: 2.0)
-                .frame(width: diameterPoints, height: diameterPoints)
-
-            Circle()
-                .stroke(primaryColor.opacity(0.55), style: StrokeStyle(lineWidth: 3.0, dash: [6, 3]))
-                .frame(width: holeDiameter + 18, height: holeDiameter + 18)
-
-            Circle()
-                .fill(isExportMode ? Color.white : Color.kroutonWindowSurface)
-                .frame(width: holeDiameter, height: holeDiameter)
-                .overlay(
-                    Circle()
-                        .stroke(harmonyColor.opacity(0.85), lineWidth: 1.5)
-                )
+            // 4. Center Hub Clamping Guide & Spindle Hole Cutout
+            spindleHoleCutout
         }
         .frame(width: diameterPoints, height: diameterPoints)
         .clipShape(Circle())
+        .overlay(
+            Circle()
+                .strokeBorder(Color.black.opacity(isExportMode ? 0.0 : 0.28), lineWidth: 1.0)
+        )
+        .contentShape(Circle())
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { val in
+                    guard !isExportMode, let onDrag = onSelectOrDragText, !textElements.isEmpty else { return }
+                    let center = CGPoint(x: diameterPoints * 0.5, y: diameterPoints * 0.5)
+                    let dx = Double(val.location.x - center.x)
+                    let dy = Double(val.location.y - center.y)
+                    let distPts = hypot(dx, dy)
+                    let pointsPerMM = Double(diameterPoints) / outerMM
+                    let clampedRadiusMM = max(16.0, min(56.0, (distPts / max(0.1, pointsPerMM)).rounded()))
+
+                    // Convert Cartesian (dx, dy) to Clock Angle (0° = 12 o'clock top, 90° = 3 o'clock right)
+                    var deg = (atan2(dy, dx) * 180.0 / Double.pi) + 90.0
+                    if deg < 0 { deg += 360.0 }
+                    let snappedDeg = (deg / 2.0).rounded() * 2.0
+
+                    // If starting a tap/drag, pick the nearest text layer or the currently selected layer
+                    let targetID = selectedTextID ?? textElements.last!.id
+                    onDrag(targetID, clampedRadiusMM, snappedDeg)
+                }
+        )
     }
-}
 
+    @ViewBuilder
+    private var discSurfaceBackground: some View {
+        let midRatio = max(0.08, min(0.92, gradientMidpoint))
+        let ang = Angle.degrees(gradientAngle)
 
-// MARK: - Native SwiftUI .fileExporter Bridge for 300-DPI 120mm Disc Label PNG
-struct KroutonPNGFileDocument: FileDocument {
-    static var readableContentTypes: [UTType] { [.png] }
-    var pngData: Data
-
-    init(pngData: Data = Data()) {
-        self.pngData = pngData
+        switch backgroundStyle {
+        case .templateDefault:
+            Circle()
+                .fill(Color(red: 0.985, green: 0.985, blue: 0.988))
+        case .solidColor:
+            Circle()
+                .fill(bgPrimaryColor)
+        case .radialGradient:
+            let midColor = Self.blendColors(bgPrimaryColor, bgSecondaryColor, fraction: 0.5)
+            Circle()
+                .fill(
+                    RadialGradient(
+                        stops: [
+                            .init(color: bgPrimaryColor, location: 0.0),
+                            .init(color: midColor, location: CGFloat(midRatio)),
+                            .init(color: bgSecondaryColor, location: 1.0)
+                        ],
+                        center: .center,
+                        startRadius: holeDiameter * 0.48,
+                        endRadius: diameterPoints * 0.50
+                    )
+                )
+        case .linearGradient:
+            let midColor = Self.blendColors(bgPrimaryColor, bgSecondaryColor, fraction: 0.5)
+            Circle()
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: bgPrimaryColor, location: 0.0),
+                            .init(color: midColor, location: CGFloat(midRatio)),
+                            .init(color: bgSecondaryColor, location: 1.0)
+                        ],
+                        startPoint: UnitPoint(x: 0.5 - 0.5 * cos(ang.radians), y: 0.5 - 0.5 * sin(ang.radians)),
+                        endPoint: UnitPoint(x: 0.5 + 0.5 * cos(ang.radians), y: 0.5 + 0.5 * sin(ang.radians))
+                    )
+                )
+        case .angularGradient, .gpuKaleidoscope, .tinyPlanetGlobe:
+            Circle()
+                .fill(
+                    AngularGradient(
+                        colors: [bgPrimaryColor, bgSecondaryColor, bgPrimaryColor],
+                        center: .center,
+                        angle: ang
+                    )
+                )
+        }
     }
 
-    init(configuration: ReadConfiguration) throws {
-        self.pngData = configuration.file.regularFileContents ?? Data()
+    private var alignmentGridOverlay: some View {
+        Canvas { context, size in
+            let center = CGPoint(x: size.width * 0.5, y: size.height * 0.5)
+            let pointsPerMM = size.width / CGFloat(outerMM)
+            var gridPath = Path()
+            let step = pointsPerMM * 10.0
+            var offset: CGFloat = step
+            while offset < size.width * 0.5 {
+                gridPath.move(to: CGPoint(x: center.x + offset, y: 0))
+                gridPath.addLine(to: CGPoint(x: center.x + offset, y: size.height))
+                gridPath.move(to: CGPoint(x: center.x - offset, y: 0))
+                gridPath.addLine(to: CGPoint(x: center.x - offset, y: size.height))
+                gridPath.move(to: CGPoint(x: 0, y: center.y + offset))
+                gridPath.addLine(to: CGPoint(x: size.width, y: center.y + offset))
+                gridPath.move(to: CGPoint(x: 0, y: center.y - offset))
+                gridPath.addLine(to: CGPoint(x: size.width, y: center.y - offset))
+                offset += step
+            }
+            context.stroke(gridPath, with: .color(.gray.opacity(0.32)), style: StrokeStyle(lineWidth: 0.6, dash: [3, 3]))
+
+            var axisPath = Path()
+            axisPath.move(to: CGPoint(x: center.x, y: 0))
+            axisPath.addLine(to: CGPoint(x: center.x, y: size.height))
+            axisPath.move(to: CGPoint(x: 0, y: center.y))
+            axisPath.addLine(to: CGPoint(x: size.width, y: center.y))
+            context.stroke(axisPath, with: .color(.blue.opacity(0.35)), style: StrokeStyle(lineWidth: 0.8))
+        }
+        .allowsHitTesting(false)
     }
 
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        FileWrapper(regularFileWithContents: pngData)
-    }
-}
+    @ViewBuilder
+    private func renderTextElementView(_ item: KroutonLabelTextElement) -> some View {
+        let pointsPerMM = diameterPoints / CGFloat(outerMM)
+        let radiusPts = max(holeDiameter * 0.54, min(diameterPoints * 0.48, CGFloat(item.radiusMM) * pointsPerMM))
+        let scaledFontPt = max(7.0, CGFloat(item.fontSizePoints) * (diameterPoints / 360.0))
+        let textCol = Color(red: item.color.r, green: item.color.g, blue: item.color.b, opacity: item.color.a)
+        let design = Self.resolveFontDesign(item.fontDesignRaw)
+        let weight: Font.Weight = item.isBold ? .bold : .regular
+        let isSelected = (!isExportMode && item.id == selectedTextID)
 
-@MainActor
-final class KroutonLabelExportBridge: ObservableObject {
-    static let shared = KroutonLabelExportBridge()
-    @Published var isShowingExporter: Bool = false
-    @Published var document: KroutonPNGFileDocument = KroutonPNGFileDocument()
-    @Published var defaultFilename: String = "Krouton_120mm_Label.png"
+        ZStack {
+            if isSelected && item.isCurvedArc {
+                Circle()
+                    .strokeBorder(Color.blue.opacity(0.40), style: StrokeStyle(lineWidth: 1.0, dash: [4, 3]))
+                    .frame(width: radiusPts * 2.0, height: radiusPts * 2.0)
+            }
 
-    func presentPNGExport(pngData: Data, defaultFilename: String) {
-        self.document = KroutonPNGFileDocument(pngData: pngData)
-        self.defaultFilename = defaultFilename
-        self.isShowingExporter = true
-    }
-}
-
-struct KroutonLabelExportSheetModifier: ViewModifier {
-    @ObservedObject private var bridge = KroutonLabelExportBridge.shared
-    func body(content: Content) -> some View {
-        content.fileExporter(
-            isPresented: $bridge.isShowingExporter,
-            document: bridge.document,
-            contentType: .png,
-            defaultFilename: bridge.defaultFilename
-        ) { result in
-            if case .success(let outURL) = result {
-                KroutonOSDesktopBridge.revealURLsInFinder([outURL])
+            if item.isCurvedArc {
+                let glyphs = Self.computeProportionalArcGlyphs(
+                    text: item.text,
+                    radiusPts: Double(radiusPts),
+                    angleDegrees: item.angleDegrees,
+                    fontSizePts: Double(scaledFontPt),
+                    tracking: item.letterTracking,
+                    isBottomUpright: item.isBottomUpright
+                )
+                ForEach(glyphs, id: \.index) { g in
+                    Text(String(g.char))
+                        .font(.system(size: scaledFontPt, weight: weight, design: design))
+                        .foregroundStyle(textCol)
+                        .rotationEffect(.radians(g.rotationRad))
+                        .offset(x: CGFloat(g.dx), y: CGFloat(g.dy))
+                }
+            } else {
+                let posAngleRad = (item.angleDegrees - 90.0) * Double.pi / 180.0
+                let dx = CGFloat(cos(posAngleRad)) * radiusPts
+                let dy = CGFloat(sin(posAngleRad)) * radiusPts
+                Text(item.text)
+                    .font(.system(size: scaledFontPt, weight: weight, design: design))
+                    .foregroundStyle(textCol)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .strokeBorder(Color.blue.opacity(isSelected ? 0.55 : 0.0), style: StrokeStyle(lineWidth: 1.0, dash: [3, 2]))
+                    )
+                    .offset(x: dx, y: dy)
             }
         }
+        .allowsHitTesting(false)
+    }
+
+    private struct ArcGlyphPlacement {
+        let index: Int
+        let char: Character
+        let dx: Double
+        let dy: Double
+        let rotationRad: Double
+    }
+
+    private static func computeProportionalArcGlyphs(
+        text: String,
+        radiusPts: Double,
+        angleDegrees: Double,
+        fontSizePts: Double,
+        tracking: Double,
+        isBottomUpright: Bool
+    ) -> [ArcGlyphPlacement] {
+        let chars = Array(text)
+        guard !chars.isEmpty else { return [] }
+        let safeR = max(12.0, radiusPts)
+        let centerAngleRad = (angleDegrees - 90.0) * Double.pi / 180.0
+        let advances = chars.map { Double(characterWidthFactor($0)) * fontSizePts * max(0.5, tracking) }
+        let totalArcLen = advances.reduce(0.0, +)
+        let totalAngleSpan = totalArcLen / safeR
+
+        var out: [ArcGlyphPlacement] = []
+        if !isBottomUpright {
+            var cursorAngle = centerAngleRad - (totalAngleSpan * 0.5)
+            for (idx, ch) in chars.enumerated() {
+                let halfStep = (advances[idx] * 0.5) / safeR
+                cursorAngle += halfStep
+                let dx = cos(cursorAngle) * safeR
+                let dy = sin(cursorAngle) * safeR
+                let rot = cursorAngle + (Double.pi * 0.5)
+                out.append(ArcGlyphPlacement(index: idx, char: ch, dx: dx, dy: dy, rotationRad: rot))
+                cursorAngle += halfStep
+            }
+        } else {
+            var cursorAngle = centerAngleRad + (totalAngleSpan * 0.5)
+            for (idx, ch) in chars.enumerated() {
+                let halfStep = (advances[idx] * 0.5) / safeR
+                cursorAngle -= halfStep
+                let dx = cos(cursorAngle) * safeR
+                let dy = sin(cursorAngle) * safeR
+                let rot = cursorAngle - (Double.pi * 0.5)
+                out.append(ArcGlyphPlacement(index: idx, char: ch, dx: dx, dy: dy, rotationRad: rot))
+                cursorAngle -= halfStep
+            }
+        }
+        return out
+    }
+
+    private var spindleHoleCutout: some View {
+        ZStack {
+            if !isExportMode {
+                Circle()
+                    .strokeBorder(Color.gray.opacity(0.35), style: StrokeStyle(lineWidth: 0.9, dash: [4, 3]))
+                    .frame(width: holeDiameter + 14, height: holeDiameter + 14)
+            }
+            Circle()
+                .fill(isExportMode ? Color.white : Color(red: 0.11, green: 0.12, blue: 0.14))
+                .frame(width: holeDiameter, height: holeDiameter)
+            Circle()
+                .strokeBorder(Color.black.opacity(isExportMode ? 0.0 : 0.35), lineWidth: 1.0)
+                .frame(width: holeDiameter, height: holeDiameter)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private static func characterWidthFactor(_ ch: Character) -> CGFloat {
+        switch ch {
+        case "I", "i", "l", "1", "!", "|", ".", ",", ":", ";", "'", " ":
+            return 0.38
+        case "W", "M", "m", "w", "@", "%", "—":
+            return 0.88
+        case "f", "j", "r", "t", "(", ")", "[", "]":
+            return 0.48
+        default:
+            return 0.64
+        }
+    }
+
+    private static func resolveFontDesign(_ raw: String) -> Font.Design {
+        switch raw {
+        case "Rounded":    return .rounded
+        case "Serif":      return .serif
+        case "Monospaced": return .monospaced
+        default:           return .default
+        }
+    }
+
+    private static func blendColors(_ c1: Color, _ c2: Color, fraction: Double) -> Color {
+        let (r1, g1, b1, a1) = KroutonPureColorMath.extractSRGB(c1)
+        let (r2, g2, b2, a2) = KroutonPureColorMath.extractSRGB(c2)
+        let t = max(0.0, min(1.0, fraction))
+        let r = Double(r1) + (Double(r2) - Double(r1)) * t
+        let g = Double(g1) + (Double(g2) - Double(g1)) * t
+        let b = Double(b1) + (Double(b2) - Double(b1)) * t
+        let a = Double(a1) + (Double(a2) - Double(a1)) * t
+        return Color(red: r, green: g, blue: b, opacity: a)
     }
 }

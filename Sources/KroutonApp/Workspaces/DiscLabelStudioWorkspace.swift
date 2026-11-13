@@ -1,477 +1,292 @@
 import SwiftUI
-import Foundation
 import UniformTypeIdentifiers
-import ImageIO
 import OpticalDough
 import Crustini
 
-// MARK: - Standalone 120mm Polar Disc Label Studio Workspace View
+// MARK: - Stage 1 Disc Label Designer: Photoshop-Style Left Tool Rail + Blank Disc + Circular Gradient + Curved Text Tool
 
-struct KroutonDiscLabelStudioWorkspaceView: View {
+public enum KroutonStage1Tool: String, CaseIterable, Identifiable {
+    case select     = "Select"
+    case text       = "Text Tool"
+    case background = "Background"
+    case discSize   = "Disc Size"
+    public var id: String { rawValue }
+
+    public var iconName: String {
+        switch self {
+        case .select:     return "cursorarrow"
+        case .text:       return "textformat"
+        case .background: return "circle.lefthalf.filled"
+        case .discSize:   return "ruler"
+        }
+    }
+}
+
+public struct KroutonDiscLabelStudioWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
+    @State var activeTool: KroutonStage1Tool = .background
+    @State var newPresetName: String = ""
+    @State var statusBanner: String = ""
 
-    // Bound directly to KroutonStateStore so label edits persist across sidebar switches & .krut saves
-
-    @MainActor
-    private func exportDiscLabelAsPNG(preset: KroutonSliceLabelGeometry) {
-        let exportView = KroutonDiscLabelArtworkCanvas(
-            preset: preset,
-            template: store.selectedLabelTemplate,
-            title: store.labelDiscTitle,
-            subtitle: store.labelSubtitle,
-            performer: store.discPerformer,
-            mcnBarcode: store.discMCNBarcode,
-            trackLines: resolvedLabelTracklistLines,
-            showTracklist: store.labelShowTracklistOnDisc,
-            primaryColor: store.activeAccent,
-            harmonyColor: store.uiSecondaryAccent,
-            isExportMode: true,
-            diameterPoints: 720.0
-        )
-        let renderer = ImageRenderer(content: exportView)
-        renderer.scale = 2.0 // 1440x1440 px (>300 DPI for 120mm optical disc)
-        guard let cgImage = renderer.cgImage else { return }
-        let mutableData = CFDataCreateMutable(nil, 0)!
-        guard let destination = CGImageDestinationCreateWithData(mutableData, UTType.png.identifier as CFString, 1, nil) else {
-            return
-        }
-        CGImageDestinationAddImage(destination, cgImage, nil)
-        guard CGImageDestinationFinalize(destination) else { return }
-        let pngData = mutableData as Data
-        KroutonLabelExportBridge.shared.presentPNGExport(
-            pngData: pngData,
-            defaultFilename: "\(store.labelDiscTitle.replacingOccurrences(of: " ", with: "_"))_120mm_Label.png"
-        )
+    public init(store: KroutonStateStore) {
+        self.store = store
     }
 
-    private var resolvedLabelTracklistLines: [String] {
-        if !store.stagedFiles.isEmpty {
-            return store.stagedFiles.prefix(8).enumerated().map { idx, f in
-                String(format: "%02d. %@", idx + 1, f.name)
-            }
-        }
-        return store.redBookTracks.prefix(8).map { $0.title }
+    var safePresetIndex: Int {
+        min(max(0, store.selectedLabelPresetIndex), max(0, store.labelPresets.count - 1))
     }
 
-    var body: some View {
-        let preset = store.labelPresets[min(store.selectedLabelPresetIndex, store.labelPresets.count - 1)]
-        let arcGlyphs = store.computeLiveDiscLabelArcGlyphs(title: store.labelDiscTitle, radiusPoints: 500.0)
+    var activePreset: KroutonSliceLabelGeometry {
+        store.labelPresets[safePresetIndex]
+    }
 
-        return GeometryReader { labelGeo in
-            let availW = max(260, labelGeo.size.width)
-            let availH = labelGeo.size.height
-            let useStackedLayout = availW < 650
-            let isUltraCompactLabel = availW < 420
-            let dynamicDiscDiameter: CGFloat = useStackedLayout
-                ? min(max(195, availW - 56), 265)
-                : min(max(240, availW - 350), min(380, max(240, availH - 105)))
+    var selectedTextIndex: Int? {
+        guard let id = store.labelSelectedTextID else {
+            return store.labelTextElements.isEmpty ? nil : 0
+        }
+        return store.labelTextElements.firstIndex(where: { $0.id == id })
+    }
 
-            VStack(alignment: .leading, spacing: 10) {
-                // Responsive Header Bar: Deterministic 2-row stack when narrow, 1-row when wide
-                if useStackedLayout {
-                    VStack(alignment: .leading, spacing: 6) {
-                        labelHeaderTitleBlock(preset: preset, isCompact: isUltraCompactLabel)
-                        labelHeaderControlsBlock(preset: preset, isCompact: isUltraCompactLabel)
-                    }
-                } else {
-                    HStack(spacing: 10) {
-                        labelHeaderTitleBlock(preset: preset, isCompact: false)
-                        Spacer(minLength: 8)
-                        labelHeaderControlsBlock(preset: preset, isCompact: false)
-                    }
-                }
+    public var body: some View {
+        VStack(spacing: 0) {
+            topHeaderBar(preset: activePreset)
+            Divider()
+
+            HStack(spacing: 0) {
+                // 1. Photoshop-Style Left-Hand Vertical Icon Rail
+                photoshopLeftToolRail()
 
                 Divider()
 
-                if useStackedLayout {
-                    // NARROW / COMPACT MODE: Clean Vertical ScrollView (Disc Preview on Top, Controls Below)
-                    ScrollView {
-                        VStack(alignment: .center, spacing: 16) {
-                            labelLiveDiscPreviewPanel(preset: preset, diameter: dynamicDiscDiameter, glyphCount: arcGlyphs.count)
-                            Divider()
-                            labelInspectorControlsPanel(preset: preset)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .padding(.bottom, 12)
-                    }
-                } else {
-                    // WIDE STUDIO MODE: Resizable Left Controls + Right Live Display-P3 Polar Disc Canvas
-                    HStack(alignment: .top, spacing: 20) {
-                        ScrollView {
-                            labelInspectorControlsPanel(preset: preset)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .frame(width: min(320, max(255, availW * 0.44)))
+                // 2. Center Dark Studio Pasteboard + Blank Disc Canvas + Bottom Zoom/Grid Bar
+                VStack(spacing: 0) {
+                    GeometryReader { geo in
+                        ZStack {
+                            Color(red: 0.11, green: 0.12, blue: 0.14)
 
-                        Divider()
-
-                        VStack {
-                            Spacer(minLength: 0)
-                            labelLiveDiscPreviewPanel(preset: preset, diameter: dynamicDiscDiameter, glyphCount: arcGlyphs.count)
-                            Spacer(minLength: 0)
+                            let baseDim = min(max(240, min(geo.size.width - 48, geo.size.height - 48)), 420)
+                            KroutonDiscLabelArtworkCanvas(
+                                preset: activePreset,
+                                template: store.selectedLabelTemplate,
+                                title: store.labelDiscTitle,
+                                subtitle: store.labelSubtitle,
+                                performer: store.discPerformer,
+                                mcnBarcode: store.discMCNBarcode,
+                                trackLines: [],
+                                showTracklist: false,
+                                primaryColor: store.activeAccent,
+                                harmonyColor: store.uiSecondaryAccent,
+                                isExportMode: false,
+                                diameterPoints: baseDim * CGFloat(store.labelCanvasZoom),
+                                backgroundStyle: store.labelBackgroundStyle,
+                                bgPrimaryColor: store.labelBgPrimaryColor,
+                                bgSecondaryColor: store.labelBgSecondaryColor,
+                                gradientMidpoint: store.labelGradientMidpoint,
+                                gradientAngle: store.labelGradientAngle,
+                                textElements: store.labelTextElements,
+                                selectedTextID: store.labelSelectedTextID,
+                                showAlignmentGrid: store.labelShowAlignmentGrid,
+                                onSelectOrDragText: { targetID, newRadiusMM, newAngleDeg in
+                                    if let idx = store.labelTextElements.firstIndex(where: { $0.id == targetID }) {
+                                        store.labelSelectedTextID = targetID
+                                        store.labelTextElements[idx].radiusMM = newRadiusMM
+                                        store.labelTextElements[idx].angleDegrees = newAngleDeg
+                                        activeTool = .text
+                                    }
+                                }
+                            )
+                            .shadow(color: .black.opacity(0.45), radius: 16, y: 6)
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
+
+                    Divider()
+                    bottomCanvasStatusBar(preset: activePreset)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                Divider()
+
+                // 3. Right Contextual Tool Inspector (Only shows controls for the active tool)
+                ScrollView {
+                    contextualInspectorPanel()
+                        .padding(14)
+                }
+                .frame(width: 296)
+                .background(Color.primary.opacity(0.03))
             }
-            .frame(width: availW, height: availH, alignment: .topLeading)
         }
     }
 
-    @ViewBuilder
-    private func labelHeaderTitleBlock(preset: KroutonSliceLabelGeometry, isCompact: Bool) -> some View {
+    // MARK: - Top Header Bar (Preset Selector + Export 300-DPI PNG)
+
+    private func topHeaderBar(preset: KroutonSliceLabelGeometry) -> some View {
         HStack(spacing: 10) {
-            KroutonStyledIconBadge(
-                sfSymbol: store.selectedTaskID == "label-auto" ? "wand.and.stars" : "printer.dotmatrix.fill",
-                tintColor: store.activeAccent,
-                style: store.iconWidgetStyle,
-                size: 28,
-                symbolSize: 14
-            )
+            Image(systemName: "opticaldisc")
+                .font(.title3)
+                .foregroundStyle(store.activeAccent)
+
             VStack(alignment: .leading, spacing: 1) {
-                Text(store.selectedTaskID == "label-auto" ? (isCompact ? "Auto Disc Label Studio" : "Automatic Disc Label Studio") : (isCompact ? "Manual Disc Label Studio" : "120mm / 80mm Optical Disc Label Studio"))
-                    .font(.title3.bold())
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
-                Text(isCompact ? String(format: "%@ • %.0fmm / %.0fmm Hub", preset.name, preset.outerDiameterMM, preset.innerDiameterMM) : String(format: "%@ • Outer %.0fmm / Hub %.0fmm • Offset X:%.1f Y:%.1fmm", preset.name, preset.outerDiameterMM, preset.innerDiameterMM, preset.offsetXMM, preset.offsetYMM))
-                    .font(.caption)
-                    .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : .secondary)
+                Text("Optical Disc Label Designer")
+                    .font(.headline.bold())
+                Text("\(preset.name) • Outer \(Int(preset.outerDiameterMM))mm / Hub \(Int(preset.innerDiameterMM))mm • Offset X:\(String(format: "%+.1f", preset.offsetXMM)) Y:\(String(format: "%+.1f", preset.offsetYMM))mm")
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-        }
-    }
 
-    @ViewBuilder
-    private func labelHeaderControlsBlock(preset: KroutonSliceLabelGeometry, isCompact: Bool) -> some View {
-        HStack(spacing: 8) {
-            Picker("Tray:", selection: $store.selectedLabelPresetIndex) {
-                ForEach(Array(store.labelPresets.enumerated()), id: \.offset) { idx, item in
-                    Text(item.name).tag(idx)
+            Spacer()
+
+            Text("Preset:")
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+
+            Picker("Preset", selection: $store.selectedLabelPresetIndex) {
+                ForEach(store.labelPresets.indices, id: \.self) { idx in
+                    Text(store.labelPresets[idx].name).tag(idx)
                 }
             }
             .labelsHidden()
-            .frame(maxWidth: isCompact ? .infinity : 215)
+            .frame(width: 195)
 
             Button {
-                exportDiscLabelAsPNG(preset: preset)
+                exportHighRes300DPILabelPNG(preset: preset, isTestPrintSheet: false)
             } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "square.and.arrow.down.fill")
-                    Text(isCompact ? "Export PNG..." : "Export 300-DPI PNG...")
-                        .lineLimit(1)
-                }
-                .font(.system(size: 11, weight: .bold))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(store.activeAccent)
-                .foregroundStyle(store.activeOnAccentText)
-                .clipShape(Capsule())
-                .fixedSize(horizontal: true, vertical: false)
+                Label("Export 300-DPI PNG", systemImage: "square.and.arrow.down.fill")
+                    .font(.caption.bold())
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(store.activeAccent)
+                    .foregroundStyle(.white)
+                    .clipShape(Capsule())
             }
             .buttonStyle(.plain)
-            .help("Render a 1,417×1,417 px (300 DPI) transparent-hub disc label PNG")
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
     }
 
-    @ViewBuilder
-    private func labelInspectorControlsPanel(preset: KroutonSliceLabelGeometry) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if store.selectedTaskID == "label-auto" {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(KroutonL10n.tr("Automatic Cover & Metadata Lookup"))
-                        .font(.subheadline.bold())
-                    HStack(spacing: 6) {
-                        TextField("Album, Movie, or Game...", text: $store.autoLabelSearchQuery)
-                            .textFieldStyle(.roundedBorder)
-                        Button {
-                            if !store.autoLabelSearchQuery.trimmingCharacters(in: .whitespaces).isEmpty {
-                                store.labelDiscTitle = store.autoLabelSearchQuery.uppercased()
-                                store.labelSubtitle = "MASTERED IN KROUTON • SHA-256 VERIFIED"
-                            }
-                        } label: {
-                            Text("Fetch")
-                                .font(.caption.bold())
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(store.activeAccent)
-                                .foregroundStyle(store.activeOnAccentText)
-                                .clipShape(Capsule())
-                                .fixedSize(horizontal: true, vertical: false)
-                        }
-                        .buttonStyle(.plain)
+    // MARK: - 1. Photoshop-Style Left-Hand Vertical Icon Rail
+
+    private func photoshopLeftToolRail() -> some View {
+        VStack(spacing: 10) {
+            ForEach(KroutonStage1Tool.allCases) { tool in
+                let isSelected = (activeTool == tool)
+                Button {
+                    activeTool = tool
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: tool.iconName)
+                            .font(.system(size: 15, weight: .semibold))
+                        Text(tool == .background ? "Bg" : (tool == .discSize ? "Size" : (tool == .text ? "Text" : "Move")))
+                            .font(.system(size: 9, weight: .semibold))
                     }
-                    Text("Avoids the \(Int(preset.innerDiameterMM))mm center spindle hole automatically.")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                    .frame(width: 44, height: 44)
+                    .background(isSelected ? store.activeAccent : Color.primary.opacity(0.06))
+                    .foregroundStyle(isSelected ? .white : .primary)
+                    .clipShape(RoundedRectangle(cornerRadius: 9))
                 }
-                Divider()
+                .buttonStyle(.plain)
+                .help(tool.rawValue)
             }
 
-            // 2x2 Compact Template Selector Grid (Replaces the 580pt overflowing segmented Picker!)
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Studio Harmony Template")
-                    .font(.subheadline.bold())
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
-                    ForEach(KroutonCroutonLabelStyle.allCases) { tpl in
-                        let isSel = (store.selectedLabelTemplate == tpl)
-                        Button {
-                            store.selectedLabelTemplate = tpl
-                        } label: {
-                            HStack(spacing: 5) {
-                                Circle()
-                                    .fill(isSel ? store.activeOnAccentText : store.activeAccent)
-                                    .frame(width: 6, height: 6)
-                                Text(tpl.rawValue)
-                                    .font(.system(size: 10.5, weight: isSel ? .bold : .medium))
-                                    .lineLimit(1)
-                                Spacer(minLength: 0)
-                            }
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 6)
-                            .background(
-                                RoundedRectangle(cornerRadius: 7)
-                                    .fill(isSel ? store.activeAccent : Color.primary.opacity(0.06))
-                            )
-                            .foregroundStyle(isSel ? store.activeOnAccentText : .primary)
-                        }
-                        .buttonStyle(.plain)
-                    }
+            Divider().frame(width: 28)
+
+            // Quick "+ Text" action right on the rail
+            Button {
+                addNewTextElement()
+                activeTool = .text
+            } label: {
+                VStack(spacing: 2) {
+                    Image(systemName: "plus.bubble.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text("+Text")
+                        .font(.system(size: 9, weight: .semibold))
                 }
+                .frame(width: 44, height: 40)
+                .background(Color.primary.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 9))
             }
+            .buttonStyle(.plain)
+            .help("Add a new curved or straight text layer to the disc")
 
-            Divider()
+            Spacer()
 
-            // Disc Typography & Tracklist Manifest Controls
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text(KroutonL10n.tr("Disc Face Typography"))
-                        .font(.subheadline.bold())
-                    Spacer()
-                    Button {
-                        store.labelDiscTitle = store.discVolumeTitle
-                        if !store.stagedFiles.isEmpty {
-                            store.labelSubtitle = "\(store.stagedFiles.count) ITEMS • \(ByteCountFormatter.string(fromByteCount: store.totalStagedBytes, countStyle: .file))"
-                        } else {
-                            store.labelSubtitle = "44.1 KHZ 16-BIT RED BOOK PCM • \(store.discPerformer.uppercased())"
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                            Text("Sync from Project")
-                                .lineLimit(1)
-                        }
-                        .font(.system(size: 10, weight: .bold))
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 4)
-                        .background(store.uiSecondaryAccent.opacity(0.18))
-                        .foregroundStyle(store.uiSecondaryAccent)
-                        .clipShape(Capsule())
-                        .fixedSize(horizontal: true, vertical: false)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Populate title, performer, MCN, and tracklist from your active Burn/Audio/Data project")
+            // Reset to Blank White Disc at bottom of rail
+            Button {
+                store.labelBackgroundStyle = .templateDefault
+                store.labelTextElements.removeAll()
+                store.labelSelectedTextID = nil
+                statusBanner = "Reset to Blank White Printable Disc"
+            } label: {
+                VStack(spacing: 2) {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("Blank")
+                        .font(.system(size: 9, weight: .medium))
                 }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Primary Title (Top Polar Arc):")
-                        .font(.caption.bold())
-                        .foregroundStyle(.secondary)
-                    TextField("Primary Arc Title", text: $store.labelDiscTitle)
-                        .textFieldStyle(.roundedBorder)
-
-                    Text("Bottom Subtitle / Format Spec:")
-                        .font(.caption.bold())
-                        .foregroundStyle(.secondary)
-                    TextField("Bottom Subtitle / Track Summary", text: $store.labelSubtitle)
-                        .textFieldStyle(.roundedBorder)
-
-                    HStack(spacing: 8) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Artist / Authored By:")
-                                .font(.caption2.bold())
-                                .foregroundStyle(.secondary)
-                            TextField("Performer", text: $store.discPerformer)
-                                .textFieldStyle(.roundedBorder)
-                        }
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("MCN / Catalog:")
-                                .font(.caption2.bold())
-                                .foregroundStyle(.secondary)
-                            TextField("0123456789012", text: $store.discMCNBarcode)
-                                .textFieldStyle(.roundedBorder)
-                                .font(.system(size: 11, design: .monospaced))
-                        }
-                    }
-                }
-
-                Toggle("Stamp Tracklist / File Manifest on Disc Face", isOn: $store.labelShowTracklistOnDisc)
-                    .toggleStyle(.checkbox)
-                    .font(.caption.bold())
+                .frame(width: 44, height: 40)
+                .foregroundStyle(.secondary)
             }
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Label("Vector Background & Curved Arc", systemImage: "beziercurve")
-                        .font(.subheadline.bold())
-                    Spacer()
-                    Picker("", selection: $store.labelBackgroundStyle) {
-                        ForEach(KroutonVectorBackgroundStyle.allCases) { style in
-                            Text(style.rawValue).tag(style)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: 155)
-                }
-
-                if store.labelBackgroundStyle != .templateDefault {
-                    HStack(spacing: 12) {
-                        ColorPicker("Color 1:", selection: $store.labelBgPrimaryColor)
-                            .font(.caption.bold())
-                        if store.labelBackgroundStyle != .solidColor {
-                            ColorPicker("Color 2:", selection: $store.labelBgSecondaryColor)
-                                .font(.caption.bold())
-                        }
-                        if store.labelBackgroundStyle == .linearGradient || store.labelBackgroundStyle == .angularGradient {
-                            Slider(value: $store.labelGradientAngle, in: 0...360, step: 15)
-                                .frame(maxWidth: 95)
-                                .help("Gradient Sweep Angle: \(Int(store.labelGradientAngle))°")
-                        }
-                        Spacer(minLength: 0)
-                    }
-                }
-
-                HStack(spacing: 10) {
-                    Text("Arc Curve:").font(.caption.bold()).foregroundStyle(.secondary).frame(width: 66, alignment: .leading)
-                    Slider(value: $store.labelTopArcRadiusMM, in: 28...55)
-                        .help("Top Polar Arc Radius: \(Int(store.labelTopArcRadiusMM)) mm")
-                    Text("Kerning:").font(.caption.bold()).foregroundStyle(.secondary)
-                    Slider(value: $store.labelArcLetterSpacing, in: 0.65...1.65)
-                        .frame(maxWidth: 85)
-                        .help("Polar Arc Letter Spacing")
-                }
-
-                Divider()
-
-                HStack(spacing: 8) {
-                    Toggle(isOn: $store.isLabelVectorDrawMode) {
-                        Label(store.isLabelVectorDrawMode ? "Drawing on Disc (Drag Mouse)" : "Draw Vector Shapes on Disc", systemImage: "pencil.and.outline")
-                            .font(.caption.bold())
-                    }
-                    .toggleStyle(.button)
-                    .tint(store.isLabelVectorDrawMode ? .green : store.activeAccent)
-
-                    Toggle("Auto-Snap", isOn: $store.labelDrawAutoSnap)
-                        .toggleStyle(.checkbox)
-                        .font(.caption)
-                }
-
-                HStack(spacing: 6) {
-                    Button {
-                        let (r, g, b, _) = KroutonPureColorMath.extractSRGB(store.uiSecondaryAccent)
-                        let star = KroutonKrustiniModule.makeParametricVectorShape(
-                            kind: .star,
-                            strokeColor: KroutonRGBAColor(r: Double(r), g: Double(g), b: Double(b), a: 1.0)
-                        )
-                        store.labelVectorShapes.append(star)
-                    } label: {
-                        Label("+ Star", systemImage: "star.fill").font(.system(size: 10, weight: .bold))
-                            .padding(.horizontal, 8).padding(.vertical, 4)
-                            .background(store.activeAccent.opacity(0.16)).clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        let (r, g, b, _) = KroutonPureColorMath.extractSRGB(store.activeAccent)
-                        let ring = KroutonKrustiniModule.makeParametricVectorShape(
-                            kind: .concentricRing,
-                            strokeColor: KroutonRGBAColor(r: Double(r), g: Double(g), b: Double(b), a: 0.85)
-                        )
-                        store.labelVectorShapes.append(ring)
-                    } label: {
-                        Label("+ Ring", systemImage: "circle.circle").font(.system(size: 10, weight: .bold))
-                            .padding(.horizontal, 8).padding(.vertical, 4)
-                            .background(store.activeAccent.opacity(0.16)).clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        traceDiscEmblemWithAppleVision(preset: preset)
-                    } label: {
-                        Label("Vision Auto-Trace", systemImage: "sparkles").font(.system(size: 10, weight: .bold))
-                            .padding(.horizontal, 8).padding(.vertical, 4)
-                            .background(store.uiSecondaryAccent.opacity(0.18))
-                            .foregroundStyle(store.uiSecondaryAccent)
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-
-                    if !store.labelVectorShapes.isEmpty {
-                        Button {
-                            store.labelVectorShapes.removeAll()
-                        } label: {
-                            Image(systemName: "trash")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
+            .buttonStyle(.plain)
+            .help("Clear disc back to a blank white printable surface")
         }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 6)
+        .frame(width: 58)
+        .background(Color.primary.opacity(0.04))
     }
 
-    @MainActor
-    private func traceDiscEmblemWithAppleVision(preset: KroutonSliceLabelGeometry) {
-        let symbolView = ZStack {
-            Color.white
-            Image(systemName: "opticaldisc.fill")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 160, height: 160)
-                .foregroundStyle(.black)
-        }
-        .frame(width: 240, height: 240)
+    // MARK: - 2. Bottom Canvas Bar (Zoom, 10mm Alignment Grid, Test Print)
 
-        let renderer = ImageRenderer(content: symbolView)
-        guard let cgImg = renderer.cgImage else { return }
-        let (r, g, b, _) = KroutonPureColorMath.extractSRGB(store.uiSecondaryAccent)
-        let traced = KroutonKrustiniModule.traceImageContoursWithVision(
-            cgImage: cgImg,
-            strokeColor: KroutonRGBAColor(r: Double(r), g: Double(g), b: Double(b), a: 0.95)
-        )
-        if !traced.isEmpty {
-            store.labelVectorShapes.append(contentsOf: traced.prefix(4))
-        }
-    }
+    private func bottomCanvasStatusBar(preset: KroutonSliceLabelGeometry) -> some View {
+        HStack(spacing: 10) {
+            Button { store.labelCanvasZoom = max(0.65, store.labelCanvasZoom - 0.10) } label: {
+                Image(systemName: "minus.magnifyingglass").font(.caption.bold())
+            }.buttonStyle(.plain)
 
-    @ViewBuilder
-    private func labelLiveDiscPreviewPanel(preset: KroutonSliceLabelGeometry, diameter: CGFloat, glyphCount: Int) -> some View {
-        VStack(spacing: 8) {
-            KroutonDiscLabelArtworkCanvas(
-                preset: preset,
-                template: store.selectedLabelTemplate,
-                title: store.labelDiscTitle,
-                subtitle: store.labelSubtitle,
-                performer: store.discPerformer,
-                mcnBarcode: store.discMCNBarcode,
-                trackLines: resolvedLabelTracklistLines,
-                showTracklist: store.labelShowTracklistOnDisc,
-                primaryColor: store.activeAccent,
-                harmonyColor: store.uiSecondaryAccent,
-                isExportMode: false,
-                diameterPoints: diameter
-            )
-            HStack(spacing: 6) {
-                Image(systemName: "circle.dashed.inset.filled")
-                    .foregroundStyle(store.activeAccent)
-                Text("300-DPI Polar Vector Engine • \(glyphCount) Arc Glyphs")
+            Slider(value: $store.labelCanvasZoom, in: 0.65...1.35)
+                .frame(width: 90)
+
+            Button { store.labelCanvasZoom = min(1.35, store.labelCanvasZoom + 0.10) } label: {
+                Image(systemName: "plus.magnifyingglass").font(.caption.bold())
+            }.buttonStyle(.plain)
+
+            Button("100%") { store.labelCanvasZoom = 1.0 }
+                .font(.caption2.monospaced())
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+
+            Divider().frame(height: 14)
+
+            Toggle(isOn: $store.labelShowAlignmentGrid) {
+                Label("10mm Grid", systemImage: "squareshape.split.3x3")
+                    .font(.caption2.bold())
+            }
+            .toggleStyle(.button)
+            .controlSize(.small)
+
+            Spacer()
+
+            if !statusBanner.isEmpty {
+                Text(statusBanner)
+                    .font(.caption2.bold())
+                    .foregroundStyle(.green)
                     .lineLimit(1)
+            } else {
+                Text("\(store.labelTextElements.count) Text Layer(s) • Outer \(Int(preset.outerDiameterMM))mm / Hub \(Int(preset.innerDiameterMM))mm")
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(.secondary)
             }
-            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-            .foregroundStyle(.secondary)
-        }
-    }
 
+            Button("Test Print") {
+                exportHighRes300DPILabelPNG(preset: preset, isTestPrintSheet: true)
+            }
+            .font(.caption.bold())
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 7)
+        .background(Color.primary.opacity(0.03))
+    }
 }
