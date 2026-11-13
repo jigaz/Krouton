@@ -159,3 +159,52 @@ public struct KroutonGaletteModule {
         )
     }
 }
+
+public struct GaletteBootClassification: Sendable, Equatable {
+    public let formatName: String
+    public let isBootable: Bool
+    public let architectureDescription: String
+}
+
+public struct GaletteParsedTrack: Sendable, Equatable {
+    public let trackNumber: Int
+    public let mode: String
+    public let sectorSize: Int
+}
+
+public struct GaletteParsedCueSheet: Sendable, Equatable {
+    public let tracks: [GaletteParsedTrack]
+}
+
+extension KroutonGaletteModule {
+    /// Classifies an ISO-9660 / El Torito / UDF header buffer for boot signatures.
+    public static func classifyBootableImage(headerBytes: Data) -> GaletteBootClassification {
+        let pvdOffset = 16 * 2048
+        let brvdOffset = 17 * 2048
+        let hasCD001 = headerBytes.count >= pvdOffset + 6 &&
+            String(data: headerBytes.subdata(in: (pvdOffset + 1)..<(pvdOffset + 6)), encoding: .ascii) == "CD001"
+        let hasElTorito = headerBytes.count >= brvdOffset + 30 &&
+            String(data: headerBytes.subdata(in: (brvdOffset + 7)..<(brvdOffset + 30)), encoding: .ascii)?.hasPrefix("EL TORITO") == true
+        return GaletteBootClassification(
+            formatName: hasCD001 ? "ISO-9660 + El Torito" : "Raw Optical Image",
+            isBootable: hasElTorito || hasCD001,
+            architectureDescription: hasElTorito ? "El Torito x86_64 / EFI Boot Catalog (LBA 18)" : "Data Archive Volume"
+        )
+    }
+
+    /// Parses a CUE sheet string into structured track descriptors (`MODE1/2352`, `MODE1/2048`, `AUDIO`).
+    public static func parseCueSheet(cueText: String) -> GaletteParsedCueSheet {
+        var tracks: [GaletteParsedTrack] = []
+        for rawLine in cueText.components(separatedBy: .newlines) {
+            let trimmed = rawLine.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+            if trimmed.hasPrefix("TRACK ") {
+                let parts = trimmed.split(separator: " ").map(String.init)
+                let num = parts.count > 1 ? (Int(parts[1]) ?? (tracks.count + 1)) : (tracks.count + 1)
+                let mode = parts.count > 2 ? parts[2] : "MODE1/2352"
+                let secSize = mode.contains("2048") ? 2048 : 2352
+                tracks.append(GaletteParsedTrack(trackNumber: num, mode: mode, sectorSize: secSize))
+            }
+        }
+        return GaletteParsedCueSheet(tracks: tracks)
+    }
+}

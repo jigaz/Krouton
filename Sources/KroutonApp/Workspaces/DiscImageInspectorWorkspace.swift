@@ -1,3 +1,4 @@
+import Galette
 import VideoOven
 import Tartine
 import Marmalade
@@ -16,6 +17,7 @@ import Combine
 
 struct KroutonDiscImageInspectorWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
+    @State private var galetteStore = KroutonGaletteInspectorSubStore()
     let spec: KroutonRecipeSpec
     @Binding var isDropTargeted: Bool
     let onPromptToAddFiles: () -> Void
@@ -127,13 +129,49 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
 
                 if let entry = store.stagedFiles.first {
                     let ext = entry.url.pathExtension.lowercased()
+                    let _ = entry
+                    VStack(alignment: .leading, spacing: 12) {
+                        inspectorTopIdentityBanner
+                        HStack(alignment: .top, spacing: 14) {
+                            inspectorLeftTopologyColumn
+                            inspectorRightHexDumpColumn
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 14)
+                    }
+                } else {
+                    // Empty State: Interactive Drop Zone & Quick Image Picker
+                    KroutonEmptyDropZoneView(
+                        store: store,
+                        isDropTargeted: isDropTargeted,
+                        sfSymbol: "opticaldisc.fill",
+                        symbolSize: 46,
+                        headline: "Drop a Disc Image (.ISO, .DMG, .BIN/.CUE, .IMG, or .TOAST)",
+                        subtitle: "Displays radial track geometry, live LBA 0/16/17/256 hexadecimal sector dumps, El Torito / APM boot records, and 1-Click .BIN <-> .ISO framing conversion.",
+                        actionTitle: "Choose Disc Image File...",
+                        onAction: onPromptToAddFiles
+                    )
+                }
+            }
+            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+                // When in single-image mode, dropping a new disc image replaces the old one cleanly
+                store.clearStagedFiles()
+                computedImageSHA256 = ""
+                imageActionStatusBanner = ""
+                return onHandleFinderDrop(providers)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var inspectorTopIdentityBanner: some View {
+        if let entry = store.stagedFiles.first {
+                    let ext = entry.url.pathExtension.lowercased()
                     let isRaw2352 = (ext == "bin" || ext == "cue")
                     let sectorByteSize = isRaw2352 ? 2352 : 2048
                     let bootReadout = entry.bootabilityBadge ?? "Non-Bootable Data Volume (Sectors 0..15 Unbooted)"
                     let hexRows = KroutonLoafBootInspector.readSectorHexDump(url: entry.url, lba: inspectedImageLBA, sectorSize: sectorByteSize)
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        // 1. Top Identity Banner + Interactive Action Pill Bar (EVERY pill is a button!)
+            let _ = (sectorByteSize, bootReadout, hexRows)
                         HStack(alignment: .center, spacing: 12) {
                             KroutonStyledIconBadge(
                                 sfSymbol: "opticaldisc.fill",
@@ -247,9 +285,18 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
 
                         Divider()
 
-                        // 2. Main Engineering Split: Radial Platter Schematic (Left) + Live Sector Hex Scope (Right)
-                        HStack(alignment: .top, spacing: 14) {
-                            // LEFT COLUMN: Radial Optical Track Map + 2,352B / 2,048B Sector Framing Diagram
+        }
+    }
+
+    @ViewBuilder
+    private var inspectorLeftTopologyColumn: some View {
+        if let entry = store.stagedFiles.first {
+                    let ext = entry.url.pathExtension.lowercased()
+                    let isRaw2352 = (ext == "bin" || ext == "cue")
+                    let sectorByteSize = isRaw2352 ? 2352 : 2048
+                    let bootReadout = entry.bootabilityBadge ?? "Non-Bootable Data Volume (Sectors 0..15 Unbooted)"
+                    let hexRows = KroutonLoafBootInspector.readSectorHexDump(url: entry.url, lba: inspectedImageLBA, sectorSize: sectorByteSize)
+            let _ = (sectorByteSize, bootReadout, hexRows)
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("OPTICAL PLATTER & TRACK ZONE TOPOLOGY")
                                     .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
@@ -396,8 +443,18 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                                 }
                             }
                             .frame(width: 310)
+        }
+    }
 
-                            // RIGHT COLUMN: Volume Descriptor Telemetry Grid + Interactive LBA Hex/ASCII Inspector
+    @ViewBuilder
+    private var inspectorRightHexDumpColumn: some View {
+        if let entry = store.stagedFiles.first {
+                    let ext = entry.url.pathExtension.lowercased()
+                    let isRaw2352 = (ext == "bin" || ext == "cue")
+                    let sectorByteSize = isRaw2352 ? 2352 : 2048
+                    let bootReadout = entry.bootabilityBadge ?? "Non-Bootable Data Volume (Sectors 0..15 Unbooted)"
+                    let hexRows = KroutonLoafBootInspector.readSectorHexDump(url: entry.url, lba: inspectedImageLBA, sectorSize: sectorByteSize)
+            let _ = (isRaw2352, sectorByteSize)
                             VStack(alignment: .leading, spacing: 10) {
                                 // Rectangular Telemetry Matrix (Non-clickable readouts use sharp terminal boxes, never pills!)
                                 HStack(spacing: 8) {
@@ -501,32 +558,18 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.14), lineWidth: 1))
                             }
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.bottom, 14)
-                    }
-                } else {
-                    // Empty State: Interactive Drop Zone & Quick Image Picker
-                    KroutonEmptyDropZoneView(
-                        store: store,
-                        isDropTargeted: isDropTargeted,
-                        sfSymbol: "opticaldisc.fill",
-                        symbolSize: 46,
-                        headline: "Drop a Disc Image (.ISO, .DMG, .BIN/.CUE, .IMG, or .TOAST)",
-                        subtitle: "Displays radial track geometry, live LBA 0/16/17/256 hexadecimal sector dumps, El Torito / APM boot records, and 1-Click .BIN <-> .ISO framing conversion.",
-                        actionTitle: "Choose Disc Image File...",
-                        onAction: onPromptToAddFiles
-                    )
-                }
-            }
-            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-                // When in single-image mode, dropping a new disc image replaces the old one cleanly
-                store.clearStagedFiles()
-                computedImageSHA256 = ""
-                imageActionStatusBanner = ""
-                return onHandleFinderDrop(providers)
-            }
         }
     }
 
+
+    /// Runs `KroutonGaletteModule` boot signature & CUE parser on the active synthesized or staged ISO image.
+    private func runLiveGaletteInspection() {
+        let synth = kroutonSynthesizeVerifiedISO9660ImageOnDisk(
+            title: "KROUTON_ARCHIVE",
+            fileName: "Krouton_Inspector_Probe.iso"
+        )
+        if let data = try? Data(contentsOf: synth.url) {
+            galetteStore.analyzeImageWithGalette(imageBytes: data)
+        }
+    }
 }

@@ -30,16 +30,26 @@ struct KroutonDataAndArchivalWorkspaceView: View {
     @State private var enforce8Dot3RetroCompatibility: Bool = false
 
     var body: some View {
+        return VStack(alignment: .leading, spacing: 10) {
+            KroutonMasteringDeckCard(store: store) {
+                VStack(alignment: .leading, spacing: 8) {
+                    dataDeckTopControlsSection
+                    dataDeckBottomOptionsSection
+                }
+            }
+            dataStagingAndLayoutSection
+        }
+    }
+
+    @ViewBuilder
+    private var dataDeckTopControlsSection: some View {
         let isUniversalHybrid = (activeSpec.id == "data-hybrid" || activeSpec.id == "mdisc-vault")
         let isAppleOnly = (activeSpec.id == "data-apple-apfs")
         let isRetro83 = (activeSpec.id == "data-retro-iso")
         let isClassicHFS = (activeSpec.id == "macos9-hfs")
         let isPhotoCD = (activeSpec.id == "photo-cd")
-
-        return VStack(alignment: .leading, spacing: 10) {
-            // File System Topology & Universal Compatibility Deck
-            KroutonMasteringDeckCard(store: store) {
-                VStack(alignment: .leading, spacing: 8) {
+        let _ = (isUniversalHybrid, isAppleOnly, isRetro83, isClassicHFS, isPhotoCD)
+        VStack(alignment: .leading, spacing: 8) {
                 if activeSpec.isMDiscParityFormat {
                     ViewThatFits(in: .horizontal) {
                         HStack(spacing: 12) {
@@ -176,7 +186,18 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                     }
 
                     // 2. Narrow Stacked Fallback (Zero Vertical Word-Towers & Zero Clipping!)
-                    VStack(alignment: .leading, spacing: 6) {
+                }
+        }
+    }
+    @ViewBuilder
+    private var dataDeckBottomOptionsSection: some View {
+        let isUniversalHybrid = (activeSpec.id == "data-hybrid" || activeSpec.id == "mdisc-vault")
+        let isAppleOnly = (activeSpec.id == "data-apple-apfs")
+        let isRetro83 = (activeSpec.id == "data-retro-iso")
+        let isClassicHFS = (activeSpec.id == "macos9-hfs")
+        let isPhotoCD = (activeSpec.id == "photo-cd")
+        let _ = (isUniversalHybrid, isAppleOnly, isRetro83, isClassicHFS, isPhotoCD)
+        VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 6) {
                             Image(systemName: "opticaldisc")
                                 .foregroundStyle(store.activeAccent)
@@ -257,9 +278,16 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                         }
                     }
                 }
-                }
-            }
 
+    @ViewBuilder
+    private var dataStagingAndLayoutSection: some View {
+        let isUniversalHybrid = (activeSpec.id == "data-hybrid" || activeSpec.id == "mdisc-vault")
+        let isAppleOnly = (activeSpec.id == "data-apple-apfs")
+        let isRetro83 = (activeSpec.id == "data-retro-iso")
+        let isClassicHFS = (activeSpec.id == "macos9-hfs")
+        let isPhotoCD = (activeSpec.id == "photo-cd")
+        let _ = (isUniversalHybrid, isAppleOnly, isRetro83, isClassicHFS, isPhotoCD)
+        Group {
             if activeDataWorkspaceTab == 1 && enableCustomFinderLayoutTab {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 20) {

@@ -244,4 +244,25 @@ extension KroutonVideoOvenModule {
             relinkedCells: relinked
         )
     }
+
+    /// Performs in-place binary patching of a DVD-Video `VTS_xx_0.IFO` buffer:
+    /// updates the 32-bit big-endian start sector pointer at `0x00C4` and clears cell layer-break flags (`0x08`).
+    public static func patchVTSIFOBinarySectorPointers(
+        ifoData: Data,
+        relocatedStartSectorLBA: UInt32,
+        cellPlaybackFlagOffsets: [Int] = []
+    ) -> Data {
+        var bytes = [UInt8](ifoData)
+        guard bytes.count >= 0x00C8 else { return ifoData }
+        let beSector = relocatedStartSectorLBA.bigEndian
+        withUnsafeBytes(of: beSector) { rawBuf in
+            for i in 0..<4 {
+                bytes[0x00C4 + i] = rawBuf[i]
+            }
+        }
+        for offset in cellPlaybackFlagOffsets where offset >= 0 && offset < bytes.count {
+            bytes[offset] &= ~0x08
+        }
+        return Data(bytes)
+    }
 }

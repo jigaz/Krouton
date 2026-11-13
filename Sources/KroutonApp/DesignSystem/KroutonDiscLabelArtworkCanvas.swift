@@ -1,3 +1,4 @@
+import CoreText
 import SwiftUI
 import OpticalDough
 import Crustini
@@ -5,6 +6,7 @@ import Crustini
 // MARK: - Stage 1 Clean Printable Disc Canvas (Live Reactive Inputs + Interactive Drag-on-Disc)
 
 public struct KroutonDiscLabelArtworkCanvas: View {
+    @State private var activeDragTargetID: UUID? = nil
     public let preset: KroutonSliceLabelGeometry
     public let template: KroutonCroutonLabelStyle
     public let title: String
@@ -24,6 +26,12 @@ public struct KroutonDiscLabelArtworkCanvas: View {
     public var bgSecondaryColor: Color
     public var gradientMidpoint: Double
     public var gradientAngle: Double
+    public var gpuSeedPattern: KroutonGPUSeedPattern
+    public var kaleidoscopeFacets: Int
+    public var kaleidoscopeRig: KroutonKaleidoscopeMirrorRig
+    public var chamberTumble: Double
+    public var tinyPlanetRadius: Double
+    public var bgAdjustments: KroutonBackgroundAdjustments
     public var textElements: [KroutonLabelTextElement]
     public var selectedTextID: UUID?
     public var showAlignmentGrid: Bool
@@ -47,6 +55,12 @@ public struct KroutonDiscLabelArtworkCanvas: View {
         bgSecondaryColor: Color = Color(red: 0.16, green: 0.42, blue: 0.82),
         gradientMidpoint: Double = 0.50,
         gradientAngle: Double = 45.0,
+        gpuSeedPattern: KroutonGPUSeedPattern = .neonLaserPrism,
+        kaleidoscopeFacets: Int = 8,
+        kaleidoscopeRig: KroutonKaleidoscopeMirrorRig = .twoMirrorRosette,
+        chamberTumble: Double = 0.35,
+        tinyPlanetRadius: Double = 0.75,
+        bgAdjustments: KroutonBackgroundAdjustments = KroutonBackgroundAdjustments(),
         textElements: [KroutonLabelTextElement] = [],
         selectedTextID: UUID? = nil,
         showAlignmentGrid: Bool = false,
@@ -69,6 +83,12 @@ public struct KroutonDiscLabelArtworkCanvas: View {
         self.bgSecondaryColor = bgSecondaryColor
         self.gradientMidpoint = gradientMidpoint
         self.gradientAngle = gradientAngle
+        self.gpuSeedPattern = gpuSeedPattern
+        self.kaleidoscopeFacets = kaleidoscopeFacets
+        self.kaleidoscopeRig = kaleidoscopeRig
+        self.chamberTumble = chamberTumble
+        self.tinyPlanetRadius = tinyPlanetRadius
+        self.bgAdjustments = bgAdjustments
         self.textElements = textElements
         self.selectedTextID = selectedTextID
         self.showAlignmentGrid = showAlignmentGrid
@@ -89,7 +109,7 @@ public struct KroutonDiscLabelArtworkCanvas: View {
 
     public var body: some View {
         ZStack {
-            // 1. Printable Disc Surface (Blank White Disc, Solid Color, or Circular Radial Gradient)
+            // 1. Printable Disc Surface (Unified CoreImage pipeline when adjustments or procedural styles are active)
             discSurfaceBackground
 
             // 2. Optional 10mm Alignment Grid
@@ -123,16 +143,34 @@ public struct KroutonDiscLabelArtworkCanvas: View {
                     let dy = Double(val.location.y - center.y)
                     let distPts = hypot(dx, dy)
                     let pointsPerMM = Double(diameterPoints) / outerMM
-                    let clampedRadiusMM = max(16.0, min(56.0, (distPts / max(0.1, pointsPerMM)).rounded()))
+                    let clickRadiusMM = distPts / max(0.1, pointsPerMM)
+                    let clampedRadiusMM = Self.clampedTextRadiusMM(clickRadiusMM, hubDiameterMM: preset.innerDiameterMM, outerDiameterMM: preset.outerDiameterMM)
 
-                    // Convert Cartesian (dx, dy) to Clock Angle (0° = 12 o'clock top, 90° = 3 o'clock right)
                     var deg = (atan2(dy, dx) * 180.0 / Double.pi) + 90.0
                     if deg < 0 { deg += 360.0 }
                     let snappedDeg = (deg / 2.0).rounded() * 2.0
 
-                    // If starting a tap/drag, pick the nearest text layer or the currently selected layer
-                    let targetID = selectedTextID ?? textElements.last!.id
-                    onDrag(targetID, clampedRadiusMM, snappedDeg)
+                    // On drag start, hit-test which text layer is closest to the initial click point
+                    if activeDragTargetID == nil {
+                        let startDX = Double(val.startLocation.x - center.x)
+                        let startDY = Double(val.startLocation.y - center.y)
+                        let startRMM = hypot(startDX, startDY) / max(0.1, pointsPerMM)
+                        var startDeg = (atan2(startDY, startDX) * 180.0 / Double.pi) + 90.0
+                        if startDeg < 0 { startDeg += 360.0 }
+
+                        let nearest = textElements.min { a, b in
+                            Self.polarHitDistance(item: a, clickR: startRMM, clickDeg: startDeg, hubDiameterMM: preset.innerDiameterMM, outerDiameterMM: preset.outerDiameterMM) <
+                            Self.polarHitDistance(item: b, clickR: startRMM, clickDeg: startDeg, hubDiameterMM: preset.innerDiameterMM, outerDiameterMM: preset.outerDiameterMM)
+                        }
+                        activeDragTargetID = nearest?.id ?? selectedTextID ?? textElements.last?.id
+                    }
+
+                    if let targetID = activeDragTargetID {
+                        onDrag(targetID, clampedRadiusMM, snappedDeg)
+                    }
+                }
+                .onEnded { _ in
+                    activeDragTargetID = nil
                 }
         )
     }
@@ -142,7 +180,31 @@ public struct KroutonDiscLabelArtworkCanvas: View {
         let midRatio = max(0.08, min(0.92, gradientMidpoint))
         let ang = Angle.degrees(gradientAngle)
 
-        switch backgroundStyle {
+        let (r1, g1, b1, _) = KroutonPureColorMath.extractSRGB(bgPrimaryColor)
+        let (r2, g2, b2, _) = KroutonPureColorMath.extractSRGB(bgSecondaryColor)
+        if (!bgAdjustments.isIdentity && backgroundStyle != .templateDefault) || backgroundStyle == .gpuKaleidoscope || backgroundStyle == .tinyPlanetGlobe {
+            if let cgImg = KroutonKrustiniModule.renderOpticalPlaygroundCGImage(
+                style: backgroundStyle,
+                seedPattern: gpuSeedPattern,
+                mirrorRig: kaleidoscopeRig,
+                chamberTumble: chamberTumble,
+                backdropLightness: gradientMidpoint,
+                primaryColor: KroutonRGBAColor(r: Double(r1), g: Double(g1), b: Double(b1)),
+                secondaryColor: KroutonRGBAColor(r: Double(r2), g: Double(g2), b: Double(b2)),
+                angleDegrees: gradientAngle,
+                facetCount: kaleidoscopeFacets,
+                planetRadiusRatio: tinyPlanetRadius,
+                bgAdjustments: bgAdjustments,
+                dimensionPixels: Int(max(300, min(1417, diameterPoints * (isExportMode ? 1.0 : 1.4))))
+            ) {
+                Image(decorative: cgImg, scale: 1.0)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Circle().fill(bgPrimaryColor)
+            }
+        } else {
+            switch backgroundStyle {
         case .templateDefault:
             Circle()
                 .fill(Color(red: 0.985, green: 0.985, blue: 0.988))
@@ -178,7 +240,7 @@ public struct KroutonDiscLabelArtworkCanvas: View {
                         endPoint: UnitPoint(x: 0.5 + 0.5 * cos(ang.radians), y: 0.5 + 0.5 * sin(ang.radians))
                     )
                 )
-        case .angularGradient, .gpuKaleidoscope, .tinyPlanetGlobe:
+        case .angularGradient:
             Circle()
                 .fill(
                     AngularGradient(
@@ -187,6 +249,9 @@ public struct KroutonDiscLabelArtworkCanvas: View {
                         angle: ang
                     )
                 )
+            case .gpuKaleidoscope, .tinyPlanetGlobe:
+                Circle().fill(bgPrimaryColor)
+            }
         }
     }
 
@@ -250,6 +315,7 @@ public struct KroutonDiscLabelArtworkCanvas: View {
                     Text(String(g.char))
                         .font(.system(size: scaledFontPt, weight: weight, design: design))
                         .foregroundStyle(textCol)
+                        .shadow(color: .black.opacity(item.hasDropShadow ? 0.65 : 0.0), radius: 2.0, x: 1.0, y: 1.0)
                         .rotationEffect(.radians(g.rotationRad))
                         .offset(x: CGFloat(g.dx), y: CGFloat(g.dy))
                 }
@@ -260,6 +326,7 @@ public struct KroutonDiscLabelArtworkCanvas: View {
                 Text(item.text)
                     .font(.system(size: scaledFontPt, weight: weight, design: design))
                     .foregroundStyle(textCol)
+                    .shadow(color: .black.opacity(item.hasDropShadow ? 0.65 : 0.0), radius: 2.0, x: 1.0, y: 1.0)
                     .padding(.horizontal, 4)
                     .padding(.vertical, 2)
                     .overlay(
@@ -267,6 +334,18 @@ public struct KroutonDiscLabelArtworkCanvas: View {
                             .strokeBorder(Color.blue.opacity(isSelected ? 0.55 : 0.0), style: StrokeStyle(lineWidth: 1.0, dash: [3, 2]))
                     )
                     .offset(x: dx, y: dy)
+            }
+
+            // Center Anchor Handle Dot for Selected Layer
+            if isSelected {
+                let anchorRad = (item.angleDegrees - 90.0) * Double.pi / 180.0
+                let hx = CGFloat(cos(anchorRad)) * radiusPts
+                let hy = CGFloat(sin(anchorRad)) * radiusPts
+                Circle()
+                    .fill(Color.blue)
+                    .frame(width: 9, height: 9)
+                    .overlay(Circle().strokeBorder(Color.white, lineWidth: 1.5))
+                    .offset(x: hx, y: hy)
             }
         }
         .allowsHitTesting(false)
@@ -292,7 +371,7 @@ public struct KroutonDiscLabelArtworkCanvas: View {
         guard !chars.isEmpty else { return [] }
         let safeR = max(12.0, radiusPts)
         let centerAngleRad = (angleDegrees - 90.0) * Double.pi / 180.0
-        let advances = chars.map { Double(characterWidthFactor($0)) * fontSizePts * max(0.5, tracking) }
+        let advances = chars.map { Double(characterWidthFactor($0, fontDesignRaw: "default", isBold: true)) * fontSizePts * max(0.5, tracking) }
         let totalArcLen = advances.reduce(0.0, +)
         let totalAngleSpan = totalArcLen / safeR
 
@@ -340,36 +419,99 @@ public struct KroutonDiscLabelArtworkCanvas: View {
         .allowsHitTesting(false)
     }
 
-    private static func characterWidthFactor(_ ch: Character) -> CGFloat {
-        switch ch {
-        case "I", "i", "l", "1", "!", "|", ".", ",", ":", ";", "'", " ":
-            return 0.38
-        case "W", "M", "m", "w", "@", "%", "—":
-            return 0.88
-        case "f", "j", "r", "t", "(", ")", "[", "]":
-            return 0.48
+    /// Pure, unit-testable polar radius clamp shared by drag gesture, hit-testing, and arc rendering.
+    public static func clampedTextRadiusMM(_ rawRadiusMM: Double, hubDiameterMM: Double, outerDiameterMM: Double) -> Double {
+        let minR = max(12.0, hubDiameterMM * 0.54)
+        let maxR = max(minR + 4.0, outerDiameterMM * 0.46)
+        return max(minR, min(maxR, rawRadiusMM))
+    }
+
+    /// Thread-safe cache of CoreText glyph advance factors keyed by `fontKey:char`.
+    private static let glyphCacheLock = NSLock()
+    nonisolated(unsafe) private static var glyphAdvanceCache: [String: CGFloat] = [:]
+
+    private static func postScriptFontName(fontDesignRaw: String, isBold: Bool) -> CFString {
+        switch fontDesignRaw.lowercased() {
+        case "serif":
+            return (isBold ? "TimesNewRomanPS-BoldMT" : "TimesNewRomanPSMT") as CFString
+        case "rounded":
+            return (isBold ? "AmericanTypewriter-Bold" : "AmericanTypewriter") as CFString
+        case "monospaced":
+            return (isBold ? "Menlo-Bold" : "Menlo-Regular") as CFString
         default:
-            return 0.64
+            return (isBold ? "HelveticaNeue-Bold" : "HelveticaNeue") as CFString
         }
     }
 
+    /// Computes proportional glyph advance factor using CoreText (`CTFont` + `CTLineGetTypographicBounds`)
+    /// for the active font family and weight, memoized so CTFont/CTLine are created at most once per glyph.
+    private static func characterWidthFactor(
+        _ ch: Character,
+        fontDesignRaw: String = "default",
+        isBold: Bool = true
+    ) -> CGFloat {
+        let key = "\(fontDesignRaw):\(isBold ? 1 : 0):\(ch)"
+        glyphCacheLock.lock()
+        if let cached = glyphAdvanceCache[key] {
+            glyphCacheLock.unlock()
+            return cached
+        }
+        glyphCacheLock.unlock()
+
+        let baseSize: CGFloat = 24.0
+        let psName = postScriptFontName(fontDesignRaw: fontDesignRaw, isBold: isBold)
+        let ctFont = CTFontCreateWithName(psName, baseSize, nil)
+        let attrs: [NSAttributedString.Key: Any] = [
+            NSAttributedString.Key(kCTFontAttributeName as String): ctFont
+        ]
+        let attrStr = NSAttributedString(string: String(ch), attributes: attrs)
+        let line = CTLineCreateWithAttributedString(attrStr)
+        let advance = CGFloat(CTLineGetTypographicBounds(line, nil, nil, nil))
+        let factor = max(0.32, min(1.45, advance / (baseSize * 0.62)))
+
+        glyphCacheLock.lock()
+        if glyphAdvanceCache.count > 2048 { glyphAdvanceCache.removeAll(keepingCapacity: true) }
+        glyphAdvanceCache[key] = factor
+        glyphCacheLock.unlock()
+        return factor
+    }
+
     private static func resolveFontDesign(_ raw: String) -> Font.Design {
-        switch raw {
-        case "Rounded":    return .rounded
-        case "Serif":      return .serif
-        case "Monospaced": return .monospaced
+        switch raw.lowercased() {
+        case "serif":      return .serif
+        case "rounded":    return .rounded
+        case "monospaced": return .monospaced
         default:           return .default
         }
     }
 
     private static func blendColors(_ c1: Color, _ c2: Color, fraction: Double) -> Color {
+        let f = max(0.0, min(1.0, fraction))
         let (r1, g1, b1, a1) = KroutonPureColorMath.extractSRGB(c1)
         let (r2, g2, b2, a2) = KroutonPureColorMath.extractSRGB(c2)
-        let t = max(0.0, min(1.0, fraction))
-        let r = Double(r1) + (Double(r2) - Double(r1)) * t
-        let g = Double(g1) + (Double(g2) - Double(g1)) * t
-        let b = Double(b1) + (Double(b2) - Double(b1)) * t
-        let a = Double(a1) + (Double(a2) - Double(a1)) * t
-        return Color(red: r, green: g, blue: b, opacity: a)
+        return Color(
+            red: Double(r1) + (Double(r2) - Double(r1)) * f,
+            green: Double(g1) + (Double(g2) - Double(g1)) * f,
+            blue: Double(b1) + (Double(b2) - Double(b1)) * f,
+            opacity: Double(a1) + (Double(a2) - Double(a1)) * f
+        )
+    }
+
+    private static func polarHitDistance(
+        item: KroutonLabelTextElement,
+        clickR: Double,
+        clickDeg: Double,
+        hubDiameterMM: Double = 18.0,
+        outerDiameterMM: Double = 120.0
+    ) -> Double {
+        let targetR = clampedTextRadiusMM(item.radiusMM, hubDiameterMM: hubDiameterMM, outerDiameterMM: outerDiameterMM)
+        let radialDiff = abs(clickR - targetR)
+        var rawAngDiff = abs(clickDeg - item.angleDegrees).truncatingRemainder(dividingBy: 360.0)
+        if rawAngDiff > 180.0 { rawAngDiff = 360.0 - rawAngDiff }
+        let charCount = max(3.0, Double(item.text.count))
+        let halfSpanDeg = min(85.0, (charCount * item.fontSizePoints * 0.14) / max(18.0, targetR) * (180.0 / Double.pi))
+        let angularExcess = max(0.0, rawAngDiff - halfSpanDeg)
+        let arcDistMM = (angularExcess * Double.pi / 180.0) * targetR
+        return hypot(radialDiff, arcDistMM * 0.65)
     }
 }

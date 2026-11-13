@@ -246,6 +246,45 @@ public enum KroutonVectorBackgroundStyle: String, Codable, CaseIterable, Identif
     public var id: String { rawValue }
 }
 
+
+
+public struct KroutonBackgroundAdjustments: Codable, Hashable, Sendable {
+    public var blurRadius: Double = 0.0
+    public var brightness: Double = 0.0
+    public var contrast: Double = 1.0
+    public var hueDegrees: Double = 0.0
+    public var saturation: Double = 1.0
+
+    public init(
+        blurRadius: Double = 0.0,
+        brightness: Double = 0.0,
+        contrast: Double = 1.0,
+        hueDegrees: Double = 0.0,
+        saturation: Double = 1.0
+    ) {
+        self.blurRadius = blurRadius
+        self.brightness = brightness
+        self.contrast = contrast
+        self.hueDegrees = hueDegrees
+        self.saturation = saturation
+    }
+
+    public var isIdentity: Bool {
+        abs(blurRadius) < 0.05 &&
+        abs(brightness) < 0.005 &&
+        abs(contrast - 1.0) < 0.005 &&
+        abs(hueDegrees) < 0.1 &&
+        abs(saturation - 1.0) < 0.005
+    }
+}
+
+public enum KroutonKaleidoscopeMirrorRig: String, Codable, CaseIterable, Identifiable, Sendable {
+    case twoMirrorRosette  = "2-Mirror Mandala"
+    case threeMirrorPrism  = "3-Mirror Triangle Lattice"
+    case eightFoldStarTile = "8-Fold Star Tile"
+    public var id: String { rawValue }
+}
+
 public enum KroutonGPUSeedPattern: String, Codable, CaseIterable, Identifiable, Sendable {
     case neonLaserPrism   = "Neon Laser Prism"
     case cyberSunburst    = "Cyber Sunburst Horizon"
@@ -295,6 +334,7 @@ public struct KroutonLabelTextElement: Codable, Hashable, Identifiable, Sendable
     public var letterTracking: Double
     public var isBottomUpright: Bool
     public var isBold: Bool
+    public var hasDropShadow: Bool = false
     public var fontDesignRaw: String
     public var color: KroutonRGBAColor
 
@@ -410,6 +450,8 @@ public struct KroutonEmbeddedLabelSpec: Codable, Hashable, Sendable {
     public var gradientAngleDegrees: Double = 45.0
     public var gpuSeedPattern: KroutonGPUSeedPattern = .neonLaserPrism
     public var kaleidoscopeFacetCount: Int = 8
+    public var kaleidoscopeMirrorRig: KroutonKaleidoscopeMirrorRig = .twoMirrorRosette
+    public var kaleidoscopeChamberTumble: Double = 0.35
     public var tinyPlanetRadiusRatio: Double = 0.72
     public var useVisionForegroundCutout: Bool = false
     public var topArcRadiusMM: Double = 47.0
@@ -418,6 +460,7 @@ public struct KroutonEmbeddedLabelSpec: Codable, Hashable, Sendable {
     public var customArcTextLayers: [KroutonPolarArcTextLayer] = []
     public var textElements: [KroutonLabelTextElement] = []
     public var gradientMidpointRatio: Double = 0.50
+    public var bgAdjustments: KroutonBackgroundAdjustments = KroutonBackgroundAdjustments()
     public var vectorShapeLayers: [KroutonVectorShapeLayer] = []
     public var renderedPreviewPNGBase64: String?
 

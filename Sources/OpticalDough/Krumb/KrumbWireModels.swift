@@ -450,7 +450,7 @@ public final class KrumbKitchenClient: ObservableObject {
         )
         self.lastCalibration = simulated
         let gb = Double(simulated.freeBytes) / 1_073_741_824.0
-        self.statusBannerText = String(format: "Pantry Verified: %.1f GB Free • Max Heat %dx CD / %dx DVD (16x Ready)", gb, simulated.maxSafeCdHeatX, simulated.maxSafeDvdHeatX)
+        self.statusBannerText = String(format: "Remote Pantry Unverified (Daemon Offline — Local Hardware Only)", gb, simulated.maxSafeCdHeatX, simulated.maxSafeDvdHeatX)
         appendEventLog("POST /api/v1/pantry/calibrate -> \(statusBannerText)")
     }
 

@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import OpticalDough
 
@@ -137,4 +138,14 @@ public struct KroutonTartineModule {
             warnings: warnings
         )
     }
+
+    /// Computes an authentic FIPS 180-4 SHA-256 hex digest for a raw 2,048-byte ISO/UDF sector or file payload.
+    public static func computeBlockSHA256Hex(for data: Data) -> String {
+        let digest = SHA256.hash(data: data)
+        return "sha256:" + digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// El Torito Boot Record Volume Descriptor sits at LBA 17 and points to the Boot Catalog sector (LBA 18).
+    public static let elToritoBootRecordVolumeDescriptorLBA: Int = 17
+    public static let elToritoDefaultBootCatalogLBA: Int = 18
 }

@@ -13,6 +13,8 @@ extension KroutonDiscLabelStudioWorkspaceView {
         switch activeTool {
         case .background:
             backgroundToolInspector()
+        case .adjust:
+            adjustmentsToolInspector()
         case .text:
             textToolInspector()
         case .discSize:
@@ -33,12 +35,14 @@ extension KroutonDiscLabelStudioWorkspaceView {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            // 4 Clean Stage-1 Background Modes
+            // 6 Clean Background & GPU Procedural Modes
             VStack(spacing: 6) {
                 backgroundModeButton(title: "Blank White Printable Disc", subtitle: "Clean white ink-saving surface", style: .templateDefault, icon: "circle")
                 backgroundModeButton(title: "Circular (Radial) Gradient", subtitle: "Hub-to-rim concentric color blend", style: .radialGradient, icon: "circle.circle.fill")
                 backgroundModeButton(title: "Linear Gradient", subtitle: "Directional angled color blend", style: .linearGradient, icon: "lessthan.circle.fill")
                 backgroundModeButton(title: "Solid Disc Color", subtitle: "Uniform edge-to-edge fill", style: .solidColor, icon: "circle.fill")
+                backgroundModeButton(title: "GPU Silk Kaleidoscope", subtitle: "Radial symmetric prism reflections", style: .gpuKaleidoscope, icon: "sparkles")
+                backgroundModeButton(title: "360° Tiny Planet Globe", subtitle: "Polar stereographic horizon world", style: .tinyPlanetGlobe, icon: "globe.americas.fill")
             }
 
             if store.labelBackgroundStyle != .templateDefault {
@@ -69,23 +73,37 @@ extension KroutonDiscLabelStudioWorkspaceView {
                         .buttonStyle(.bordered)
                         .controlSize(.small)
 
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Quick Studio Palettes")
+                                .font(.caption2.bold())
+                                .foregroundStyle(.secondary)
+                            HStack(spacing: 5) {
+                                studioSwatchButton("Paper", c1: .white, c2: Color(red: 0.88, green: 0.93, blue: 0.98))
+                                studioSwatchButton("Ocean", c1: Color(red: 0.78, green: 0.96, blue: 0.99), c2: Color(red: 0.16, green: 0.56, blue: 0.92))
+                                studioSwatchButton("Sunset", c1: Color(red: 0.99, green: 0.92, blue: 0.76), c2: Color(red: 0.94, green: 0.38, blue: 0.52))
+                                studioSwatchButton("Mint", c1: Color(red: 0.86, green: 0.98, blue: 0.91), c2: Color(red: 0.18, green: 0.78, blue: 0.58))
+                            }
+                        }
+
                         VStack(alignment: .leading, spacing: 3) {
                             HStack {
-                                Text("Gradient Midpoint")
+                                Text(store.labelBackgroundStyle == .gpuKaleidoscope || store.labelBackgroundStyle == .tinyPlanetGlobe
+                                     ? "Backdrop Brightness (Ink Saver)"
+                                     : "Gradient Midpoint")
                                     .font(.caption2.bold())
                                     .foregroundStyle(.secondary)
                                 Spacer()
                                 Text("\(Int(store.labelGradientMidpoint * 100))%")
                                     .font(.caption2.monospaced())
                             }
-                            Slider(value: $store.labelGradientMidpoint, in: 0.10...0.90)
+                            Slider(value: $store.labelGradientMidpoint, in: 0.0...1.0)
                         }
                     }
 
-                    if store.labelBackgroundStyle == .linearGradient {
+                    if store.labelBackgroundStyle == .linearGradient || store.labelBackgroundStyle == .gpuKaleidoscope || store.labelBackgroundStyle == .tinyPlanetGlobe {
                         VStack(alignment: .leading, spacing: 3) {
                             HStack {
-                                Text("Gradient Angle")
+                                Text(store.labelBackgroundStyle == .linearGradient ? "Gradient Angle" : "Rotation / Spin Angle")
                                     .font(.caption2.bold())
                                     .foregroundStyle(.secondary)
                                 Spacer()
@@ -93,6 +111,81 @@ extension KroutonDiscLabelStudioWorkspaceView {
                                     .font(.caption2.monospaced())
                             }
                             Slider(value: $store.labelGradientAngle, in: 0...360, step: 5)
+                        }
+                    }
+
+                    if store.labelBackgroundStyle == .gpuKaleidoscope || store.labelBackgroundStyle == .tinyPlanetGlobe {
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Optical Object Chamber")
+                                    .font(.caption2.bold())
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Button {
+                                    store.labelChamberTumble = Double.random(in: 0.02...0.98)
+                                    store.labelGradientAngle = Double(Int.random(in: 0...71) * 5)
+                                } label: {
+                                    Label("Tumble Gems", systemImage: "dice.fill")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 3)
+                                        .background(store.activeAccent)
+                                        .foregroundStyle(.white)
+                                        .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+                                .help("Randomize the physical glass shards and mirror angle inside the optical chamber")
+                            }
+
+                            Picker("Object Chamber", selection: $store.labelGPUSeedPattern) {
+                                Text("Stained Glass & Gem Shards").tag(KroutonGPUSeedPattern.neonLaserPrism)
+                                Text("Dichroic Neon Filaments").tag(KroutonGPUSeedPattern.cyberSunburst)
+                                Text("Liquid Oil Interference").tag(KroutonGPUSeedPattern.holographicFoil)
+                                Text("Botanical Golden Spirals").tag(KroutonGPUSeedPattern.cmykHalftone)
+                            }
+                            .labelsHidden()
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack {
+                                    Text("Chamber Tumble (Slide Shards)")
+                                        .font(.caption2.bold())
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                    Text("\(Int(store.labelChamberTumble * 100))%")
+                                        .font(.caption2.monospaced())
+                                }
+                                Slider(value: $store.labelChamberTumble, in: 0.0...1.0)
+                            }
+
+                            if store.labelBackgroundStyle == .gpuKaleidoscope {
+                                Text("Optical Mirror Assembly")
+                                    .font(.caption2.bold())
+                                    .foregroundStyle(.secondary)
+
+                                Picker("Mirror Rig", selection: $store.labelKaleidoscopeRig) {
+                                    ForEach(KroutonKaleidoscopeMirrorRig.allCases) { rig in
+                                        Text(rig.rawValue).tag(rig)
+                                    }
+                                }
+                                .labelsHidden()
+
+                                Stepper("Mirror Facets / Scale: \(store.labelKaleidoscopeFacets)×", value: $store.labelKaleidoscopeFacets, in: 3...16)
+                                    .font(.caption.bold())
+                            } else {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack {
+                                        Text("Planet Horizon Radius")
+                                            .font(.caption2.bold())
+                                            .foregroundStyle(.secondary)
+                                        Spacer()
+                                        Text("\(Int(store.labelTinyPlanetRadius * 100))%")
+                                            .font(.caption2.monospaced())
+                                    }
+                                    Slider(value: $store.labelTinyPlanetRadius, in: 0.35...0.95)
+                                }
+                            }
                         }
                     }
                 }
@@ -248,13 +341,22 @@ extension KroutonDiscLabelStudioWorkspaceView {
                 .textFieldStyle(.roundedBorder)
                 .font(.caption.bold())
 
-            HStack(spacing: 10) {
-                ColorPicker("Color:", selection: colorBinding)
-                    .font(.caption.bold())
+            HStack(spacing: 8) {
+                ColorPicker("", selection: colorBinding)
+                    .labelsHidden()
+                    .frame(width: 28)
 
                 Toggle("Bold", isOn: $store.labelTextElements[index].isBold)
                     .toggleStyle(.checkbox)
                     .font(.caption.bold())
+                    .fixedSize()
+
+                Toggle("Shadow", isOn: $store.labelTextElements[index].hasDropShadow)
+                    .toggleStyle(.checkbox)
+                    .font(.caption.bold())
+                    .fixedSize()
+
+                Spacer(minLength: 2)
 
                 Picker("Font", selection: $store.labelTextElements[index].fontDesignRaw) {
                     Text("Sans").tag("Default")
@@ -263,7 +365,7 @@ extension KroutonDiscLabelStudioWorkspaceView {
                     Text("Mono").tag("Monospaced")
                 }
                 .labelsHidden()
-                .frame(width: 85)
+                .frame(width: 90)
             }
 
             Divider()
@@ -355,182 +457,6 @@ extension KroutonDiscLabelStudioWorkspaceView {
         }
     }
 
-    // MARK: - Tool Inspector C: Disc Size Override & Save as Preset
-
-    private func discSizeOverrideInspector() -> some View {
-        let pIdx = safePresetIndex
-        return VStack(alignment: .leading, spacing: 12) {
-            Label("Disc Size & Preset Override", systemImage: "ruler")
-                .font(.subheadline.bold())
-
-            Text("Override the Inner Hub and Outer Rim diameters for the current disc, or save your custom geometry as a reusable preset in Settings.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text("Inner Hub Diameter (18–50 mm)")
-                        .font(.caption2.bold())
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text("\(Int(store.labelPresets[pIdx].innerDiameterMM)) mm")
-                        .font(.caption2.monospaced().bold())
-                }
-                Slider(value: $store.labelPresets[pIdx].innerDiameterMM, in: 18...50, step: 1)
-
-                HStack {
-                    Text("Outer Disc Diameter (70–120 mm)")
-                        .font(.caption2.bold())
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text("\(Int(store.labelPresets[pIdx].outerDiameterMM)) mm")
-                        .font(.caption2.monospaced().bold())
-                }
-                Slider(value: $store.labelPresets[pIdx].outerDiameterMM, in: 70...120, step: 1)
-
-                HStack(spacing: 6) {
-                    Button("Full Hub (18/120)") {
-                        store.labelPresets[pIdx].innerDiameterMM = 18
-                        store.labelPresets[pIdx].outerDiameterMM = 120
-                    }.buttonStyle(.bordered).controlSize(.mini)
-
-                    Button("Standard (41/118)") {
-                        store.labelPresets[pIdx].innerDiameterMM = 41
-                        store.labelPresets[pIdx].outerDiameterMM = 118
-                    }.buttonStyle(.bordered).controlSize(.mini)
-
-                    Button("Mini 80mm") {
-                        store.labelPresets[pIdx].innerDiameterMM = 18
-                        store.labelPresets[pIdx].outerDiameterMM = 80
-                    }.buttonStyle(.bordered).controlSize(.mini)
-                }
-            }
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text("Printer X Offset (-2.0 to +2.0 mm)")
-                        .font(.caption2.bold())
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(String(format: "%+.1f mm", store.labelPresets[pIdx].offsetXMM))
-                        .font(.caption2.monospaced())
-                }
-                Slider(value: $store.labelPresets[pIdx].offsetXMM, in: -2.0...2.0, step: 0.1)
-
-                HStack {
-                    Text("Printer Y Offset (-2.0 to +2.0 mm)")
-                        .font(.caption2.bold())
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(String(format: "%+.1f mm", store.labelPresets[pIdx].offsetYMM))
-                        .font(.caption2.monospaced())
-                }
-                Slider(value: $store.labelPresets[pIdx].offsetYMM, in: -2.0...2.0, step: 0.1)
-            }
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Save Override as New Preset")
-                    .font(.caption2.bold())
-                    .foregroundStyle(.secondary)
-
-                TextField("New Preset Name (e.g. Verbatim Full Hub)...", text: $newPresetName)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.caption)
-
-                Button {
-                    let trimmed = newPresetName.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let cur = store.labelPresets[pIdx]
-                    let nameToSave = trimmed.isEmpty
-                        ? "Custom Disc (\(Int(cur.outerDiameterMM))mm / \(Int(cur.innerDiameterMM))mm)"
-                        : trimmed
-                    let saved = KroutonSliceLabelGeometry(
-                        name: nameToSave,
-                        outerDiameterMM: cur.outerDiameterMM,
-                        innerDiameterMM: cur.innerDiameterMM,
-                        offsetXMM: cur.offsetXMM,
-                        offsetYMM: cur.offsetYMM
-                    )
-                    store.labelPresets.append(saved)
-                    store.selectedLabelPresetIndex = store.labelPresets.count - 1
-                    newPresetName = ""
-                    statusBanner = "Saved Preset '\(nameToSave)'"
-                } label: {
-                    Label("Save as Preset in Settings", systemImage: "plus.circle.fill")
-                        .font(.caption.bold())
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(store.activeAccent)
-                .controlSize(.small)
-            }
-        }
-    }
-
-    // MARK: - Tool Inspector D: Select / Layer Overview
-
-    private func selectOverviewInspector() -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Canvas Layers Overview", systemImage: "cursorarrow")
-                .font(.subheadline.bold())
-
-            HStack {
-                Text("Background:")
-                    .font(.caption.bold())
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button(store.labelBackgroundStyle.rawValue) {
-                    activeTool = .background
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-            }
-
-            Divider()
-
-            HStack {
-                Text("Text Layers (\(store.labelTextElements.count))")
-                    .font(.caption.bold())
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("+ Add Text") {
-                    addNewTextElement()
-                    activeTool = .text
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(store.activeAccent)
-                .controlSize(.mini)
-            }
-
-            if store.labelTextElements.isEmpty {
-                Text("Canvas is currently blank. Use the left tool rail to set a Circular Gradient background or add Curved Arc Text.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(store.labelTextElements) { item in
-                    Button {
-                        store.labelSelectedTextID = item.id
-                        activeTool = .text
-                    } label: {
-                        HStack {
-                            Image(systemName: item.isCurvedArc ? "dial.medium.fill" : "text.aligncenter")
-                            Text(item.text).font(.caption.bold()).lineLimit(1)
-                            Spacer()
-                            Image(systemName: "chevron.right").font(.caption2)
-                        }
-                        .padding(8)
-                        .background(Color.primary.opacity(0.06))
-                        .clipShape(RoundedRectangle(cornerRadius: 7))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
     func addNewTextElement(
         text: String = "DISC TITLE",
         radiusMM: Double = 45.0,
@@ -576,14 +502,33 @@ extension KroutonDiscLabelStudioWorkspaceView {
             bgSecondaryColor: store.labelBgSecondaryColor,
             gradientMidpoint: store.labelGradientMidpoint,
             gradientAngle: store.labelGradientAngle,
+            gpuSeedPattern: store.labelGPUSeedPattern,
+            kaleidoscopeFacets: store.labelKaleidoscopeFacets,
+            kaleidoscopeRig: store.labelKaleidoscopeRig,
+            chamberTumble: store.labelChamberTumble,
+            tinyPlanetRadius: store.labelTinyPlanetRadius,
+            bgAdjustments: store.labelBgAdjustments,
             textElements: store.labelTextElements
         )
         let renderer = ImageRenderer(content: exportCanvas)
         renderer.scale = 1.0
         if renderer.cgImage != nil {
-            statusBanner = isTestPrintSheet
-                ? "Test Print Proof Ready (\(Int(preset.innerDiameterMM))/\(Int(preset.outerDiameterMM))mm)"
-                : "Rendered \(Int(exportPixels))×\(Int(exportPixels))px 300-DPI Master"
+            showTransientBanner(isTestPrintSheet ? "Test Print Proof Ready (\(Int(preset.innerDiameterMM))/\(Int(preset.outerDiameterMM))mm)" : "Rendered \(Int(exportPixels))×\(Int(exportPixels))px 300-DPI Master")
         }
+    }
+
+    private func studioSwatchButton(_ label: String, c1: Color, c2: Color) -> some View {
+        Button {
+            store.labelBgPrimaryColor = c1
+            store.labelBgSecondaryColor = c2
+        } label: {
+            HStack(spacing: 4) {
+                Circle().fill(LinearGradient(colors: [c1, c2], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 10, height: 10)
+                Text(label).font(.system(size: 10, weight: .semibold))
+            }
+            .padding(.horizontal, 7).padding(.vertical, 4)
+            .background(Color.primary.opacity(0.07)).clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }

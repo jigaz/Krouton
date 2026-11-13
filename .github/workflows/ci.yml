@@ -1,0 +1,19 @@
+name: Krouton macOS CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Krouton Desktop App
+        run: swift build --product Krouton
+      - name: Run XCTest Unit Suite
+        run: swift test
+      - name: Run Architecture & Invariant Suite
+        run: swift run krouton-verify

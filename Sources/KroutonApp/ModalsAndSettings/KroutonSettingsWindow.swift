@@ -331,6 +331,13 @@ public struct KroutonSettingsWindowView: View {
                     }
                 }
             }
+                generalPaneBottomSection
+        }
+    }
+
+    @ViewBuilder
+    private var generalPaneBottomSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
 
             settingsCard(title: "Windows, Sidebar & Language") {
                 HStack {

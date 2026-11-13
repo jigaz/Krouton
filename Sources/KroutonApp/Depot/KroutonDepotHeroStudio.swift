@@ -84,6 +84,62 @@ struct KroutonRecipeBlueprintView: View {
             // =========================================================================
             // BATCH 1: HIGH-PRECISION 1:1 TWO-TONE VECTOR RECONSTRUCTIONS
             // =========================================================================
+            if !drawFedoraDebianSGIArtwork(
+                context: &context, key: key, cx: cx, cy: cy, secondary: secondary,
+                primaryStroke: primaryStroke, primaryFill: primaryFill,
+                accentStroke: accentStroke, accentFill: accentFill,
+                faintStroke: faintStroke, occludeBacking: occludeBacking
+            ) {
+                drawTuxAndConsoleArtwork(
+                    context: &context, key: key, cx: cx, cy: cy, secondary: secondary,
+                    primaryStroke: primaryStroke, primaryFill: primaryFill,
+                    accentStroke: accentStroke, accentFill: accentFill,
+                    faintStroke: faintStroke, occludeBacking: occludeBacking
+                )
+            }
+        }
+        .mask(
+            LinearGradient(
+                stops: [
+                    .init(color: .clear, location: 0.00),
+                    .init(color: .clear, location: 0.22),
+                    .init(color: .black.opacity(0.70), location: 0.40),
+                    .init(color: .black, location: 0.60),
+                    .init(color: .black.opacity(0.88), location: 0.88),
+                    .init(color: .clear, location: 1.00)
+                ],
+                startPoint: .leading, endPoint: .trailing
+            )
+            .mask(
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0.00),
+                        .init(color: .black, location: 0.14),
+                        .init(color: .black, location: 0.86),
+                        .init(color: .clear, location: 1.00)
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+            )
+        )
+        .drawingGroup(opaque: false, colorMode: .extendedLinear)
+    }
+
+    private func drawFedoraDebianSGIArtwork(
+        context: inout GraphicsContext, key: String, cx: CGFloat, cy: CGFloat, secondary: Color,
+        primaryStroke: Color, primaryFill: Color, accentStroke: Color, accentFill: Color,
+        faintStroke: Color, occludeBacking: Color
+    ) -> Bool {
+            func drawCADNode(_ pt: CGPoint, handle: CGPoint) {
+                var ln = Path()
+                ln.move(to: pt); ln.addLine(to: handle)
+                context.stroke(ln, with: .color(primaryStroke.opacity(0.55)), lineWidth: 0.9)
+                let sq = CGRect(x: pt.x - 3, y: pt.y - 3, width: 6, height: 6)
+                context.fill(Path(sq), with: .color(primaryStroke))
+                context.stroke(Path(sq), with: .color(accent), lineWidth: 1.2)
+                let cr = CGRect(x: handle.x - 2.5, y: handle.y - 2.5, width: 5, height: 5)
+                context.fill(Path(ellipseIn: cr), with: .color(accent))
+            }
             if key.contains("fedora") {
                 // --- 1. FEDORA (1:1 Teardrop Badge + Infinity Loop & Crossbar 'f') ---
                 // Outer asymmetric Fedora speech-bubble / teardrop badge (3 round corners, 1 bottom-left corner)
@@ -264,8 +320,28 @@ struct KroutonRecipeBlueprintView: View {
                     )
                 }
                 drawCADNode(CGPoint(x: cx, y: cy), handle: CGPoint(x: cx + 62, y: cy - 36))
+            } else {
+                return false
+            }
+            return true
+    }
 
-            } else if item.channel.contains("Live Linux") || key.contains("linux") || (key.contains("archlinux") || key.contains("arch linux")) || key.contains("mint") || key.contains("bsd") || key.contains("alpine") {
+    private func drawTuxAndConsoleArtwork(
+        context: inout GraphicsContext, key: String, cx: CGFloat, cy: CGFloat, secondary: Color,
+        primaryStroke: Color, primaryFill: Color, accentStroke: Color, accentFill: Color,
+        faintStroke: Color, occludeBacking: Color
+    ) {
+            func drawCADNode(_ pt: CGPoint, handle: CGPoint) {
+                var ln = Path()
+                ln.move(to: pt); ln.addLine(to: handle)
+                context.stroke(ln, with: .color(primaryStroke.opacity(0.55)), lineWidth: 0.9)
+                let sq = CGRect(x: pt.x - 3, y: pt.y - 3, width: 6, height: 6)
+                context.fill(Path(sq), with: .color(primaryStroke))
+                context.stroke(Path(sq), with: .color(accent), lineWidth: 1.2)
+                let cr = CGRect(x: handle.x - 2.5, y: handle.y - 2.5, width: 5, height: 5)
+                context.fill(Path(ellipseIn: cr), with: .color(accent))
+            }
+            if item.channel.contains("Live Linux") || key.contains("linux") || (key.contains("archlinux") || key.contains("arch linux")) || key.contains("mint") || key.contains("bsd") || key.contains("alpine") {
                 // --- 4. LINUX TUX (1:1 High-Precision Line-Art Seated Penguin Reconstruction) ---
                 // 1) Outer Crown, Neck S-Curve & Seated Hip Contour (Exact match to Screenshot 6.26.35 PM)
                 var outerTux = Path()
@@ -432,32 +508,6 @@ struct KroutonRecipeBlueprintView: View {
                     accentStroke: accentStroke, accentFill: accentFill, faintStroke: faintStroke
                 )
             }
-        }
-        .mask(
-            LinearGradient(
-                stops: [
-                    .init(color: .clear, location: 0.00),
-                    .init(color: .clear, location: 0.22),
-                    .init(color: .black.opacity(0.70), location: 0.40),
-                    .init(color: .black, location: 0.60),
-                    .init(color: .black.opacity(0.88), location: 0.88),
-                    .init(color: .clear, location: 1.00)
-                ],
-                startPoint: .leading, endPoint: .trailing
-            )
-            .mask(
-                LinearGradient(
-                    stops: [
-                        .init(color: .clear, location: 0.00),
-                        .init(color: .black, location: 0.14),
-                        .init(color: .black, location: 0.86),
-                        .init(color: .clear, location: 1.00)
-                    ],
-                    startPoint: .top, endPoint: .bottom
-                )
-            )
-        )
-        .drawingGroup(opaque: false, colorMode: .extendedLinear)
     }
 
     func drawCADNode(context: inout GraphicsContext, _ pt: CGPoint, handle: CGPoint, primaryStroke: Color) {

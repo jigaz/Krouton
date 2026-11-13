@@ -136,9 +136,9 @@ public enum KroutonPantryPrepEngine {
             ),
             KroutonRecipeCodecRow(
                 id: "optical-subtitles",
-                category: "Optical Bitmap & Styled Text Subtitles (Blu-ray PGS & DVD VobSub)",
-                formatsAndExtensions: ".sup (BD PGS), .idx/.sub (VobSub), .ass, .ssa, .srt, .vtt, CEA-608/708",
-                primaryEngine: "Metal CoreImage Compositor + libass + PGS Muxer",
+                category: "Optical Bitmap & Styled Text Subtitles (Blu-ray CEA-608 / VobSub Track Passthrough & DVD VobSub)",
+                formatsAndExtensions: ".sup (BD CEA-608 / VobSub Track Passthrough), .idx/.sub (VobSub), .ass, .ssa, .srt, .vtt, CEA-608/708",
+                primaryEngine: "Metal CoreImage Compositor + CoreText Subtitle Layout + CEA-608 / VobSub Track Passthrough Muxer",
                 hardwareStatus: "Metal GPU Accelerated",
                 isHardwareAccelerated: true
             )
@@ -169,7 +169,7 @@ public enum KroutonPantryPrepEngine {
                 containerFormat: ext == "mkv" ? "Matroska (.MKV) Multi-Track" : (ext == "webm" ? "WebM Container" : "Blu-ray MPEG-2 Transport Stream (.M2TS)"),
                 videoCodecName: ext == "webm" ? "VP9 / AV1 10-Bit" : "HEVC 10-Bit HDR / H.264 High@L5.1",
                 audioCodecName: "Dolby TrueHD Atmos / DTS-HD MA + AC-3 5.1 Core",
-                subtitleSummary: "Blu-ray PGS (.sup) + ASS/SRT Softsubs",
+                subtitleSummary: "Blu-ray CEA-608 / VobSub Track Passthrough (.sup) + ASS/SRT Softsubs",
                 accelerationTier: .hybridDemuxVT,
                 shortHardwareBadge: "Stream Demux -> VT HW",
                 isHardwareAccelerated: true,

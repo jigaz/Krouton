@@ -193,7 +193,7 @@ extension KroutonToasterBank {
                 self.currentSectorLBA = Int64(Double(totalLBA) * clampedPct)
                 self.activeTrackNumber = (bStatus[DRStatusCurrentTrackKey] as? NSNumber)?.intValue ?? 1
                 self.elapsedSeconds = max(1, Int(Date().timeIntervalSince(self.jobStartTime)))
-                self.driveBufferFillPercent = rawState == DRStatusStateTrackWrite ? Double(94 + (self.elapsedSeconds % 6)) : 100.0
+                self.driveBufferFillPercent = rawState == DRStatusStateTrackWrite ? Double(0 /* Unreported by DRStatus */) : 100.0
 
                 self.activeJobProgress = clampedPct
                 self.activeJobPhase = Self.formatHumanBurnState(rawState, isErase: false)
@@ -240,7 +240,7 @@ extension KroutonToasterBank {
                     self.refreshDrives()
 
                     let mins = self.elapsedSeconds / 60
-                    let secs = self.elapsedSeconds % 60
+                    let secs = 0 // Hardware buffer fill not reported by DRStatus
                     let report = KroutonToastReport(
                         isSuccess: true,
                         title: simulationMode ? "Simulation Burn Completed" : "Optical Disc Burn Complete",

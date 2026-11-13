@@ -77,6 +77,157 @@ struct KroutonRedBookAudioWorkspaceView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             // WaveBurner CD-TEXT, UPC/MCN & HTOA Mastering Deck
+            audioMasteringDeckHeaderSection
+
+            // Red Book PQ Tracklist Table
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.kroutonControlSurface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(
+                                isDropTargeted ? store.activeAccent : Color.primary.opacity(0.08),
+                                style: StrokeStyle(lineWidth: isDropTargeted ? 2.5 : 1.0, dash: store.stagedFiles.isEmpty ? [6, 4] : [])
+                            )
+                    )
+
+                if store.stagedFiles.isEmpty {
+                    KroutonEmptyDropZoneView(
+                        store: store,
+                        isDropTargeted: isDropTargeted,
+                        sfSymbol: "waveform.circle.fill",
+                        headline: isCenterWorkspaceNarrow ? "Drop Any Audio Format" : "Drop Any Audio Format (WAV, AIFF, FLAC, ALAC, APE, WavPack, DSD .DSF/.DFF, Opus, Ogg, AC-3, DTS, MP3, M4A)",
+                        subtitle: dropZoneFormatSubtitle
+                    )
+                } else {
+                    VStack(spacing: 0) {
+                        HStack(spacing: 10) {
+                            Text(KroutonL10n.tr("TRK"))
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 34, alignment: .leading)
+                            Text(KroutonL10n.tr("TRACK TITLE & CD-TEXT PERFORMER"))
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text(KroutonL10n.tr("ISRC CODE"))
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 104, alignment: .center)
+                            Text(KroutonL10n.tr("INDEX 00 / SPLICE"))
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 145, alignment: .center)
+                            Text(KroutonL10n.tr("MM:SS:FF (75 FPS)"))
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 98, alignment: .trailing)
+                            Text(KroutonL10n.tr("AUDITION"))
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 72, alignment: .center)
+                            Spacer().frame(width: 20)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(ZStack { Color.black.opacity(0.18); store.sidebarTintOverlay })
+                        Divider()
+
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                ForEach(Array(store.stagedFiles.enumerated()), id: \.element.id) { idx, entry in
+                                    let trackNum = idx + 1
+                                    let cleanTitle = entry.url.deletingPathExtension().lastPathComponent
+                                    let estSeconds = max(18, min(680, Int(entry.byteSize / 36_000)))
+                                    let mm = estSeconds / 60
+                                    let ss = estSeconds % 60
+                                    let ff = (idx * 17) % 75
+                                    let isrcCode = String(format: "US-KRT-26-%05d", trackNum)
+                                    let isAuditioningThis = (auditioningTrackID == entry.id)
+
+                                    HStack(spacing: 10) {
+                                        Text(idx == 0 && enableHiddenTrackOneHTOA ? "00*" : String(format: "%02d", trackNum))
+                                            .font(.system(size: 12, weight: .heavy, design: .monospaced))
+                                            .foregroundStyle(store.activeAccent)
+                                            .frame(width: 34, alignment: .leading)
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(cleanTitle)
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .lineLimit(1)
+                                            let probe = KroutonPantryPrepEngine.probeFile(entry.url)
+                                            Text("Performer: \(cdTextAlbumPerformer) • [\(probe.shortHardwareBadge)] \(probe.audioCodecName) -> 44.1 kHz 16-Bit PCM")
+                                                .font(.system(size: 10))
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(1)
+                                        }
+
+                                        Spacer()
+
+                                        Text(isrcCode)
+                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 104, alignment: .center)
+
+                                        Text(defaultAudioTransition.components(separatedBy: " (").first ?? "2.0s Pre-Gap")
+                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                            .foregroundStyle(Color.cyan)
+                                            .frame(width: 145, alignment: .center)
+
+                                        Text(String(format: "%02d:%02d:%02d", mm, ss, ff))
+                                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                            .foregroundStyle(store.activeAccent)
+                                            .frame(width: 98, alignment: .trailing)
+
+                                        Button {
+                                            if isAuditioningThis {
+                                                auditioningTrackID = nil
+                                            } else {
+                                                auditioningTrackID = entry.id
+                                                KroutonOSDesktopBridge.playAcousticCue()
+                                            }
+                                        } label: {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: isAuditioningThis ? "stop.fill" : "play.fill")
+                                                Text(isAuditioningThis ? "Stop" : "Splice")
+                                            }
+                                            .font(.system(size: 9, weight: .bold))
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 3)
+                                            .background(isAuditioningThis ? Color.green : store.activeAccent.opacity(0.18))
+                                            .foregroundStyle(isAuditioningThis ? Color.black : store.activeAccent)
+                                            .clipShape(Capsule())
+                                        }
+                                        .buttonStyle(.plain)
+                                        .frame(width: 72, alignment: .center)
+                                        .help("Audition Track \(trackNum) -> Track \(trackNum + 1) splice / crossfade transition")
+
+                                        Button {
+                                            store.removeStagedFile(id: entry.id)
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .frame(width: 18, alignment: .center)
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    Divider()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+                onHandleFinderDrop(providers)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var audioMasteringDeckHeaderSection: some View {
             KroutonMasteringDeckCard(store: store) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
@@ -231,152 +382,6 @@ struct KroutonRedBookAudioWorkspaceView: View {
                     }
                 }
             }
-
-            // Red Book PQ Tracklist Table
-            ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.kroutonControlSurface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .strokeBorder(
-                                isDropTargeted ? store.activeAccent : Color.primary.opacity(0.08),
-                                style: StrokeStyle(lineWidth: isDropTargeted ? 2.5 : 1.0, dash: store.stagedFiles.isEmpty ? [6, 4] : [])
-                            )
-                    )
-
-                if store.stagedFiles.isEmpty {
-                    KroutonEmptyDropZoneView(
-                        store: store,
-                        isDropTargeted: isDropTargeted,
-                        sfSymbol: "waveform.circle.fill",
-                        headline: isCenterWorkspaceNarrow ? "Drop Any Audio Format" : "Drop Any Audio Format (WAV, AIFF, FLAC, ALAC, APE, WavPack, DSD .DSF/.DFF, Opus, Ogg, AC-3, DTS, MP3, M4A)",
-                        subtitle: dropZoneFormatSubtitle
-                    )
-                } else {
-                    VStack(spacing: 0) {
-                        HStack(spacing: 10) {
-                            Text(KroutonL10n.tr("TRK"))
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 34, alignment: .leading)
-                            Text(KroutonL10n.tr("TRACK TITLE & CD-TEXT PERFORMER"))
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text(KroutonL10n.tr("ISRC CODE"))
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 104, alignment: .center)
-                            Text(KroutonL10n.tr("INDEX 00 / SPLICE"))
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 145, alignment: .center)
-                            Text(KroutonL10n.tr("MM:SS:FF (75 FPS)"))
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 98, alignment: .trailing)
-                            Text(KroutonL10n.tr("AUDITION"))
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 72, alignment: .center)
-                            Spacer().frame(width: 20)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(ZStack { Color.black.opacity(0.18); store.sidebarTintOverlay })
-                        Divider()
-
-                        ScrollView {
-                            VStack(spacing: 0) {
-                                ForEach(Array(store.stagedFiles.enumerated()), id: \.element.id) { idx, entry in
-                                    let trackNum = idx + 1
-                                    let cleanTitle = entry.url.deletingPathExtension().lastPathComponent
-                                    let estSeconds = max(18, min(680, Int(entry.byteSize / 36_000)))
-                                    let mm = estSeconds / 60
-                                    let ss = estSeconds % 60
-                                    let ff = (idx * 17) % 75
-                                    let isrcCode = String(format: "US-KRT-26-%05d", trackNum)
-                                    let isAuditioningThis = (auditioningTrackID == entry.id)
-
-                                    HStack(spacing: 10) {
-                                        Text(idx == 0 && enableHiddenTrackOneHTOA ? "00*" : String(format: "%02d", trackNum))
-                                            .font(.system(size: 12, weight: .heavy, design: .monospaced))
-                                            .foregroundStyle(store.activeAccent)
-                                            .frame(width: 34, alignment: .leading)
-
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(cleanTitle)
-                                                .font(.system(size: 12, weight: .semibold))
-                                                .lineLimit(1)
-                                            let probe = KroutonPantryPrepEngine.probeFile(entry.url)
-                                            Text("Performer: \(cdTextAlbumPerformer) • [\(probe.shortHardwareBadge)] \(probe.audioCodecName) -> 44.1 kHz 16-Bit PCM")
-                                                .font(.system(size: 10))
-                                                .foregroundStyle(.secondary)
-                                                .lineLimit(1)
-                                        }
-
-                                        Spacer()
-
-                                        Text(isrcCode)
-                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                                            .foregroundStyle(.secondary)
-                                            .frame(width: 104, alignment: .center)
-
-                                        Text(defaultAudioTransition.components(separatedBy: " (").first ?? "2.0s Pre-Gap")
-                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                                            .foregroundStyle(Color.cyan)
-                                            .frame(width: 145, alignment: .center)
-
-                                        Text(String(format: "%02d:%02d:%02d", mm, ss, ff))
-                                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                            .foregroundStyle(store.activeAccent)
-                                            .frame(width: 98, alignment: .trailing)
-
-                                        Button {
-                                            if isAuditioningThis {
-                                                auditioningTrackID = nil
-                                            } else {
-                                                auditioningTrackID = entry.id
-                                                KroutonOSDesktopBridge.playAcousticCue()
-                                            }
-                                        } label: {
-                                            HStack(spacing: 4) {
-                                                Image(systemName: isAuditioningThis ? "stop.fill" : "play.fill")
-                                                Text(isAuditioningThis ? "Stop" : "Splice")
-                                            }
-                                            .font(.system(size: 9, weight: .bold))
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 3)
-                                            .background(isAuditioningThis ? Color.green : store.activeAccent.opacity(0.18))
-                                            .foregroundStyle(isAuditioningThis ? Color.black : store.activeAccent)
-                                            .clipShape(Capsule())
-                                        }
-                                        .buttonStyle(.plain)
-                                        .frame(width: 72, alignment: .center)
-                                        .help("Audition Track \(trackNum) -> Track \(trackNum + 1) splice / crossfade transition")
-
-                                        Button {
-                                            store.removeStagedFile(id: entry.id)
-                                        } label: {
-                                            Image(systemName: "xmark.circle.fill")
-                                                .foregroundStyle(.secondary)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .frame(width: 18, alignment: .center)
-                                    }
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 8)
-                                    Divider()
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-                onHandleFinderDrop(providers)
-            }
-        }
     }
 
 

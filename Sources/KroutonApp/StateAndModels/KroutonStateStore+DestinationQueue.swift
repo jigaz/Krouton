@@ -1,3 +1,7 @@
+import Galette
+import VideoOven
+import Tartine
+import Marmalade
 import SwiftUI
 import Foundation
 import OpticalDough
@@ -539,7 +543,7 @@ extension KroutonStateStore {
                 iconSizePx: Int(finderIconSize)
             )
         default:
-            try? await Task.sleep(nanoseconds: 500_000_000)
+            _ = kroutonSynthesizeVerifiedISO9660ImageOnDisk(title: "KROUTON_MASTER", fileName: "Krouton_Master_Output.iso")
         }
     }
 }

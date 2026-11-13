@@ -10,6 +10,12 @@ import Crustini
 
 @MainActor
 public final class KroutonStateStore: ObservableObject {
+    // MARK: - Modular @Observable Feature Sub-Stores
+    public let labelStudioSubStore = KroutonLabelStudioSubStore()
+    public let galetteInspectorSubStore = KroutonGaletteInspectorSubStore()
+    public let burnQueueSubStore = KroutonBurnQueueSubStore()
+    public let depotCatalogSubStore = KroutonDepotCatalogSubStore()
+
     public static weak var shared: KroutonStateStore?
     var isHydratingPreferences: Bool = false
 
@@ -75,12 +81,15 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var isLabelVectorDrawMode: Bool = false
     @Published public var labelGPUSeedPattern: KroutonGPUSeedPattern = .neonLaserPrism
     @Published public var labelKaleidoscopeFacets: Int = 8
+    @Published public var labelKaleidoscopeRig: KroutonKaleidoscopeMirrorRig = .twoMirrorRosette
+    @Published public var labelChamberTumble: Double = 0.35
     @Published public var labelTinyPlanetRadius: Double = 0.75
     @Published public var labelUseVisionForeground: Bool = false
     @Published public var labelPolarSymmetryCount: Int = 1
     @Published public var labelTextElements: [KroutonLabelTextElement] = []
     @Published public var labelSelectedTextID: UUID? = nil
-    @Published public var labelGradientMidpoint: Double = 0.50
+    @Published public var labelBgAdjustments: KroutonBackgroundAdjustments = KroutonBackgroundAdjustments()
+    @Published public var labelGradientMidpoint: Double = 0.85
     @Published public var labelShowAlignmentGrid: Bool = false
     @Published public var labelCanvasZoom: Double = 1.0
     public var savedQueuesByDomain: [String: [KroutonBakeBatchItem]] = [:]
@@ -380,7 +389,12 @@ public final class KroutonStateStore: ObservableObject {
 
 // MARK: - Global Bundle.module .lproj Localization Resolver (Accessible from any View or Struct)
 public enum KroutonL10n {
-    nonisolated(unsafe) public static var activeISOCode: String = "en"
+    private static let isoCodeLock = NSLock()
+    nonisolated(unsafe) private static var _activeISOCodeStorage: String = "en"
+    public static var activeISOCode: String {
+        get { isoCodeLock.lock(); defer { isoCodeLock.unlock() }; return _activeISOCodeStorage }
+        set { isoCodeLock.lock(); _activeISOCodeStorage = newValue; isoCodeLock.unlock() }
+    }
 
     public static func tr(_ key: String) -> String {
         let code = activeISOCode

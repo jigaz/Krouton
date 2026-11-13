@@ -245,6 +245,17 @@ struct KroutonRetroConsoleWorkspaceView: View {
 
                 Divider().opacity(0.5)
 
+                if ["console-ps1", "console-ps2", "console-gc", "console-wii"].contains(spec.id) {
+                    retroConsoleClassicDeckOptions(for: spec)
+                } else {
+                    retroConsoleNextGenDeckOptions(for: spec)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func retroConsoleClassicDeckOptions(for spec: KroutonRecipeSpec) -> some View {
                 if spec.id == "console-ps1" {
                     VStack(alignment: .leading, spacing: 6) {
                         if isCenterWorkspaceNarrow {
@@ -373,7 +384,12 @@ struct KroutonRetroConsoleWorkspaceView: View {
                                 .font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary).lineLimit(1)
                         }
                     }
-                } else if spec.id == "console-xbox" {
+                }
+    }
+
+    @ViewBuilder
+    private func retroConsoleNextGenDeckOptions(for spec: KroutonRecipeSpec) -> some View {
+                if spec.id == "console-xbox" {
                     VStack(alignment: .leading, spacing: 6) {
                         if isCenterWorkspaceNarrow {
                             HStack(spacing: 6) {
@@ -468,7 +484,5 @@ struct KroutonRetroConsoleWorkspaceView: View {
                         }
                     }
                 }
-            }
-        }
     }
 }

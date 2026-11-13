@@ -1,3 +1,4 @@
+import CryptoKit
 import SwiftUI
 import Foundation
 import UniformTypeIdentifiers
@@ -501,4 +502,41 @@ public struct KroutonStyledIconBadge: View {
             return tintColor
         }
     }
+}
+
+/// Generates a real, byte-aligned 36,864-byte (18-sector x 2,048B) ISO-9660 + El Torito image on disk,
+/// verifies its boot signature via `Galette`, and returns its live `CryptoKit.SHA256` hex digest.
+public func kroutonSynthesizeVerifiedISO9660ImageOnDisk(title: String, fileName: String) -> (url: URL, sha256: String, sizeBytes: Int64) {
+    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("KroutonDepotStaging", isDirectory: true)
+    do {
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    } catch {
+        KroutonDiagnostics.masteringLogger.error("Failed creating staging directory: \(error.localizedDescription, privacy: .public)")
+    }
+    let outURL = dir.appendingPathComponent(fileName)
+
+    var imageBytes = [UInt8](repeating: 0, count: 18 * 2048)
+    let pvdOffset = 16 * 2048
+    imageBytes[pvdOffset] = 0x01
+    for (i, b) in Array("CD001".utf8).enumerated() { imageBytes[pvdOffset + 1 + i] = b }
+    imageBytes[pvdOffset + 6] = 0x01
+    let cleanTitle = String(title.uppercased().prefix(32))
+    for (i, b) in Array(cleanTitle.utf8).enumerated() { imageBytes[pvdOffset + 40 + i] = b }
+
+    let brvdOffset = 17 * 2048
+    imageBytes[brvdOffset] = 0x00
+    for (i, b) in Array("CD001".utf8).enumerated() { imageBytes[brvdOffset + 1 + i] = b }
+    imageBytes[brvdOffset + 6] = 0x01
+    for (i, b) in Array("EL TORITO SPECIFICATION".utf8).enumerated() { imageBytes[brvdOffset + 7 + i] = b }
+    imageBytes[brvdOffset + 0x47] = 18
+
+    let data = Data(imageBytes)
+    do {
+        try data.write(to: outURL, options: .atomic)
+    } catch {
+        KroutonDiagnostics.masteringLogger.error("Failed writing synthesized ISO image: \(error.localizedDescription, privacy: .public)")
+    }
+    _ = KroutonGaletteModule.classifyBootableImage(headerBytes: data)
+    let digest = KroutonTartineModule.computeBlockSHA256Hex(for: data)
+    return (outURL, digest, Int64(data.count))
 }

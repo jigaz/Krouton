@@ -313,7 +313,7 @@ extension KroutonKrustiniModule {
     // MARK: - Apple Silicon Metal GPU Kaleidoscope, 360° Tiny Planet Globe & Vision Foreground Lifter
 
     private static let sharedMetalCIContext: CIContext = {
-        CIContext(options: [.useSoftwareRenderer: false, .highQualityDownsample: true])
+        CIContext(options: [.useSoftwareRenderer: false, .workingColorSpace: KroutonKrustiniModule.sRGBColorSpace, .outputColorSpace: KroutonKrustiniModule.sRGBColorSpace])
     }()
 
     /// Replicates a drawn vector shape N times radially around the (0,0) spindle center

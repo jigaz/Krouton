@@ -79,7 +79,61 @@ struct KroutonDepotHeroBannerView: View {
 
             // 3. Foreground Layout: Left Info Column + Open Vector Showcase + Right Schematic Box
             HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 8) {
+                depotCardLeftDetailsColumn
+                if !isNarrow {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 5) {
+                            Image(systemName: item.sfSymbol)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent))
+                            Text("DISC CONTENT SCHEMATIC")
+                                .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
+                                .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent))
+                                .lineLimit(1)
+                            Spacer(minLength: 4)
+                            Text(item.sizeDisplay)
+                                .font(KroutonDesign.Typography.microMono)
+                                .foregroundStyle(.white.opacity(0.75))
+                                .lineLimit(1)
+                        }
+                        Divider().overlay((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent).opacity(0.35))
+
+                        ForEach(treeFiles, id: \.self) { pathLine in
+                            HStack(spacing: 4) {
+                                Text("├─")
+                                    .foregroundStyle(.cyan.opacity(0.75))
+                                Text(pathLine)
+                                    .foregroundStyle(.white.opacity(0.92))
+                                    .lineLimit(1)
+                            }
+                            .font(.system(size: 8.5, weight: .medium, design: .monospaced))
+                        }
+                    }
+                    .padding(10)
+                    .frame(width: 225, alignment: .leading)
+                    .background(Color.black.opacity(0.50))
+                    .clipShape(RoundedRectangle(cornerRadius: 9))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 9)
+                            .stroke((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent).opacity(0.38), style: StrokeStyle(lineWidth: 1.0, dash: [4, 2]))
+                    )
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+        }
+        .frame(height: 184)
+        .fixedSize(horizontal: false, vertical: true)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(isStaged ? Color.green.opacity(0.75) : store.activeAccent.opacity(0.55), lineWidth: 1.5))
+    }
+
+    @ViewBuilder
+    private var depotCardLeftDetailsColumn: some View {
+        let isStaged = (store.stagedDepotItemID == item.id && !store.stagedFiles.isEmpty)
+        let activeProgress = store.depotDownloadProgress[item.id]
+        let segments = item.blueprintSectorSegments
+        let treeFiles = item.blueprintRootFiles
+        return VStack(alignment: .leading, spacing: 8) {
                     // Top Micro Telemetry Header (Frosted Dark Pill for 100% Contrast Across All Swatches)
                     HStack(spacing: 5) {
                         Image(systemName: item.sfSymbol)
@@ -214,51 +268,6 @@ struct KroutonDepotHeroBannerView: View {
 
                 Spacer(minLength: isNarrow ? 0 : 95) // Open showcase space so the Vector Blueprint Art shines through!
 
-                if !isNarrow {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 5) {
-                            Image(systemName: item.sfSymbol)
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent))
-                            Text("DISC CONTENT SCHEMATIC")
-                                .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
-                                .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent))
-                                .lineLimit(1)
-                            Spacer(minLength: 4)
-                            Text(item.sizeDisplay)
-                                .font(KroutonDesign.Typography.microMono)
-                                .foregroundStyle(.white.opacity(0.75))
-                                .lineLimit(1)
-                        }
-                        Divider().overlay((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent).opacity(0.35))
-
-                        ForEach(treeFiles, id: \.self) { pathLine in
-                            HStack(spacing: 4) {
-                                Text("├─")
-                                    .foregroundStyle(.cyan.opacity(0.75))
-                                Text(pathLine)
-                                    .foregroundStyle(.white.opacity(0.92))
-                                    .lineLimit(1)
-                            }
-                            .font(.system(size: 8.5, weight: .medium, design: .monospaced))
-                        }
-                    }
-                    .padding(10)
-                    .frame(width: 225, alignment: .leading)
-                    .background(Color.black.opacity(0.50))
-                    .clipShape(RoundedRectangle(cornerRadius: 9))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 9)
-                            .stroke((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent).opacity(0.38), style: StrokeStyle(lineWidth: 1.0, dash: [4, 2]))
-                    )
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-        }
-        .frame(height: 184)
-        .fixedSize(horizontal: false, vertical: true)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(isStaged ? Color.green.opacity(0.75) : store.activeAccent.opacity(0.55), lineWidth: 1.5))
     }
 
 }

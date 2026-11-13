@@ -1,3 +1,4 @@
+import os
 import SwiftUI
 import Foundation
 import Combine
@@ -8,7 +9,10 @@ import AVFoundation
 import CryptoKit
 
 @MainActor
-public final class KroutonToasterBank: ObservableObject {
+public final class KroutonToasterBank: ObservableObject, OpticalDriveControlling {
+    public var mediaKind: OpticalMediaKind {
+        OpticalMediaKind(mediaDescription: availableDrives.first?.mediaType ?? "DVD-R")
+    }
     @Published public var availableDrives: [KroutonToasterInfo] = []
     @Published public var selectedDrive: KroutonToasterInfo?
     @Published public var hardwareStatusLog: String = "Scanning IOKit / DiscRecording bus..."
@@ -421,7 +425,7 @@ public final class KroutonToasterBank: ObservableObject {
         )
     }
 
-    // MARK: - ImgBurn MMC Book Type / Bitsetting (DVD+R / DVD+R DL -> DVD-ROM 0x00)
+    // MARK: - Optical Write Queue MMC Book Type / Bitsetting (DVD+R / DVD+R DL -> DVD-ROM 0x00)
     public func stampDVDROMBookType(for driveID: String, vendorProfile: String = "Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)") {
         let resolved = driveForID(driveID)
         let key = resolved?.id ?? driveID

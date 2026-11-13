@@ -9,6 +9,7 @@ public enum KroutonStage1Tool: String, CaseIterable, Identifiable {
     case select     = "Select"
     case text       = "Text Tool"
     case background = "Background"
+    case adjust     = "Adjust FX"
     case discSize   = "Disc Size"
     public var id: String { rawValue }
 
@@ -17,7 +18,18 @@ public enum KroutonStage1Tool: String, CaseIterable, Identifiable {
         case .select:     return "cursorarrow"
         case .text:       return "textformat"
         case .background: return "circle.lefthalf.filled"
+        case .adjust:     return "slider.horizontal.3"
         case .discSize:   return "ruler"
+        }
+    }
+
+    public var railLabel: String {
+        switch self {
+        case .select:     return "Move"
+        case .text:       return "Text"
+        case .background: return "Bg"
+        case .adjust:     return "Adjust"
+        case .discSize:   return "Size"
         }
     }
 }
@@ -26,6 +38,7 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
     @State var activeTool: KroutonStage1Tool = .background
     @State var newPresetName: String = ""
+    @State var workingGeometryOverride: KroutonSliceLabelGeometry? = nil
     @State var statusBanner: String = ""
 
     public init(store: KroutonStateStore) {
@@ -37,7 +50,17 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
     }
 
     var activePreset: KroutonSliceLabelGeometry {
-        store.labelPresets[safePresetIndex]
+        if let override = workingGeometryOverride { return override }
+        guard !store.labelPresets.isEmpty else {
+            return KroutonSliceLabelGeometry(
+                name: "Standard 120mm Disc",
+                outerDiameterMM: 120.0,
+                innerDiameterMM: 18.0,
+                offsetXMM: 0.0,
+                offsetYMM: 0.0
+            )
+        }
+        return store.labelPresets[safePresetIndex]
     }
 
     var selectedTextIndex: Int? {
@@ -45,6 +68,38 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
             return store.labelTextElements.isEmpty ? nil : 0
         }
         return store.labelTextElements.firstIndex(where: { $0.id == id })
+    }
+
+
+    func showTransientBanner(_ message: String) {
+        statusBanner = message
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            if statusBanner == message {
+                statusBanner = ""
+            }
+        }
+    }
+
+
+    var activeGeometryBinding: Binding<KroutonSliceLabelGeometry> {
+        Binding(
+            get: {
+                if let override = workingGeometryOverride { return override }
+                guard !store.labelPresets.isEmpty else {
+                    return KroutonSliceLabelGeometry(
+                        name: "Standard 120mm Disc",
+                        outerDiameterMM: 120.0,
+                        innerDiameterMM: 18.0,
+                        offsetXMM: 0.0,
+                        offsetYMM: 0.0
+                    )
+                }
+                let idx = min(max(0, store.selectedLabelPresetIndex), store.labelPresets.count - 1)
+                return store.labelPresets[idx]
+            },
+            set: { workingGeometryOverride = $0 }
+        )
     }
 
     public var body: some View {
@@ -83,6 +138,12 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
                                 bgSecondaryColor: store.labelBgSecondaryColor,
                                 gradientMidpoint: store.labelGradientMidpoint,
                                 gradientAngle: store.labelGradientAngle,
+                                gpuSeedPattern: store.labelGPUSeedPattern,
+                                kaleidoscopeFacets: store.labelKaleidoscopeFacets,
+                                kaleidoscopeRig: store.labelKaleidoscopeRig,
+                                chamberTumble: store.labelChamberTumble,
+                                tinyPlanetRadius: store.labelTinyPlanetRadius,
+                                bgAdjustments: store.labelBgAdjustments,
                                 textElements: store.labelTextElements,
                                 selectedTextID: store.labelSelectedTextID,
                                 showAlignmentGrid: store.labelShowAlignmentGrid,
@@ -177,7 +238,7 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
                     VStack(spacing: 3) {
                         Image(systemName: tool.iconName)
                             .font(.system(size: 15, weight: .semibold))
-                        Text(tool == .background ? "Bg" : (tool == .discSize ? "Size" : (tool == .text ? "Text" : "Move")))
+                        Text(tool.railLabel)
                             .font(.system(size: 9, weight: .semibold))
                     }
                     .frame(width: 44, height: 44)
@@ -214,9 +275,10 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
             // Reset to Blank White Disc at bottom of rail
             Button {
                 store.labelBackgroundStyle = .templateDefault
+                store.labelBgAdjustments = KroutonBackgroundAdjustments()
                 store.labelTextElements.removeAll()
                 store.labelSelectedTextID = nil
-                statusBanner = "Reset to Blank White Printable Disc"
+                showTransientBanner("Reset to Blank White Printable Disc")
             } label: {
                 VStack(spacing: 2) {
                     Image(systemName: "arrow.counterclockwise")
@@ -264,6 +326,7 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
             }
             .toggleStyle(.button)
             .controlSize(.small)
+            .onChange(of: store.selectedLabelPresetIndex) { _, _ in workingGeometryOverride = nil }
 
             Spacer()
 
@@ -289,4 +352,181 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
         .padding(.vertical, 7)
         .background(Color.primary.opacity(0.03))
     }
+
+    // MARK: - Tool Inspector C: Disc Size Override & Save as Preset
+
+    func discSizeOverrideInspector() -> some View {
+        let pIdx = safePresetIndex
+        return VStack(alignment: .leading, spacing: 12) {
+            Label("Disc Size & Preset Override", systemImage: "ruler")
+                .font(.subheadline.bold())
+
+            Text("Override the Inner Hub and Outer Rim diameters for the current disc, or save your custom geometry as a reusable preset in Settings.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Inner Hub Diameter (18–50 mm)")
+                        .font(.caption2.bold())
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("\(Int(activePreset.innerDiameterMM)) mm")
+                        .font(.caption2.monospaced().bold())
+                }
+                Slider(value: activeGeometryBinding.innerDiameterMM, in: 18...50, step: 1)
+
+                HStack {
+                    Text("Outer Disc Diameter (70–120 mm)")
+                        .font(.caption2.bold())
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("\(Int(activePreset.outerDiameterMM)) mm")
+                        .font(.caption2.monospaced().bold())
+                }
+                Slider(value: activeGeometryBinding.outerDiameterMM, in: 70...120, step: 1)
+
+                HStack(spacing: 6) {
+                    Button("Full Hub (18/120)") {
+                        activeGeometryBinding.wrappedValue.innerDiameterMM = 18
+                        activeGeometryBinding.wrappedValue.outerDiameterMM = 120
+                    }.buttonStyle(.bordered).controlSize(.mini)
+
+                    Button("Standard (41/118)") {
+                        activeGeometryBinding.wrappedValue.innerDiameterMM = 41
+                        activeGeometryBinding.wrappedValue.outerDiameterMM = 118
+                    }.buttonStyle(.bordered).controlSize(.mini)
+
+                    Button("Mini 80mm") {
+                        activeGeometryBinding.wrappedValue.innerDiameterMM = 18
+                        activeGeometryBinding.wrappedValue.outerDiameterMM = 80
+                    }.buttonStyle(.bordered).controlSize(.mini)
+                }
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Printer X Offset (-2.0 to +2.0 mm)")
+                        .font(.caption2.bold())
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(String(format: "%+.1f mm", activePreset.offsetXMM))
+                        .font(.caption2.monospaced())
+                }
+                Slider(value: activeGeometryBinding.offsetXMM, in: -2.0...2.0, step: 0.1)
+
+                HStack {
+                    Text("Printer Y Offset (-2.0 to +2.0 mm)")
+                        .font(.caption2.bold())
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(String(format: "%+.1f mm", activePreset.offsetYMM))
+                        .font(.caption2.monospaced())
+                }
+                Slider(value: activeGeometryBinding.offsetYMM, in: -2.0...2.0, step: 0.1)
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Save Override as New Preset")
+                    .font(.caption2.bold())
+                    .foregroundStyle(.secondary)
+
+                TextField("New Preset Name (e.g. Verbatim Full Hub)...", text: $newPresetName)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.caption)
+
+                Button {
+                    let trimmed = newPresetName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let cur = store.labelPresets[pIdx]
+                    let nameToSave = trimmed.isEmpty
+                        ? "Custom Disc (\(Int(cur.outerDiameterMM))mm / \(Int(cur.innerDiameterMM))mm)"
+                        : trimmed
+                    let saved = KroutonSliceLabelGeometry(
+                        name: nameToSave,
+                        outerDiameterMM: cur.outerDiameterMM,
+                        innerDiameterMM: cur.innerDiameterMM,
+                        offsetXMM: cur.offsetXMM,
+                        offsetYMM: cur.offsetYMM
+                    )
+                    store.labelPresets.append(saved)
+                    store.selectedLabelPresetIndex = store.labelPresets.count - 1
+                    newPresetName = ""
+                    showTransientBanner("Saved Preset '\(nameToSave)'")
+                } label: {
+                    Label("Save as Preset in Settings", systemImage: "plus.circle.fill")
+                        .font(.caption.bold())
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(store.activeAccent)
+                .controlSize(.small)
+            }
+        }
+    }
+
+    // MARK: - Tool Inspector D: Select / Layer Overview
+
+    func selectOverviewInspector() -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Canvas Layers Overview", systemImage: "cursorarrow")
+                .font(.subheadline.bold())
+
+            HStack {
+                Text("Background:")
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button(store.labelBackgroundStyle.rawValue) {
+                    activeTool = .background
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+
+            Divider()
+
+            HStack {
+                Text("Text Layers (\(store.labelTextElements.count))")
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("+ Add Text") {
+                    addNewTextElement()
+                    activeTool = .text
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(store.activeAccent)
+                .controlSize(.mini)
+            }
+
+            if store.labelTextElements.isEmpty {
+                Text("Canvas is currently blank. Use the left tool rail to set a Circular Gradient background or add Curved Arc Text.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(store.labelTextElements) { item in
+                    Button {
+                        store.labelSelectedTextID = item.id
+                        activeTool = .text
+                    } label: {
+                        HStack {
+                            Image(systemName: item.isCurvedArc ? "dial.medium.fill" : "text.aligncenter")
+                            Text(item.text).font(.caption.bold()).lineLimit(1)
+                            Spacer()
+                            Image(systemName: "chevron.right").font(.caption2)
+                        }
+                        .padding(8)
+                        .background(Color.primary.opacity(0.06))
+                        .clipShape(RoundedRectangle(cornerRadius: 7))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
 }

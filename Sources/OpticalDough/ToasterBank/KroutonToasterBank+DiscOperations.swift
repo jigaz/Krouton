@@ -418,7 +418,7 @@ extension KroutonToasterBank {
                 try fm.copyItem(at: item.url, to: destURL)
                 let frac = 0.15 + (0.35 * Double(index + 1) / Double(max(1, stagedFiles.count)))
                 activeJobProgress = frac
-                neroSamples.append(KroutonToastingSample(progressFraction: frac, speedMultiplierX: 32.0 + Double(index % 5), spindleRPM: 0, throughputKBs: 48_000))
+                neroSamples.append(KroutonToastingSample(progressFraction: frac, speedMultiplierX: 0.0, spindleRPM: 0, throughputKBs: 48_000))
             }
 
             if enableCustomLayout {

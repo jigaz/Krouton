@@ -241,7 +241,16 @@ struct KroutonVideoAuthoringWorkspaceView: View {
                 }
             }
 
-            ZStack {
+            videoStagingDropZoneSection
+        }
+    }
+
+    @ViewBuilder
+    private var videoStagingDropZoneSection: some View {
+        let isDualLayer = spec.technicalName.contains("DL") || spec.technicalName.contains("DVD-9") || spec.colloquialName.contains("50 GB") || spec.colloquialName.contains("UHD") || spec.id == "dvd-video"
+        let isBluRay = spec.technicalName.contains("BD") || spec.technicalName.contains("AVCHD")
+        let _ = (isDualLayer, isBluRay)
+        return ZStack {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color.kroutonControlSurface)
                     .overlay(
@@ -344,7 +353,6 @@ struct KroutonVideoAuthoringWorkspaceView: View {
             .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
                 onHandleFinderDrop(providers)
             }
-        }
     }
 
 }

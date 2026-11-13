@@ -147,7 +147,7 @@ harness.runSuite("20. Mastering & Extraction Domain Models (TOC, Video Titles & 
 
 }
 
-harness.runSuite("21. Phase 4 Workspace Modularization & 600-LOC File Ceiling Gate") { h in
+harness.runSuite("21. Phase 4 Workspace Modularization & 600-LOC File Ceiling & 200-LOC Function Gate") { h in
     let repoRoot = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .deletingLastPathComponent()

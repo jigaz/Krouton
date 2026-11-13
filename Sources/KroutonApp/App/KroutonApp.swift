@@ -273,7 +273,6 @@ struct KroutonMainWorkspaceView: View {
                     .frame(width: 11)
                     .frame(maxHeight: .infinity)
                     .contentShape(Rectangle())
-                    .onHover { inside in if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
                     .gesture(
                         DragGesture(minimumDistance: 1, coordinateSpace: .global)
                             .onChanged { val in
@@ -308,7 +307,6 @@ struct KroutonMainWorkspaceView: View {
                     .frame(width: 11)
                     .frame(maxHeight: .infinity)
                     .contentShape(Rectangle())
-                    .onHover { inside in if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
                     .gesture(
                         DragGesture(minimumDistance: 1, coordinateSpace: .global)
                             .onChanged { val in

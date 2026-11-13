@@ -385,6 +385,13 @@ extension KroutonSettingsWindowView {
                     krumb.appendEventLog("Saved \(savedURL.lastPathComponent) via SwiftUI FileExporter")
                 }
             }
+                burnersNetworkBottomSection
+        }
+    }
+
+    @ViewBuilder
+    private var burnersNetworkBottomSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
 
             settingsCard(title: "Optical Drive Hardware & MMC Bitsetting (Retro Console & Set-Top DVD Compatibility)") {
                 Toggle(KroutonL10n.tr("Stamp Book Type as DVD-ROM (0x00) on DVD+R & DVD+R DL Media (Required by vintage DVD players, early PS2 & Xbox)"), isOn: $store.forceDVDROMBookType)
