@@ -1,3 +1,4 @@
+import Crustini
 import SwiftUI
 import Foundation
 import UniformTypeIdentifiers
@@ -24,6 +25,7 @@ struct KroutonCopyAndRipWorkspaceView: View {
     @State private var copySourceOverrideLabel: String = ""
     @State private var copyOutputFolderPath: String = "~/Music/Krouton Rips"
     @State private var copyStatusBanner: String = ""
+    @State private var rescueScratchMode: Int = 1
     @State private var audioRipTracks: [KroutonRipTrackItem] = KroutonRipTrackItem.defaultRedBookTOC
     @State private var videoExtractTitles: [KroutonVideoExtractTitleItem] = KroutonVideoExtractTitleItem.defaultVideoTitles
 
@@ -71,6 +73,7 @@ struct KroutonCopyAndRipWorkspaceView: View {
                     .background(store.activeAccent.opacity(0.12)).clipShape(RoundedRectangle(cornerRadius: 6))
             }
 
+            unifiedOpticalRescueMapCard
             if isAudioRipTask {
                 audioCDRipWorkspaceDeck
             } else if isShrinkTask {
@@ -210,6 +213,47 @@ struct KroutonCopyAndRipWorkspaceView: View {
                     Text(String(format: "VideoOven Requantizer Ratio: %.1f%% • Output: %.2f GB • Requantize: %@", plan.requantizationRatio * 100.0, Double(plan.estimatedOutputBytes) / 1_000_000_000.0, plan.requiresRequantization ? "ACTIVE" : "PASSTHROUGH"))
                         .font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundStyle(store.activeAccent)
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    var unifiedOpticalRescueMapCard: some View {
+        let map = KroutonKrustiniModule.buildOpticalRescueMap(totalSectorsLBA: 333_000, scratchSeverity: rescueScratchMode)
+        KroutonMasteringDeckCard(store: store) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Image(systemName: "lifepreserver.fill").foregroundStyle(store.activeAccent)
+                    Text("OPTICAL BAD-SECTOR RESCUE MAP (r = 24.0 mm -> 58.0 mm • \(String(format: "%.2f%%", map.recoveryIntegrityPercent)) INTEGRITY)")
+                        .font(.system(size: 9.5, weight: .heavy, design: .monospaced)).foregroundStyle(.secondary)
+                    Spacer()
+                    Picker("Condition:", selection: $rescueScratchMode) {
+                        Text("Pristine").tag(0)
+                        Text("Light Scratch (C2/2x CLV)").tag(1)
+                        Text("Deep Radial Gouge").tag(2)
+                    }.font(.caption).frame(width: 215)
+                    Button("Copy .MAP Log") {
+                        KroutonOSDesktopBridge.copyTextToClipboard(map.exportRescueMapLog(volumeName: store.discVolumeTitle))
+                        copyStatusBanner = "Copied .MAP Sector Rescue Log to Clipboard"
+                    }.buttonStyle(.bordered).controlSize(.mini)
+                    Button("Send to Video Author ->") {
+                        store.selectedTaskID = "dvd-video"
+                        copyStatusBanner = "Routed Extracted Stream to DVD/BDMV Authoring Deck"
+                    }.buttonStyle(.borderedProminent).tint(store.uiSecondaryAccent).controlSize(.mini)
+                }
+                HStack(spacing: 2) {
+                    ForEach(Array(map.buckets.enumerated()), id: \.offset) { _, status in
+                        let col: Color = status == .healthyBurst ? .green : (status == .retried2xCLV ? .orange : (status == .c2Interpolated ? .cyan : .red))
+                        RoundedRectangle(cornerRadius: 1.5).fill(col.opacity(0.85)).frame(height: 10)
+                    }
+                }
+                HStack(spacing: 14) {
+                    Label("Clean: \(map.healthyCount)/64", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    Label("2x CLV Retry: \(map.retriedCount)", systemImage: "arrow.triangle.2.circlepath").foregroundStyle(.orange)
+                    Label("C2 Interpolated: \(map.c2InterpolatedCount)", systemImage: "waveform.badge.magnifyingglass").foregroundStyle(.cyan)
+                    Label("Zero-Padded: \(map.zeroPaddedCount)", systemImage: "exclamationmark.octagon.fill").foregroundStyle(.red)
+                    Spacer()
+                }.font(.system(size: 9.5, weight: .semibold, design: .monospaced))
             }
         }
     }

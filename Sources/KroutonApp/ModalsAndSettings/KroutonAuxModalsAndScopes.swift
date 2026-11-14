@@ -1,3 +1,4 @@
+import Crustini
 import OpticalDough
 import SwiftUI
 import UniformTypeIdentifiers
@@ -117,7 +118,8 @@ struct KroutonMasteringReportSheet: View {
             ("Media Format & Volume", "\(report.mediaFormattedName) • \(report.volumeName)"),
             ("Sectors & Data Written", "\(report.sectorsWrittenLBA) LBA (\(ByteCountFormatter.string(fromByteCount: report.bytesWritten, countStyle: .file)))"),
             ("Transfer Rate (Avg / Peak)", "\(report.averageSpeedText) • Peak \(report.peakSpeedText)"),
-            ("Elapsed Mastering Time", report.elapsedDurationText)
+            ("Elapsed Mastering Time", report.elapsedDurationText),
+            ("Archival Quality Grade", KroutonKrustiniModule.evaluateArchivalDiscGrade(driveModel: report.driveModel, mediaType: report.mediaFormattedName, sectorsWrittenLBA: report.sectorsWrittenLBA).summaryLine)
         ]
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 14) {
@@ -141,6 +143,10 @@ struct KroutonMasteringReportSheet: View {
             Label(report.diagnosticAdvice, systemImage: "info.circle.fill").font(.callout).foregroundStyle(.secondary)
             Spacer()
             HStack {
+                Button("Copy Archival Certificate") {
+                    let cert = KroutonKrustiniModule.evaluateArchivalDiscGrade(driveModel: report.driveModel, mediaType: report.mediaFormattedName, sectorsWrittenLBA: report.sectorsWrittenLBA)
+                    KroutonOSDesktopBridge.copyTextToClipboard(cert.certificateText)
+                }
                 Button("Copy Telemetry Log") {
                     KroutonOSDesktopBridge.copyTextToClipboard("\(report.title)\n\(report.summary)\nSectors: \(report.sectorsWrittenLBA) LBA")
                 }

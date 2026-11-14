@@ -476,4 +476,16 @@ extension KroutonStateStore {
         )
     }
 
+
+    public func stampProjectTracklistOrManifestOnDisc(albumTitle: String = "", performer: String = "") {
+        let titleText = albumTitle.isEmpty ? discVolumeTitle : albumTitle
+        let perfText = performer.isEmpty ? discPerformer : performer
+        labelTextElements.removeAll()
+        labelTextElements.append(KroutonLabelTextElement(text: titleText, isCurvedArc: true, radiusMM: 44.0, angleDegrees: 0.0, fontSizePoints: 14.0, isBold: true))
+        labelTextElements.append(KroutonLabelTextElement(text: perfText, isCurvedArc: true, radiusMM: 38.0, angleDegrees: 180.0, fontSizePoints: 10.5, isBottomUpright: true, isBold: true))
+        for (i, cube) in redBookTracks.prefix(5).enumerated() {
+            let line = String(format: "%02d. %@ (%@)", i + 1, cube.title, cube.formattedDurationMMSSFF)
+            labelTextElements.append(KroutonLabelTextElement(text: line, isCurvedArc: false, radiusMM: 28.0 - Double(i) * 3.0, angleDegrees: 90.0, fontSizePoints: 7.5))
+        }
+    }
 }

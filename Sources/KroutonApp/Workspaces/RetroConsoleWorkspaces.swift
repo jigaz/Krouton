@@ -1,3 +1,4 @@
+import Galette
 import SwiftUI
 import UniformTypeIdentifiers
 import Foundation
@@ -27,6 +28,8 @@ struct KroutonRetroConsoleWorkspaceView: View {
     @State private var xboxLayerBreakPreset: String = "Auto (.dvd / Calculate Optimal)"
     @State private var ps1AutoMergeMultiBinAndCHD: Bool = true
     @State private var wiiLayerMode: String = "Auto-Detect (DVD5 4.7GB / DVD9 LBA 2084960)"
+    @State private var selectedSoftPatch: KroutonSoftPatchFormat = .none
+    @State private var exportCompanionCHD: Bool = false
 
     private var descriptor: ConsoleDeckDescriptor {
         switch spec.id {
@@ -138,6 +141,14 @@ struct KroutonRetroConsoleWorkspaceView: View {
                             Spacer(minLength: 0)
                         }
                     }
+                    HStack(spacing: 12) {
+                        Picker("Soft-Patch ROM:", selection: $selectedSoftPatch) {
+                            ForEach(KroutonSoftPatchFormat.allCases) { fmt in Text(fmt.rawValue).tag(fmt) }
+                        }.font(.caption).frame(width: 255)
+                        Toggle("Export Compressed .CHD (LZMA+FLAC)", isOn: $exportCompanionCHD)
+                            .toggleStyle(.checkbox).font(.caption.bold())
+                        Spacer(minLength: 0)
+                    }
                     HStack(spacing: 6) {
                         Image(systemName: desc.footerIcon).font(.system(size: 10)).foregroundStyle(store.uiSecondaryAccent)
                         Text(desc.footerNote).font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary).lineLimit(1)
@@ -167,8 +178,8 @@ struct KroutonRetroConsoleWorkspaceView: View {
                     ScrollView {
                         LazyVStack(spacing: 0) {
                             ForEach(store.stagedFiles) { entry in
-                                let ext = entry.url.pathExtension.lowercased()
-                                let modeBadge = (ext == "bin" || ext == "cue") ? "RAW 2,352 B/sec (Mode 2 XA)" : "2,048 B/sec (UDF/ISO)"
+                                let patchInfo = KroutonGaletteModule.evaluateRetroSoftPatchAndCHD(fileName: entry.name, byteSize: entry.byteSize, patchFormat: selectedSoftPatch, exportCHD: exportCompanionCHD)
+                                let modeBadge = selectedSoftPatch == .none ? patchInfo.chdCompressionBadge : "\(patchInfo.chdCompressionBadge) • Patched \(patchInfo.patchedSectorCount) Sec (EDC \(patchInfo.edcChecksumHex) + P/Q ECC)"
                                 HStack(spacing: 12) {
                                     Image(systemName: "opticaldisc.fill").foregroundStyle(store.activeAccent).frame(width: 22)
                                     VStack(alignment: .leading, spacing: 2) {
