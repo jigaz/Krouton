@@ -100,11 +100,6 @@ public struct KroutonKrustiniModule {
         )
     }
 
-    /// Converts millimeters to pixels at a target DPI (default 300 DPI print master)
-    public static func mmToPixels(_ mm: Double, dpi: Double = 300.0) -> Double {
-        (mm / 25.4) * dpi
-    }
-
     /// Hit-tests whether a Cartesian point (x, y) relative to disc center lies strictly within the printable ink annulus
     public static func isPointInsidePrintableAnnulus(
         dxMM: Double,

@@ -1,6 +1,6 @@
 //
 //  KroutonThemeEngine.swift
-//  Krouton — Optical Media Mastering Studio
+//  Krouton — Optical Media Mastering Package (Optical Media Mastering Studio)
 //
 //  22-Color Display-P3 Perceptual Harmony Engine + Zero-Allocation LUT Cache.
 //  100% Pure SwiftUI & CoreGraphics IEEE-754 Color Math (Zero AppKit Dependency).

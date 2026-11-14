@@ -415,17 +415,7 @@ public enum KroutonL10n {
 
 // MARK: - Apple Silicon Hardware-Accelerated Verification Bridge
 extension KroutonStateStore {
-    /// Offloads large ISO/BIN/CHD SHA-256 verification to Apple Silicon CryptoKit AMX units via KroutonHardwareAccelerator.
-    public func verifyDiscImageHardwareAccelerated(url: URL, completion: @escaping @Sendable (String?) -> Void) {
-        Task.detached(priority: .userInitiated) {
-            let digest = try? await KroutonHardwareAccelerator.shared.computeFileSHA256Hex(at: url)
-            await MainActor.run {
-                completion(digest)
-            }
-        }
-    }
 }
-
 
 // MARK: - Chunk 8: Live Backend Engine Bridge Across All 5 Culinary Modules
 extension KroutonStateStore {
@@ -486,15 +476,4 @@ extension KroutonStateStore {
         )
     }
 
-    /// Computes a live Crustini 300-DPI polar arc glyph layout for the Disc Label Studio
-    public func computeLiveDiscLabelArcGlyphs(title: String, radiusPoints: Double = 500.0) -> [KroutonPolarArcGlyphPlacement] {
-        KroutonKrustiniModule.computePolarArcGlyphLayout(
-            text: title,
-            centerX: 708.5,
-            centerY: 708.5,
-            radiusPoints: radiusPoints
-        )
-    }
 }
-
-

@@ -6,7 +6,9 @@ import Crustini
 // MARK: - Stage 1 Clean Printable Disc Canvas (Live Reactive Inputs + Interactive Drag-on-Disc)
 
 public struct KroutonDiscLabelArtworkCanvas: View {
-    @State private var activeDragTargetID: UUID? = nil
+    @State private var activeDragTargetID: UUID?
+    @State private var freehandDraftPoints: [KroutonNormalizedPoint] = []
+    public var onCommitFreehandStroke: (([KroutonNormalizedPoint]) -> Void)? = nil
     public let preset: KroutonSliceLabelGeometry
     public let template: KroutonCroutonLabelStyle
     public let title: String
@@ -37,6 +39,7 @@ public struct KroutonDiscLabelArtworkCanvas: View {
     public var selectedTextID: UUID?
     public var showAlignmentGrid: Bool
     public var onSelectOrDragText: ((UUID, Double, Double) -> Void)?
+    public var onDragVectorShape: ((UUID, Double, Double) -> Void)?
 
     public init(
         preset: KroutonSliceLabelGeometry,
@@ -66,7 +69,9 @@ public struct KroutonDiscLabelArtworkCanvas: View {
         textElements: [KroutonLabelTextElement] = [],
         selectedTextID: UUID? = nil,
         showAlignmentGrid: Bool = false,
-        onSelectOrDragText: ((UUID, Double, Double) -> Void)? = nil
+        onSelectOrDragText: ((UUID, Double, Double) -> Void)? = nil,
+        onDragVectorShape: ((UUID, Double, Double) -> Void)? = nil,
+        onCommitFreehandStroke: (([KroutonNormalizedPoint]) -> Void)? = nil
     ) {
         self.preset = preset
         self.template = template
@@ -96,6 +101,8 @@ public struct KroutonDiscLabelArtworkCanvas: View {
         self.selectedTextID = selectedTextID
         self.showAlignmentGrid = showAlignmentGrid
         self.onSelectOrDragText = onSelectOrDragText
+        self.onDragVectorShape = onDragVectorShape
+        self.onCommitFreehandStroke = onCommitFreehandStroke
     }
 
     private var outerMM: Double {
@@ -120,9 +127,16 @@ public struct KroutonDiscLabelArtworkCanvas: View {
                 alignmentGridOverlay
             }
 
-            // 2B. Parametric Vector Shapes & Optical Standard Badges
+            // 2B. Parametric Vector Shapes & Live Freehand Draft Stroke
             ForEach(vectorShapes) { shape in
                 renderVectorShapeView(shape)
+            }
+            if freehandDraftPoints.count >= 2 {
+                renderVectorShapeView(KroutonVectorShapeLayer(
+                    name: "Draft", kind: .smoothBezier, points: freehandDraftPoints,
+                    strokeWidthPoints: 2.2, isClosed: false,
+                    strokeColor: KroutonRGBAColor(r: 0.25, g: 0.92, b: 1.0, a: 0.95)
+                ))
             }
 
             // 3. User Text Elements (Curved on Disc Arc or Straight Horizontal)
@@ -145,8 +159,29 @@ public struct KroutonDiscLabelArtworkCanvas: View {
         .gesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { val in
-                    guard !isExportMode, let onDrag = onSelectOrDragText, !textElements.isEmpty else { return }
+                    guard !isExportMode else { return }
+                    let halfD = max(1.0, Double(diameterPoints) * 0.5)
                     let center = CGPoint(x: diameterPoints * 0.5, y: diameterPoints * 0.5)
+                    if onCommitFreehandStroke != nil {
+                        let curNX = max(-0.92, min(0.92, Double(val.location.x - center.x) / halfD))
+                        let curNY = max(-0.92, min(0.92, Double(val.location.y - center.y) / halfD))
+                        freehandDraftPoints.append(KroutonNormalizedPoint(nx: curNX, ny: curNY))
+                        return
+                    }
+                    if let onShapeDrag = onDragVectorShape, !vectorShapes.isEmpty {
+                        if activeDragTargetID == nil {
+                            let sNX = Double(val.startLocation.x - center.x) / halfD
+                            let sNY = Double(val.startLocation.y - center.y) / halfD
+                            activeDragTargetID = KroutonKrustiniModule.nearestVectorShapeID(in: vectorShapes, normalizedX: sNX, normalizedY: sNY)
+                        }
+                        if let shapeID = activeDragTargetID {
+                            let curNX = Double(val.location.x - center.x) / halfD
+                            let curNY = Double(val.location.y - center.y) / halfD
+                            onShapeDrag(shapeID, curNX, curNY)
+                        }
+                        return
+                    }
+                    guard let onDrag = onSelectOrDragText, !textElements.isEmpty else { return }
                     let dx = Double(val.location.x - center.x)
                     let dy = Double(val.location.y - center.y)
                     let distPts = hypot(dx, dy)
@@ -178,6 +213,10 @@ public struct KroutonDiscLabelArtworkCanvas: View {
                     }
                 }
                 .onEnded { _ in
+                    if let commit = onCommitFreehandStroke, freehandDraftPoints.count >= 3 {
+                        commit(freehandDraftPoints)
+                    }
+                    freehandDraftPoints.removeAll()
                     activeDragTargetID = nil
                 }
         )

@@ -3,7 +3,7 @@ import Tartine
 import Marmalade
 //
 //  KroutonMasteringWorkspaces.swift
-//  Krouton — Optical Media Mastering Studio
+//  Krouton — Optical Media Mastering Package (Optical Media Mastering Studio)
 //
 //  Format-Specific Mastering Workspaces (Data/Archival, Red Book Audio, Video Authoring, Car-Safe Audio, Retro Console ROMs, and Disc Image Inspector).
 //

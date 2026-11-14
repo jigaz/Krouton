@@ -165,7 +165,31 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
                                         if store.labelTextElements.indices.contains(idx) { store.labelTextElements[idx].angleDegrees = newAngleDeg }
                                         activeTool = .text
                                     }
-                                }
+                                },
+                                onDragVectorShape: (activeTool == .shapes || store.labelTextElements.isEmpty) ? { shapeID, nx, ny in
+                                    store.labelStudioSubStore.recordUndoSnapshot(from: store, coalesceWindow: 0.45)
+                                    if let idx = store.labelVectorShapes.firstIndex(where: { $0.id == shapeID }),
+                                       store.labelVectorShapes.indices.contains(idx) {
+                                        store.labelVectorShapes[idx] = KroutonKrustiniModule.recenterVectorShape(
+                                            store.labelVectorShapes[idx],
+                                            toNormalizedX: nx,
+                                            normalizedY: ny
+                                        )
+                                        activeTool = .shapes
+                                    }
+                                } : nil,
+                                onCommitFreehandStroke: (activeTool == .shapes && store.labelStudioSubStore.isFreehandDrawMode) ? { pts in
+                                    store.labelStudioSubStore.recordUndoSnapshot(from: store)
+                                    let (cr, cg, cb, _) = KroutonPureColorMath.extractSRGB(store.activeAccent)
+                                    let stroke = KroutonRGBAColor(r: Double(cr), g: Double(cg), b: Double(cb), a: 0.95)
+                                    let recognized = KroutonKrustiniModule.recognizeAndVectorizeDrawnStroke(
+                                        rawPoints: pts,
+                                        autoSnapGeometry: store.labelStudioSubStore.autoSnapFreehandShapes,
+                                        strokeColor: stroke
+                                    )
+                                    store.labelVectorShapes.append(recognized)
+                                    showTransientBanner("Added \(recognized.name)")
+                                } : nil
                             )
                             .shadow(color: .black.opacity(0.45), radius: 16, y: 6)
                         }

@@ -1,6 +1,6 @@
 //
 //  KroutonDepotCatalogViews.swift
-//  Krouton — Optical Media Mastering Studio
+//  Krouton — Optical Media Mastering Package (Optical Media Mastering Studio)
 //
 //  Disc Image Depot Interactive Hero Banner & App-Store Style Catalog Cards.
 //

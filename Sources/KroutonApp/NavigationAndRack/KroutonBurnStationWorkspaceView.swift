@@ -43,36 +43,16 @@ struct KroutonBurnStationWorkspaceView: View {
         }
     }
 
-    // ==========================================================================
-    // 1. RED BOOK AUDIO CD (CD-DA) & CD-EXTRA WAVEBURNER MASTERING STUDIO
-    // ==========================================================================
 
 
-    // ==========================================================================
-    // 2. CAR-SAFE MP3 / FLAC AUDIO CD WORKSPACE (Head-Unit Sorting & Sanitizer)
-    // ==========================================================================
 
 
-    // ==========================================================================
-    // 3. VIDEO DISC AUTHORING STUDIO (DVD-Video, AVCHD, BD-R SL/DL, UHD-BD)
-    // ==========================================================================
 
 
-    // ==========================================================================
-    // 4. RETRO CONSOLE ROM & SECTOR VERIFICATION WORKSPACE (PS1/PS2/GC/Wii/Xbox)
-    // ==========================================================================
 
 
-    // ==========================================================================
-    // 5A. DEDICATED DISC IMAGE (.ISO / .BIN / .DMG / .CDR) FULL-WORKSPACE DECK
-    //     (Single-Image Radial Platter, Live LBA Hex Scope & Actionable Pills)
-    // ==========================================================================
 
 
-    // ==========================================================================
-    // 5B. NEW DATA & ARCHIVAL DISC AUTHORING WORKSPACE
-    //     (Author File/Folder Trees with Universal Bridge & Per-File OS Visibility)
-    // ==========================================================================
 
 
     // MARK: - Retro Console ROM Mastering Deck & Pre-Flight Sanity Engine

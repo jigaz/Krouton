@@ -348,15 +348,8 @@ extension KroutonKrustiniModule {
         rotation: CGFloat, facets: Int, color: (CGFloat, CGFloat, CGFloat)
     ) {
         let n = max(5, facets)
-        let tableRatio: CGFloat = 0.52
-        let midRatio: CGFloat = 0.78
-        let lightAngle: CGFloat = -.pi * 0.35
-
+        let tableR = radius * 0.54
         ctx.saveGState()
-        ctx.setShadow(
-            offset: CGSize(width: 1.5, height: 2.5), blur: 5.0,
-            color: CGColor(colorSpace: sRGBColorSpace, components: [color.0 * 0.45, color.1 * 0.45, color.2 * 0.50, 0.38])
-        )
         ctx.beginPath()
         for i in 0..<n {
             let ang = rotation + CGFloat(i) * (.pi * 2.0 / CGFloat(n))
@@ -364,104 +357,37 @@ extension KroutonKrustiniModule {
             if i == 0 { ctx.move(to: pt) } else { ctx.addLine(to: pt) }
         }
         ctx.closePath()
-        ctx.setFillColor(CGColor(colorSpace: sRGBColorSpace, components: [color.0 * 0.18, color.1 * 0.18, color.2 * 0.22, 0.96])!)
+        ctx.setFillColor(CGColor(colorSpace: sRGBColorSpace, components: [color.0 * 0.55, color.1 * 0.55, color.2 * 0.60, 0.94])!)
         ctx.fillPath()
-        ctx.restoreGState()
 
-        for i in 0..<n {
-            let a0 = rotation + CGFloat(i) * (.pi * 2.0 / CGFloat(n))
-            let a1 = rotation + CGFloat(i + 1) * (.pi * 2.0 / CGFloat(n))
-            let aMid = (a0 + a1) * 0.5
-
-            let g0 = CGPoint(x: center.x + cos(a0) * radius, y: center.y + sin(a0) * radius)
-            let g1 = CGPoint(x: center.x + cos(a1) * radius, y: center.y + sin(a1) * radius)
-            let t0 = CGPoint(x: center.x + cos(a0) * (radius * tableRatio), y: center.y + sin(a0) * (radius * tableRatio))
-            let t1 = CGPoint(x: center.x + cos(a1) * (radius * tableRatio), y: center.y + sin(a1) * (radius * tableRatio))
-            let sMid = CGPoint(x: center.x + cos(aMid) * (radius * midRatio), y: center.y + sin(aMid) * (radius * midRatio))
-
-            let normalDot = cos(aMid - lightAngle)
-            let bounceDot = cos(aMid - (lightAngle + .pi * 0.85))
-            let spec = pow(max(0.0, normalDot), 10.0)
-            let internalFire = pow(max(0.0, bounceDot), 3.0)
-
-            let rOuter = min(1.0, color.0 * (0.28 + 0.65 * max(0, normalDot)) + internalFire * 0.45 + spec * 0.90)
-            let gOuter = min(1.0, color.1 * (0.28 + 0.65 * max(0, normalDot)) + internalFire * 0.35 + spec * 0.90)
-            let bOuter = min(1.0, color.2 * (0.28 + 0.65 * max(0, normalDot)) + internalFire * 0.55 + spec * 0.90)
-
-            ctx.beginPath()
-            ctx.move(to: g0); ctx.addLine(to: g1); ctx.addLine(to: sMid); ctx.closePath()
-            ctx.setFillColor(CGColor(colorSpace: sRGBColorSpace, components: [rOuter, gOuter, bOuter, 0.94])!)
-            ctx.fillPath()
-
-            let starDot = cos(aMid + 0.35 - lightAngle)
-            let starSpec = pow(max(0.0, starDot), 14.0)
-            let rStar = min(1.0, color.0 * (0.45 + 0.55 * max(0, -starDot)) + starSpec * 0.95)
-            let gStar = min(1.0, color.1 * (0.45 + 0.55 * max(0, -starDot)) + starSpec * 0.95)
-            let bStar = min(1.0, color.2 * (0.45 + 0.55 * max(0, -starDot)) + starSpec * 0.95)
-
-            ctx.beginPath()
-            ctx.move(to: t0); ctx.addLine(to: g0); ctx.addLine(to: sMid); ctx.addLine(to: t1); ctx.closePath()
-            ctx.setFillColor(CGColor(colorSpace: sRGBColorSpace, components: [rStar, gStar, bStar, 0.92])!)
-            ctx.fillPath()
-
-            ctx.beginPath()
-            ctx.move(to: g0); ctx.addLine(to: sMid); ctx.addLine(to: g1)
-            ctx.move(to: t0); ctx.addLine(to: sMid); ctx.addLine(to: t1)
-            ctx.setStrokeColor(CGColor(colorSpace: sRGBColorSpace, components: [1.0, 1.0, 1.0, 0.28 + spec * 0.55])!)
-            ctx.setLineWidth(0.9)
-            ctx.strokePath()
-        }
-
-        ctx.saveGState()
         ctx.beginPath()
         for i in 0..<n {
             let ang = rotation + CGFloat(i) * (.pi * 2.0 / CGFloat(n))
-            let pt = CGPoint(x: center.x + cos(ang) * (radius * tableRatio), y: center.y + sin(ang) * (radius * tableRatio))
-            if i == 0 { ctx.move(to: pt) } else { ctx.addLine(to: pt) }
+            ctx.move(to: CGPoint(x: center.x + cos(ang) * radius, y: center.y + sin(ang) * radius))
+            ctx.addLine(to: CGPoint(x: center.x + cos(ang) * tableR, y: center.y + sin(ang) * tableR))
         }
-        ctx.closePath()
-        ctx.clip()
-
-        let tableColors = [
-            CGColor(colorSpace: sRGBColorSpace, components: [min(1.0, color.0 + 0.42), min(1.0, color.1 + 0.42), min(1.0, color.2 + 0.42), 0.96])!,
-            CGColor(colorSpace: sRGBColorSpace, components: [color.0 * 0.85, color.1 * 0.85, color.2 * 0.85, 0.95])!,
-            CGColor(colorSpace: sRGBColorSpace, components: [color.0 * 0.25, color.1 * 0.25, color.2 * 0.30, 0.98])!
-        ] as CFArray
-        let tR = radius * tableRatio
-        if let tGrad = CGGradient(colorsSpace: sRGBColorSpace, colors: tableColors, locations: [0.0, 0.52, 1.0]) {
-            ctx.drawLinearGradient(tGrad, start: CGPoint(x: center.x - tR, y: center.y - tR), end: CGPoint(x: center.x + tR, y: center.y + tR), options: [])
-        }
+        ctx.setStrokeColor(CGColor(colorSpace: sRGBColorSpace, components: [1.0, 1.0, 1.0, 0.45])!)
+        ctx.setLineWidth(1.0)
+        ctx.strokePath()
+        drawStylizedCabochonSphere(ctx: ctx, center: center, radius: tableR, color: color)
         ctx.restoreGState()
     }
 
     private static func drawStylizedCabochonSphere(
         ctx: CGContext, center: CGPoint, radius: CGFloat, color: (CGFloat, CGFloat, CGFloat)
     ) {
-        let rect = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2.0, height: radius * 2.0)
-        ctx.saveGState()
-        ctx.fillEllipse(in: rect)
-        ctx.addEllipse(in: rect)
-        ctx.clip()
-
-        let causticCenter = CGPoint(x: center.x + radius * 0.32, y: center.y + radius * 0.34)
-        let sphereColors = [
-            CGColor(colorSpace: sRGBColorSpace, components: [min(1.0, color.0 + 0.55), min(1.0, color.1 + 0.55), min(1.0, color.2 + 0.55), 0.98])!,
+        let colors = [
+            CGColor(colorSpace: sRGBColorSpace, components: [min(1.0, color.0 + 0.48), min(1.0, color.1 + 0.48), min(1.0, color.2 + 0.48), 0.96])!,
             CGColor(colorSpace: sRGBColorSpace, components: [color.0, color.1, color.2, 0.92])!,
-            CGColor(colorSpace: sRGBColorSpace, components: [color.0 * 0.16, color.1 * 0.16, color.2 * 0.22, 0.98])!
+            CGColor(colorSpace: sRGBColorSpace, components: [color.0 * 0.18, color.1 * 0.18, color.2 * 0.24, 0.98])!
         ] as CFArray
-        if let sGrad = CGGradient(colorsSpace: sRGBColorSpace, colors: sphereColors, locations: [0.0, 0.48, 1.0]) {
-            ctx.drawRadialGradient(sGrad, startCenter: causticCenter, startRadius: radius * 0.05, endCenter: center, endRadius: radius, options: [])
+        if let grad = CGGradient(colorsSpace: sRGBColorSpace, colors: colors, locations: [0.0, 0.50, 1.0]) {
+            ctx.drawRadialGradient(
+                grad,
+                startCenter: CGPoint(x: center.x - radius * 0.28, y: center.y - radius * 0.28),
+                startRadius: radius * 0.04, endCenter: center, endRadius: radius, options: []
+            )
         }
-
-        let specCenter = CGPoint(x: center.x - radius * 0.35, y: center.y - radius * 0.35)
-        let specColors = [
-            CGColor(colorSpace: sRGBColorSpace, components: [1.0, 1.0, 1.0, 0.95])!,
-            CGColor(colorSpace: sRGBColorSpace, components: [1.0, 1.0, 1.0, 0.0])!
-        ] as CFArray
-        if let specGrad = CGGradient(colorsSpace: sRGBColorSpace, colors: specColors, locations: [0.0, 1.0]) {
-            ctx.drawRadialGradient(specGrad, startCenter: specCenter, startRadius: radius * 0.02, endCenter: specCenter, endRadius: radius * 0.42, options: [])
-        }
-        ctx.restoreGState()
     }
 
     // MARK: - CoreImage Kaleidoscope & Tiny Planet Filter Stages

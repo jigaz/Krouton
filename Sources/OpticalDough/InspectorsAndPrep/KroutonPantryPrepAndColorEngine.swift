@@ -64,11 +64,6 @@ public struct KroutonRecipeCodecRow: Identifiable, Hashable, Sendable {
 }
 
 public enum KroutonPantryPrepEngine {
-    /// Queries Apple's VideoToolbox framework at runtime to verify hardware decode support for a CMVideoCodecType
-    public static func isHardwareDecodeSupported(_ codec: CMVideoCodecType) -> Bool {
-        return VTIsHardwareDecodeSupported(codec)
-    }
-
     public static var liveHardwareCodecMatrix: [KroutonRecipeCodecRow] {
         let h264HW = VTIsHardwareDecodeSupported(kCMVideoCodecType_H264)
         let hevcHW = VTIsHardwareDecodeSupported(kCMVideoCodecType_HEVC)

@@ -89,18 +89,6 @@ extension KroutonStateStore {
         }
     }
 
-    public func addAudioTrackURLs(_ urls: [URL]) {
-        for url in urls {
-            let nextIndex = redBookTracks.count + 1
-            let track = KroutonToasterBank.inspectAudioTrack(url: url, index: nextIndex)
-            redBookTracks.append(track)
-        }
-    }
-
-    public func removeAudioTrack(id: UUID) {
-        redBookTracks.removeAll { $0.id == id }
-    }
-
     public var totalRedBookFramesLBA: Int64 {
         let tracksFrames = redBookTracks.reduce(Int64(0)) { $0 + $1.totalRedBookFrames }
         let htoaFrames = enableHTOA ? Int64(round(htoaDurationSeconds * 75.0)) : 0
@@ -109,31 +97,6 @@ extension KroutonStateStore {
 
     public var totalRedBookBytes: Int64 {
         totalRedBookFramesLBA * 2352
-    }
-
-    public func autoSanitizeLongFilenames() {
-        for idx in stagedFiles.indices {
-            let name = stagedFiles[idx].name
-            if name.count > 31 {
-                let ext = stagedFiles[idx].url.pathExtension
-                let stem = stagedFiles[idx].url.deletingPathExtension().lastPathComponent
-                let maxStem = max(8, 30 - (ext.isEmpty ? 0 : ext.count + 1))
-                let trimmedStem = String(stem.prefix(maxStem))
-                let newName = ext.isEmpty ? trimmedStem : "\(trimmedStem).\(ext)"
-                stagedFiles[idx] = KroutonLoafFileEntry(
-                    id: stagedFiles[idx].id,
-                    url: stagedFiles[idx].url,
-                    name: newName,
-                    isDirectory: stagedFiles[idx].isDirectory,
-                    byteSize: stagedFiles[idx].byteSize,
-                    itemCount: stagedFiles[idx].itemCount,
-                    posixPermissions: stagedFiles[idx].posixPermissions,
-                    modifiedDate: stagedFiles[idx].modifiedDate,
-                    showOnMac: stagedFiles[idx].showOnMac,
-                    showOnPC: stagedFiles[idx].showOnPC
-                )
-            }
-        }
     }
 
     public func removeStagedFile(id: UUID) {

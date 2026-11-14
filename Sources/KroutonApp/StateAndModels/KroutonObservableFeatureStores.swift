@@ -110,6 +110,8 @@ public struct KroutonLabelCanvasSnapshot: Equatable, Sendable {
 public final class KroutonLabelStudioSubStore {
     public var workingGeometryOverride: KroutonSliceLabelGeometry? = nil
     public var transientStatusBanner: String = ""
+    public var isFreehandDrawMode: Bool = false
+    public var autoSnapFreehandShapes: Bool = true
     public var lastExportedPNGURL: URL? = nil
     public private(set) var timeline: [KroutonLabelCanvasSnapshot] = []
     public private(set) var cursor: Int = -1

@@ -1,6 +1,6 @@
 //
 //  KroutonEphemeralBurnCache.swift
-//  Krouton — Optical Media Mastering Studio
+//  Krouton — Optical Media Mastering Package (Optical Media Mastering Studio)
 //
 //  1. Ephemeral Mach VM Burn Ring-Buffer (`vm_allocate` / `vm_deallocate`):
 //     Grabs physical RAM ONLY while a disc burn/mux is actively running and
@@ -157,27 +157,5 @@ public final class KroutonIdlePowerMonitor: ObservableObject {
         }
         source.resume()
         self.memoryPressureSource = source
-    }
-
-    /// Acquires the ephemeral RAM burn buffer and prevents App Nap only during an active burn.
-    public func beginActiveBurnSession(bufferMegabytes: Int = 32) {
-        isPerformingHardwareIO = true
-        KroutonEphemeralBurnCache.shared.acquireForActiveBurn(megabytes: bufferMegabytes)
-        if ioActivityToken == nil {
-            ioActivityToken = ProcessInfo.processInfo.beginActivity(
-                options: [.userInitiated, .idleSystemSleepDisabled],
-                reason: "Krouton Optical Laser Mastering Active"
-            )
-        }
-    }
-
-    /// Ends the burn session, immediately frees the Mach VM ring-buffer, and re-enables App Nap (~0% idle CPU).
-    public func endActiveBurnSession() {
-        isPerformingHardwareIO = false
-        KroutonEphemeralBurnCache.shared.releaseImmediatelyAfterBurn()
-        if let token = ioActivityToken {
-            ProcessInfo.processInfo.endActivity(token)
-            ioActivityToken = nil
-        }
     }
 }

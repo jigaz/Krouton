@@ -74,34 +74,6 @@ public struct KroutonConsoleMasteringConfig: Equatable, Codable, Sendable {
     public init() {}
 }
 
-public struct KroutonCopyExtractionConfig: Equatable, Codable, Sendable {
-    public var fitToDiscDVD9Shrink: Bool = true
-    public var preserveMenusAndExtras: Bool = true
-    public var audioRipCodec: String = "FLAC (Lossless)"
-    public var audioRipAccurateRip: Bool = true
-    public var audioRipGenerateCueLog: Bool = true
-    public var videoExtractMode: String = "Lossless MKV Remux"
-    public var videoExtractMinSeconds: Int = 120
-    public var videoExtractKeepChapters: Bool = true
-    public var copySourceOverrideLabel: String = ""
-    public var copyOutputFolderPath: String = "~/Music/Krouton Rips"
-
-    public init() {}
-}
-
-public struct KroutonVideoAuthoringConfig: Equatable, Codable, Sendable {
-    public var videoMenuTemplate: String = "Dark Studio Chapter Grid"
-    public var videoSystemStandard: String = "NTSC 16:9 (29.97 / 23.976p)"
-    public var videoAudioEncoding: String = "AC-3 Dolby Digital 5.1 (448 kbps)"
-    public var videoDualLayerBreakSector: String = "Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)"
-    public var avchdBitrateCap: String = "18 Mbps (3x DVD-R Safe)"
-    public var uhdPreserveHDR10DolbyVision: Bool = true
-
-    public init() {}
-}
-
-// MARK: - Official krouton.app Web & CDN Endpoint Registry (Cloudflare Edge + iWebFusion Mirror)
-
 public enum KroutonWebEndpoints {
     public static let homeURLString = "https://krouton.app"
     public static let docsURLString = "https://krouton.app/docs"

@@ -237,6 +237,41 @@ extension KroutonKrustiniModule {
         return copy
     }
 
+    /// Returns the ID of the vector shape closest to (normalizedX, normalizedY) in [-1, 1] disc coordinates.
+    public static func nearestVectorShapeID(
+        in shapes: [KroutonVectorShapeLayer],
+        normalizedX nx: Double,
+        normalizedY ny: Double
+    ) -> UUID? {
+        guard !shapes.isEmpty else { return nil }
+        return shapes.min { a, b in
+            shapeHitDistance(a, nx: nx, ny: ny) < shapeHitDistance(b, nx: nx, ny: ny)
+        }?.id
+    }
+
+    private static func shapeHitDistance(_ shape: KroutonVectorShapeLayer, nx: Double, ny: Double) -> Double {
+        guard !shape.points.isEmpty else { return 999.0 }
+        let cx = shape.points.map(\.nx).reduce(0.0, +) / Double(shape.points.count)
+        let cy = shape.points.map(\.ny).reduce(0.0, +) / Double(shape.points.count)
+        let centroidDist = hypot(cx - nx, cy - ny)
+        let vertexDist = shape.points.map { hypot($0.nx - nx, $0.ny - ny) }.min() ?? centroidDist
+        return min(centroidDist, vertexDist)
+    }
+
+    /// Translates a vector shape so its centroid moves to (toNormalizedX, normalizedY) while staying within the disc rim.
+    public static func recenterVectorShape(
+        _ shape: KroutonVectorShapeLayer,
+        toNormalizedX targetNX: Double,
+        normalizedY targetNY: Double
+    ) -> KroutonVectorShapeLayer {
+        guard !shape.points.isEmpty else { return shape }
+        let cx = shape.points.map(\.nx).reduce(0.0, +) / Double(shape.points.count)
+        let cy = shape.points.map(\.ny).reduce(0.0, +) / Double(shape.points.count)
+        let clampedX = max(-0.88, min(0.88, targetNX))
+        let clampedY = max(-0.88, min(0.88, targetNY))
+        return transformVectorShape(shape, translateX: clampedX - cx, translateY: clampedY - cy)
+    }
+
     public static func traceImageContoursWithVision(
         cgImage: CGImage,
         contrastAdjustment: Float = 2.0,
@@ -341,27 +376,6 @@ extension KroutonKrustiniModule {
             results.append(copy)
         }
         return results
-    }
-
-    /// Uses Apple Vision `VNGenerateForegroundInstanceMaskRequest` to isolate foreground subjects on the Neural Engine
-    public static func liftForegroundSubjectCGImage(from sourceImage: CGImage) -> CGImage? {
-        let request = VNGenerateForegroundInstanceMaskRequest()
-        let handler = VNImageRequestHandler(cgImage: sourceImage, options: [:])
-        do {
-            try handler.perform([request])
-            guard let observation = request.results?.first else { return nil }
-            let instances = observation.allInstances
-            guard !instances.isEmpty else { return nil }
-            let pixelBuffer = try observation.generateMaskedImage(
-                ofInstances: instances,
-                from: handler,
-                croppedToInstancesExtent: false
-            )
-            let ciImg = CIImage(cvPixelBuffer: pixelBuffer)
-            return sharedMetalCIContext.createCGImage(ciImg, from: ciImg.extent)
-        } catch {
-            return nil
-        }
     }
 
     /// Generates a smooth, tasteful studio seed CIImage (no harsh checkerboard or blinding white starshine)

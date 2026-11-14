@@ -278,27 +278,6 @@ extension KroutonStateStore {
         )
     }
 
-    public func saveSidecarKrut(for imageEntry: KroutonLoafFileEntry, verifiedSHA256: String, writeMethod: String) -> (savedDirectlyURL: URL?, statusMessage: String) {
-        let manifest = buildProjectManifest(
-            relativeTo: imageEntry.url,
-            isSidecar: true,
-            verifiedSHA256: verifiedSHA256,
-            writeMethod: writeMethod
-        )
-        guard let data = try? manifest.encodePrettyJSON() else {
-            return (nil, "Failed to encode .krut sidecar JSON.")
-        }
-        let sidecarURL = imageEntry.url.appendingPathExtension("krut")
-        if (try? data.write(to: sidecarURL, options: .atomic)) != nil {
-            return (sidecarURL, "Saved sidecar '\(sidecarURL.lastPathComponent)' (SHA-256 + Layer Break + Label Art)")
-        } else {
-            KroutonProjectDialogBridge.shared.exportDocument = KroutonProjectFileDocument(jsonData: data)
-            KroutonProjectDialogBridge.shared.defaultFilename = "\(imageEntry.name).krut"
-            KroutonProjectDialogBridge.shared.isShowingExporter = true
-            return (nil, "Exporting sidecar '\(imageEntry.name).krut'...")
-        }
-    }
-
     public func applyProjectManifest(_ manifest: KroutonProjectManifest, projectURL: URL? = nil, driveManager: KroutonToasterBank? = nil) {
         if let cat = KroutonBakeryStation(rawValue: manifest.selectedCategoryRaw) {
             selectedCategory = cat

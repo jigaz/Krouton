@@ -1,14 +1,8 @@
-//
-//  KroutonDesignSystem.swift
-//  Krouton — Optical Media Mastering Studio
-//
-//  Unified Design System Tokens (Typography, Radii, Spacing, Hairlines, and Semantic Surfaces).
-//
-
 import SwiftUI
+import Foundation
+import OpticalDough
 
 public enum KroutonDesign {
-    // MARK: - Corner Radii
     public enum Radius {
         public static let pill: CGFloat = 999
         public static let badge: CGFloat = 6
@@ -17,14 +11,12 @@ public enum KroutonDesign {
         public static let panel: CGFloat = 12
     }
 
-    // MARK: - Hairline & Stroke Widths
     public enum Stroke {
         public static let hairline: CGFloat = 0.8
         public static let standard: CGFloat = 1.0
         public static let emphasized: CGFloat = 1.35
     }
 
-    // MARK: - Surface & Highlight Opacities
     public enum Opacity {
         public static let subtleFill: Double = 0.06
         public static let badgeFill: Double = 0.14
@@ -33,7 +25,6 @@ public enum KroutonDesign {
         public static let activeBorder: Double = 0.82
     }
 
-    // MARK: - Studio Typography Tokens
     public enum Typography {
         public static let microMono = Font.system(size: 8.5, weight: .bold, design: .monospaced)
         public static let badgeMono = Font.system(size: 9.5, weight: .semibold, design: .monospaced)
@@ -43,28 +34,20 @@ public enum KroutonDesign {
     }
 }
 
-// MARK: - Reusable Harmonized Badge ViewModifier
-struct KroutonHarmonizedPillModifier: ViewModifier {
-    @ObservedObject var store: KroutonStateStore
-    var prominent: Bool = false
+public enum KroutonViewportTier: String, CaseIterable, Sendable {
+    case compact
+    case medium
+    case wideStudio
+    case ultraWide
 
-    func body(content: Content) -> some View {
-        let color = store.uiSecondaryAccent
-        content
-            .font(KroutonDesign.Typography.badgeMono)
-            .padding(.horizontal, prominent ? 8 : 6)
-            .padding(.vertical, prominent ? 3 : 2)
-            .background(
-                Capsule()
-                    .fill(color.opacity(prominent ? KroutonDesign.Opacity.activeFill : KroutonDesign.Opacity.badgeFill))
-                    .overlay(Capsule().strokeBorder(color.opacity(KroutonDesign.Opacity.badgeBorder), lineWidth: KroutonDesign.Stroke.hairline))
-            )
-            .foregroundStyle(color)
+    public static func from(centerWidth: CGFloat) -> KroutonViewportTier {
+        if centerWidth < 520 { return .compact }
+        if centerWidth < 780 { return .medium }
+        if centerWidth < 1080 { return .wideStudio }
+        return .ultraWide
     }
-}
 
-extension View {
-    func kroutonHarmonizedPill(store: KroutonStateStore, prominent: Bool = false) -> some View {
-        modifier(KroutonHarmonizedPillModifier(store: store, prominent: prominent))
-    }
+    public var isCompact: Bool { self == .compact }
+    public var isMediumOrWider: Bool { self != .compact }
+    public var isWideOrUltraWide: Bool { self == .wideStudio || self == .ultraWide }
 }

@@ -1,3 +1,4 @@
+import CoreImage
 import SwiftUI
 import OpticalDough
 import Crustini
@@ -56,6 +57,51 @@ extension KroutonDiscLabelStudioWorkspaceView {
                     opticalBadgeButton("Blu-ray BDMV", subtitle: "High Def Optical", badgeText: "BLU-RAY DISC • 25GB / 50GB", kind: .pentagon)
                     opticalBadgeButton("M-DISC Vault", subtitle: "1000-Year Stone", badgeText: "M-DISC ARCHIVAL • SHA-256", kind: .concentricRing)
                 }
+            }
+
+            Divider()
+
+            // 2B. Freehand Auto-Snap Vector Draw & Vision AI Contour Tracer
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Freehand Draw & Vision AI Contours")
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+
+                Button {
+                    store.labelStudioSubStore.isFreehandDrawMode.toggle()
+                    store.objectWillChange.send()
+                } label: {
+                    Label(
+                        store.labelStudioSubStore.isFreehandDrawMode ? "Drawing on Disc (Active)" : "Freehand Draw on Disc",
+                        systemImage: store.labelStudioSubStore.isFreehandDrawMode ? "pencil.tip.crop.circle.badge.plus" : "pencil.and.outline"
+                    )
+                    .font(.caption.bold())
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(store.labelStudioSubStore.isFreehandDrawMode ? store.activeAccent : Color.secondary.opacity(0.25))
+                .controlSize(.small)
+
+                Toggle(isOn: Binding(
+                    get: { store.labelStudioSubStore.autoSnapFreehandShapes },
+                    set: { store.labelStudioSubStore.autoSnapFreehandShapes = $0; store.objectWillChange.send() }
+                )) {
+                    Text("Auto-Snap Loops to Crisp Circles/Polygons")
+                        .font(.caption2)
+                }
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+
+                Button {
+                    traceActiveGPUPatternContoursWithVision()
+                } label: {
+                    Label("Trace GPU Pattern Contours (Vision)", systemImage: "viewfinder.rectangular")
+                        .font(.caption.bold())
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("Run Apple Vision VNDetectContoursRequest on the procedural GPU pattern and add vector contour paths")
             }
 
             Divider()
@@ -314,6 +360,30 @@ extension KroutonDiscLabelStudioWorkspaceView {
                 }
             }
         }
+    }
+
+
+    func traceActiveGPUPatternContoursWithVision() {
+        let (r1, g1, b1, a1) = KroutonPureColorMath.extractSRGB(store.labelBgPrimaryColor)
+        let (r2, g2, b2, a2) = KroutonPureColorMath.extractSRGB(store.labelBgSecondaryColor)
+        let seedCI = KroutonKrustiniModule.makeGPUSeedCIImage(
+            pattern: store.labelGPUSeedPattern,
+            primaryColor: KroutonRGBAColor(r: Double(r1), g: Double(g1), b: Double(b1), a: Double(a1)),
+            secondaryColor: KroutonRGBAColor(r: Double(r2), g: Double(g2), b: Double(b2), a: Double(a2)),
+            dimension: 256.0
+        )
+        let ciCtx = CIContext()
+        guard let cgImg = ciCtx.createCGImage(seedCI, from: CGRect(x: 0, y: 0, width: 256, height: 256)) else { return }
+        let (cr, cg, cb, _) = KroutonPureColorMath.extractSRGB(store.activeAccent)
+        let stroke = KroutonRGBAColor(r: Double(cr), g: Double(cg), b: Double(cb), a: 0.88)
+        let traced = KroutonKrustiniModule.traceImageContoursWithVision(cgImage: cgImg, strokeColor: stroke)
+        guard !traced.isEmpty else {
+            showTransientBanner("No High-Contrast Contours Found in Current Pattern")
+            return
+        }
+        store.labelStudioSubStore.recordUndoSnapshot(from: store)
+        store.labelVectorShapes.append(contentsOf: traced.prefix(6))
+        showTransientBanner("Traced \(min(6, traced.count)) Vision Vector Contours onto Disc")
     }
 
     // MARK: - 1-Click Project Tracklist & Staged File Manifest Stamp

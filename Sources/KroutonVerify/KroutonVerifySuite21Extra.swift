@@ -297,5 +297,17 @@ harness.runSuite("21. Phase 4 Workspace Modularization & 600-LOC File Ceiling & 
             }
         }
 
+
+
+        // Verify Vector Shape Hit-Testing & Interactive Canvas Centroid Translation
+        let starShape = KroutonKrustiniModule.makeParametricVectorShape(kind: .star, centerX: 0.0, centerY: -0.50, radius: 0.14)
+        let pillShape = KroutonKrustiniModule.makeParametricVectorShape(kind: .capsule, centerX: 0.0, centerY: 0.50, radius: 0.20)
+        let hitID = KroutonKrustiniModule.nearestVectorShapeID(in: [starShape, pillShape], normalizedX: 0.02, normalizedY: -0.48)
+        h.check(hitID == starShape.id, "nearestVectorShapeID must hit-test the top star shape near (0.02, -0.48)")
+        let movedStar = KroutonKrustiniModule.recenterVectorShape(starShape, toNormalizedX: 0.35, normalizedY: 0.25)
+        let movedCX = movedStar.points.map(\.nx).reduce(0.0, +) / Double(max(1, movedStar.points.count))
+        let movedCY = movedStar.points.map(\.ny).reduce(0.0, +) / Double(max(1, movedStar.points.count))
+        h.check(abs(movedCX - 0.35) < 0.02 && abs(movedCY - 0.25) < 0.02, "recenterVectorShape must translate shape centroid to (0.35, 0.25)")
+
     }
 }
