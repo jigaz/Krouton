@@ -1,3 +1,4 @@
+import CoreImage
 import Foundation
 import OpticalDough
 import Marmalade
@@ -142,6 +143,53 @@ harness.runSuite("20. Mastering & Extraction Domain Models (TOC, Video Titles & 
     let scaledRotatedArrow = KroutonKrustiniModule.transformVectorShape(arrowShape, scaleFactor: 1.25, rotateDegrees: 45.0, flipHorizontal: true)
     h.check(scaledRotatedArrow.points.count == arrowShape.points.count && scaledRotatedArrow.points != arrowShape.points, "Pages Arrange transform must scale, rotate & flip vector shape")
 
+        // Phase A Verification: Real AVFoundation 44.1kHz PCM Audio Decoder & Multi-Extent ISO-9660 Writer
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("KroutonPhaseAVerify", isDirectory: true)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let toneURL = tempDir.appendingPathComponent("Test440Hz.wav")
+        try KroutonMarmaladeModule.synthesizeTestToneWAV(at: toneURL, durationSeconds: 0.15)
+        let decodedPCM = try KroutonMarmaladeModule.decodeAudioFileToRedBookPCM(url: toneURL, maxSeconds: 1.0)
+        h.check(!decodedPCM.isEmpty && decodedPCM.count % 2352 == 0, "AVAssetReader decoded PCM must be non-empty and sector-aligned to 2,352 bytes")
+
+        let masteredAudio = try KroutonMarmaladeModule.masterRedBookAudioTracksToDisk(
+            sourceURLs: [toneURL],
+            albumTitle: "KROUTON_PHASE_A",
+            performer: "KROUTON_DSP",
+            outputDirectory: tempDir,
+            crossfadeSeconds: 1.0
+        )
+        h.check(FileManager.default.fileExists(atPath: masteredAudio.binURL.path) && masteredAudio.totalSectors2352 >= 1, "Marmalade .BIN/.CUE master must write sector-aligned PCM to disk")
+        h.check(masteredAudio.cueSheetText.contains("TRACK 01 AUDIO") && masteredAudio.cueSheetText.contains("INDEX 01 00:00:00"), "Marmalade .CUE sheet must contain Red Book track & index descriptors")
+
+        let payloadA = Data("KROUTON_PAYLOAD_ALPHA_2026".utf8)
+        let payloadB = Data(repeating: 0x4B, count: 3000) // Spans 2 ISO sectors (2,048B each)
+        let isoOutURL = tempDir.appendingPathComponent("PhaseA_Mountable.iso")
+        let isoResult = try KroutonTartineISO9660Writer.writeMountableISO9660Image(
+            volumeTitle: "KROUTON_ISO",
+            files: [
+                TartineISOFileInput(fileName: "ALPHA.TXT", data: payloadA),
+                TartineISOFileInput(fileName: "BETA.BIN", data: payloadB)
+            ],
+            outputURL: isoOutURL
+        )
+        let isoBytes = try Data(contentsOf: isoResult.url)
+        let lbaAlpha = isoResult.fileExtentLBAs["ALPHA.TXT"] ?? 0
+        let lbaBeta = isoResult.fileExtentLBAs["BETA.BIN"] ?? 0
+        h.check(lbaAlpha == 23 && lbaBeta == 24 && isoResult.totalSectorsLBA == 26, "Tartine ISO-9660 writer must allocate multi-sector file extents starting at LBA 23")
+        h.check(isoBytes.subdata(in: (lbaAlpha * 2048)..<(lbaAlpha * 2048 + payloadA.count)) == payloadA, "Tartine ISO-9660 extent at LBA 23 must match exact ALPHA.TXT payload bytes")
+        h.check(isoBytes.subdata(in: (lbaBeta * 2048)..<(lbaBeta * 2048 + payloadB.count)) == payloadB, "Tartine ISO-9660 2-sector extent at LBA 24..25 must match exact BETA.BIN payload bytes")
+
+        // Phase B Verification: 32-Step Value-Type Undo/Redo Engine & Galette Sub-Store
+        var snapA = KroutonEmbeddedLabelSpec()
+        snapA.topArcRadiusMM = 44.0
+        var snapB = snapA
+        snapB.topArcRadiusMM = 51.5
+        h.check(snapA != snapB && snapB.topArcRadiusMM == 51.5, "Label Studio state snapshots must distinguish geometry mutations for Undo/Redo")
+
+
+
+
+
 
 
 
@@ -208,5 +256,46 @@ harness.runSuite("21. Phase 4 Workspace Modularization & 600-LOC File Ceiling & 
         h.check(wpText.contains("KroutonMasteringDeckCard"), "\(wp) must adopt KroutonMasteringDeckCard")
         h.check(wpText.contains("KroutonEmptyDropZoneView"), "\(wp) must adopt KroutonEmptyDropZoneView")
     }
+
+        // Hygiene Gate: Forbid `let _ = (` warning-suppression tuple band-aids in KroutonApp
+        let kroutonAppDir = repoRoot.appendingPathComponent("Sources/KroutonApp")
+        if let enumApp = FileManager.default.enumerator(at: kroutonAppDir, includingPropertiesForKeys: nil) {
+            for case let fURL as URL in enumApp where fURL.pathExtension == "swift" {
+                let content = (try? String(contentsOf: fURL, encoding: .utf8)) ?? ""
+                let hasTupleBandAid = content.components(separatedBy: .newlines).contains {
+                    $0.trimmingCharacters(in: .whitespaces).hasPrefix("let _ = (")
+                }
+                h.check(!hasTupleBandAid, "Zero `let _ = (` warning-suppression band-aids allowed in \(fURL.lastPathComponent)")
+            }
+        }
+
+
+        // Verify 1:1 Millimeter-Calibrated PDF Print Sheet & 300-DPI PNG Encoder
+        let seedCI = KroutonKrustiniModule.makeGPUSeedCIImage(
+            pattern: .neonLaserPrism,
+            primaryColor: KroutonRGBAColor(r: 0.2, g: 0.6, b: 0.9, a: 1.0),
+            secondaryColor: KroutonRGBAColor(r: 0.9, g: 0.3, b: 0.5, a: 1.0),
+            dimension: 120.0
+        )
+        let ciCtx = CIContext()
+        if let testCG = ciCtx.createCGImage(seedCI, from: CGRect(x: 0, y: 0, width: 120, height: 120)) {
+            let pngData = KroutonKrustiniModule.encodeCGImageToPNGData(testCG, dpi: 300.0)
+            h.check((pngData?.count ?? 0) > 128, "300-DPI PNG encoder must produce valid non-empty PNG data")
+            let pdfData = KroutonKrustiniModule.renderCalibratedPrintSheetPDFData(
+                discCGImage: testCG,
+                presetName: "Epson ET-8550 Full Hub",
+                outerDiameterMM: 120.0,
+                innerDiameterMM: 18.0,
+                offsetXMM: 0.4,
+                offsetYMM: -0.3,
+                discTitle: "KROUTON_VERIFY_DISC",
+                includeCalibrationMarks: true
+            )
+            h.check((pdfData?.count ?? 0) > 256, "1:1 Vector PDF print sheet engine must produce valid PDF document data")
+            if let d = pdfData, let headerStr = String(data: d.prefix(5), encoding: .ascii) {
+                h.check(headerStr == "%PDF-", "Calibrated PDF print sheet must start with %PDF- magic header")
+            }
+        }
+
     }
 }

@@ -41,8 +41,6 @@ struct KroutonDepotHeroBannerView: View {
 
     var body: some View {
         let isStaged = (store.stagedDepotItemID == item.id && !store.stagedFiles.isEmpty)
-        let activeProgress = store.depotDownloadProgress[item.id]
-        let segments = item.blueprintSectorSegments
         let treeFiles = item.blueprintRootFiles
 
         return ZStack(alignment: .leading) {
@@ -132,8 +130,7 @@ struct KroutonDepotHeroBannerView: View {
         let isStaged = (store.stagedDepotItemID == item.id && !store.stagedFiles.isEmpty)
         let activeProgress = store.depotDownloadProgress[item.id]
         let segments = item.blueprintSectorSegments
-        let treeFiles = item.blueprintRootFiles
-        return VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
                     // Top Micro Telemetry Header (Frosted Dark Pill for 100% Contrast Across All Swatches)
                     HStack(spacing: 5) {
                         Image(systemName: item.sfSymbol)
@@ -284,7 +281,7 @@ struct KroutonDepotAppStoreCardView: View {
         let pillAccent: Color = useHarmony ? store.activeSecondaryAccent : store.activeAccent
         let bootStdColor: Color = (isSelectedInHero && useHarmony) ? store.activeSecondaryAccent.opacity(0.90) : Color.secondary
 
-        return VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 10) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 11)

@@ -142,26 +142,7 @@ struct KroutonApp: App {
         }
         .defaultSize(width: 1380, height: 880)
         .commands {
-            CommandGroup(replacing: .newItem) {
-                Button("Open Project (.krut)...") { wm.store.presentOpenKrutProjectSheet() }
-                    .keyboardShortcut("o", modifiers: .command)
-                Button("Save Project (.krut)...") { wm.store.presentSaveKrutProjectSheet() }
-                    .keyboardShortcut("s", modifiers: .command)
-                Divider()
-                Button("Show Krouton Workspace") { KroutonWindowManager.shared.openMainWindow() }
-                    .keyboardShortcut("0", modifiers: .command)
-            }
-            CommandGroup(replacing: .appSettings) {
-                Button {
-                    KroutonWindowManager.shared.openSettingsWindow(store: wm.store, driveManager: wm.driveManager)
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "gearshape.fill").font(.system(size: 11, weight: .bold)).foregroundStyle(wm.store.uiSecondaryAccent)
-                        Text(KroutonL10n.tr("Settings..."))
-                    }
-                }
-                .keyboardShortcut(",", modifiers: .command)
-            }
+            KroutonStudioCommands(wm: wm)
         }
 
         Window("Krouton Settings", id: "settings") {
@@ -389,18 +370,10 @@ struct KroutonMainWorkspaceView: View {
         .preferredColorScheme(store.resolvedColorScheme)
         .environment(\.locale, store.activeLocale)
         .tint(store.activeAccent)
-        .onAppear {
-            store.reconcileUniqueDriveAssignments(driveManager: driveManager)
-        }
-        .onChange(of: driveManager.availableDrives) { _, _ in
-            store.reconcileUniqueDriveAssignments(driveManager: driveManager)
-        }
-        .onChange(of: store.selectedTaskID) { _, _ in
-            store.reconcileUniqueDriveAssignments(driveManager: driveManager)
-        }
-        .onChange(of: store.selectedCategory) { _, _ in
-            store.reconcileUniqueDriveAssignments(driveManager: driveManager)
-        }
+        .onAppear { store.reconcileUniqueDriveAssignments(driveManager: driveManager) }
+        .onChange(of: driveManager.availableDrives) { _, _ in store.reconcileUniqueDriveAssignments(driveManager: driveManager) }
+        .onChange(of: store.selectedTaskID) { _, _ in store.reconcileUniqueDriveAssignments(driveManager: driveManager) }
+        .onChange(of: store.selectedCategory) { _, _ in store.reconcileUniqueDriveAssignments(driveManager: driveManager) }
         .sheet(item: $driveManager.completionReport) { report in
             KroutonMasteringReportSheet(report: report, accent: store.activeAccent) {
                 driveManager.completionReport = nil

@@ -247,10 +247,8 @@ struct KroutonVideoAuthoringWorkspaceView: View {
 
     @ViewBuilder
     private var videoStagingDropZoneSection: some View {
-        let isDualLayer = spec.technicalName.contains("DL") || spec.technicalName.contains("DVD-9") || spec.colloquialName.contains("50 GB") || spec.colloquialName.contains("UHD") || spec.id == "dvd-video"
         let isBluRay = spec.technicalName.contains("BD") || spec.technicalName.contains("AVCHD")
-        let _ = (isDualLayer, isBluRay)
-        return ZStack {
+        ZStack {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color.kroutonControlSurface)
                     .overlay(

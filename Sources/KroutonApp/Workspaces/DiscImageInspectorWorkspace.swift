@@ -17,8 +17,7 @@ import Combine
 
 struct KroutonDiscImageInspectorWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
-    @State private var galetteStore = KroutonGaletteInspectorSubStore()
-    let spec: KroutonRecipeSpec
+        let spec: KroutonRecipeSpec
     @Binding var isDropTargeted: Bool
     let onPromptToAddFiles: () -> Void
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
@@ -127,9 +126,7 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                             )
                     )
 
-                if let entry = store.stagedFiles.first {
-                    let ext = entry.url.pathExtension.lowercased()
-                    let _ = entry
+                if store.stagedFiles.first != nil {
                     VStack(alignment: .leading, spacing: 12) {
                         inspectorTopIdentityBanner
                         HStack(alignment: .top, spacing: 14) {
@@ -169,9 +166,6 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                     let ext = entry.url.pathExtension.lowercased()
                     let isRaw2352 = (ext == "bin" || ext == "cue")
                     let sectorByteSize = isRaw2352 ? 2352 : 2048
-                    let bootReadout = entry.bootabilityBadge ?? "Non-Bootable Data Volume (Sectors 0..15 Unbooted)"
-                    let hexRows = KroutonLoafBootInspector.readSectorHexDump(url: entry.url, lba: inspectedImageLBA, sectorSize: sectorByteSize)
-            let _ = (sectorByteSize, bootReadout, hexRows)
                         HStack(alignment: .center, spacing: 12) {
                             KroutonStyledIconBadge(
                                 sfSymbol: "opticaldisc.fill",
@@ -294,9 +288,6 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                     let ext = entry.url.pathExtension.lowercased()
                     let isRaw2352 = (ext == "bin" || ext == "cue")
                     let sectorByteSize = isRaw2352 ? 2352 : 2048
-                    let bootReadout = entry.bootabilityBadge ?? "Non-Bootable Data Volume (Sectors 0..15 Unbooted)"
-                    let hexRows = KroutonLoafBootInspector.readSectorHexDump(url: entry.url, lba: inspectedImageLBA, sectorSize: sectorByteSize)
-            let _ = (sectorByteSize, bootReadout, hexRows)
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("OPTICAL PLATTER & TRACK ZONE TOPOLOGY")
                                     .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
@@ -454,7 +445,6 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                     let sectorByteSize = isRaw2352 ? 2352 : 2048
                     let bootReadout = entry.bootabilityBadge ?? "Non-Bootable Data Volume (Sectors 0..15 Unbooted)"
                     let hexRows = KroutonLoafBootInspector.readSectorHexDump(url: entry.url, lba: inspectedImageLBA, sectorSize: sectorByteSize)
-            let _ = (isRaw2352, sectorByteSize)
                             VStack(alignment: .leading, spacing: 10) {
                                 // Rectangular Telemetry Matrix (Non-clickable readouts use sharp terminal boxes, never pills!)
                                 HStack(spacing: 8) {
@@ -569,7 +559,7 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
             fileName: "Krouton_Inspector_Probe.iso"
         )
         if let data = try? Data(contentsOf: synth.url) {
-            galetteStore.analyzeImageWithGalette(imageBytes: data)
+            store.galetteInspectorSubStore.analyzeImageWithGalette(imageBytes: data)
         }
     }
 }

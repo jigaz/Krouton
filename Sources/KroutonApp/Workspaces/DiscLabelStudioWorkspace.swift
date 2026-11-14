@@ -8,6 +8,7 @@ import Crustini
 public enum KroutonStage1Tool: String, CaseIterable, Identifiable {
     case select     = "Select"
     case text       = "Text Tool"
+    case shapes     = "Vector Shapes"
     case background = "Background"
     case adjust     = "Adjust FX"
     case discSize   = "Disc Size"
@@ -17,6 +18,7 @@ public enum KroutonStage1Tool: String, CaseIterable, Identifiable {
         switch self {
         case .select:     return "cursorarrow"
         case .text:       return "textformat"
+        case .shapes:     return "seal.fill"
         case .background: return "circle.lefthalf.filled"
         case .adjust:     return "slider.horizontal.3"
         case .discSize:   return "ruler"
@@ -27,6 +29,7 @@ public enum KroutonStage1Tool: String, CaseIterable, Identifiable {
         switch self {
         case .select:     return "Move"
         case .text:       return "Text"
+        case .shapes:     return "Shapes"
         case .background: return "Bg"
         case .adjust:     return "Adjust"
         case .discSize:   return "Size"
@@ -49,8 +52,12 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
         min(max(0, store.selectedLabelPresetIndex), max(0, store.labelPresets.count - 1))
     }
 
+    var liveCanvasSnapshot: KroutonLabelCanvasSnapshot {
+        KroutonLabelCanvasSnapshot(from: store, overrideGeometry: store.labelStudioSubStore.workingGeometryOverride)
+    }
+
     var activePreset: KroutonSliceLabelGeometry {
-        if let override = workingGeometryOverride { return override }
+        if let override = store.labelStudioSubStore.workingGeometryOverride { return override }
         guard !store.labelPresets.isEmpty else {
             return KroutonSliceLabelGeometry(
                 name: "Standard 120mm Disc",
@@ -73,10 +80,12 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
 
     func showTransientBanner(_ message: String) {
         statusBanner = message
+        store.labelStudioSubStore.transientStatusBanner = message
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             if statusBanner == message {
                 statusBanner = ""
+                store.labelStudioSubStore.transientStatusBanner = ""
             }
         }
     }
@@ -85,7 +94,7 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
     var activeGeometryBinding: Binding<KroutonSliceLabelGeometry> {
         Binding(
             get: {
-                if let override = workingGeometryOverride { return override }
+                if let override = store.labelStudioSubStore.workingGeometryOverride { return override }
                 guard !store.labelPresets.isEmpty else {
                     return KroutonSliceLabelGeometry(
                         name: "Standard 120mm Disc",
@@ -98,7 +107,7 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
                 let idx = min(max(0, store.selectedLabelPresetIndex), store.labelPresets.count - 1)
                 return store.labelPresets[idx]
             },
-            set: { workingGeometryOverride = $0 }
+            set: { store.labelStudioSubStore.workingGeometryOverride = $0 }
         )
     }
 
@@ -144,14 +153,16 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
                                 chamberTumble: store.labelChamberTumble,
                                 tinyPlanetRadius: store.labelTinyPlanetRadius,
                                 bgAdjustments: store.labelBgAdjustments,
+                                vectorShapes: store.labelVectorShapes,
                                 textElements: store.labelTextElements,
                                 selectedTextID: store.labelSelectedTextID,
                                 showAlignmentGrid: store.labelShowAlignmentGrid,
                                 onSelectOrDragText: { targetID, newRadiusMM, newAngleDeg in
+                                    store.labelStudioSubStore.recordUndoSnapshot(from: store, coalesceWindow: 0.45)
                                     if let idx = store.labelTextElements.firstIndex(where: { $0.id == targetID }) {
                                         store.labelSelectedTextID = targetID
-                                        store.labelTextElements[idx].radiusMM = newRadiusMM
-                                        store.labelTextElements[idx].angleDegrees = newAngleDeg
+                                        if store.labelTextElements.indices.contains(idx) { store.labelTextElements[idx].radiusMM = newRadiusMM }
+                                        if store.labelTextElements.indices.contains(idx) { store.labelTextElements[idx].angleDegrees = newAngleDeg }
                                         activeTool = .text
                                     }
                                 }
@@ -208,6 +219,16 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
             }
             .labelsHidden()
             .frame(width: 195)
+
+            Button {
+                exportHighRes300DPILabelPNG(preset: preset, isTestPrintSheet: true)
+            } label: {
+                Label("Export 1:1 PDF", systemImage: "printer.fill")
+                    .font(.caption.bold())
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .help("Save a 1:1 millimeter-calibrated Vector PDF print sheet to ~/Downloads")
 
             Button {
                 exportHighRes300DPILabelPNG(preset: preset, isTestPrintSheet: false)
@@ -273,9 +294,37 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
             Spacer()
 
             // Reset to Blank White Disc at bottom of rail
+            HStack(spacing: 4) {
+                Button {
+                    store.labelStudioSubStore.undo(into: store)
+                    showTransientBanner("Undid Last Canvas Edit")
+                } label: {
+                    Image(systemName: "arrow.uturn.backward")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(!store.labelStudioSubStore.canUndo)
+                .keyboardShortcut("z", modifiers: .command)
+                .help("Undo Label Canvas Edit (Cmd+Z)")
+
+                Button {
+                    store.labelStudioSubStore.redo(into: store)
+                    showTransientBanner("Redid Canvas Edit")
+                } label: {
+                    Image(systemName: "arrow.uturn.forward")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(!store.labelStudioSubStore.canRedo)
+                .keyboardShortcut("z", modifiers: [.command, .shift])
+                .help("Redo Label Canvas Edit (Cmd+Shift+Z)")
+            }
+
             Button {
+                store.labelStudioSubStore.recordUndoSnapshot(from: store)
                 store.labelBackgroundStyle = .templateDefault
                 store.labelBgAdjustments = KroutonBackgroundAdjustments()
+                store.labelVectorShapes.removeAll()
                 store.labelTextElements.removeAll()
                 store.labelSelectedTextID = nil
                 showTransientBanner("Reset to Blank White Printable Disc")
@@ -326,7 +375,7 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
             }
             .toggleStyle(.button)
             .controlSize(.small)
-            .onChange(of: store.selectedLabelPresetIndex) { _, _ in workingGeometryOverride = nil }
+            .onChange(of: store.selectedLabelPresetIndex) { _, _ in store.labelStudioSubStore.workingGeometryOverride = nil }
 
             Spacer()
 
@@ -467,66 +516,4 @@ public struct KroutonDiscLabelStudioWorkspaceView: View {
             }
         }
     }
-
-    // MARK: - Tool Inspector D: Select / Layer Overview
-
-    func selectOverviewInspector() -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Canvas Layers Overview", systemImage: "cursorarrow")
-                .font(.subheadline.bold())
-
-            HStack {
-                Text("Background:")
-                    .font(.caption.bold())
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button(store.labelBackgroundStyle.rawValue) {
-                    activeTool = .background
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-            }
-
-            Divider()
-
-            HStack {
-                Text("Text Layers (\(store.labelTextElements.count))")
-                    .font(.caption.bold())
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("+ Add Text") {
-                    addNewTextElement()
-                    activeTool = .text
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(store.activeAccent)
-                .controlSize(.mini)
-            }
-
-            if store.labelTextElements.isEmpty {
-                Text("Canvas is currently blank. Use the left tool rail to set a Circular Gradient background or add Curved Arc Text.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(store.labelTextElements) { item in
-                    Button {
-                        store.labelSelectedTextID = item.id
-                        activeTool = .text
-                    } label: {
-                        HStack {
-                            Image(systemName: item.isCurvedArc ? "dial.medium.fill" : "text.aligncenter")
-                            Text(item.text).font(.caption.bold()).lineLimit(1)
-                            Spacer()
-                            Image(systemName: "chevron.right").font(.caption2)
-                        }
-                        .padding(8)
-                        .background(Color.primary.opacity(0.06))
-                        .clipShape(RoundedRectangle(cornerRadius: 7))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
 }

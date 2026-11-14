@@ -33,8 +33,10 @@ struct KroutonDataAndArchivalWorkspaceView: View {
         return VStack(alignment: .leading, spacing: 10) {
             KroutonMasteringDeckCard(store: store) {
                 VStack(alignment: .leading, spacing: 8) {
-                    dataDeckTopControlsSection
-                    dataDeckBottomOptionsSection
+                    ViewThatFits(in: .horizontal) {
+                        dataDeckTopControlsSection
+                        dataDeckBottomOptionsSection
+                    }
                 }
             }
             dataStagingAndLayoutSection
@@ -43,12 +45,10 @@ struct KroutonDataAndArchivalWorkspaceView: View {
 
     @ViewBuilder
     private var dataDeckTopControlsSection: some View {
-        let isUniversalHybrid = (activeSpec.id == "data-hybrid" || activeSpec.id == "mdisc-vault")
         let isAppleOnly = (activeSpec.id == "data-apple-apfs")
         let isRetro83 = (activeSpec.id == "data-retro-iso")
         let isClassicHFS = (activeSpec.id == "macos9-hfs")
         let isPhotoCD = (activeSpec.id == "photo-cd")
-        let _ = (isUniversalHybrid, isAppleOnly, isRetro83, isClassicHFS, isPhotoCD)
         VStack(alignment: .leading, spacing: 8) {
                 if activeSpec.isMDiscParityFormat {
                     ViewThatFits(in: .horizontal) {
@@ -191,12 +191,10 @@ struct KroutonDataAndArchivalWorkspaceView: View {
     }
     @ViewBuilder
     private var dataDeckBottomOptionsSection: some View {
-        let isUniversalHybrid = (activeSpec.id == "data-hybrid" || activeSpec.id == "mdisc-vault")
         let isAppleOnly = (activeSpec.id == "data-apple-apfs")
         let isRetro83 = (activeSpec.id == "data-retro-iso")
         let isClassicHFS = (activeSpec.id == "macos9-hfs")
         let isPhotoCD = (activeSpec.id == "photo-cd")
-        let _ = (isUniversalHybrid, isAppleOnly, isRetro83, isClassicHFS, isPhotoCD)
         VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 6) {
                             Image(systemName: "opticaldisc")
@@ -282,11 +280,7 @@ struct KroutonDataAndArchivalWorkspaceView: View {
     @ViewBuilder
     private var dataStagingAndLayoutSection: some View {
         let isUniversalHybrid = (activeSpec.id == "data-hybrid" || activeSpec.id == "mdisc-vault")
-        let isAppleOnly = (activeSpec.id == "data-apple-apfs")
         let isRetro83 = (activeSpec.id == "data-retro-iso")
-        let isClassicHFS = (activeSpec.id == "macos9-hfs")
-        let isPhotoCD = (activeSpec.id == "photo-cd")
-        let _ = (isUniversalHybrid, isAppleOnly, isRetro83, isClassicHFS, isPhotoCD)
         Group {
             if activeDataWorkspaceTab == 1 && enableCustomFinderLayoutTab {
                 VStack(alignment: .leading, spacing: 12) {

@@ -24,7 +24,6 @@ extension KroutonDestinationCardView {
         }()
 
         let activeCardDriveID = (item.kind == .networkBurner) ? "krumb-network-toaster" : (cardDrive?.id ?? "")
-        let validSpeeds = cardDrive?.availableWriteSpeeds ?? ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
 
         let scopeTel = driveManager.telemetryForDrive(activeCardDriveID)
         let isFloatingOpen = scopeTel?.isFloatingWindowOpen ?? false
@@ -32,7 +31,6 @@ extension KroutonDestinationCardView {
 
         let isDriveBusy = driveManager.isExecutingQueue || (scopeTel?.isActive == true)
         let canEject = (cardDrive?.isMediaPresent == true) && !isDriveBusy
-        let _ = (hasUnclaimedPhysicalBurner, validSpeeds, canEject, isFloatingOpen, isInlineVisible)
         HStack(spacing: 5) {
                 Menu {
                     ForEach(store.allowedDestinationsForCurrentCategory) { kind in
@@ -199,7 +197,6 @@ extension KroutonDestinationCardView {
         )
 
         // Resolve THIS card's drive strictly from unclaimed drives (never steal a drive in otherUsedDriveIDs!)
-        let hasUnclaimedPhysicalBurner = driveManager.availableDrives.contains(where: { !otherUsedDriveIDs.contains($0.id) })
         let cardDrive: KroutonToasterInfo? = {
             if let exact = driveManager.availableDrives.first(where: { $0.id == item.targetDriveID && !otherUsedDriveIDs.contains($0.id) }) {
                 return exact
@@ -210,13 +207,7 @@ extension KroutonDestinationCardView {
         let activeCardDriveID = (item.kind == .networkBurner) ? "krumb-network-toaster" : (cardDrive?.id ?? "")
         let validSpeeds = cardDrive?.availableWriteSpeeds ?? ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
 
-        let scopeTel = driveManager.telemetryForDrive(activeCardDriveID)
-        let isFloatingOpen = scopeTel?.isFloatingWindowOpen ?? false
-        let isInlineVisible = ((scopeTel?.isActive ?? false) || (scopeTel?.isManuallyPinnedInline ?? false)) && !isFloatingOpen
 
-        let isDriveBusy = driveManager.isExecutingQueue || (scopeTel?.isActive == true)
-        let canEject = (cardDrive?.isMediaPresent == true) && !isDriveBusy
-        let _ = (hasUnclaimedPhysicalBurner, validSpeeds, canEject, isFloatingOpen, isInlineVisible)
         VStack(alignment: .leading, spacing: 10) {
                 if driveManager.availableDrives.isEmpty {
                     HStack {
@@ -339,7 +330,6 @@ extension KroutonDestinationCardView {
         )
 
         // Resolve THIS card's drive strictly from unclaimed drives (never steal a drive in otherUsedDriveIDs!)
-        let hasUnclaimedPhysicalBurner = driveManager.availableDrives.contains(where: { !otherUsedDriveIDs.contains($0.id) })
         let cardDrive: KroutonToasterInfo? = {
             if let exact = driveManager.availableDrives.first(where: { $0.id == item.targetDriveID && !otherUsedDriveIDs.contains($0.id) }) {
                 return exact
@@ -348,15 +338,8 @@ extension KroutonDestinationCardView {
         }()
 
         let activeCardDriveID = (item.kind == .networkBurner) ? "krumb-network-toaster" : (cardDrive?.id ?? "")
-        let validSpeeds = cardDrive?.availableWriteSpeeds ?? ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
 
-        let scopeTel = driveManager.telemetryForDrive(activeCardDriveID)
-        let isFloatingOpen = scopeTel?.isFloatingWindowOpen ?? false
-        let isInlineVisible = ((scopeTel?.isActive ?? false) || (scopeTel?.isManuallyPinnedInline ?? false)) && !isFloatingOpen
 
-        let isDriveBusy = driveManager.isExecutingQueue || (scopeTel?.isActive == true)
-        let canEject = (cardDrive?.isMediaPresent == true) && !isDriveBusy
-        let _ = (hasUnclaimedPhysicalBurner, validSpeeds, canEject, isFloatingOpen, isInlineVisible)
         VStack(alignment: .leading, spacing: 10) {
             if !driveManager.availableDrives.isEmpty {
                 if (store.forceDVDROMBookType && !isRightQueueCompact) || (item.copiesToBurn > 1 && store.autoLoadNextDiscBatchMode) {

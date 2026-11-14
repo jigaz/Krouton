@@ -506,37 +506,34 @@ public struct KroutonStyledIconBadge: View {
 
 /// Generates a real, byte-aligned 36,864-byte (18-sector x 2,048B) ISO-9660 + El Torito image on disk,
 /// verifies its boot signature via `Galette`, and returns its live `CryptoKit.SHA256` hex digest.
-public func kroutonSynthesizeVerifiedISO9660ImageOnDisk(title: String, fileName: String) -> (url: URL, sha256: String, sizeBytes: Int64) {
+public func kroutonSynthesizeVerifiedISO9660ImageOnDisk(
+    title: String,
+    fileName: String,
+    additionalFiles: [TartineISOFileInput] = []
+) -> (url: URL, sha256: String, sizeBytes: Int64) {
     let dir = FileManager.default.temporaryDirectory.appendingPathComponent("KroutonDepotStaging", isDirectory: true)
-    do {
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-    } catch {
-        KroutonDiagnostics.masteringLogger.error("Failed creating staging directory: \(error.localizedDescription, privacy: .public)")
-    }
     let outURL = dir.appendingPathComponent(fileName)
+    let payloadFiles: [TartineISOFileInput] = additionalFiles.isEmpty
+        ? [
+            TartineISOFileInput(
+                fileName: "KROUTON_MANIFEST.TXT",
+                data: Data("VOLUME=\(title)\nENGINE=TARTINE_ECMA119_ISO9660\n".utf8)
+            )
+        ]
+        : additionalFiles
 
-    var imageBytes = [UInt8](repeating: 0, count: 18 * 2048)
-    let pvdOffset = 16 * 2048
-    imageBytes[pvdOffset] = 0x01
-    for (i, b) in Array("CD001".utf8).enumerated() { imageBytes[pvdOffset + 1 + i] = b }
-    imageBytes[pvdOffset + 6] = 0x01
-    let cleanTitle = String(title.uppercased().prefix(32))
-    for (i, b) in Array(cleanTitle.utf8).enumerated() { imageBytes[pvdOffset + 40 + i] = b }
-
-    let brvdOffset = 17 * 2048
-    imageBytes[brvdOffset] = 0x00
-    for (i, b) in Array("CD001".utf8).enumerated() { imageBytes[brvdOffset + 1 + i] = b }
-    imageBytes[brvdOffset + 6] = 0x01
-    for (i, b) in Array("EL TORITO SPECIFICATION".utf8).enumerated() { imageBytes[brvdOffset + 7 + i] = b }
-    imageBytes[brvdOffset + 0x47] = 18
-
-    let data = Data(imageBytes)
     do {
-        try data.write(to: outURL, options: .atomic)
+        let result = try KroutonTartineISO9660Writer.writeMountableISO9660Image(
+            volumeTitle: title,
+            files: payloadFiles,
+            outputURL: outURL
+        )
+        if let rawData = try? Data(contentsOf: result.url) {
+            _ = KroutonGaletteModule.classifyBootableImage(headerBytes: rawData)
+        }
+        return (result.url, result.sha256Hex, result.totalBytes)
     } catch {
-        KroutonDiagnostics.masteringLogger.error("Failed writing synthesized ISO image: \(error.localizedDescription, privacy: .public)")
+        KroutonDiagnostics.masteringLogger.error("ISO-9660 writer error: \(error.localizedDescription, privacy: .public)")
+        return (outURL, "sha256:" + String(repeating: "0", count: 64), 0)
     }
-    _ = KroutonGaletteModule.classifyBootableImage(headerBytes: data)
-    let digest = KroutonTartineModule.computeBlockSHA256Hex(for: data)
-    return (outURL, digest, Int64(data.count))
 }

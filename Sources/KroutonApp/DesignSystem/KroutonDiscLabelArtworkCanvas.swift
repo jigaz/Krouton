@@ -32,6 +32,7 @@ public struct KroutonDiscLabelArtworkCanvas: View {
     public var chamberTumble: Double
     public var tinyPlanetRadius: Double
     public var bgAdjustments: KroutonBackgroundAdjustments
+    public var vectorShapes: [KroutonVectorShapeLayer]
     public var textElements: [KroutonLabelTextElement]
     public var selectedTextID: UUID?
     public var showAlignmentGrid: Bool
@@ -61,6 +62,7 @@ public struct KroutonDiscLabelArtworkCanvas: View {
         chamberTumble: Double = 0.35,
         tinyPlanetRadius: Double = 0.75,
         bgAdjustments: KroutonBackgroundAdjustments = KroutonBackgroundAdjustments(),
+        vectorShapes: [KroutonVectorShapeLayer] = [],
         textElements: [KroutonLabelTextElement] = [],
         selectedTextID: UUID? = nil,
         showAlignmentGrid: Bool = false,
@@ -89,6 +91,7 @@ public struct KroutonDiscLabelArtworkCanvas: View {
         self.chamberTumble = chamberTumble
         self.tinyPlanetRadius = tinyPlanetRadius
         self.bgAdjustments = bgAdjustments
+        self.vectorShapes = vectorShapes
         self.textElements = textElements
         self.selectedTextID = selectedTextID
         self.showAlignmentGrid = showAlignmentGrid
@@ -115,6 +118,11 @@ public struct KroutonDiscLabelArtworkCanvas: View {
             // 2. Optional 10mm Alignment Grid
             if showAlignmentGrid && !isExportMode {
                 alignmentGridOverlay
+            }
+
+            // 2B. Parametric Vector Shapes & Optical Standard Badges
+            ForEach(vectorShapes) { shape in
+                renderVectorShapeView(shape)
             }
 
             // 3. User Text Elements (Curved on Disc Arc or Straight Horizontal)
@@ -373,13 +381,16 @@ public struct KroutonDiscLabelArtworkCanvas: View {
         let centerAngleRad = (angleDegrees - 90.0) * Double.pi / 180.0
         let advances = chars.map { Double(characterWidthFactor($0, fontDesignRaw: "default", isBold: true)) * fontSizePts * max(0.5, tracking) }
         let totalArcLen = advances.reduce(0.0, +)
-        let totalAngleSpan = totalArcLen / safeR
+        let rawAngleSpan = totalArcLen / safeR
+        let maxAllowedSpan = Double.pi * 1.88 // 338 degrees max so start & end never collide
+        let compressionScale = rawAngleSpan > maxAllowedSpan ? (maxAllowedSpan / rawAngleSpan) : 1.0
+        let totalAngleSpan = min(rawAngleSpan, maxAllowedSpan)
 
         var out: [ArcGlyphPlacement] = []
         if !isBottomUpright {
             var cursorAngle = centerAngleRad - (totalAngleSpan * 0.5)
             for (idx, ch) in chars.enumerated() {
-                let halfStep = (advances[idx] * 0.5) / safeR
+                let halfStep = (advances[idx] * compressionScale * 0.5) / safeR
                 cursorAngle += halfStep
                 let dx = cos(cursorAngle) * safeR
                 let dy = sin(cursorAngle) * safeR
@@ -390,7 +401,7 @@ public struct KroutonDiscLabelArtworkCanvas: View {
         } else {
             var cursorAngle = centerAngleRad + (totalAngleSpan * 0.5)
             for (idx, ch) in chars.enumerated() {
-                let halfStep = (advances[idx] * 0.5) / safeR
+                let halfStep = (advances[idx] * compressionScale * 0.5) / safeR
                 cursorAngle -= halfStep
                 let dx = cos(cursorAngle) * safeR
                 let dy = sin(cursorAngle) * safeR
@@ -513,5 +524,28 @@ public struct KroutonDiscLabelArtworkCanvas: View {
         let angularExcess = max(0.0, rawAngDiff - halfSpanDeg)
         let arcDistMM = (angularExcess * Double.pi / 180.0) * targetR
         return hypot(radialDiff, arcDistMM * 0.65)
+    }
+
+    @ViewBuilder
+    private func renderVectorShapeView(_ shape: KroutonVectorShapeLayer) -> some View {
+        let halfD = diameterPoints * 0.5
+        let scalePts = Double(diameterPoints) / 240.0
+        let path = Path { p in
+            guard let first = shape.points.first else { return }
+            p.move(to: CGPoint(x: halfD + CGFloat(first.nx) * halfD, y: halfD + CGFloat(first.ny) * halfD))
+            for pt in shape.points.dropFirst() {
+                p.addLine(to: CGPoint(x: halfD + CGFloat(pt.nx) * halfD, y: halfD + CGFloat(pt.ny) * halfD))
+            }
+            if shape.isClosed { p.closeSubpath() }
+        }
+        ZStack {
+            if let fill = shape.fillColor, shape.isClosed {
+                path.fill(Color(red: fill.r, green: fill.g, blue: fill.b, opacity: fill.a))
+            }
+            path.stroke(
+                Color(red: shape.strokeColor.r, green: shape.strokeColor.g, blue: shape.strokeColor.b, opacity: shape.strokeColor.a),
+                style: StrokeStyle(lineWidth: max(1.0, CGFloat(shape.strokeWidthPoints * scalePts)), lineCap: .round, lineJoin: .round)
+            )
+        }
     }
 }

@@ -17,6 +17,8 @@ extension KroutonDiscLabelStudioWorkspaceView {
             adjustmentsToolInspector()
         case .text:
             textToolInspector()
+        case .shapes:
+            shapesAndBadgesToolInspector()
         case .discSize:
             discSizeOverrideInspector()
         case .select:
@@ -226,6 +228,16 @@ extension KroutonDiscLabelStudioWorkspaceView {
                     .font(.subheadline.bold())
                 Spacer()
                 Button {
+                    stampProjectTracklistOrManifestOnDisc()
+                } label: {
+                    Label("Stamp Tracks", systemImage: "music.note.list")
+                        .font(.caption.bold())
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("Stamp staged files or Red Book audio tracks onto the disc face")
+
+                Button {
                     addNewTextElement()
                 } label: {
                     Label("Add Text", systemImage: "plus")
@@ -295,6 +307,7 @@ extension KroutonDiscLabelStudioWorkspaceView {
                             .buttonStyle(.plain)
 
                             Button {
+                                store.labelStudioSubStore.recordUndoSnapshot(from: store)
                                 store.labelTextElements.removeAll { $0.id == item.id }
                                 store.labelSelectedTextID = store.labelTextElements.first?.id
                             } label: {
@@ -320,138 +333,163 @@ extension KroutonDiscLabelStudioWorkspaceView {
         }
     }
 
+    @ViewBuilder
     private func selectedTextElementControls(index: Int) -> some View {
+        let fallbackElem = KroutonLabelTextElement(text: "", isCurvedArc: true, radiusMM: 42.0, angleDegrees: 0.0)
+        let currentElem = store.labelTextElements.indices.contains(index) ? store.labelTextElements[index] : fallbackElem
         let colorBinding = Binding<Color>(
             get: {
-                let c = store.labelTextElements[index].color
+                let c = store.labelTextElements.indices.contains(index) ? store.labelTextElements[index].color : fallbackElem.color
                 return Color(red: c.r, green: c.g, blue: c.b, opacity: c.a)
             },
             set: { newCol in
+                guard store.labelTextElements.indices.contains(index) else { return }
                 let (r, g, b, a) = KroutonPureColorMath.extractSRGB(newCol)
-                store.labelTextElements[index].color = KroutonRGBAColor(r: Double(r), g: Double(g), b: Double(b), a: Double(a))
+                let nextRGBA = KroutonRGBAColor(r: Double(r), g: Double(g), b: Double(b), a: Double(a))
+                if store.labelTextElements[index].color != nextRGBA {
+                    store.labelStudioSubStore.recordUndoSnapshot(from: store, coalesceWindow: 0.45)
+                    store.labelTextElements[index].color = nextRGBA
+                }
             }
         )
 
-        return VStack(alignment: .leading, spacing: 10) {
-            Text("Selected Text Content")
-                .font(.caption2.bold())
-                .foregroundStyle(.secondary)
+        if store.labelTextElements.indices.contains(index) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Selected Text Layer")
+                        .font(.caption.bold())
+                    Spacer()
+                    Button(role: .destructive) {
+                        guard store.labelTextElements.indices.contains(index) else { return }
+                        store.labelStudioSubStore.recordUndoSnapshot(from: store)
+                        store.labelTextElements.remove(at: index)
+                        store.labelSelectedTextID = store.labelTextElements.last?.id
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                            .font(.caption2)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                }
 
-            TextField("Enter Disc Text...", text: $store.labelTextElements[index].text)
-                .textFieldStyle(.roundedBorder)
-                .font(.caption.bold())
+                TextField("Enter Disc Text...", text: safeTextElementBinding(index, \.text, default: fallbackElem.text))
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 12, weight: .semibold))
 
-            HStack(spacing: 8) {
-                ColorPicker("", selection: colorBinding)
+                HStack(spacing: 8) {
+                    ColorPicker("", selection: colorBinding)
+                        .labelsHidden()
+                        .frame(width: 28)
+
+                    Toggle("Bold", isOn: safeTextElementBinding(index, \.isBold, default: fallbackElem.isBold))
+                        .toggleStyle(.checkbox)
+                        .font(.caption.bold())
+                        .fixedSize()
+
+                    Toggle("Shadow", isOn: safeTextElementBinding(index, \.hasDropShadow, default: fallbackElem.hasDropShadow))
+                        .toggleStyle(.checkbox)
+                        .font(.caption.bold())
+                        .fixedSize()
+
+                    Spacer(minLength: 2)
+
+                    Picker("Font", selection: safeTextElementBinding(index, \.fontDesignRaw, default: fallbackElem.fontDesignRaw)) {
+                        Text("Sans").tag("Default")
+                        Text("Rounded").tag("Rounded")
+                        Text("Serif").tag("Serif")
+                        Text("Mono").tag("Monospaced")
+                    }
                     .labelsHidden()
-                    .frame(width: 28)
+                    .frame(width: 90)
+                }
 
-                Toggle("Bold", isOn: $store.labelTextElements[index].isBold)
+                Toggle("Follow Circular Disc Arc", isOn: safeTextElementBinding(index, \.isCurvedArc, default: fallbackElem.isCurvedArc))
                     .toggleStyle(.checkbox)
                     .font(.caption.bold())
-                    .fixedSize()
 
-                Toggle("Shadow", isOn: $store.labelTextElements[index].hasDropShadow)
-                    .toggleStyle(.checkbox)
-                    .font(.caption.bold())
-                    .fixedSize()
+                if currentElem.isCurvedArc {
+                    Toggle("Keep Bottom Arc Text Upright (Readable)", isOn: safeTextElementBinding(index, \.isBottomUpright, default: fallbackElem.isBottomUpright))
+                        .toggleStyle(.checkbox)
+                        .font(.caption)
 
-                Spacer(minLength: 2)
+                    HStack(spacing: 6) {
+                        Button("Top (0°)") {
+                            guard store.labelTextElements.indices.contains(index) else { return }
+                            store.labelStudioSubStore.recordUndoSnapshot(from: store)
+                            store.labelTextElements[index].angleDegrees = 0
+                            store.labelTextElements[index].isBottomUpright = false
+                        }.buttonStyle(.bordered).controlSize(.mini)
 
-                Picker("Font", selection: $store.labelTextElements[index].fontDesignRaw) {
-                    Text("Sans").tag("Default")
-                    Text("Rounded").tag("Rounded")
-                    Text("Serif").tag("Serif")
-                    Text("Mono").tag("Monospaced")
+                        Button("Bottom (180°)") {
+                            guard store.labelTextElements.indices.contains(index) else { return }
+                            store.labelStudioSubStore.recordUndoSnapshot(from: store)
+                            store.labelTextElements[index].angleDegrees = 180
+                            store.labelTextElements[index].isBottomUpright = true
+                        }.buttonStyle(.bordered).controlSize(.mini)
+
+                        Button("Left (270°)") {
+                            guard store.labelTextElements.indices.contains(index) else { return }
+                            store.labelStudioSubStore.recordUndoSnapshot(from: store)
+                            store.labelTextElements[index].angleDegrees = 270
+                        }.buttonStyle(.bordered).controlSize(.mini)
+
+                        Button("Right (90°)") {
+                            guard store.labelTextElements.indices.contains(index) else { return }
+                            store.labelStudioSubStore.recordUndoSnapshot(from: store)
+                            store.labelTextElements[index].angleDegrees = 90
+                        }.buttonStyle(.bordered).controlSize(.mini)
+                    }
                 }
-                .labelsHidden()
-                .frame(width: 90)
-            }
 
-            Divider()
-
-            Picker("Layout Mode", selection: $store.labelTextElements[index].isCurvedArc) {
-                Text("Curved on Disc Arc").tag(true)
-                Text("Straight Horizontal").tag(false)
-            }
-            .pickerStyle(.segmented)
-
-            // Radius Slider (Inner Hub to Outer Rim)
-            VStack(alignment: .leading, spacing: 2) {
-                HStack {
-                    Text("Distance from Center (Radius)")
-                        .font(.caption2.bold())
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text("\(Int(store.labelTextElements[index].radiusMM)) mm")
-                        .font(.caption2.monospaced())
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack {
+                        Text("Font Size")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text("\(Int(currentElem.fontSizePoints)) pt")
+                            .font(.caption2.monospaced())
+                    }
+                    Slider(value: safeTextElementBinding(index, \.fontSizePoints, default: fallbackElem.fontSizePoints), in: 8.0...38.0)
                 }
-                Slider(value: $store.labelTextElements[index].radiusMM, in: 16...56, step: 1)
-            }
 
-            // Angle Slider (0° = 12 o'clock top, 90° = 3 o'clock, 180° = 6 o'clock bottom, 270° = 9 o'clock)
-            VStack(alignment: .leading, spacing: 2) {
-                HStack {
-                    Text("Position Around Disc (Angle)")
-                        .font(.caption2.bold())
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text("\(Int(store.labelTextElements[index].angleDegrees))°")
-                        .font(.caption2.monospaced())
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack {
+                        Text("Distance from Center (Radius)")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(String(format: "%.1f mm", currentElem.radiusMM))
+                            .font(.caption2.monospaced())
+                    }
+                    Slider(
+                        value: safeTextElementBinding(index, \.radiusMM, default: fallbackElem.radiusMM),
+                        in: max(12.0, activePreset.innerDiameterMM * 0.55)...(activePreset.outerDiameterMM * 0.47)
+                    )
                 }
-                Slider(value: $store.labelTextElements[index].angleDegrees, in: 0...360, step: 5)
 
-                HStack(spacing: 6) {
-                    Button("Top (0°)") {
-                        store.labelTextElements[index].angleDegrees = 0
-                        store.labelTextElements[index].isBottomUpright = false
-                    }.buttonStyle(.bordered).controlSize(.mini)
-
-                    Button("Bottom (180°)") {
-                        store.labelTextElements[index].angleDegrees = 180
-                        store.labelTextElements[index].isBottomUpright = true
-                    }.buttonStyle(.bordered).controlSize(.mini)
-
-                    Button("Left (270°)") {
-                        store.labelTextElements[index].angleDegrees = 270
-                    }.buttonStyle(.bordered).controlSize(.mini)
-
-                    Button("Right (90°)") {
-                        store.labelTextElements[index].angleDegrees = 90
-                    }.buttonStyle(.bordered).controlSize(.mini)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack {
+                        Text("Clock Position Angle (0° = Top)")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text("\(Int(currentElem.angleDegrees))°")
+                            .font(.caption2.monospaced())
+                    }
+                    Slider(value: safeTextElementBinding(index, \.angleDegrees, default: fallbackElem.angleDegrees), in: 0.0...360.0)
                 }
-            }
 
-            if store.labelTextElements[index].isCurvedArc {
-                Toggle("Bottom Upright Direction (Read Left-to-Right at Bottom)", isOn: $store.labelTextElements[index].isBottomUpright)
-                    .toggleStyle(.checkbox)
-                    .font(.caption2.bold())
-            }
-
-            // Font Size & Letter Tracking
-            VStack(alignment: .leading, spacing: 2) {
-                HStack {
-                    Text("Font Size")
-                        .font(.caption2.bold())
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text("\(Int(store.labelTextElements[index].fontSizePoints)) pt")
-                        .font(.caption2.monospaced())
-                }
-                Slider(value: $store.labelTextElements[index].fontSizePoints, in: 8...38, step: 1)
-            }
-
-            if store.labelTextElements[index].isCurvedArc {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     HStack {
                         Text("Letter Spacing (Tracking)")
                             .font(.caption2.bold())
                             .foregroundStyle(.secondary)
                         Spacer()
-                        Text(String(format: "%.2f×", store.labelTextElements[index].letterTracking))
+                        Text(String(format: "%.2f×", currentElem.letterTracking))
                             .font(.caption2.monospaced())
                     }
-                    Slider(value: $store.labelTextElements[index].letterTracking, in: 0.65...1.85)
+                    Slider(value: safeTextElementBinding(index, \.letterTracking, default: fallbackElem.letterTracking), in: 0.70...1.80)
                 }
             }
         }
@@ -477,6 +515,7 @@ extension KroutonDiscLabelStudioWorkspaceView {
             isBold: true,
             color: defaultColor
         )
+        store.labelStudioSubStore.recordUndoSnapshot(from: store)
         store.labelTextElements.append(newItem)
         store.labelSelectedTextID = newItem.id
     }
@@ -512,13 +551,29 @@ extension KroutonDiscLabelStudioWorkspaceView {
         )
         let renderer = ImageRenderer(content: exportCanvas)
         renderer.scale = 1.0
-        if renderer.cgImage != nil {
-            showTransientBanner(isTestPrintSheet ? "Test Print Proof Ready (\(Int(preset.innerDiameterMM))/\(Int(preset.outerDiameterMM))mm)" : "Rendered \(Int(exportPixels))×\(Int(exportPixels))px 300-DPI Master")
+        if let cgImg = renderer.cgImage {
+            let files = KroutonKrustiniModule.writeDiscLabelExportFiles(
+                discCGImage: cgImg,
+                presetName: preset.name,
+                outerDiameterMM: preset.outerDiameterMM,
+                innerDiameterMM: preset.innerDiameterMM,
+                offsetXMM: preset.offsetXMM,
+                offsetYMM: preset.offsetYMM,
+                discTitle: store.discVolumeTitle,
+                exportPNG: !isTestPrintSheet,
+                exportPDF: isTestPrintSheet
+            )
+            if let pdfURL = files.pdfURL {
+                showTransientBanner("Saved 1:1 Print Sheet PDF -> ~/Downloads/\(pdfURL.lastPathComponent)")
+            } else if let pngURL = files.pngURL {
+                showTransientBanner("Saved 300-DPI PNG -> ~/Downloads/\(pngURL.lastPathComponent)")
+            }
         }
     }
 
     private func studioSwatchButton(_ label: String, c1: Color, c2: Color) -> some View {
         Button {
+            store.labelStudioSubStore.recordUndoSnapshot(from: store)
             store.labelBgPrimaryColor = c1
             store.labelBgSecondaryColor = c2
         } label: {

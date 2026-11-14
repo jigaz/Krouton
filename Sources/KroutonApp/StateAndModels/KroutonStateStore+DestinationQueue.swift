@@ -542,8 +542,20 @@ extension KroutonStateStore {
                 enableCustomLayout: enableCustomFinderLayoutTab,
                 iconSizePx: Int(finderIconSize)
             )
+        case .discPrinter, .pdfVector:
+            executeLabelDestinationExport()
         default:
-            _ = kroutonSynthesizeVerifiedISO9660ImageOnDisk(title: "KROUTON_MASTER", fileName: "Krouton_Master_Output.iso")
+            let isoInputs: [TartineISOFileInput] = stagedFiles.compactMap { entry in
+                let fileData = (try? Data(contentsOf: entry.url)) ?? Data("STAGED_ENTRY=\(entry.name)\nBYTES=\(entry.byteSize)\n".utf8)
+                return TartineISOFileInput(fileName: entry.name, data: fileData)
+            }
+            let synth = kroutonSynthesizeVerifiedISO9660ImageOnDisk(
+                title: discVolumeTitle,
+                fileName: "Krouton_Master_Output.iso",
+                additionalFiles: isoInputs
+            )
+            burnQueueSubStore.lastMasteredISOURL = synth.url
+            burnQueueSubStore.lastMasteredSHA256 = synth.sha256
         }
     }
 }

@@ -28,7 +28,6 @@ struct KroutonDestinationCardView: View {
         )
 
         // Resolve THIS card's drive strictly from unclaimed drives (never steal a drive in otherUsedDriveIDs!)
-        let hasUnclaimedPhysicalBurner = driveManager.availableDrives.contains(where: { !otherUsedDriveIDs.contains($0.id) })
         let cardDrive: KroutonToasterInfo? = {
             if let exact = driveManager.availableDrives.first(where: { $0.id == item.targetDriveID && !otherUsedDriveIDs.contains($0.id) }) {
                 return exact
@@ -37,16 +36,12 @@ struct KroutonDestinationCardView: View {
         }()
 
         let activeCardDriveID = (item.kind == .networkBurner) ? "krumb-network-toaster" : (cardDrive?.id ?? "")
-        let validSpeeds = cardDrive?.availableWriteSpeeds ?? ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
 
         let scopeTel = driveManager.telemetryForDrive(activeCardDriveID)
         let isFloatingOpen = scopeTel?.isFloatingWindowOpen ?? false
         let isInlineVisible = ((scopeTel?.isActive ?? false) || (scopeTel?.isManuallyPinnedInline ?? false)) && !isFloatingOpen
 
-        let isDriveBusy = driveManager.isExecutingQueue || (scopeTel?.isActive == true)
-        let canEject = (cardDrive?.isMediaPresent == true) && !isDriveBusy
 
-        let _ = (hasUnclaimedPhysicalBurner, validSpeeds, canEject)
         return VStack(alignment: .leading, spacing: 10) {
             // Top Row: USB Burner / USB Menu + Scope + Icon-Only Eject + Remove Card
             destinationCardTopHeaderBar
