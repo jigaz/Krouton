@@ -149,6 +149,15 @@ struct KroutonDestinationCardView: View {
                 Button(KroutonL10n.tr("Eject Optical Disc")) {
                     driveManager.ejectDrive(id: activeCardDriveID)
                 }.keyboardShortcut("e", modifiers: .command)
+                Menu(KroutonL10n.tr("Erase RW")) {
+                    Button(KroutonL10n.tr("Quick Erase")) {
+                        driveManager.eraseRewritableDisc(driveID: activeCardDriveID, fullErase: false) { _ in }
+                    }
+                    Button(KroutonL10n.tr("Full Erase")) {
+                        driveManager.eraseRewritableDisc(driveID: activeCardDriveID, fullErase: true) { _ in }
+                    }
+                }
+                .disabled(driveManager.isExecutingQueue)
             }
             Divider()
             Button(KroutonL10n.tr("Copy Target Hardware / Path")) {

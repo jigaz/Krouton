@@ -270,6 +270,11 @@ extension KroutonSettingsWindowView {
                                 }
                                 .padding(.trailing, 6)
 
+                                if drive.isMediaErasable {
+                                    pillToggleButton(title: "Quick Erase RW", sfSymbol: "eraser.fill", isSelected: false) {
+                                        driveManager.eraseRewritableDisc(driveID: drive.id, fullErase: false) { _ in }
+                                    }
+                                }
                                 pillToggleButton(title: "Eject", sfSymbol: "eject.fill", isSelected: false) {
                                     driveManager.ejectDrive(id: drive.id)
                                 }

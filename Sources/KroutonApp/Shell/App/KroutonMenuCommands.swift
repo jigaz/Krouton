@@ -431,6 +431,22 @@ struct KroutonWorkspaceCommands: Commands {
             }
             .keyboardShortcut("e", modifiers: .command)
             .disabled(wm.driveManager.availableDrives.isEmpty)
+
+            Menu(KroutonL10n.tr("Erase RW")) {
+                Button(KroutonL10n.tr("Quick Erase")) {
+                    wm.driveManager.eraseRewritableDisc(
+                        driveID: wm.driveManager.selectedDrive?.id ?? wm.driveManager.availableDrives.first?.id,
+                        fullErase: false
+                    ) { _ in }
+                }
+                Button(KroutonL10n.tr("Full Erase")) {
+                    wm.driveManager.eraseRewritableDisc(
+                        driveID: wm.driveManager.selectedDrive?.id ?? wm.driveManager.availableDrives.first?.id,
+                        fullErase: true
+                    ) { _ in }
+                }
+            }
+            .disabled(wm.driveManager.availableDrives.isEmpty || wm.driveManager.isExecutingQueue)
         }
     }
 
