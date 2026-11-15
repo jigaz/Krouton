@@ -65,6 +65,7 @@ struct KroutonVideoAuthoringWorkspaceView: View {
                         .popover(isPresented: $showVideoBitratePopover, arrowEdge: .bottom) {
                             KroutonVideoBitratePopoverView(store: store, spec: spec, isBluRay: isBluRay, isDualLayer: isDualLayer, fitToDiscDVD9Shrink: fitToDiscDVD9Shrink, preserveMenusAndExtras: preserveMenusAndExtras)
                         }
+                        .onReceive(NotificationCenter.default.publisher(for: .kroutonMenuInspectVideoBitrate)) { _ in showVideoBitratePopover = true }
                     }
 
                     HStack(spacing: 12) {

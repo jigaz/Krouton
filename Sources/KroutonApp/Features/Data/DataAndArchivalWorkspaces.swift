@@ -172,6 +172,7 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                         .popover(isPresented: $showHybridLBAMapPopover, arrowEdge: .bottom) {
                             KroutonHybridLBAMapPopoverView(store: store, activeSpec: activeSpec)
                         }
+                        .onReceive(NotificationCenter.default.publisher(for: .kroutonMenuInspectHybridLBA)) { _ in showHybridLBAMapPopover = true }
 
                         if !isRetro83 {
                             Toggle(KroutonL10n.tr("Customize Finder Layout"), isOn: $enableCustomFinderLayoutTab)

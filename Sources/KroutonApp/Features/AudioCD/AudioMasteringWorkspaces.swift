@@ -543,6 +543,7 @@ struct KroutonRedBookAudioWorkspaceView: View {
                     .popover(isPresented: $showAudioCuePopover, arrowEdge: .bottom) {
                         KroutonAudioCuePopoverView(store: store)
                     }
+                    .onReceive(NotificationCenter.default.publisher(for: .kroutonMenuInspectAudioCue)) { _ in showAudioCuePopover = true }
                 }
 
                 HStack(spacing: 10) {

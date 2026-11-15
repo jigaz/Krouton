@@ -264,24 +264,38 @@ struct KroutonWorkspaceCommands: Commands {
 
             Divider()
 
-            Button(KroutonL10n.tr("Copy Hybrid ISO/UDF LBA Layout Summary")) {
+            Button(KroutonL10n.tr("Inspect Hybrid ISO/UDF LBA Layout")) {
+                if wm.store.selectedCategory != .burn || (!wm.store.selectedTaskID.hasPrefix("data-") && wm.store.selectedTaskID != "udf-260" && wm.store.selectedTaskID != "m-disc") {
+                    selectBurnFormat("data-hybrid")
+                }
                 let plan = wm.store.planLiveHybridDataLayout()
                 let summary = "Volume: \(plan.volumeIdentifier) | PVD LBA: \(plan.pvdSectorLBA) | UDF Anchor LBA: \(plan.udfAnchorAVDPLBA) | Total Sectors: \(plan.totalSectorsLBA)"
                 KroutonOSDesktopBridge.copyTextToClipboard(summary)
-                NotificationCenter.default.post(name: .kroutonMenuInspectHybridLBA, object: nil)
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: .kroutonMenuInspectHybridLBA, object: nil)
+                }
             }
             .keyboardShortcut("l", modifiers: [.command, .control])
-            .disabled(wm.store.stagedFiles.isEmpty)
 
-            Button(KroutonL10n.tr("Copy Compiled Red Book CUE Sheet")) {
+            Button(KroutonL10n.tr("Inspect Compiled Red Book CUE Sheet")) {
+                if wm.store.selectedCategory != .burn || (wm.store.selectedTaskID != "cd-da" && wm.store.selectedTaskID != "cd-extra") {
+                    selectBurnFormat("cd-da")
+                }
                 let cue = wm.store.compileLiveAudioCueSheet()
                 KroutonOSDesktopBridge.copyTextToClipboard(cue)
-                NotificationCenter.default.post(name: .kroutonMenuInspectAudioCue, object: nil)
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: .kroutonMenuInspectAudioCue, object: nil)
+                }
             }
             .keyboardShortcut("u", modifiers: [.command, .control])
 
             Button(KroutonL10n.tr("Inspect Video Bitrate Budget")) {
-                NotificationCenter.default.post(name: .kroutonMenuInspectVideoBitrate, object: nil)
+                if wm.store.selectedCategory != .burn || (!wm.store.selectedTaskID.hasPrefix("dvd-") && !wm.store.selectedTaskID.hasPrefix("bd") && wm.store.selectedTaskID != "avchd") {
+                    selectBurnFormat("dvd-video")
+                }
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: .kroutonMenuInspectVideoBitrate, object: nil)
+                }
             }
             .keyboardShortcut("b", modifiers: [.command, .control])
         }
