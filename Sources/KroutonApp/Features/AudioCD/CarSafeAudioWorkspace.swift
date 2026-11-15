@@ -14,6 +14,9 @@ struct KroutonCarSafeAudioWorkspaceView: View {
     @State private var carSafeStripAppleDouble: Bool = true
     @State private var carSafeEnforceID3v23: Bool = true
     @State private var carSafeGenerateM3U: Bool = true
+    @State private var carSafeStripArtwork: Bool = true
+    @State private var carSafeForceJointStereo: Bool = true
+    @State private var carSafeLowPassFilter: Bool = true
     @State private var carSafeTranscodeTarget: String = "320 kbps CBR MP3 (Universal Car Deck)"
 
     var body: some View {
@@ -37,6 +40,7 @@ struct KroutonCarSafeAudioWorkspaceView: View {
                             Picker("", selection: $carSafeTranscodeTarget) {
                                 Text("320 kbps CBR MP3 (Car Safe)").tag("320 kbps CBR MP3 (Universal Car Deck)")
                                 Text("192 kbps CBR MP3 (12-Hr Trip)").tag("192 kbps CBR MP3 (Extended 12-Hour Roadtrip)")
+                                Text("~112 kbps VBR MP3 (Super Long Play)").tag("~112 kbps VBR MP3 (Joint Stereo • 19 kHz LPF)")
                                 Text("16-Bit FLAC / WAV Direct").tag("16-Bit FLAC / WAV Passthrough (Modern Head Units)")
                             }.labelsHidden().font(.caption)
                         }
@@ -44,8 +48,11 @@ struct KroutonCarSafeAudioWorkspaceView: View {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 225), alignment: .leading)], spacing: 6) {
                         Toggle("Zero-Pad Prefixes (001 - Title.mp3)", isOn: $carSafeZeroPadNumbers).toggleStyle(.checkbox).font(.caption.bold())
                         Toggle("Strip macOS .DS_Store & ._* Forks", isOn: $carSafeStripAppleDouble).toggleStyle(.checkbox).font(.caption.bold())
-                        Toggle("Enforce ID3v2.3 ISO-8859-1 Tags", isOn: $carSafeEnforceID3v23).toggleStyle(.checkbox).font(.caption)
                         Toggle("Write Root .M3U Playlist", isOn: $carSafeGenerateM3U).toggleStyle(.checkbox).font(.caption)
+                        Toggle("Enforce ID3v2.3 ISO-8859-1 Tags", isOn: $carSafeEnforceID3v23).toggleStyle(.checkbox).font(.caption)
+                        Toggle("Strip ID3 Cover Art & Lyrics (Max Capacity)", isOn: $carSafeStripArtwork).toggleStyle(.checkbox).font(.caption).foregroundStyle(carSafeTranscodeTarget.contains("112") ? .primary : .secondary)
+                        Toggle("Force Joint Stereo (Phase Correlated)", isOn: $carSafeForceJointStereo).toggleStyle(.checkbox).font(.caption).foregroundStyle(carSafeTranscodeTarget.contains("112") ? .primary : .secondary)
+                        Toggle("19 kHz Lame Low-Pass Filter", isOn: $carSafeLowPassFilter).toggleStyle(.checkbox).font(.caption).foregroundStyle(carSafeTranscodeTarget.contains("112") ? .primary : .secondary)
                     }
                 }
             }
