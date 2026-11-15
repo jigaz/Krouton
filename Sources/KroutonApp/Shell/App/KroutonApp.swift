@@ -185,7 +185,7 @@ struct KroutonApp: App {
 struct KroutonMainWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var driveManager: KroutonOpticalDriveBank
-    @ObservedObject var krumb: KrumbKitchenClient = .shared
+    @ObservedObject var krumb: SpoolRemoteNodeClient = .shared
 
     @State var enableCustomFinderLayoutTab: Bool = false
     @State var finderIconSize: Double = 256

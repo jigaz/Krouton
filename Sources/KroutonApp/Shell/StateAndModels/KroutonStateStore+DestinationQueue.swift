@@ -468,7 +468,7 @@ extension KroutonStateStore {
         switch target.kind {
         case .networkBurner:
             driveManager.setManualInlinePin(for: "krumb-network-toaster", isPinned: true)
-            let _ = await KrumbKitchenClient.shared.executeSpoolAndBurn(
+            let _ = await SpoolRemoteNodeClient.shared.executeSpoolAndBurn(
                 endpoint: target.hardwareOrPath,
                 stagedFiles: stagedFiles,
                 audioCubes: redBookTracks,
@@ -572,9 +572,9 @@ extension KroutonStateStore {
                 KroutonOSDesktopBridge.revealInFinder(url: outDir)
                 return
             }
-            let isoInputs: [TartineISOFileInput] = stagedFiles.compactMap { entry in
+            let isoInputs: [HybridISOFileInput] = stagedFiles.compactMap { entry in
                 let fileData = (try? Data(contentsOf: entry.url)) ?? Data("STAGED_ENTRY=\(entry.name)\nBYTES=\(entry.byteSize)\n".utf8)
-                return TartineISOFileInput(fileName: entry.name, data: fileData)
+                return HybridISOFileInput(fileName: entry.name, data: fileData)
             }
             let synth = kroutonSynthesizeVerifiedISO9660ImageOnDisk(
                 title: discVolumeTitle,

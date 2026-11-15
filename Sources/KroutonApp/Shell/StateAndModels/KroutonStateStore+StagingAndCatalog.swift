@@ -433,13 +433,13 @@ public struct KroutonStyledIconBadge: View {
 public func kroutonSynthesizeVerifiedISO9660ImageOnDisk(
     title: String,
     fileName: String,
-    additionalFiles: [TartineISOFileInput] = []
+    additionalFiles: [HybridISOFileInput] = []
 ) -> (url: URL, sha256: String, sizeBytes: Int64) {
     let dir = FileManager.default.temporaryDirectory.appendingPathComponent("KroutonDepotStaging", isDirectory: true)
     let outURL = dir.appendingPathComponent(fileName)
-    let payloadFiles: [TartineISOFileInput] = additionalFiles.isEmpty
+    let payloadFiles: [HybridISOFileInput] = additionalFiles.isEmpty
         ? [
-            TartineISOFileInput(
+            HybridISOFileInput(
                 fileName: "KROUTON_MANIFEST.TXT",
                 data: Data("VOLUME=\(title)\nENGINE=TARTINE_ECMA119_ISO9660\n".utf8)
             )
@@ -447,7 +447,7 @@ public func kroutonSynthesizeVerifiedISO9660ImageOnDisk(
         : additionalFiles
 
     do {
-        let result = try KroutonTartineISO9660Writer.writeMountableISO9660Image(
+        let result = try KroutonHybridISO9660Writer.writeMountableISO9660Image(
             volumeTitle: title,
             files: payloadFiles,
             outputURL: outURL

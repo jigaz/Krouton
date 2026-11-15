@@ -134,7 +134,7 @@ struct KroutonDestinationRackColumnView: View {
 struct NetworkSpoolDriveCardSectionView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var driveManager: KroutonOpticalDriveBank
-    @ObservedObject var krumb: KrumbKitchenClient = .shared
+    @ObservedObject var krumb: SpoolRemoteNodeClient = .shared
 
     let item: KroutonBakeBatchItem
     let activeCardDriveID: String

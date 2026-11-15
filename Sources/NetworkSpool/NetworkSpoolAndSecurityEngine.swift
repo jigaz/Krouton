@@ -3,10 +3,10 @@ import Foundation
 import Network
 import CryptoKit
 
-// MARK: - KrumbKitchenClient Spool-and-Burn, Artifacts, LAN Security & Telemetry Sanitizer
+// MARK: - SpoolRemoteNodeClient Spool-and-Burn, Artifacts, LAN Security & Telemetry Sanitizer
 
 @MainActor
-extension KrumbKitchenClient {
+extension SpoolRemoteNodeClient {
     public func executeSpoolAndBurn(
         endpoint: String,
         stagedFiles: [KroutonStagedFileEntry],
@@ -57,15 +57,15 @@ extension KrumbKitchenClient {
 
             if let (data, resp) = try? await session.data(for: slotReq),
                let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode),
-               let slotInfo = try? JSONDecoder().decode(KrumbPantrySlotResponse.self, from: data) {
+               let slotInfo = try? JSONDecoder().decode(SpoolDriveSlotResponse.self, from: data) {
                 loafID = slotInfo.pantryLoafId
                 liveSlotAllocated = true
-                if slotInfo.freeBytes < KrumbNetworkConstants.minimumPantryFreeBytes {
+                if slotInfo.freeBytes < SpoolNetworkConstants.minimumPantryFreeBytes {
                     isSpoolingLoaf = false
                     let freeMB = Double(slotInfo.freeBytes) / 1_048_576.0
                     let msg = String(format: "Pantry Low Space (%.0f MB < 1024 MB minimum)", freeMB)
                     applyKitchenEventToThermometer(
-                        KrumbKitchenEventMessage(
+                        SpoolNodeEventMessage(
                             event: "BURNT_TOAST",
                             batchId: batchID,
                             toasterId: remoteToasters.first?.id,
@@ -102,9 +102,9 @@ extension KrumbKitchenClient {
         isSpoolingLoaf = false
         appendEventLog("Pantry Spool 100% Complete -> Dispatching POST /api/v1/bake")
 
-        // STEP 3: Build & Dispatch `KrumbBakeRequest` (`POST /api/v1/bake`)
-        let cubePayloads: [KrumbCubePayload] = audioCubes.enumerated().map { idx, c in
-            KrumbCubePayload(
+        // STEP 3: Build & Dispatch `SpoolBurnRequest` (`POST /api/v1/bake`)
+        let cubePayloads: [SpoolTrackPayload] = audioCubes.enumerated().map { idx, c in
+            SpoolTrackPayload(
                 trackNumber: UInt8(idx + 1),
                 filename: c.url.lastPathComponent,
                 title: c.title,
@@ -113,14 +113,14 @@ extension KrumbKitchenClient {
                 pregapMs: UInt32(c.preGapSeconds * 1000.0)
             )
         }
-        let bakeReq = KrumbBakeRequest(
+        let bakeReq = SpoolBurnRequest(
             batchId: batchID,
             pantryLoafId: loafID,
             toasterIds: [remoteToasters.first?.id ?? "usb-pioneer-slot-0"],
             heatX: parsedHeatX,
             mode: simulationMode ? .proofOnly : .toast,
             doggyBag: doggyBagPolicy,
-            seasoning: KrumbSeasoning(albumTitle: volumeTitle, performer: performer, songwriter: nil, upcEan: mcnBarcode),
+            seasoning: SpoolMasteringOptions(albumTitle: volumeTitle, performer: performer, songwriter: nil, upcEan: mcnBarcode),
             cubes: cubePayloads
         )
 
@@ -143,7 +143,7 @@ extension KrumbKitchenClient {
         // STEP 4: Offline EasyBake WebSocket Synthesizer (Only runs when no live daemon is on Port 7420)
         appendEventLog("EasyBake Synthesizer Active -> Streaming simulated WS /api/v1/kitchen frames")
         applyKitchenEventToThermometer(
-            KrumbKitchenEventMessage(
+            SpoolNodeEventMessage(
                 event: "PREHEATING",
                 batchId: batchID,
                 toasterId: bakeReq.toasterIds.first,
@@ -172,7 +172,7 @@ extension KrumbKitchenClient {
             }
 
             applyKitchenEventToThermometer(
-                KrumbKitchenEventMessage(
+                SpoolNodeEventMessage(
                     event: "TOASTING_PROGRESS",
                     batchId: batchID,
                     toasterId: bakeReq.toasterIds.first,
@@ -188,7 +188,7 @@ extension KrumbKitchenClient {
         }
 
         applyKitchenEventToThermometer(
-            KrumbKitchenEventMessage(
+            SpoolNodeEventMessage(
                 event: "DING_BATCH_READY",
                 batchId: batchID,
                 toasterId: bakeReq.toasterIds.first,
@@ -204,7 +204,7 @@ extension KrumbKitchenClient {
         return true
     }
 
-    public func prepareKitchenThermometerArtifact(endpoint: String? = nil) async -> KrumbExportedArtifact {
+    public func prepareKitchenThermometerArtifact(endpoint: String? = nil) async -> SpoolExportedArtifact {
         let target = endpoint ?? activeEndpointHost
         var reportBody = """
         ===================================================================
@@ -242,10 +242,10 @@ extension KrumbKitchenClient {
 
         let filename = "Krumb_Thermometer_\(lastBatchID.uuidString.prefix(8)).log"
         appendEventLog("Prepared KitchenThermometer artifact (\(filename))")
-        return KrumbExportedArtifact(defaultFilename: filename, contentText: reportBody)
+        return SpoolExportedArtifact(defaultFilename: filename, contentText: reportBody)
     }
 
-    public func prepareDoggyBagArtifact(endpoint: String? = nil) async -> KrumbExportedArtifact {
+    public func prepareDoggyBagArtifact(endpoint: String? = nil) async -> SpoolExportedArtifact {
         let target = endpoint ?? activeEndpointHost
         var bagText: String? = nil
         if let base = normalizedBaseURL(from: target),
@@ -264,12 +264,12 @@ extension KrumbKitchenClient {
         """
         let filename = "Krumb_DoggyBag_\(lastBatchID.uuidString.prefix(8)).txt"
         appendEventLog("Prepared DoggyBag bundle for Batch \(lastBatchID.uuidString.prefix(8))")
-        return KrumbExportedArtifact(defaultFilename: filename, contentText: finalBody)
+        return SpoolExportedArtifact(defaultFilename: filename, contentText: finalBody)
     }
 }
 
 // MARK: - Chunk 1: Krumb LAN Security Engine (RFC-1918 Subnet Guard + HMAC-SHA256 + Replay Protection)
-public struct KrumbSignedEnvelope: Codable, Sendable, Equatable {
+public struct SpoolSignedEnvelope: Codable, Sendable, Equatable {
     public let timestampEpochSeconds: Int64
     public let nonce: String
     public let signatureHex: String
@@ -283,7 +283,7 @@ public struct KrumbSignedEnvelope: Codable, Sendable, Equatable {
     }
 }
 
-public enum KrumbLANSecurityEngine {
+public enum SpoolLANSecurityEngine {
     public static let maxClockSkewSeconds: Int64 = 30
 
     /// Validates that an endpoint host belongs strictly to loopback, mDNS (.local), or RFC-1918 / RFC-3927 private LAN ranges.
@@ -342,13 +342,13 @@ public enum KrumbLANSecurityEngine {
         sharedSecret: String,
         timestampEpochSeconds: Int64 = Int64(Date().timeIntervalSince1970),
         nonce: String = UUID().uuidString.lowercased()
-    ) -> KrumbSignedEnvelope {
+    ) -> SpoolSignedEnvelope {
         let b64 = payload.base64EncodedString()
         let canonicalMessage = "\(timestampEpochSeconds).\(nonce).\(b64)"
         let key = SymmetricKey(data: Data(sharedSecret.utf8))
         let mac = HMAC<SHA256>.authenticationCode(for: Data(canonicalMessage.utf8), using: key)
         let sigHex = mac.map { String(format: "%02x", $0) }.joined()
-        return KrumbSignedEnvelope(
+        return SpoolSignedEnvelope(
             timestampEpochSeconds: timestampEpochSeconds,
             nonce: nonce,
             signatureHex: sigHex,
@@ -358,7 +358,7 @@ public enum KrumbLANSecurityEngine {
 
     /// Verifies HMAC-SHA256 authenticity, clock skew window (+/- 30s), and optional nonce replay set
     public static func verifyEnvelope(
-        _ envelope: KrumbSignedEnvelope,
+        _ envelope: SpoolSignedEnvelope,
         sharedSecret: String,
         nowEpochSeconds: Int64 = Int64(Date().timeIntervalSince1970),
         seenNonces: inout Set<String>
@@ -391,7 +391,7 @@ public enum KrumbLANSecurityEngine {
 
 
 // MARK: - Chunk 7: Deterministic Telemetry State Machine & Monotonic Progress Filter
-public enum KrumbTelemetryPhase: String, Codable, Sendable, Equatable {
+public enum SpoolTelemetryPhase: String, Codable, Sendable, Equatable {
     case idle             = "IDLE"
     case preheating       = "PREHEATING"
     case toastingProgress = "TOASTING_PROGRESS"
@@ -401,10 +401,10 @@ public enum KrumbTelemetryPhase: String, Codable, Sendable, Equatable {
     case cancelled        = "CANCELLED"
 }
 
-public struct KrumbTelemetryPacket: Codable, Sendable, Equatable {
+public struct SpoolTelemetryPacket: Codable, Sendable, Equatable {
     public let batchId: UUID
     public let toasterId: String
-    public let state: KrumbTelemetryPhase
+    public let state: SpoolTelemetryPhase
     public let fraction: Double
     public let currentLba: Int64
     public let totalLba: Int64
@@ -417,7 +417,7 @@ public struct KrumbTelemetryPacket: Codable, Sendable, Equatable {
     public init(
         batchId: UUID,
         toasterId: String,
-        state: KrumbTelemetryPhase,
+        state: SpoolTelemetryPhase,
         fraction: Double,
         currentLba: Int64,
         totalLba: Int64,
@@ -441,14 +441,14 @@ public struct KrumbTelemetryPacket: Codable, Sendable, Equatable {
     }
 }
 
-public enum KrumbTelemetrySanitizer {
+public enum SpoolTelemetrySanitizer {
     /// Clamps and filters incoming WebSocket progress frames so out-of-order packets or NaN/Inf values
     /// never cause progress regressions, negative buffer fill, or division-by-zero in the UI.
     public static func sanitizeProgressTransition(
-        previousState: KrumbTelemetryPhase,
+        previousState: SpoolTelemetryPhase,
         previousFraction: Double,
-        incomingFrame: KrumbTelemetryPacket
-    ) -> (state: KrumbTelemetryPhase, fraction: Double, fifoClamp: Double, driveClamp: Double) {
+        incomingFrame: SpoolTelemetryPacket
+    ) -> (state: SpoolTelemetryPhase, fraction: Double, fifoClamp: Double, driveClamp: Double) {
         let cleanFifo = incomingFrame.fifoFill.isFinite ? max(0.0, min(1.0, incomingFrame.fifoFill)) : 0.0
         let cleanDrive = incomingFrame.driveBufferFill.isFinite ? max(0.0, min(1.0, incomingFrame.driveBufferFill)) : 0.0
         let rawFrac = incomingFrame.fraction.isFinite ? max(0.0, min(1.0, incomingFrame.fraction)) : previousFraction

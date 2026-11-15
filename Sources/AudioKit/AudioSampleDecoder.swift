@@ -5,7 +5,7 @@ import AVFoundation
 import OpticalCore
 
 /// Result of decoding and mastering one or more audio files into a Red Book Audio CD `.bin` + `.cue` pair.
-public struct MarmaladeMasteredDiscResult: Sendable, Equatable {
+public struct AudioMasteredDiscResult: Sendable, Equatable {
     public let binURL: URL
     public let cueURL: URL
     public let totalSectors2352: Int
@@ -93,7 +93,7 @@ extension KroutonAudioEngine {
         performer: String,
         outputDirectory: URL,
         crossfadeSeconds: Double = 0.0
-    ) throws -> MarmaladeMasteredDiscResult {
+    ) throws -> AudioMasteredDiscResult {
         try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
         let safeBase = albumTitle.replacingOccurrences(of: " ", with: "_").uppercased()
         let binURL = outputDirectory.appendingPathComponent("\(safeBase).bin")
@@ -135,7 +135,7 @@ extension KroutonAudioEngine {
         let cueText = cueLines.joined(separator: "\n") + "\n"
         try Data(cueText.utf8).write(to: cueURL, options: .atomic)
 
-        return MarmaladeMasteredDiscResult(
+        return AudioMasteredDiscResult(
             binURL: binURL,
             cueURL: cueURL,
             totalSectors2352: combinedPCM.count / 2352,

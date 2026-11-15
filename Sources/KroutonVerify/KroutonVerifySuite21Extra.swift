@@ -130,11 +130,11 @@ func runKroutonVerifySuites19To21(_ harness: inout KroutonTestHarness) {
         let payloadA = Data("KROUTON_PAYLOAD_ALPHA_2026".utf8)
         let payloadB = Data(repeating: 0x4B, count: 3000) // Spans 2 ISO sectors (2,048B each)
         let isoOutURL = tempDir.appendingPathComponent("PhaseA_Mountable.iso")
-        let isoResult = try KroutonTartineISO9660Writer.writeMountableISO9660Image(
+        let isoResult = try KroutonHybridISO9660Writer.writeMountableISO9660Image(
             volumeTitle: "KROUTON_ISO",
             files: [
-                TartineISOFileInput(fileName: "ALPHA.TXT", data: payloadA),
-                TartineISOFileInput(fileName: "BETA.BIN", data: payloadB)
+                HybridISOFileInput(fileName: "ALPHA.TXT", data: payloadA),
+                HybridISOFileInput(fileName: "BETA.BIN", data: payloadB)
             ],
             outputURL: isoOutURL
         )
@@ -448,14 +448,14 @@ func runKroutonVerifySuites19To21(_ harness: inout KroutonTestHarness) {
         }
     }
 
-    // 16b. Fuzz KrumbTelemetrySanitizer with out-of-order packets, NaN, Infinity, and terminal-state regressions
-    var state: KrumbTelemetryPhase = .preheating
+    // 16b. Fuzz SpoolTelemetrySanitizer with out-of-order packets, NaN, Infinity, and terminal-state regressions
+    var state: SpoolTelemetryPhase = .preheating
     var frac: Double = 0.0
     let batchID = UUID()
 
     for step in 1...250 {
         let progress = Double(step) / 250.0
-        let normalFrame = KrumbTelemetryPacket(
+        let normalFrame = SpoolTelemetryPacket(
             batchId: batchID,
             toasterId: "pioneer-01",
             state: .toastingProgress,
@@ -468,13 +468,13 @@ func runKroutonVerifySuites19To21(_ harness: inout KroutonTestHarness) {
             c2Errors: 0,
             etaSeconds: 45
         )
-        let res = KrumbTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: normalFrame)
+        let res = SpoolTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: normalFrame)
         h.check(res.fraction >= frac, "Progress must never regress during active burn")
         state = res.state
         frac = res.fraction
 
         // Inject a stale out-of-order frame with lower fraction + NaN buffer values
-        let staleFuzzFrame = KrumbTelemetryPacket(
+        let staleFuzzFrame = SpoolTelemetryPacket(
             batchId: batchID,
             toasterId: "pioneer-01",
             state: .toastingProgress,
@@ -487,13 +487,13 @@ func runKroutonVerifySuites19To21(_ harness: inout KroutonTestHarness) {
             c2Errors: 0,
             etaSeconds: 99
         )
-        let fuzzRes = KrumbTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: staleFuzzFrame)
+        let fuzzRes = SpoolTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: staleFuzzFrame)
         h.check(fuzzRes.fraction == frac, "Stale out-of-order telemetry frame must be ignored")
         h.check(fuzzRes.fifoClamp == 0.0 && fuzzRes.driveClamp == 0.0, "NaN/Infinity buffer fills must clamp safely to 0.0")
     }
 
     // Transition to terminal BURNT_TOAST and verify late TOASTING_PROGRESS cannot resurrect the job
-    let failFrame = KrumbTelemetryPacket(
+    let failFrame = SpoolTelemetryPacket(
         batchId: batchID,
         toasterId: "pioneer-01",
         state: .burntToast,
@@ -506,11 +506,11 @@ func runKroutonVerifySuites19To21(_ harness: inout KroutonTestHarness) {
         c2Errors: 99,
         etaSeconds: 0
     )
-    let termRes = KrumbTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: failFrame)
+    let termRes = SpoolTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: failFrame)
     state = termRes.state
     h.check(state == .burntToast, "Must transition to terminal .burntToast state")
 
-    let zombieFrame = KrumbTelemetryPacket(
+    let zombieFrame = SpoolTelemetryPacket(
         batchId: batchID,
         toasterId: "pioneer-01",
         state: .toastingProgress,
@@ -523,7 +523,7 @@ func runKroutonVerifySuites19To21(_ harness: inout KroutonTestHarness) {
         c2Errors: 0,
         etaSeconds: 1
     )
-    let afterZombie = KrumbTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: zombieFrame)
+    let afterZombie = SpoolTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: zombieFrame)
     h.check(afterZombie.state == .burntToast, "Terminal state must reject late out-of-order progress frames")
     }
 

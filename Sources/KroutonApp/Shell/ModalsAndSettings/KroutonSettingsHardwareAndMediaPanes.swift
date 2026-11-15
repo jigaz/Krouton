@@ -346,7 +346,7 @@ extension KroutonSettingsWindowView {
                             store.objectWillChange.send()
                         }
                     )) {
-                        ForEach(KrumbDoggyBagPolicy.allCases) { pol in
+                        ForEach(SpoolArtifactRetentionPolicy.allCases) { pol in
                             Text(pol.rawValue).tag(pol)
                         }
                     }

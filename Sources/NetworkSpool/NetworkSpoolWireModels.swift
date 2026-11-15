@@ -18,7 +18,7 @@ public typealias StagedFileEntry             = KroutonStagedFileEntry
 public typealias RedBookAudioTrack           = KroutonRedBookTrack
 public typealias AudioTransitionStyle        = KroutonTrackPregapStyle
 public typealias CDTextSanitizer             = KroutonSeasoningSanitizer
-public typealias RedBookAuditionEngine       = KroutonCubeTasterEngine
+public typealias RedBookAuditionEngine       = KroutonAudioPreviewEngine
 public typealias BootableImageInspector      = KroutonElToritoBootInspector
 public typealias MountedVolumePartition      = KroutonMountedDiscVolume
 public typealias BatchDuplicationState       = KroutonBatchBurnState
@@ -31,20 +31,20 @@ public typealias OpticalDriveTelemetry       = KroutonKitchenThermometer
 public typealias DrivePhaseScopeSample       = KroutonBurnTelemetrySample
 
 // MARK: - 2. Krumb LAN Daemon Constants & `crates/recipe` Wire Structs (Port 7420)
-public enum KrumbNetworkConstants {
+public enum SpoolNetworkConstants {
     public static let mdnsServiceType = "_krumb._tcp"
     public static let mdnsFullDomain  = "_krumb._tcp.local."
     public static let defaultPort: UInt16 = 7420
     public static let minimumPantryFreeBytes: UInt64 = 1_073_741_824 // >= 1 GiB free rule
 }
 
-public enum KrumbRackState: String, Codable, Sendable {
+public enum SpoolRackState: String, Codable, Sendable {
     case closed = "Closed"
     case open   = "Open"
     case locked = "Locked"
 }
 
-public enum KrumbSliceMedia: String, Codable, Sendable {
+public enum SpoolDiscMedia: String, Codable, Sendable {
     case empty          = "Empty"
     case blankCdR       = "BlankCdR"
     case blankCdRw      = "BlankCdRw"
@@ -53,19 +53,19 @@ public enum KrumbSliceMedia: String, Codable, Sendable {
     case toastedCrouton = "ToastedCrouton"
 }
 
-public enum KrumbBakeMode: String, Codable, Sendable {
+public enum SpoolBurnMode: String, Codable, Sendable {
     case proofOnly = "ProofOnly"
     case toast     = "Toast"
 }
 
-public enum KrumbDoggyBagPolicy: String, Codable, Sendable, CaseIterable, Identifiable {
+public enum SpoolArtifactRetentionPolicy: String, Codable, Sendable, CaseIterable, Identifiable {
     case none               = "None"
     case notesOnlyOnFailure = "NotesOnlyOnFailure"
     case fullLoaf           = "FullLoaf"
     public var id: String { rawValue }
 }
 
-public struct KrumbDiscoveredNode: Identifiable, Hashable, Sendable {
+public struct SpoolDiscoveredNode: Identifiable, Hashable, Sendable {
     public let id: String
     public let name: String
     public let hostPort: String
@@ -79,11 +79,11 @@ public struct KrumbDiscoveredNode: Identifiable, Hashable, Sendable {
     }
 }
 
-public struct KrumbRemoteToasterInfo: Codable, Identifiable, Sendable {
+public struct SpoolRemoteDriveInfo: Codable, Identifiable, Sendable {
     public let id: String
     public let name: String
-    public let rackState: KrumbRackState
-    public let sliceMedia: KrumbSliceMedia
+    public let rackState: SpoolRackState
+    public let sliceMedia: SpoolDiscMedia
     public let isEasyBake: Bool
 
     enum CodingKeys: String, CodingKey {
@@ -94,7 +94,7 @@ public struct KrumbRemoteToasterInfo: Codable, Identifiable, Sendable {
         case isEasyBake = "is_easy_bake"
     }
 
-    public init(id: String, name: String, rackState: KrumbRackState = .closed, sliceMedia: KrumbSliceMedia = .blankCdR, isEasyBake: Bool = true) {
+    public init(id: String, name: String, rackState: SpoolRackState = .closed, sliceMedia: SpoolDiscMedia = .blankCdR, isEasyBake: Bool = true) {
         self.id = id
         self.name = name
         self.rackState = rackState
@@ -103,7 +103,7 @@ public struct KrumbRemoteToasterInfo: Codable, Identifiable, Sendable {
     }
 }
 
-public struct KrumbSeasoning: Codable, Sendable {
+public struct SpoolMasteringOptions: Codable, Sendable {
     public var albumTitle: String
     public var performer: String
     public var songwriter: String?
@@ -124,7 +124,7 @@ public struct KrumbSeasoning: Codable, Sendable {
     }
 }
 
-public struct KrumbCubePayload: Codable, Sendable {
+public struct SpoolTrackPayload: Codable, Sendable {
     public var trackNumber: UInt8
     public var filename: String
     public var title: String
@@ -151,7 +151,7 @@ public struct KrumbCubePayload: Codable, Sendable {
     }
 }
 
-public struct KrumbPantryCalibrationResult: Codable, Sendable {
+public struct SpoolDriveCalibrationResult: Codable, Sendable {
     public let freeBytes: UInt64
     public let maxSafeCdHeatX: UInt8
     public let maxSafeDvdHeatX: UInt8
@@ -175,7 +175,7 @@ public struct KrumbPantryCalibrationResult: Codable, Sendable {
     }
 }
 
-public struct KrumbPantrySlotResponse: Codable, Sendable {
+public struct SpoolDriveSlotResponse: Codable, Sendable {
     public let pantryLoafId: UUID
     public let spoolPath: String
     public let freeBytes: UInt64
@@ -187,15 +187,15 @@ public struct KrumbPantrySlotResponse: Codable, Sendable {
     }
 }
 
-public struct KrumbBakeRequest: Codable, Sendable {
+public struct SpoolBurnRequest: Codable, Sendable {
     public let batchId: UUID
     public let pantryLoafId: UUID
     public let toasterIds: [String]
     public let heatX: UInt8
-    public let mode: KrumbBakeMode
-    public let doggyBag: KrumbDoggyBagPolicy
-    public let seasoning: KrumbSeasoning?
-    public let cubes: [KrumbCubePayload]
+    public let mode: SpoolBurnMode
+    public let doggyBag: SpoolArtifactRetentionPolicy
+    public let seasoning: SpoolMasteringOptions?
+    public let cubes: [SpoolTrackPayload]
     public let krutCoreSpec: KroutonKrutCoreSpec?
 
     enum CodingKeys: String, CodingKey {
@@ -215,10 +215,10 @@ public struct KrumbBakeRequest: Codable, Sendable {
         pantryLoafId: UUID,
         toasterIds: [String],
         heatX: UInt8,
-        mode: KrumbBakeMode,
-        doggyBag: KrumbDoggyBagPolicy,
-        seasoning: KrumbSeasoning?,
-        cubes: [KrumbCubePayload],
+        mode: SpoolBurnMode,
+        doggyBag: SpoolArtifactRetentionPolicy,
+        seasoning: SpoolMasteringOptions?,
+        cubes: [SpoolTrackPayload],
         krutCoreSpec: KroutonKrutCoreSpec? = nil
     ) {
         self.batchId = batchId
@@ -233,7 +233,7 @@ public struct KrumbBakeRequest: Codable, Sendable {
     }
 }
 
-public struct KrumbKitchenEventMessage: Codable, Sendable {
+public struct SpoolNodeEventMessage: Codable, Sendable {
     public let event: String
     public let batchId: UUID?
     public let toasterId: String?
@@ -255,8 +255,8 @@ public struct KrumbKitchenEventMessage: Codable, Sendable {
     }
 }
 
-// MARK: - 3. `KrumbKitchenClient` (mDNS + REST + Spool-and-Burn + WebSocket -> Phase Scope)
-public struct KrumbExportedArtifact: Sendable {
+// MARK: - 3. `SpoolRemoteNodeClient` (mDNS + REST + Spool-and-Burn + WebSocket -> Phase Scope)
+public struct SpoolExportedArtifact: Sendable {
     public let defaultFilename: String
     public let contentText: String
     public var data: Data { Data(contentText.utf8) }
@@ -268,20 +268,20 @@ public struct KrumbExportedArtifact: Sendable {
 }
 
 @MainActor
-public final class KrumbKitchenClient: ObservableObject {
-    public static let shared = KrumbKitchenClient()
+public final class SpoolRemoteNodeClient: ObservableObject {
+    public static let shared = SpoolRemoteNodeClient()
 
     @Published public var activeEndpointHost: String = "localhost:7420"
-    @Published public var doggyBagPolicy: KrumbDoggyBagPolicy = .notesOnlyOnFailure
-    @Published public var discoveredNodes: [KrumbDiscoveredNode] = [
-        KrumbDiscoveredNode(id: "local-easybake", name: "Local Burn Server", hostPort: "localhost:7420", isEasyBakeFallback: true),
-        KrumbDiscoveredNode(id: "lan-pi3b", name: "LAN Optical Server (pi3b)", hostPort: "krumb-pi3b.local:7420", isEasyBakeFallback: true)
+    @Published public var doggyBagPolicy: SpoolArtifactRetentionPolicy = .notesOnlyOnFailure
+    @Published public var discoveredNodes: [SpoolDiscoveredNode] = [
+        SpoolDiscoveredNode(id: "local-easybake", name: "Local Burn Server", hostPort: "localhost:7420", isEasyBakeFallback: true),
+        SpoolDiscoveredNode(id: "lan-pi3b", name: "LAN Optical Server (pi3b)", hostPort: "krumb-pi3b.local:7420", isEasyBakeFallback: true)
     ]
-    @Published public var remoteToasters: [KrumbRemoteToasterInfo] = [
-        KrumbRemoteToasterInfo(id: "usb-pioneer-slot-0", name: "Remote Drive #1 (PIONEER BD-RW)", rackState: .closed, sliceMedia: .blankCdR, isEasyBake: true),
-        KrumbRemoteToasterInfo(id: "usb-plextor-slot-1", name: "Remote Drive #2 (PLEXTOR PX-716A)", rackState: .closed, sliceMedia: .blankDvdR, isEasyBake: true)
+    @Published public var remoteToasters: [SpoolRemoteDriveInfo] = [
+        SpoolRemoteDriveInfo(id: "usb-pioneer-slot-0", name: "Remote Drive #1 (PIONEER BD-RW)", rackState: .closed, sliceMedia: .blankCdR, isEasyBake: true),
+        SpoolRemoteDriveInfo(id: "usb-plextor-slot-1", name: "Remote Drive #2 (PLEXTOR PX-716A)", rackState: .closed, sliceMedia: .blankDvdR, isEasyBake: true)
     ]
-    @Published public var lastCalibration: KrumbPantryCalibrationResult? = KrumbPantryCalibrationResult(
+    @Published public var lastCalibration: SpoolDriveCalibrationResult? = SpoolDriveCalibrationResult(
         freeBytes: 48_318_382_080,
         maxSafeCdHeatX: 24,
         maxSafeDvdHeatX: 16,
@@ -325,21 +325,21 @@ public final class KrumbKitchenClient: ObservableObject {
         mdnsBrowser?.cancel()
         let params = NWParameters()
         params.includePeerToPeer = true
-        let browser = NWBrowser(for: .bonjour(type: KrumbNetworkConstants.mdnsServiceType, domain: "local."), using: params)
+        let browser = NWBrowser(for: .bonjour(type: SpoolNetworkConstants.mdnsServiceType, domain: "local."), using: params)
         browser.browseResultsChangedHandler = { [weak self] results, _ in
             Task { @MainActor in
                 guard let self else { return }
-                var found: [KrumbDiscoveredNode] = [
-                    KrumbDiscoveredNode(id: "local-easybake", name: "Local Burn Server", hostPort: "localhost:7420", isEasyBakeFallback: true)
+                var found: [SpoolDiscoveredNode] = [
+                    SpoolDiscoveredNode(id: "local-easybake", name: "Local Burn Server", hostPort: "localhost:7420", isEasyBakeFallback: true)
                 ]
                 for res in results {
                     if case let .service(name, _, _, _) = res.endpoint {
                         let safeHost = Self.sanitizeMdnsHostname(name)
-                        found.append(KrumbDiscoveredNode(id: name, name: "\(name) (_krumb._tcp)", hostPort: "\(safeHost).local:\(KrumbNetworkConstants.defaultPort)", isEasyBakeFallback: false))
+                        found.append(SpoolDiscoveredNode(id: name, name: "\(name) (_krumb._tcp)", hostPort: "\(safeHost).local:\(SpoolNetworkConstants.defaultPort)", isEasyBakeFallback: false))
                     }
                 }
                 if found.count == 1 {
-                    found.append(KrumbDiscoveredNode(id: "lan-pi3b", name: "LAN Optical Server (Standby)", hostPort: "krumb-pi3b.local:7420", isEasyBakeFallback: true))
+                    found.append(SpoolDiscoveredNode(id: "lan-pi3b", name: "LAN Optical Server (Standby)", hostPort: "krumb-pi3b.local:7420", isEasyBakeFallback: true))
                 }
                 self.discoveredNodes = found
             }
@@ -370,7 +370,7 @@ public final class KrumbKitchenClient: ObservableObject {
             .replacingOccurrences(of: "ws://", with: "")
             .split(separator: " ").first.map(String.init) ?? activeEndpointHost
         let hostOnly = stripped.split(separator: "/").first.map(String.init) ?? activeEndpointHost
-        return hostOnly.contains(":") ? hostOnly : "\(hostOnly):\(KrumbNetworkConstants.defaultPort)"
+        return hostOnly.contains(":") ? hostOnly : "\(hostOnly):\(SpoolNetworkConstants.defaultPort)"
     }
 
     func normalizedBaseURL(from hostOrPath: String) -> URL? {
@@ -385,7 +385,7 @@ public final class KrumbKitchenClient: ObservableObject {
         do {
             let (data, resp) = try await session.data(from: url)
             if let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode),
-               let decoded = try? JSONDecoder().decode([KrumbRemoteToasterInfo].self, from: data) {
+               let decoded = try? JSONDecoder().decode([SpoolRemoteDriveInfo].self, from: data) {
                 self.remoteToasters = decoded
                 self.isDaemonReachable = true
                 self.statusBannerText = "Krumb Online (\(decoded.count) Toaster\(decoded.count == 1 ? "" : "s") on \(normalizedHostPort(from: target)))"
@@ -403,8 +403,8 @@ public final class KrumbKitchenClient: ObservableObject {
         let target = endpoint ?? activeEndpointHost
         if let idx = remoteToasters.firstIndex(where: { $0.id == toasterID }) {
             let current = remoteToasters[idx]
-            let nextRack: KrumbRackState = (current.rackState == .open) ? .closed : .open
-            remoteToasters[idx] = KrumbRemoteToasterInfo(
+            let nextRack: SpoolRackState = (current.rackState == .open) ? .closed : .open
+            remoteToasters[idx] = SpoolRemoteDriveInfo(
                 id: current.id,
                 name: current.name,
                 rackState: nextRack,
@@ -433,7 +433,7 @@ public final class KrumbKitchenClient: ObservableObject {
             req.httpMethod = "POST"
             if let (data, resp) = try? await session.data(for: req),
                let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode),
-               let cal = try? JSONDecoder().decode(KrumbPantryCalibrationResult.self, from: data) {
+               let cal = try? JSONDecoder().decode(SpoolDriveCalibrationResult.self, from: data) {
                 self.lastCalibration = cal
                 self.isDaemonReachable = true
                 let gb = Double(cal.freeBytes) / 1_073_741_824.0
@@ -442,7 +442,7 @@ public final class KrumbKitchenClient: ObservableObject {
                 return
             }
         }
-        let simulated = KrumbPantryCalibrationResult(
+        let simulated = SpoolDriveCalibrationResult(
             freeBytes: 48_318_382_080,
             maxSafeCdHeatX: 24,
             maxSafeDvdHeatX: 16,
@@ -483,7 +483,7 @@ public final class KrumbKitchenClient: ObservableObject {
                         }
                     }()
                     if let data = rawData,
-                       let evt = try? JSONDecoder().decode(KrumbKitchenEventMessage.self, from: data) {
+                       let evt = try? JSONDecoder().decode(SpoolNodeEventMessage.self, from: data) {
                         self.applyKitchenEventToThermometer(evt, driveManager: driveManager, targetDriveKey: targetDriveKey)
                     }
                     self.receiveNextWebSocketMessage(task: task, driveManager: driveManager, targetDriveKey: targetDriveKey)
@@ -495,7 +495,7 @@ public final class KrumbKitchenClient: ObservableObject {
     }
 
     public func applyKitchenEventToThermometer(
-        _ evt: KrumbKitchenEventMessage,
+        _ evt: SpoolNodeEventMessage,
         driveManager: (any KroutonDriveTelemetryStore)?,
         targetDriveKey: String
     ) {

@@ -291,7 +291,7 @@ public enum KroutonSeasoningSanitizer {
 // WaveBurner 5-Second Transition Audition Preview Engine
 // Plays the final 2.5s of Track N -> INDEX 00 Pre-Gap (or Jam Crossfade) -> first 2.5s of Track N+1
 @MainActor
-public final class KroutonCubeTasterEngine: ObservableObject {
+public final class KroutonAudioPreviewEngine: ObservableObject {
     @Published public var isAuditioning: Bool = false
     @Published public var auditionStatusText: String = "Idle"
     @Published public var auditioningTrackID: UUID? = nil

@@ -2,7 +2,7 @@ import CryptoKit
 import Foundation
 import OpticalCore
 
-public struct KroutonTartineExtent: Sendable, Equatable, Identifiable {
+public struct KroutonHybridExtent: Sendable, Equatable, Identifiable {
     public let id: UUID
     public let originalName: String
     public let iso9660Name: String
@@ -24,7 +24,7 @@ public struct KroutonHybridLayoutPlan: Sendable, Equatable {
     public let dataPayloadStartLBA: Int64       // Starts at LBA 288 after descriptors & path tables
     public let totalSectorsLBA: Int64
     public let totalBytes: Int64
-    public let sharedHybridExtents: [KroutonTartineExtent]
+    public let sharedHybridExtents: [KroutonHybridExtent]
     public let warnings: [String]
 }
 
@@ -87,7 +87,7 @@ public struct KroutonHybridImagePlanner {
         let udfAnchorLBA: Int64 = 256
         var cursorLBA: Int64 = 288
 
-        var extents: [KroutonTartineExtent] = []
+        var extents: [KroutonHybridExtent] = []
         var warnings: [String] = []
 
         for entry in entries {
@@ -107,7 +107,7 @@ public struct KroutonHybridImagePlanner {
             }
 
             extents.append(
-                KroutonTartineExtent(
+                KroutonHybridExtent(
                     id: entry.id,
                     originalName: entry.name,
                     iso9660Name: isoName,

@@ -3,7 +3,7 @@ import CryptoKit
 import OpticalCore
 
 /// Input file descriptor for writing a multi-extent ECMA-119 ISO-9660 + El Torito optical disc image.
-public struct TartineISOFileInput: Sendable, Equatable {
+public struct HybridISOFileInput: Sendable, Equatable {
     public let fileName: String
     public let data: Data
 
@@ -14,7 +14,7 @@ public struct TartineISOFileInput: Sendable, Equatable {
 }
 
 /// Summary of a synthesized ECMA-119 ISO-9660 + El Torito optical image on disk.
-public struct TartineSynthesizedISOImage: Sendable, Equatable {
+public struct HybridSynthesizedISOImage: Sendable, Equatable {
     public let url: URL
     public let sha256Hex: String
     public let totalSectorsLBA: Int
@@ -22,17 +22,17 @@ public struct TartineSynthesizedISOImage: Sendable, Equatable {
     public let fileExtentLBAs: [String: Int]
 }
 
-public enum KroutonTartineISO9660Writer {
+public enum KroutonHybridISO9660Writer {
     /// Writes a spec-compliant ECMA-119 ISO-9660 + El Torito image containing a Primary Volume Descriptor (LBA 16),
     /// El Torito Boot Record (LBA 17), Boot Catalog (LBA 18), L/M Path Tables (LBA 19-20), Root Directory (LBA 21),
     /// Volume Descriptor Set Terminator (LBA 22), and real sector-aligned file extents starting at LBA 23.
     public static func writeMountableISO9660Image(
         volumeTitle: String,
-        files: [TartineISOFileInput],
+        files: [HybridISOFileInput],
         outputURL: URL
-    ) throws -> TartineSynthesizedISOImage {
-        let effectiveFiles: [TartineISOFileInput] = files.isEmpty
-            ? [TartineISOFileInput(fileName: "README_KROUTON.TXT", data: Data("Mastered by Krouton Tartine ISO-9660 Engine.\n".utf8))]
+    ) throws -> HybridSynthesizedISOImage {
+        let effectiveFiles: [HybridISOFileInput] = files.isEmpty
+            ? [HybridISOFileInput(fileName: "README_KROUTON.TXT", data: Data("Mastered by Krouton Tartine ISO-9660 Engine.\n".utf8))]
             : files
 
         var nextLBA = 23
@@ -65,7 +65,7 @@ public enum KroutonTartineISO9660Writer {
         try finalData.write(to: outputURL, options: .atomic)
         let digest = KroutonHybridImagePlanner.computeBlockSHA256Hex(for: finalData)
 
-        return TartineSynthesizedISOImage(
+        return HybridSynthesizedISOImage(
             url: outputURL,
             sha256Hex: digest,
             totalSectorsLBA: totalSectors,
