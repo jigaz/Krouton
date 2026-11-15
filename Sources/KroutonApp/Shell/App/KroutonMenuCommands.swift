@@ -9,9 +9,12 @@ public extension Notification.Name {
     static let kroutonMenuScanTOC = Notification.Name("krouton.menu.scanTOC")
     static let kroutonMenuRipSelected = Notification.Name("krouton.menu.ripSelected")
     static let kroutonMenuShowCDInfo = Notification.Name("krouton.menu.showCDInfo")
+    static let kroutonMenuInspectHybridLBA = Notification.Name("krouton.menu.inspectHybridLBA")
+    static let kroutonMenuInspectAudioCue = Notification.Name("krouton.menu.inspectAudioCue")
+    static let kroutonMenuInspectVideoBitrate = Notification.Name("krouton.menu.inspectVideoBitrate")
 }
 
-/// Modular macOS Menu Bar Commands (`File`, `Edit`, `View`, `Format`, `Copy & Rip`, `Disc`, `Window`, `Help`).
+/// Modular macOS Menu Bar Commands (`Krouton`, `File`, `Edit`, `View`, `Format`, `Copy & Rip`, `Disc`, `Window`, `Help`).
 struct KroutonWorkspaceCommands: Commands {
     @ObservedObject var wm: KroutonWindowManager
 
@@ -20,6 +23,7 @@ struct KroutonWorkspaceCommands: Commands {
     }
 
     var body: some Commands {
+        appSettingsCommands
         fileMenuCommands
         editMenuCommands
         viewMenuCommands
@@ -27,6 +31,16 @@ struct KroutonWorkspaceCommands: Commands {
         copyAndRipMenuCommands
         discMenuCommands
         windowAndHelpMenuCommands
+    }
+
+    @CommandsBuilder
+    private var appSettingsCommands: some Commands {
+        CommandGroup(replacing: .appSettings) {
+            Button(KroutonL10n.tr("Hardware, Theme & Language Settings...")) {
+                KroutonWindowManager.shared.openSettingsWindow(store: wm.store, driveManager: wm.driveManager)
+            }
+            .keyboardShortcut(",", modifiers: .command)
+        }
     }
 
     @CommandsBuilder
@@ -204,7 +218,7 @@ struct KroutonWorkspaceCommands: Commands {
             Divider()
 
             Button(KroutonL10n.tr("Open Floating Phase Scope Telemetry")) {
-                let firstID = wm.driveManager.availableDrives.first?.id ?? "krumb-network-toaster"
+                let firstID = wm.driveManager.availableDrives.first?.id ?? "network-spool-drive"
                 KroutonWindowManager.shared.openFloatingPhaseScopeWindow(driveID: firstID)
             }
             .keyboardShortcut("p", modifiers: [.command, .option])
@@ -216,23 +230,29 @@ struct KroutonWorkspaceCommands: Commands {
     @CommandsBuilder
     private var formatMenuCommands: some Commands {
         CommandMenu(KroutonL10n.tr("Format")) {
+            Menu(KroutonL10n.tr("Data & Archival Media")) {
+                Button("Hybrid ISO-9660 + Joliet + UDF") { selectBurnFormat("data-hybrid") }
+                    .keyboardShortcut("1", modifiers: [.command, .control])
+                Button("UDF 2.60 Optical Volume") { selectBurnFormat("udf-260") }
+                Button("M-DISC 1,000-Year Archival Vault") { selectBurnFormat("m-disc") }
+                    .keyboardShortcut("5", modifiers: [.command, .control])
+                Button("Burn Disc Image (.iso / .cue / .dmg)") { selectBurnFormat("image-burn") }
+                    .keyboardShortcut("6", modifiers: [.command, .control])
+            }
             Menu(KroutonL10n.tr("Audio & Music Discs")) {
                 Button("Red Book Audio CD (CD-DA)") { selectBurnFormat("cd-da") }
+                    .keyboardShortcut("2", modifiers: [.command, .control])
                 Button("MP3 / FLAC Car Audio CD") { selectBurnFormat("mp3-cd") }
                 Button("Blue Book CD-Extra (Audio + Data)") { selectBurnFormat("cd-extra") }
             }
             Menu(KroutonL10n.tr("Video & Cinema Discs")) {
                 Button("DVD-Video (VIDEO_TS)") { selectBurnFormat("dvd-video") }
+                    .keyboardShortcut("3", modifiers: [.command, .control])
                 Button("AVCHD High-Definition") { selectBurnFormat("avchd") }
                 Button("Blu-ray Disc Single-Layer (BD-R 25 GB)") { selectBurnFormat("bd-r-sl") }
+                    .keyboardShortcut("4", modifiers: [.command, .control])
                 Button("Blu-ray Disc Dual-Layer (BD-R 50 GB)") { selectBurnFormat("bd-r-dl") }
                 Button("BDXL Triple/Quad-Layer UHD (100 GB)") { selectBurnFormat("bdxl-uhd") }
-            }
-            Menu(KroutonL10n.tr("Data & Archival Media")) {
-                Button("Hybrid ISO-9660 + Joliet + UDF") { selectBurnFormat("data-hybrid") }
-                Button("UDF 2.60 Optical Volume") { selectBurnFormat("udf-260") }
-                Button("M-DISC 1,000-Year Archival Vault") { selectBurnFormat("m-disc") }
-                Button("Burn Disc Image (.iso / .cue / .dmg)") { selectBurnFormat("image-burn") }
             }
             Menu(KroutonL10n.tr("Retro Console Optical Media")) {
                 Button("Nintendo Wii Optical Disc") { selectBurnFormat("console-wii") }
@@ -241,6 +261,29 @@ struct KroutonWorkspaceCommands: Commands {
                 Button("Sony PlayStation 1 (CD-XA Mode 2)") { selectBurnFormat("console-ps1") }
                 Button("Original Xbox (XDVDFS)") { selectBurnFormat("console-xbox") }
             }
+
+            Divider()
+
+            Button(KroutonL10n.tr("Copy Hybrid ISO/UDF LBA Layout Summary")) {
+                let plan = wm.store.planLiveHybridDataLayout()
+                let summary = "Volume: \(plan.volumeIdentifier) | PVD LBA: \(plan.pvdSectorLBA) | UDF Anchor LBA: \(plan.udfAnchorAVDPLBA) | Total Sectors: \(plan.totalSectorsLBA)"
+                KroutonOSDesktopBridge.copyTextToClipboard(summary)
+                NotificationCenter.default.post(name: .kroutonMenuInspectHybridLBA, object: nil)
+            }
+            .keyboardShortcut("l", modifiers: [.command, .control])
+            .disabled(wm.store.stagedFiles.isEmpty)
+
+            Button(KroutonL10n.tr("Copy Compiled Red Book CUE Sheet")) {
+                let cue = wm.store.compileLiveAudioCueSheet()
+                KroutonOSDesktopBridge.copyTextToClipboard(cue)
+                NotificationCenter.default.post(name: .kroutonMenuInspectAudioCue, object: nil)
+            }
+            .keyboardShortcut("u", modifiers: [.command, .control])
+
+            Button(KroutonL10n.tr("Inspect Video Bitrate Budget")) {
+                NotificationCenter.default.post(name: .kroutonMenuInspectVideoBitrate, object: nil)
+            }
+            .keyboardShortcut("b", modifiers: [.command, .control])
         }
     }
 
@@ -285,6 +328,13 @@ struct KroutonWorkspaceCommands: Commands {
                 wm.store.syncDefaultDestinationForCategory(.copy, taskID: "copy-rip-video", driveManager: wm.driveManager)
             }
             .keyboardShortcut("v", modifiers: [.command, .shift])
+
+            Button(KroutonL10n.tr("Optical Bad-Sector Rescue & Recovery")) {
+                wm.store.selectedCategory = .copy
+                wm.store.selectedTaskID = "copy-rescue"
+                wm.store.syncDefaultDestinationForCategory(.copy, taskID: "copy-rescue", driveManager: wm.driveManager)
+            }
+            .keyboardShortcut("d", modifiers: [.command, .option])
         }
     }
 
@@ -304,7 +354,7 @@ struct KroutonWorkspaceCommands: Commands {
                 }
             }
             .keyboardShortcut("b", modifiers: .command)
-            .disabled(wm.driveManager.isExecutingQueue)
+            .disabled(wm.driveManager.isExecutingQueue || wm.store.destinationQueue.isEmpty)
 
             Button(KroutonL10n.tr("Abort Active Operation")) {
                 wm.driveManager.abortActiveBurn()
@@ -325,6 +375,7 @@ struct KroutonWorkspaceCommands: Commands {
                 }
             }
             .keyboardShortcut("p", modifiers: [.command, .shift])
+            .disabled(wm.driveManager.availableDrives.isEmpty)
 
             Button(KroutonL10n.tr("Stamp DVD-ROM Book Type (Bitsetting)")) {
                 if let firstID = wm.driveManager.availableDrives.first?.id {
@@ -332,6 +383,7 @@ struct KroutonWorkspaceCommands: Commands {
                 }
             }
             .keyboardShortcut("m", modifiers: [.command, .shift])
+            .disabled(wm.driveManager.availableDrives.isEmpty)
 
             Button(KroutonL10n.tr("Copy Archival Quality Certificate")) {
                 let drv = wm.driveManager.availableDrives.first
@@ -352,6 +404,7 @@ struct KroutonWorkspaceCommands: Commands {
                 wm.driveManager.ejectDrive(id: wm.driveManager.availableDrives.first?.id)
             }
             .keyboardShortcut("e", modifiers: .command)
+            .disabled(wm.driveManager.availableDrives.isEmpty)
         }
     }
 
@@ -362,11 +415,6 @@ struct KroutonWorkspaceCommands: Commands {
                 KroutonWindowManager.shared.openMainWindow()
             }
             .keyboardShortcut("0", modifiers: .command)
-
-            Button(KroutonL10n.tr("Hardware, Theme & Language Settings...")) {
-                KroutonWindowManager.shared.openSettingsWindow(store: wm.store, driveManager: wm.driveManager)
-            }
-            .keyboardShortcut(",", modifiers: .command)
         }
 
         CommandGroup(replacing: .help) {
@@ -374,6 +422,11 @@ struct KroutonWorkspaceCommands: Commands {
                 KroutonWindowManager.shared.openSettingsWindow(store: wm.store, driveManager: wm.driveManager)
             }
             .keyboardShortcut("?", modifiers: .command)
+
+            Divider()
+
+            Link(KroutonL10n.tr("Krouton Online Documentation (krouton.app)"), destination: KroutonDomainIdentity.documentationURL)
+            Link(KroutonL10n.tr("Verify Archival Disc Certificate Online"), destination: KroutonDomainIdentity.archivalVerifyURL)
         }
     }
 
