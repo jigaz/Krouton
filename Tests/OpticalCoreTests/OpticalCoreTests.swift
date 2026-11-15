@@ -23,4 +23,13 @@ final class OpticalCoreTests: XCTestCase {
         XCTAssertTrue(d1.hasSuffix("_D01"))
         XCTAssertTrue(d2.hasSuffix("_D02"))
     }
+
+    func testDomainIdentitySubsystemsAndUTIs() {
+        XCTAssertEqual(KroutonDomainIdentity.domainName, "krouton.app")
+        XCTAssertEqual(KroutonDomainIdentity.reverseDNSPrefix, "app.krouton")
+        XCTAssertEqual(KroutonDomainIdentity.Module.allCases.count, 11)
+        XCTAssertEqual(KroutonDomainIdentity.Module.driveKit.subsystem, "app.krouton.drivekit")
+        XCTAssertEqual(KroutonDomainIdentity.UTI.burnSet.rawValue, "app.krouton.burnset")
+        XCTAssertTrue(KroutonDomainIdentity.sessionVaultDirectory().path.contains("app.krouton"))
+    }
 }

@@ -32,6 +32,10 @@ func runKroutonVerifySuites01To10(_ harness: inout KroutonTestHarness) {
     // SUITE 1: 11-Target Functional Module Architecture, Hardware Isolation & Zero Banned Symbols
     // -------------------------------------------------------------------------
     harness.runSuite("1. 11-Target Clean Modular Architecture, DriveKit Hardware Isolation & Zero Banned Symbols") { h in
+        h.check(KroutonDomainIdentity.domainName == "krouton.app", "Canonical domain must be krouton.app")
+        h.check(KroutonDomainIdentity.reverseDNSPrefix == "app.krouton", "Reverse-DNS prefix must be app.krouton")
+        h.check(KroutonDomainIdentity.Module.allCases.count == 11, "KroutonDomainIdentity.Module must enumerate all 11 targets")
+        h.check(KroutonDomainIdentity.Module.driveKit.subsystem == "app.krouton.drivekit", "DriveKit subsystem must be app.krouton.drivekit")
         let expectedModules = [
             "OpticalCore", "DriveKit", "BurnKit", "AudioKit", "ImageKit",
             "RescueKit", "LabelKit", "VideoKit", "NetworkSpool", "Persistence", "KroutonApp"
