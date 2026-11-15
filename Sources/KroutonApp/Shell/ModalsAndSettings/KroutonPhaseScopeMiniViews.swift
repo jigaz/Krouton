@@ -15,7 +15,7 @@ struct ScopeTraceBundle {
 }
 
 func buildSmoothScopeTraces(
-    telemetry: KroutonKitchenThermometer,
+    telemetry: KroutonDrivePhaseScopeTelemetry,
     size: CGSize,
     maxScaleX: Double,
     maxScaleRPM: Double
@@ -100,8 +100,8 @@ func buildSmoothScopeTraces(
     return out
 }
 
-struct KroutonMiniThermometerView: View {
-    let telemetry: KroutonKitchenThermometer
+struct KroutonMiniPhaseScopeView: View {
+    let telemetry: KroutonDrivePhaseScopeTelemetry
     let accent: Color
     let onPopOut: () -> Void
 
@@ -330,7 +330,7 @@ extension KroutonStagedFileEntry {
     }
 }
 
-extension KroutonFloatingThermometerView {
+extension KroutonFloatingPhaseScopeView {
     @ViewBuilder
     func floatingTelemetryChannelGrid(primaryColor: Color, harmonyColor: Color, rpmColor: Color, useHarmony: Bool) -> some View {
         let tiles: [(String, String, String, Color)] = [

@@ -441,7 +441,7 @@ public func kroutonSynthesizeVerifiedISO9660ImageOnDisk(
         ? [
             HybridISOFileInput(
                 fileName: "KROUTON_MANIFEST.TXT",
-                data: Data("VOLUME=\(title)\nENGINE=TARTINE_ECMA119_ISO9660\n".utf8)
+                data: Data("VOLUME=\(title)\nENGINE=KROUTON_ECMA119_ISO9660\n".utf8)
             )
         ]
         : additionalFiles

@@ -298,20 +298,20 @@ public final class KroutonStateStore: ObservableObject {
         }
     }
 
-    private var resolvedAccentPreset: KroutonSeasoningColorPreset {
+    private var resolvedAccentPreset: KroutonAccentColorPreset {
         if selectedAccentIndex == -1 {
             let targetID = multicolorPresetID(forTaskID: selectedTaskID, category: selectedCategory)
-            return KroutonSeasoningColorPreset.allPresets.first(where: { $0.id == targetID }) ?? KroutonSeasoningColorPreset.allPresets[1]
+            return KroutonAccentColorPreset.allPresets.first(where: { $0.id == targetID }) ?? KroutonAccentColorPreset.allPresets[1]
         }
-        return KroutonSeasoningColorPreset.allPresets.first(where: { $0.id == selectedAccentIndex })
-            ?? KroutonSeasoningColorPreset.allPresets.first(where: { $0.id == 8 })
-            ?? KroutonSeasoningColorPreset.allPresets[0]
+        return KroutonAccentColorPreset.allPresets.first(where: { $0.id == selectedAccentIndex })
+            ?? KroutonAccentColorPreset.allPresets.first(where: { $0.id == 8 })
+            ?? KroutonAccentColorPreset.allPresets[0]
     }
 
     public func effectiveColorForTask(id taskID: String, category: KroutonMasteringStation) -> Color {
         if selectedAccentIndex == -1 {
             let pid = multicolorPresetID(forTaskID: taskID, category: category)
-            let p = KroutonSeasoningColorPreset.allPresets.first(where: { $0.id == pid }) ?? resolvedAccentPreset
+            let p = KroutonAccentColorPreset.allPresets.first(where: { $0.id == pid }) ?? resolvedAccentPreset
             return p.effectiveAccent(for: appearance.effectiveColorScheme)
         }
         return activeAccent

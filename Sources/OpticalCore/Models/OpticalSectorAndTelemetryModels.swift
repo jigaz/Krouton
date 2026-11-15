@@ -194,7 +194,7 @@ public struct KroutonBatchBurnState: Identifiable, Hashable, Sendable {
     }
 }
 
-public struct KroutonKitchenThermometer: Identifiable, Hashable, Sendable {
+public struct KroutonDrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable {
     public let id: String          // Drive ID
     public var driveName: String
     public var isActive: Bool       // True whenever throughputKBs > 0
@@ -352,5 +352,5 @@ public struct KroutonBurnSessionReport: Identifiable, Hashable, Sendable {
 
 @MainActor
 public protocol KroutonDriveTelemetryStore: AnyObject, Sendable {
-    var driveTelemetry: [String: KroutonKitchenThermometer] { get set }
+    var driveTelemetry: [String: KroutonDrivePhaseScopeTelemetry] { get set }
 }

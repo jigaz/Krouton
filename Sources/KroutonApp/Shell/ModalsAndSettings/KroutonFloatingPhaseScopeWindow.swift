@@ -3,15 +3,15 @@ import SwiftUI
 import Foundation
 import OpticalCore
 
-struct KroutonFloatingThermometerView: View {
+struct KroutonFloatingPhaseScopeView: View {
     let driveID: String
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var driveManager: KroutonOpticalDriveBank
     let onDockInline: () -> Void
 
     var drive: KroutonOpticalDriveInfo? { driveManager.driveForID(driveID) }
-    var telemetry: KroutonKitchenThermometer {
-        driveManager.telemetryForDrive(driveID) ?? KroutonKitchenThermometer(id: driveID, driveName: drive?.displayName ?? "Optical Burner")
+    var telemetry: KroutonDrivePhaseScopeTelemetry {
+        driveManager.telemetryForDrive(driveID) ?? KroutonDrivePhaseScopeTelemetry(id: driveID, driveName: drive?.displayName ?? "Optical Burner")
     }
 
     private func formatMMSS(_ totalSeconds: Int) -> String {

@@ -22,7 +22,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
     @Published public var activeJobPhase: String = "Idle"
     @Published public var activeJobProgress: Double = 0.0
     @Published public var activeJobDetail: String = ""
-    @Published public var driveTelemetry: [String: KroutonKitchenThermometer] = [:]
+    @Published public var driveTelemetry: [String: KroutonDrivePhaseScopeTelemetry] = [:]
     @Published public var batchStates: [String: KroutonBatchBurnState] = [:]
     @Published public var driveBookTypeOverrides: [String: String] = [:]
     var batchCountdownTimers: [String: Timer] = [:]
@@ -402,7 +402,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
         guard !driveID.isEmpty else { return }
         let wasFloated = driveTelemetry[driveID]?.isFloatingWindowOpen ?? false
         let wasPinned = pinInlineOverride ?? (driveTelemetry[driveID]?.isManuallyPinnedInline ?? false)
-        driveTelemetry[driveID] = KroutonKitchenThermometer(
+        driveTelemetry[driveID] = KroutonDrivePhaseScopeTelemetry(
             id: driveID,
             driveName: driveName,
             isActive: true,

@@ -112,8 +112,8 @@ func runVerifyHardwareBurnLabelAndPersistenceSuites(_ harness: inout KroutonTest
         let progress = Double(step) / 250.0
         let normalFrame = SpoolTelemetryPacket(
             batchId: batchID,
-            toasterId: "pioneer-01",
-            state: .toastingProgress,
+            driveId: "pioneer-01",
+            state: .burningProgress,
             fraction: progress,
             currentLba: Int64(step * 100),
             totalLba: 25000,
@@ -131,8 +131,8 @@ func runVerifyHardwareBurnLabelAndPersistenceSuites(_ harness: inout KroutonTest
         // Inject a stale out-of-order frame with lower fraction + NaN buffer values
         let staleFuzzFrame = SpoolTelemetryPacket(
             batchId: batchID,
-            toasterId: "pioneer-01",
-            state: .toastingProgress,
+            driveId: "pioneer-01",
+            state: .burningProgress,
             fraction: max(0.0, progress - 0.15),
             currentLba: 10,
             totalLba: 25000,
@@ -147,11 +147,11 @@ func runVerifyHardwareBurnLabelAndPersistenceSuites(_ harness: inout KroutonTest
         h.check(fuzzRes.fifoClamp == 0.0 && fuzzRes.driveClamp == 0.0, "NaN/Infinity buffer fills must clamp safely to 0.0")
     }
 
-    // Transition to terminal BURNT_TOAST and verify late TOASTING_PROGRESS cannot resurrect the job
+    // Transition to terminal BURN_FAILED and verify late BURNING_PROGRESS cannot resurrect the job
     let failFrame = SpoolTelemetryPacket(
         batchId: batchID,
-        toasterId: "pioneer-01",
-        state: .burntToast,
+        driveId: "pioneer-01",
+        state: .burnFailed,
         fraction: frac,
         currentLba: 12000,
         totalLba: 25000,
@@ -163,12 +163,12 @@ func runVerifyHardwareBurnLabelAndPersistenceSuites(_ harness: inout KroutonTest
     )
     let termRes = SpoolTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: failFrame)
     state = termRes.state
-    h.check(state == .burntToast, "Must transition to terminal .burntToast state")
+    h.check(state == .burnFailed, "Must transition to terminal .burnFailed state")
 
     let zombieFrame = SpoolTelemetryPacket(
         batchId: batchID,
-        toasterId: "pioneer-01",
-        state: .toastingProgress,
+        driveId: "pioneer-01",
+        state: .burningProgress,
         fraction: 0.99,
         currentLba: 24900,
         totalLba: 25000,
@@ -179,7 +179,7 @@ func runVerifyHardwareBurnLabelAndPersistenceSuites(_ harness: inout KroutonTest
         etaSeconds: 1
     )
     let afterZombie = SpoolTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: zombieFrame)
-    h.check(afterZombie.state == .burntToast, "Terminal state must reject late out-of-order progress frames")
+    h.check(afterZombie.state == .burnFailed, "Terminal state must reject late out-of-order progress frames")
     }
 
     harness.runSuite("19. AudioKit Splice Overlap Math, Equal-Power Crossfade & CD-Text CRC-16") { h in

@@ -158,8 +158,8 @@ struct KroutonApp: App {
         .defaultSize(width: 1120, height: 720)
 
         WindowGroup("Phase Scope", id: "phase-scope", for: String.self) { $driveID in
-            let targetID = driveID ?? "krumb-network-toaster"
-            KroutonFloatingThermometerView(
+            let targetID = driveID ?? "network-spool-drive"
+            KroutonFloatingPhaseScopeView(
                 driveID: targetID,
                 store: wm.store,
                 driveManager: wm.driveManager,
@@ -185,7 +185,7 @@ struct KroutonApp: App {
 struct KroutonMainWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var driveManager: KroutonOpticalDriveBank
-    @ObservedObject var krumb: SpoolRemoteNodeClient = .shared
+    @ObservedObject var spoolClient: SpoolRemoteNodeClient = .shared
 
     @State var enableCustomFinderLayoutTab: Bool = false
     @State var finderIconSize: Double = 256

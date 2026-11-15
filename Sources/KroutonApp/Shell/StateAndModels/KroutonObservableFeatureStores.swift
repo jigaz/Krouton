@@ -204,7 +204,7 @@ public final class KroutonDiscImageInspectorSubStore {
         let cueSource = sampleCueText ?? "FILE \"KROUTON_MASTER.BIN\" BINARY\n  TRACK 01 MODE1/2352\n    INDEX 01 00:00:00\n"
         let cueSheet = KroutonDiscImageDepot.parseCueSheet(cueText: cueSource)
         self.parsedCueTrackCount = cueSheet.tracks.count
-        self.lastClassifiedSummary = "Galette Verified: \(classification.formatName) | Bootable: \(classification.isBootable ? "YES" : "NO") (\(classification.architectureDescription)) | CUE Tracks: \(cueSheet.tracks.count)"
+        self.lastClassifiedSummary = "Image Verified: \(classification.formatName) | Bootable: \(classification.isBootable ? "YES" : "NO") (\(classification.architectureDescription)) | CUE Tracks: \(cueSheet.tracks.count)"
     }
 }
 

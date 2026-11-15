@@ -10,17 +10,17 @@ extension SpoolRemoteNodeClient {
     public func executeSpoolAndBurn(
         endpoint: String,
         stagedFiles: [KroutonStagedFileEntry],
-        audioCubes: [KroutonRedBookTrack],
+        audioTracks: [KroutonRedBookTrack],
         volumeTitle: String,
         performer: String,
         mcnBarcode: String,
         requestedSpeedLabel: String,
         simulationMode: Bool,
         driveManager: any KroutonDriveTelemetryStore,
-        targetDriveKey: String = "krumb-network-toaster"
+        targetDriveKey: String = "network-spool-drive"
     ) async -> Bool {
         let batchID = UUID()
-        var loafID = UUID()
+        var spoolJobID = UUID()
         self.lastBatchID = batchID
 
         let parsedHeatX: UInt8 = {
@@ -29,46 +29,46 @@ extension SpoolRemoteNodeClient {
             return lastCalibration?.maxSafeDvdHeatX ?? 16
         }()
 
-        // STEP 1: Allocate Pantry Slot (`POST /api/v1/pantry/slot`) & Enforce >= 1 GiB Free Space Rule
-        isSpoolingLoaf = true
+        // STEP 1: Allocate Spool Cache Slot (`POST /api/v1/spool/slot`) & Enforce >= 1 GiB Free Space Rule
+        isSpoolingImage = true
         spoolProgressFraction = 0.0
         let hostPort = normalizedHostPort(from: endpoint)
-        statusBannerText = "Allocating Pantry Slot on \(hostPort)..."
-        appendEventLog("POST /api/v1/pantry/slot -> Requesting Spool Slot on \(hostPort)")
+        statusBannerText = "Allocating Spool Cache Slot on \(hostPort)..."
+        appendEventLog("POST /api/v1/spool/slot -> Requesting Spool Slot on \(hostPort)")
 
-        var tel = driveManager.driveTelemetry[targetDriveKey] ?? KroutonKitchenThermometer(
+        var tel = driveManager.driveTelemetry[targetDriveKey] ?? KroutonDrivePhaseScopeTelemetry(
             id: targetDriveKey,
-            driveName: remoteToasters.first?.name ?? "Krumb LAN Toaster"
+            driveName: remoteDrives.first?.name ?? "Remote LAN Optical Drive"
         )
         tel.isActive = true
         tel.samples.removeAll()
         tel.elapsedSeconds = 0
-        tel.phaseTitle = "Spooling Loaf to Krumb Pantry (Zero-Underrun Guard)..."
+        tel.phaseTitle = "Spooling Disc Image to Remote Cache (Zero-Underrun Guard)..."
         driveManager.driveTelemetry[targetDriveKey] = tel
 
         var liveSlotAllocated = false
         if let base = normalizedBaseURL(from: endpoint),
-           let slotURL = URL(string: "/api/v1/pantry/slot", relativeTo: base) {
+           let slotURL = URL(string: "/api/v1/spool/slot", relativeTo: base) {
             var slotReq = URLRequest(url: slotURL)
             slotReq.httpMethod = "POST"
             slotReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            let totalStagedBytes: UInt64 = UInt64(max(1, stagedFiles.count + audioCubes.count)) * 33_554_432
+            let totalStagedBytes: UInt64 = UInt64(max(1, stagedFiles.count + audioTracks.count)) * 33_554_432
             slotReq.httpBody = try? JSONEncoder().encode(["volume_title": volumeTitle, "requested_bytes": String(totalStagedBytes)])
 
             if let (data, resp) = try? await session.data(for: slotReq),
                let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode),
                let slotInfo = try? JSONDecoder().decode(SpoolDriveSlotResponse.self, from: data) {
-                loafID = slotInfo.pantryLoafId
+                spoolJobID = slotInfo.spoolJobId
                 liveSlotAllocated = true
-                if slotInfo.freeBytes < SpoolNetworkConstants.minimumPantryFreeBytes {
-                    isSpoolingLoaf = false
+                if slotInfo.freeBytes < SpoolNetworkConstants.minimumSpoolFreeBytes {
+                    isSpoolingImage = false
                     let freeMB = Double(slotInfo.freeBytes) / 1_048_576.0
-                    let msg = String(format: "Pantry Low Space (%.0f MB < 1024 MB minimum)", freeMB)
-                    applyKitchenEventToThermometer(
+                    let msg = String(format: "Spool Cache Low Space (%.0f MB < 1024 MB minimum)", freeMB)
+                    applySpoolEventToTelemetry(
                         SpoolNodeEventMessage(
-                            event: "BURNT_TOAST",
+                            event: "BURN_FAILED",
                             batchId: batchID,
-                            toasterId: remoteToasters.first?.id,
+                            driveId: remoteDrives.first?.id,
                             currentCube: nil,
                             crispnessPct: 0.0,
                             butterBufferPct: 0.0,
@@ -80,7 +80,7 @@ extension SpoolRemoteNodeClient {
                     )
                     return false
                 }
-                appendEventLog("Pantry Slot \(loafID.uuidString.prefix(8)) Allocated (\(slotInfo.freeBytes / 1_073_741_824) GiB Free)")
+                appendEventLog("Spool Cache Slot \(spoolJobID.uuidString.prefix(8)) Allocated (\(slotInfo.freeBytes / 1_073_741_824) GiB Free)")
             }
         }
 
@@ -88,7 +88,7 @@ extension SpoolRemoteNodeClient {
         for step in 1...10 {
             if liveSlotAllocated,
                let base = normalizedBaseURL(from: endpoint),
-               let chunkURL = URL(string: "/api/v1/pantry/slot/\(loafID.uuidString)/chunk", relativeTo: base) {
+               let chunkURL = URL(string: "/api/v1/spool/slot/\(spoolJobID.uuidString)/chunk", relativeTo: base) {
                 var chunkReq = URLRequest(url: chunkURL)
                 chunkReq.httpMethod = "POST"
                 chunkReq.httpBody = kroutonReadSpoolChunkBytes(chunkIndex: step, chunkSize: 4096)
@@ -97,13 +97,13 @@ extension SpoolRemoteNodeClient {
                 try? await Task.sleep(nanoseconds: 65_000_000)
             }
             spoolProgressFraction = Double(step) / 10.0
-            statusBannerText = String(format: "Spooling Loaf to Pantry: %.0f%% (100%% Spool Before Toast)", spoolProgressFraction * 100.0)
+            statusBannerText = String(format: "Spooling Image to Cache: %.0f%% (100%% Spool Before Burn)", spoolProgressFraction * 100.0)
         }
-        isSpoolingLoaf = false
-        appendEventLog("Pantry Spool 100% Complete -> Dispatching POST /api/v1/bake")
+        isSpoolingImage = false
+        appendEventLog("Spool Cache 100% Complete -> Dispatching POST /api/v1/burn")
 
         // STEP 3: Build & Dispatch `SpoolBurnRequest` (`POST /api/v1/bake`)
-        let cubePayloads: [SpoolTrackPayload] = audioCubes.enumerated().map { idx, c in
+        let cubePayloads: [SpoolTrackPayload] = audioTracks.enumerated().map { idx, c in
             SpoolTrackPayload(
                 trackNumber: UInt8(idx + 1),
                 filename: c.url.lastPathComponent,
@@ -115,12 +115,12 @@ extension SpoolRemoteNodeClient {
         }
         let bakeReq = SpoolBurnRequest(
             batchId: batchID,
-            pantryLoafId: loafID,
-            toasterIds: [remoteToasters.first?.id ?? "usb-pioneer-slot-0"],
+            spoolJobId: spoolJobID,
+            driveIds: [remoteDrives.first?.id ?? "usb-pioneer-slot-0"],
             heatX: parsedHeatX,
-            mode: simulationMode ? .proofOnly : .toast,
-            doggyBag: doggyBagPolicy,
-            seasoning: SpoolMasteringOptions(albumTitle: volumeTitle, performer: performer, songwriter: nil, upcEan: mcnBarcode),
+            mode: simulationMode ? .proofOnly : .burnMedia,
+            retentionPolicy: retentionPolicy,
+            masteringOptions: SpoolMasteringOptions(albumTitle: volumeTitle, performer: performer, songwriter: nil, upcEan: mcnBarcode),
             cubes: cubePayloads
         )
 
@@ -133,7 +133,7 @@ extension SpoolRemoteNodeClient {
             if let (_, resp) = try? await session.data(for: req),
                let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) {
                 isDaemonReachable = true
-                appendEventLog("Live Krumb Daemon Accepted Batch \(batchID.uuidString.prefix(8)) -> Streaming WS /api/v1/kitchen")
+                appendEventLog("Remote Spool Daemon Accepted Batch \(batchID.uuidString.prefix(8)) -> Streaming WS /api/v1/spool/events")
                 connectKitchenWebSocket(endpoint: endpoint, driveManager: driveManager, targetDriveKey: targetDriveKey)
                 // Do NOT run local simulation loop when live daemon WebSocket is driving telemetry!
                 return true
@@ -141,12 +141,12 @@ extension SpoolRemoteNodeClient {
         }
 
         // STEP 4: Offline EasyBake WebSocket Synthesizer (Only runs when no live daemon is on Port 7420)
-        appendEventLog("EasyBake Synthesizer Active -> Streaming simulated WS /api/v1/kitchen frames")
-        applyKitchenEventToThermometer(
+        appendEventLog("Virtual Drive Synthesizer Active -> Streaming simulated WS /api/v1/spool/events frames")
+        applySpoolEventToTelemetry(
             SpoolNodeEventMessage(
                 event: "PREHEATING",
                 batchId: batchID,
-                toasterId: bakeReq.toasterIds.first,
+                driveId: bakeReq.driveIds.first,
                 currentCube: 1,
                 crispnessPct: 0.0,
                 butterBufferPct: 98.0,
@@ -164,18 +164,18 @@ extension SpoolRemoteNodeClient {
             let frac = Double(s) / Double(totalSteps)
             let curHeat = min(Double(parsedHeatX), 4.2 + (Double(max(4, parsedHeatX)) - 4.2) * pow(frac, 0.78))
             let buf = 96.0 + 3.0 * sin(frac * 24.0)
-            let cubeNum = UInt8(min(max(1, audioCubes.count), Int(frac * Double(max(1, audioCubes.count))) + 1))
+            let cubeNum = UInt8(min(max(1, audioTracks.count), Int(frac * Double(max(1, audioTracks.count))) + 1))
 
             if var t = driveManager.driveTelemetry[targetDriveKey] {
                 t.elapsedSeconds = Int(frac * 145.0)
                 driveManager.driveTelemetry[targetDriveKey] = t
             }
 
-            applyKitchenEventToThermometer(
+            applySpoolEventToTelemetry(
                 SpoolNodeEventMessage(
-                    event: "TOASTING_PROGRESS",
+                    event: "BURNING_PROGRESS",
                     batchId: batchID,
-                    toasterId: bakeReq.toasterIds.first,
+                    driveId: bakeReq.driveIds.first,
                     currentCube: cubeNum,
                     crispnessPct: frac * 100.0,
                     butterBufferPct: buf,
@@ -187,12 +187,12 @@ extension SpoolRemoteNodeClient {
             )
         }
 
-        applyKitchenEventToThermometer(
+        applySpoolEventToTelemetry(
             SpoolNodeEventMessage(
                 event: "DING_BATCH_READY",
                 batchId: batchID,
-                toasterId: bakeReq.toasterIds.first,
-                currentCube: UInt8(max(1, audioCubes.count)),
+                driveId: bakeReq.driveIds.first,
+                currentCube: UInt8(max(1, audioTracks.count)),
                 crispnessPct: 100.0,
                 butterBufferPct: 100.0,
                 heatX: Double(parsedHeatX),
@@ -204,20 +204,20 @@ extension SpoolRemoteNodeClient {
         return true
     }
 
-    public func prepareKitchenThermometerArtifact(endpoint: String? = nil) async -> SpoolExportedArtifact {
+    public func preparePhaseScopeTelemetryArtifact(endpoint: String? = nil) async -> SpoolExportedArtifact {
         let target = endpoint ?? activeEndpointHost
         var reportBody = """
         ===================================================================
-        KRUMB KITCHEN THERMOMETER — IN-MEMORY FLIGHT RECORDER (PORT 7420)
+        OPTICAL SPOOL TELEMETRY — IN-MEMORY FLIGHT RECORDER (PORT 7420)
         Endpoint : \(normalizedHostPort(from: target))
         Batch ID : \(lastBatchID.uuidString)
-        DoggyBag : \(doggyBagPolicy.rawValue)
+        Retention Policy : \(retentionPolicy.rawValue)
         ===================================================================
 
         --- RECENT KITCHEN EVENTS ---
         \(recentKitchenEvents.joined(separator: "\n"))
 
-        --- LAST GENERATED CDRDAO .TOC SNAPSHOT (crates/seasoning) ---
+        --- LAST GENERATED CDRDAO .TOC SNAPSHOT (AudioKit CD-Text / TOC) ---
         CD_DA
         CD_TEXT {
           LANGUAGE_MAP { 0 : EN }
@@ -233,37 +233,37 @@ extension SpoolRemoteNodeClient {
         """
 
         if let base = normalizedBaseURL(from: target),
-           let url = URL(string: "/api/v1/kitchen/thermometer", relativeTo: base),
+           let url = URL(string: "/api/v1/spool/telemetry", relativeTo: base),
            let (data, resp) = try? await session.data(from: url),
            let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode),
            let liveText = String(data: data, encoding: .utf8), !liveText.isEmpty {
             reportBody = liveText
         }
 
-        let filename = "Krumb_Thermometer_\(lastBatchID.uuidString.prefix(8)).log"
-        appendEventLog("Prepared KitchenThermometer artifact (\(filename))")
+        let filename = "Spool_Telemetry_\(lastBatchID.uuidString.prefix(8)).log"
+        appendEventLog("Prepared PhaseScopeTelemetry artifact (\(filename))")
         return SpoolExportedArtifact(defaultFilename: filename, contentText: reportBody)
     }
 
-    public func prepareDoggyBagArtifact(endpoint: String? = nil) async -> SpoolExportedArtifact {
+    public func prepareDiagnosticBundleArtifact(endpoint: String? = nil) async -> SpoolExportedArtifact {
         let target = endpoint ?? activeEndpointHost
         var bagText: String? = nil
         if let base = normalizedBaseURL(from: target),
-           let url = URL(string: "/api/v1/pantry/doggy-bags/\(lastBatchID.uuidString)", relativeTo: base),
+           let url = URL(string: "/api/v1/spool/diagnostics/\(lastBatchID.uuidString)", relativeTo: base),
            let (data, resp) = try? await session.data(from: url),
            let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode),
            let str = String(data: data, encoding: .utf8), !str.isEmpty {
             bagText = str
         }
         let finalBody = bagText ?? """
-        # Krumb DoggyBag Post-Mortem Bundle (Policy: \(doggyBagPolicy.rawValue))
+        # Optical Spool Diagnostic Bundle (Policy: \(retentionPolicy.rawValue))
         Batch ID: \(lastBatchID.uuidString)
         Host: \(normalizedHostPort(from: target))
-        Included Artifacts: batch.toc, cdrdao.log, PantryCalibration snapshot
-        Status: No BurntToast errors recorded in last batch.
+        Included Artifacts: batch.toc, cdrdao.log, SpoolCalibration snapshot
+        Status: No BurnFailed errors recorded in last batch.
         """
-        let filename = "Krumb_DoggyBag_\(lastBatchID.uuidString.prefix(8)).txt"
-        appendEventLog("Prepared DoggyBag bundle for Batch \(lastBatchID.uuidString.prefix(8))")
+        let filename = "Spool_Diagnostics_\(lastBatchID.uuidString.prefix(8)).txt"
+        appendEventLog("Prepared Diagnostic bundle for Batch \(lastBatchID.uuidString.prefix(8))")
         return SpoolExportedArtifact(defaultFilename: filename, contentText: finalBody)
     }
 }
@@ -394,16 +394,16 @@ public enum SpoolLANSecurityEngine {
 public enum SpoolTelemetryPhase: String, Codable, Sendable, Equatable {
     case idle             = "IDLE"
     case preheating       = "PREHEATING"
-    case toastingProgress = "TOASTING_PROGRESS"
-    case verifyingCrumb   = "VERIFYING_CRUMB"
-    case freshOutOfOven   = "FRESH_OUT_OF_OVEN"
-    case burntToast       = "BURNT_TOAST"
+    case burningProgress = "BURNING_PROGRESS"
+    case verifyingSectors   = "VERIFYING_SECTORS"
+    case burnCompleted   = "BURN_COMPLETED"
+    case burnFailed       = "BURN_FAILED"
     case cancelled        = "CANCELLED"
 }
 
 public struct SpoolTelemetryPacket: Codable, Sendable, Equatable {
     public let batchId: UUID
-    public let toasterId: String
+    public let driveId: String
     public let state: SpoolTelemetryPhase
     public let fraction: Double
     public let currentLba: Int64
@@ -416,7 +416,7 @@ public struct SpoolTelemetryPacket: Codable, Sendable, Equatable {
 
     public init(
         batchId: UUID,
-        toasterId: String,
+        driveId: String,
         state: SpoolTelemetryPhase,
         fraction: Double,
         currentLba: Int64,
@@ -428,7 +428,7 @@ public struct SpoolTelemetryPacket: Codable, Sendable, Equatable {
         etaSeconds: Int
     ) {
         self.batchId = batchId
-        self.toasterId = toasterId
+        self.driveId = driveId
         self.state = state
         self.fraction = fraction
         self.currentLba = currentLba
@@ -453,17 +453,17 @@ public enum SpoolTelemetrySanitizer {
         let cleanDrive = incomingFrame.driveBufferFill.isFinite ? max(0.0, min(1.0, incomingFrame.driveBufferFill)) : 0.0
         let rawFrac = incomingFrame.fraction.isFinite ? max(0.0, min(1.0, incomingFrame.fraction)) : previousFraction
 
-        // Terminal states (FRESH_OUT_OF_OVEN, BURNT_TOAST, CANCELLED) cannot regress to TOASTING_PROGRESS
-        let isPrevTerminal = (previousState == .freshOutOfOven || previousState == .burntToast || previousState == .cancelled)
-        if isPrevTerminal && (incomingFrame.state == .toastingProgress || incomingFrame.state == .preheating) {
+        // Terminal states (BURN_COMPLETED, BURN_FAILED, CANCELLED) cannot regress to BURNING_PROGRESS
+        let isPrevTerminal = (previousState == .burnCompleted || previousState == .burnFailed || previousState == .cancelled)
+        if isPrevTerminal && (incomingFrame.state == .burningProgress || incomingFrame.state == .preheating) {
             return (previousState, previousFraction, cleanFifo, cleanDrive)
         }
 
-        // During monotonic active burn (TOASTING_PROGRESS -> TOASTING_PROGRESS), ignore late stale UDP/WS packets
+        // During monotonic active burn (BURNING_PROGRESS -> BURNING_PROGRESS), ignore late stale UDP/WS packets
         let monotonicFrac: Double
-        if previousState == .toastingProgress && incomingFrame.state == .toastingProgress {
+        if previousState == .burningProgress && incomingFrame.state == .burningProgress {
             monotonicFrac = max(previousFraction, rawFrac)
-        } else if incomingFrame.state == .freshOutOfOven {
+        } else if incomingFrame.state == .burnCompleted {
             monotonicFrac = 1.0
         } else {
             monotonicFrac = rawFrac

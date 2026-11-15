@@ -134,7 +134,7 @@ struct KroutonDestinationRackColumnView: View {
 struct NetworkSpoolDriveCardSectionView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var driveManager: KroutonOpticalDriveBank
-    @ObservedObject var krumb: SpoolRemoteNodeClient = .shared
+    @ObservedObject var spoolClient: SpoolRemoteNodeClient = .shared
 
     let item: KroutonBakeBatchItem
     let activeCardDriveID: String
@@ -143,30 +143,30 @@ struct NetworkSpoolDriveCardSectionView: View {
     let onUpdateHost: (String) -> Void
 
     var body: some View {
-        let firstOpticalDrive = krumb.remoteToasters.first
+        let firstOpticalDrive = spoolClient.remoteDrives.first
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 6) {
                 Image(systemName: "server.rack")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(store.uiSecondaryAccent)
-                let validHosts = krumb.discoveredNodes.map(\.hostPort)
+                let validHosts = spoolClient.discoveredNodes.map(\.hostPort)
                 let resolvedHost = validHosts.contains(item.hardwareOrPath)
                     ? item.hardwareOrPath
-                    : (krumb.discoveredNodes.first?.hostPort ?? "localhost:7420")
+                    : (spoolClient.discoveredNodes.first?.hostPort ?? "localhost:7420")
 
                 Picker("", selection: Binding(
                     get: { resolvedHost },
                     set: { newHost in
                         onUpdateHost(newHost)
-                        krumb.activeEndpointHost = newHost
+                        spoolClient.activeEndpointHost = newHost
                     }
                 )) {
-                    ForEach(krumb.discoveredNodes) { node in
+                    ForEach(spoolClient.discoveredNodes) { node in
                         Text("\(node.name) (\(node.hostPort))").tag(node.hostPort)
                     }
                 }
                 .labelsHidden()
-                .accessibilityLabel("Krumb Network Server Node")
+                .accessibilityLabel("Remote Optical Spool Server Node")
 
                 Spacer(minLength: 4)
 
@@ -183,10 +183,10 @@ struct NetworkSpoolDriveCardSectionView: View {
                         } else {
                             driveManager.setManualInlinePin(for: activeCardDriveID, isPinned: true)
                             Task {
-                                _ = await krumb.executeSpoolAndBurn(
+                                _ = await spoolClient.executeSpoolAndBurn(
                                     endpoint: item.hardwareOrPath,
                                     stagedFiles: store.stagedFiles,
-                                    audioCubes: store.redBookTracks,
+                                    audioTracks: store.redBookTracks,
                                     volumeTitle: store.discVolumeTitle,
                                     performer: store.discPerformer,
                                     mcnBarcode: store.discMCNBarcode,
@@ -212,22 +212,22 @@ struct NetworkSpoolDriveCardSectionView: View {
                     .fixedSize(horizontal: true, vertical: false)
                 }
                 .buttonStyle(.plain)
-                .help("Stream Krumb WS /api/v1/kitchen telemetry directly into the Phase Scope")
+                .help("Stream remote spool telemetry directly into the Phase Scope")
             }
 
             HStack(spacing: 6) {
                 Circle()
                     .fill(store.uiSecondaryAccent)
                     .frame(width: 7, height: 7)
-                Text(krumb.statusBannerText)
+                Text(spoolClient.statusBannerText)
                     .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
                     .foregroundStyle(store.uiSecondaryAccent)
                     .lineLimit(1)
                 Spacer(minLength: 0)
             }
 
-            if krumb.isSpoolingLoaf {
-                ProgressView(value: krumb.spoolProgressFraction, total: 1.0)
+            if spoolClient.isSpoolingImage {
+                ProgressView(value: spoolClient.spoolProgressFraction, total: 1.0)
                     .tint(store.activeAccent)
                     .controlSize(.small)
             }
@@ -235,7 +235,7 @@ struct NetworkSpoolDriveCardSectionView: View {
             HStack(spacing: 6) {
                 Button {
                     Task {
-                        await krumb.refreshToasters(endpoint: item.hardwareOrPath)
+                        await spoolClient.refreshRemoteDrives(endpoint: item.hardwareOrPath)
                     }
                 } label: {
                     Label("Refresh", systemImage: "arrow.clockwise")
@@ -251,7 +251,7 @@ struct NetworkSpoolDriveCardSectionView: View {
 
                 Button {
                     Task {
-                        await krumb.runPantryCalibration(endpoint: item.hardwareOrPath)
+                        await spoolClient.runSpoolCalibration(endpoint: item.hardwareOrPath)
                     }
                 } label: {
                     Label("Test Cache", systemImage: "gauge.with.dots.needle.67percent")
@@ -265,13 +265,13 @@ struct NetworkSpoolDriveCardSectionView: View {
                 }
                 .buttonStyle(.plain)
 
-                if let toaster = firstOpticalDrive {
+                if let remoteDrive = firstOpticalDrive {
                     Button {
                         Task {
-                            await krumb.toggleToasterRack(toasterID: toaster.id, endpoint: item.hardwareOrPath)
+                            await spoolClient.toggleDriveTray(driveID: remoteDrive.id, endpoint: item.hardwareOrPath)
                         }
                     } label: {
-                        Label(toaster.rackState == .open ? "Close Tray" : "Identify", systemImage: "eject.fill")
+                        Label(remoteDrive.rackState == .open ? "Close Tray" : "Identify", systemImage: "eject.fill")
                             .font(.system(size: 9.5, weight: .bold))
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)

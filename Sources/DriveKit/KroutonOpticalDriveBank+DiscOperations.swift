@@ -12,7 +12,7 @@ import CryptoKit
 
 @MainActor
 extension KroutonOpticalDriveBank {
-    public func telemetryForDrive(_ driveID: String) -> KroutonKitchenThermometer? {
+    public func telemetryForDrive(_ driveID: String) -> KroutonDrivePhaseScopeTelemetry? {
         if let existing = driveTelemetry[driveID] {
             return existing
         }
@@ -28,7 +28,7 @@ extension KroutonOpticalDriveBank {
             driveTelemetry[driveID] = tel
         } else {
             let name = driveForID(driveID)?.displayName ?? "Optical Drive"
-            driveTelemetry[driveID] = KroutonKitchenThermometer(id: driveID, driveName: name, isManuallyPinnedInline: !isOpen && keepInlineVisible, isFloatingWindowOpen: isOpen)
+            driveTelemetry[driveID] = KroutonDrivePhaseScopeTelemetry(id: driveID, driveName: name, isManuallyPinnedInline: !isOpen && keepInlineVisible, isFloatingWindowOpen: isOpen)
         }
     }
 
@@ -38,7 +38,7 @@ extension KroutonOpticalDriveBank {
             driveTelemetry[driveID] = tel
         } else {
             let name = driveForID(driveID)?.displayName ?? "Optical Drive"
-            driveTelemetry[driveID] = KroutonKitchenThermometer(id: driveID, driveName: name, isManuallyPinnedInline: isPinned)
+            driveTelemetry[driveID] = KroutonDrivePhaseScopeTelemetry(id: driveID, driveName: name, isManuallyPinnedInline: isPinned)
         }
         if isPinned && (driveTelemetry[driveID]?.samples.isEmpty ?? true) {
             runPhaseScopeTestSweep(for: driveID, keepPinnedAfterSweep: true)
@@ -62,7 +62,7 @@ extension KroutonOpticalDriveBank {
         let divisor: Double = mediaType.contains("BD") ? 4500.0 : (mediaType.contains("DVD") ? 1385.0 : 176.4)
         let laserStr = mediaType.contains("BD") ? "405 nm Violet" : (mediaType.contains("DVD") ? "650 nm Red" : "780 nm IR")
 
-        let tel = KroutonKitchenThermometer(
+        let tel = KroutonDrivePhaseScopeTelemetry(
             id: targetID,
             driveName: driveName,
             isActive: true,
@@ -309,7 +309,7 @@ extension KroutonOpticalDriveBank {
                 self.neroSamples.append(sample)
                 let targetKey = resolvedMeta?.id ?? (driveID ?? "")
                 if !targetKey.isEmpty {
-                    var dTel = self.driveTelemetry[targetKey] ?? KroutonKitchenThermometer(id: targetKey, driveName: driveName)
+                    var dTel = self.driveTelemetry[targetKey] ?? KroutonDrivePhaseScopeTelemetry(id: targetKey, driveName: driveName)
                     dTel.isActive = (rawState != DRStatusStateDone && rawState != DRStatusStateFailed)
                     dTel.phaseTitle = self.activeJobPhase
                     dTel.progressFraction = clampedPct

@@ -10,7 +10,7 @@ import OpticalCore
 struct KroutonDestinationCardView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var driveManager: KroutonOpticalDriveBank
-    @ObservedObject var krumb: SpoolRemoteNodeClient = .shared
+    @ObservedObject var spoolClient: SpoolRemoteNodeClient = .shared
     let item: KroutonBakeBatchItem
     let isRightQueueCompact: Bool
     let enableCustomFinderLayoutTab: Bool
@@ -37,7 +37,7 @@ struct KroutonDestinationCardView: View {
             return driveManager.availableDrives.first(where: { !otherUsedDriveIDs.contains($0.id) })
         }()
 
-        let activeCardDriveID = (item.kind == .networkBurner) ? "krumb-network-toaster" : (cardDrive?.id ?? "")
+        let activeCardDriveID = (item.kind == .networkBurner) ? "network-spool-drive" : (cardDrive?.id ?? "")
 
         let scopeTel = driveManager.telemetryForDrive(activeCardDriveID)
         let isFloatingOpen = scopeTel?.isFloatingWindowOpen ?? false
@@ -122,7 +122,7 @@ struct KroutonDestinationCardView: View {
             if (item.kind == .physicalBurner || item.kind == .networkBurner),
                let scopeTel = scopeTel,
                isInlineVisible {
-                KroutonMiniThermometerView(telemetry: scopeTel, accent: store.uiSecondaryAccent) {
+                KroutonMiniPhaseScopeView(telemetry: scopeTel, accent: store.uiSecondaryAccent) {
                     KroutonWindowManager.shared.openFloatingPhaseScopeWindow(driveID: activeCardDriveID)
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))

@@ -202,7 +202,7 @@ public struct AudioProject: Equatable, Codable, Sendable {
             let v = scalar.value
             return v >= 0x20 && !(0x7F...0x9F).contains(v)
         }
-        let clean = KroutonSeasoningSanitizer.sanitize(String(String.UnicodeScalarView(strippedControls)))
+        let clean = KroutonCDTextSanitizer.sanitize(String(String.UnicodeScalarView(strippedControls)))
         return String(clean.prefix(maxLength))
     }
 
@@ -412,16 +412,16 @@ extension KroutonAudioEngine {
         masterBinFilename: String = "KROUTON_AUDIO_MASTER.BIN"
     ) -> String {
         var lines: [String] = []
-        let cleanMCN = KroutonSeasoningSanitizer.sanitizeMCN(project.upc)
+        let cleanMCN = KroutonCDTextSanitizer.sanitizeMCN(project.upc)
         if cleanMCN.count == 13 {
             lines.append("CATALOG \(cleanMCN)")
         }
         if project.writeCDText {
             if !project.albumTitle.isEmpty {
-                lines.append("TITLE \"\(KroutonSeasoningSanitizer.sanitize(project.albumTitle))\"")
+                lines.append("TITLE \"\(KroutonCDTextSanitizer.sanitize(project.albumTitle))\"")
             }
             if !project.albumPerformer.isEmpty {
-                lines.append("PERFORMER \"\(KroutonSeasoningSanitizer.sanitize(project.albumPerformer))\"")
+                lines.append("PERFORMER \"\(KroutonCDTextSanitizer.sanitize(project.albumPerformer))\"")
             }
         }
         lines.append("FILE \"\(masterBinFilename)\" BINARY")
@@ -430,11 +430,11 @@ extension KroutonAudioEngine {
             lines.append(String(format: "  TRACK %02d AUDIO", entry.number))
             let rawTitle = track.title.isEmpty ? track.source.deletingPathExtension().lastPathComponent : track.title
             if project.writeCDText, !rawTitle.isEmpty {
-                lines.append("    TITLE \"\(KroutonSeasoningSanitizer.sanitize(rawTitle))\"")
+                lines.append("    TITLE \"\(KroutonCDTextSanitizer.sanitize(rawTitle))\"")
             }
             let rawPerf = track.performer.isEmpty ? project.albumPerformer : track.performer
             if project.writeCDText, !rawPerf.isEmpty {
-                lines.append("    PERFORMER \"\(KroutonSeasoningSanitizer.sanitize(rawPerf))\"")
+                lines.append("    PERFORMER \"\(KroutonCDTextSanitizer.sanitize(rawPerf))\"")
             }
             if track.isrc.count == 12 {
                 lines.append("    ISRC \(track.isrc)")

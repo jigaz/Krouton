@@ -35,11 +35,11 @@ public enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendabl
 public struct KroutonSettingsWindowView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var driveManager: KroutonOpticalDriveBank
-    @ObservedObject var krumb: SpoolRemoteNodeClient = .shared
+    @ObservedObject var spoolClient: SpoolRemoteNodeClient = .shared
     @State var isShowingSpoolFileExporter: Bool = false
     @State var isShowingScratchFolderImporter: Bool = false
     @State var spoolExportDocument: SpoolPlainTextFileDocument = SpoolPlainTextFileDocument(text: "")
-    @State var spoolExportDefaultFilename: String = "Krumb_Export.log"
+    @State var spoolExportDefaultFilename: String = "Spool_Export.log"
     // Bound to store.selectedSettingsPane for direct Format Chooser deep-linking
     @State var searchText: String = ""
 
@@ -175,7 +175,7 @@ public struct KroutonSettingsWindowView: View {
                     }
                     Spacer()
                     HStack(spacing: 9) {
-                        ForEach(KroutonSeasoningColorPreset.allPresets) { preset in
+                        ForEach(KroutonAccentColorPreset.allPresets) { preset in
                             Button {
                                 store.selectedAccentIndex = preset.id
                             } label: {

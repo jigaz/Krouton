@@ -282,52 +282,52 @@ extension KroutonSettingsWindowView {
                 }
             }
 
-            settingsCard(title: "Krumb Headless LAN Burner Daemon (_krumb._tcp.local. • Port 7420)") {
+            settingsCard(title: "Headless LAN Optical Spool Daemon (_krouton-spool._tcp.local. • Port 7420)") {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(krumb.statusBannerText)
+                        Text(spoolClient.statusBannerText)
                             .font(.system(size: 12, weight: .bold, design: .monospaced))
                             .foregroundStyle(store.uiSecondaryAccent)
-                        Text("Spool-and-Burn Architecture: Uploads Loaf & Seasoning to Krumb Pantry (>= 1 GB free) before DAO/SAO laser ignition.")
+                        Text("Spool-and-Burn Architecture: Pre-stages disc image & metadata to remote Spool Cache (>= 1 GB free) before DAO/SAO laser ignition.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
                     pillToggleButton(title: "Scan mDNS (7420)", sfSymbol: "antenna.radiowaves.left.and.right", isSelected: false) {
-                        krumb.startZeroConfDiscovery()
+                        spoolClient.startZeroConfDiscovery()
                         Task {
-                            await krumb.refreshToasters()
+                            await spoolClient.refreshRemoteDrives()
                             store.objectWillChange.send()
                         }
                     }
-                    pillToggleButton(title: "Calibrate Pantry", sfSymbol: "gauge.with.dots.needle.67percent", isSelected: false) {
+                    pillToggleButton(title: "Calibrate Spool Cache", sfSymbol: "gauge.with.dots.needle.67percent", isSelected: false) {
                         Task {
-                            await krumb.runPantryCalibration()
+                            await spoolClient.runSpoolCalibration()
                             store.objectWillChange.send()
                         }
                     }
                 }
                 Divider()
 
-                ForEach(krumb.remoteToasters) { toaster in
+                ForEach(spoolClient.remoteDrives) { remoteDrive in
                     HStack(spacing: 10) {
-                        Image(systemName: toaster.isEasyBake ? "sparkles.tv.fill" : "externaldrive.connected.to.line.below.fill")
+                        Image(systemName: remoteDrive.isSimulatedDrive ? "sparkles.tv.fill" : "externaldrive.connected.to.line.below.fill")
                             .foregroundStyle(store.activeAccent)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(toaster.name)
+                            Text(remoteDrive.name)
                                 .font(.system(size: 12, weight: .bold))
-                            Text("ToasterID: \(toaster.id) • Rack: \(toaster.rackState.rawValue) • SliceMedia: \(toaster.sliceMedia.rawValue)")
+                            Text("DriveID: \(remoteDrive.id) • Rack: \(remoteDrive.rackState.rawValue) • SliceMedia: \(remoteDrive.sliceMedia.rawValue)")
                                 .font(.system(size: 10.5, design: .monospaced))
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
                         pillToggleButton(
-                            title: toaster.rackState == .open ? "Close Rack" : "Wink / Open Rack",
+                            title: remoteDrive.rackState == .open ? "Close Rack" : "Wink / Open Rack",
                             sfSymbol: "eject.fill",
-                            isSelected: toaster.rackState == .open
+                            isSelected: remoteDrive.rackState == .open
                         ) {
                             Task {
-                                await krumb.toggleToasterRack(toasterID: toaster.id)
+                                await spoolClient.toggleDriveTray(driveID: remoteDrive.id)
                                 store.objectWillChange.send()
                             }
                         }
@@ -337,12 +337,12 @@ extension KroutonSettingsWindowView {
                 Divider()
 
                 HStack(spacing: 12) {
-                    Text("DoggyBag Post-Mortem Policy:")
+                    Text("Diagnostic Bundle Retention Policy:")
                         .fontWeight(.medium)
                     Picker("", selection: Binding(
-                        get: { krumb.doggyBagPolicy },
+                        get: { spoolClient.retentionPolicy },
                         set: { newPol in
-                            krumb.doggyBagPolicy = newPol
+                            spoolClient.retentionPolicy = newPol
                             store.objectWillChange.send()
                         }
                     )) {
@@ -355,17 +355,17 @@ extension KroutonSettingsWindowView {
 
                     Spacer()
 
-                    pillToggleButton(title: "Export Thermometer (.log + .toc)", sfSymbol: "thermometer.medium", isSelected: false) {
+                    pillToggleButton(title: "Export Telemetry (.log + .toc)", sfSymbol: "waveform.path.ecg", isSelected: false) {
                         Task {
-                            let artifact = await krumb.prepareKitchenThermometerArtifact()
+                            let artifact = await spoolClient.preparePhaseScopeTelemetryArtifact()
                             spoolExportDocument = SpoolPlainTextFileDocument(text: artifact.contentText)
                             spoolExportDefaultFilename = artifact.defaultFilename
                             isShowingSpoolFileExporter = true
                         }
                     }
-                    pillToggleButton(title: "Download DoggyBag", sfSymbol: "takeoutbag.and.cup.and.straw.fill", isSelected: false) {
+                    pillToggleButton(title: "Download Diagnostic Bundle", sfSymbol: "takeoutbag.and.cup.and.straw.fill", isSelected: false) {
                         Task {
-                            let artifact = await krumb.prepareDoggyBagArtifact()
+                            let artifact = await spoolClient.prepareDiagnosticBundleArtifact()
                             spoolExportDocument = SpoolPlainTextFileDocument(text: artifact.contentText)
                             spoolExportDefaultFilename = artifact.defaultFilename
                             isShowingSpoolFileExporter = true
@@ -375,7 +375,7 @@ extension KroutonSettingsWindowView {
 
                 Divider()
                 Toggle(KroutonL10n.tr("Share this Mac's connected optical drives on the local network"), isOn: $store.enableNetworkServerSharing)
-                Toggle(KroutonL10n.tr("Pre-stage full compiled disc image to remote Krumb Pantry before igniting laser"), isOn: $store.preStageImageToServerSSD)
+                Toggle(KroutonL10n.tr("Pre-stage full compiled disc image to remote Spool Cache before igniting laser"), isOn: $store.preStageImageToServerSSD)
             }
             .fileExporter(
                 isPresented: $isShowingSpoolFileExporter,
@@ -384,7 +384,7 @@ extension KroutonSettingsWindowView {
                 defaultFilename: spoolExportDefaultFilename
             ) { result in
                 if case .success(let savedURL) = result {
-                    krumb.appendEventLog("Saved \(savedURL.lastPathComponent) via SwiftUI FileExporter")
+                    spoolClient.appendEventLog("Saved \(savedURL.lastPathComponent) via SwiftUI FileExporter")
                 }
             }
                 burnersNetworkBottomSection

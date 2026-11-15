@@ -23,7 +23,7 @@ extension KroutonDestinationCardView {
             return driveManager.availableDrives.first(where: { !otherUsedDriveIDs.contains($0.id) })
         }()
 
-        let activeCardDriveID = (item.kind == .networkBurner) ? "krumb-network-toaster" : (cardDrive?.id ?? "")
+        let activeCardDriveID = (item.kind == .networkBurner) ? "network-spool-drive" : (cardDrive?.id ?? "")
 
         let scopeTel = driveManager.telemetryForDrive(activeCardDriveID)
         let isFloatingOpen = scopeTel?.isFloatingWindowOpen ?? false
@@ -47,8 +47,8 @@ extension KroutonDestinationCardView {
                                     }
                                 case .networkBurner:
                                     qItem.targetDriveID = ""
-                                    if !krumb.discoveredNodes.map(\.hostPort).contains(qItem.hardwareOrPath) {
-                                        qItem.hardwareOrPath = krumb.discoveredNodes.first?.hostPort ?? "localhost:7420"
+                                    if !spoolClient.discoveredNodes.map(\.hostPort).contains(qItem.hardwareOrPath) {
+                                        qItem.hardwareOrPath = spoolClient.discoveredNodes.first?.hostPort ?? "localhost:7420"
                                     }
                                 case .discImage:
                                     let imgTarget = store.defaultDiscImageTarget
@@ -204,7 +204,7 @@ extension KroutonDestinationCardView {
             return driveManager.availableDrives.first(where: { !otherUsedDriveIDs.contains($0.id) })
         }()
 
-        let activeCardDriveID = (item.kind == .networkBurner) ? "krumb-network-toaster" : (cardDrive?.id ?? "")
+        let activeCardDriveID = (item.kind == .networkBurner) ? "network-spool-drive" : (cardDrive?.id ?? "")
         let validSpeeds = cardDrive?.availableWriteSpeeds ?? ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
 
 
@@ -337,7 +337,7 @@ extension KroutonDestinationCardView {
             return driveManager.availableDrives.first(where: { !otherUsedDriveIDs.contains($0.id) })
         }()
 
-        let activeCardDriveID = (item.kind == .networkBurner) ? "krumb-network-toaster" : (cardDrive?.id ?? "")
+        let activeCardDriveID = (item.kind == .networkBurner) ? "network-spool-drive" : (cardDrive?.id ?? "")
 
 
         VStack(alignment: .leading, spacing: 10) {

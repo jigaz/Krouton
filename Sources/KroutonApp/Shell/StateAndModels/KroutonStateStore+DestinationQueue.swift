@@ -467,18 +467,18 @@ extension KroutonStateStore {
         }
         switch target.kind {
         case .networkBurner:
-            driveManager.setManualInlinePin(for: "krumb-network-toaster", isPinned: true)
+            driveManager.setManualInlinePin(for: "network-spool-drive", isPinned: true)
             let _ = await SpoolRemoteNodeClient.shared.executeSpoolAndBurn(
                 endpoint: target.hardwareOrPath,
                 stagedFiles: stagedFiles,
-                audioCubes: redBookTracks,
+                audioTracks: redBookTracks,
                 volumeTitle: discVolumeTitle,
                 performer: discPerformer,
                 mcnBarcode: discMCNBarcode,
                 requestedSpeedLabel: target.speedOrCodec,
                 simulationMode: target.simulationMode,
                 driveManager: driveManager,
-                targetDriveKey: "krumb-network-toaster"
+                targetDriveKey: "network-spool-drive"
             )
             objectWillChange.send()
         case .physicalBurner:

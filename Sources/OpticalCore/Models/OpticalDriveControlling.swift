@@ -51,7 +51,7 @@ public enum OpticalMediaKind: String, Codable, Sendable, CaseIterable {
 public enum KroutonDiagnostics {
     public static let hardwareLogger = Logger(subsystem: "app.krouton.optical", category: "HardwareDrive")
     public static let masteringLogger = Logger(subsystem: "app.krouton.optical", category: "MasteringEngine")
-    public static let networkLogger = Logger(subsystem: "app.krouton.optical", category: "KrumbLAN")
+    public static let networkLogger = Logger(subsystem: "app.krouton.optical", category: "NetworkSpool")
 }
 
 /// Protocol abstracting physical optical drive state so domain logic and unit tests

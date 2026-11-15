@@ -155,7 +155,7 @@ public enum KroutonKrutSecurityEngine {
         let key = HKDF<SHA256>.deriveKey(
             inputKeyMaterial: SymmetricKey(data: Data(passphrase.precomposedStringWithCanonicalMapping.utf8)),
             salt: salt,
-            info: Data("com.opticaldough.krouton.krut.v1".utf8),
+            info: Data("app.krouton.optical.krut.v1".utf8),
             outputByteCount: 32
         )
         return try ChaChaPoly.seal(plainData, using: key).combined
@@ -166,7 +166,7 @@ public enum KroutonKrutSecurityEngine {
         let key = HKDF<SHA256>.deriveKey(
             inputKeyMaterial: SymmetricKey(data: Data(passphrase.precomposedStringWithCanonicalMapping.utf8)),
             salt: salt,
-            info: Data("com.opticaldough.krouton.krut.v1".utf8),
+            info: Data("app.krouton.optical.krut.v1".utf8),
             outputByteCount: 32
         )
         guard let box = try? ChaChaPoly.SealedBox(combined: combinedData) else { return nil }

@@ -30,7 +30,7 @@ struct KroutonHybridLBAMapPopoverView: View {
             HStack {
                 Image(systemName: "memorychip.fill")
                     .foregroundStyle(store.activeAccent)
-                Text("TARTINE HYBRID LBA SECTOR PLANNER • \(plan.volumeIdentifier)")
+                Text("HYBRID LBA SECTOR PLANNER • \(plan.volumeIdentifier)")
                     .font(.system(size: 11, weight: .heavy, design: .monospaced))
                 Spacer()
                 Button {
@@ -234,7 +234,7 @@ struct KroutonVideoBitratePopoverView: View {
             HStack {
                 Image(systemName: "film.stack.fill")
                     .foregroundStyle(store.activeAccent)
-                Text("VIDEOOVEN BITRATE BUDGET & REQUIEM SHRINK INSPECTOR")
+                Text("VIDEOKIT BITRATE BUDGET & DVD-9 SHRINK INSPECTOR")
                     .font(.system(size: 11, weight: .heavy, design: .monospaced))
                 Spacer()
                 Button {

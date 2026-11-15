@@ -260,7 +260,7 @@ public struct KroutonRedBookTrack: Identifiable, Hashable, Sendable, Codable {
 
 // Hardware CD-TEXT Sanitizer: Transliterates curly quotes, em-dashes, and diacritics to strict 7-bit ASCII
 // so 1990s-2010s Sony/Pioneer/Alpine car stereos never display garbled subcode characters.
-public enum KroutonSeasoningSanitizer {
+public enum KroutonCDTextSanitizer {
     public static func sanitize(_ input: String) -> String {
         var s = input
             .replacingOccurrences(of: "\u{2018}", with: "'")

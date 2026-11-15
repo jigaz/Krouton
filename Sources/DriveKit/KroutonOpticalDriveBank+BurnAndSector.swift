@@ -211,7 +211,7 @@ extension KroutonOpticalDriveBank {
 
                 let targetKey = resolvedMeta?.id ?? (driveID ?? "")
                 if !targetKey.isEmpty {
-                    var dTel = self.driveTelemetry[targetKey] ?? KroutonKitchenThermometer(id: targetKey, driveName: driveName)
+                    var dTel = self.driveTelemetry[targetKey] ?? KroutonDrivePhaseScopeTelemetry(id: targetKey, driveName: driveName)
                     dTel.isActive = (rawState != DRStatusStateDone && rawState != DRStatusStateFailed)
                     dTel.phaseTitle = self.activeJobPhase
                     dTel.progressFraction = clampedPct
@@ -486,7 +486,7 @@ extension KroutonOpticalDriveBank {
 
         for (idx, trk) in tracks.enumerated() {
             let ext = trk.url.pathExtension.isEmpty ? "mp3" : trk.url.pathExtension.lowercased()
-            let cleanTitle = KroutonSeasoningSanitizer.sanitize(trk.title)
+            let cleanTitle = KroutonCDTextSanitizer.sanitize(trk.title)
                 .replacingOccurrences(of: "/", with: "-")
                 .replacingOccurrences(of: ":", with: "-")
             let carSafeName = String(format: "%03d - %@.%@", idx + 1, cleanTitle, ext)
@@ -496,7 +496,7 @@ extension KroutonOpticalDriveBank {
             } else {
                 try Data("Krouton Car-Safe Audio Stream".utf8).write(to: destURL)
             }
-            m3uLines.append("#EXTINF:\(Int(trk.durationSeconds)),\(KroutonSeasoningSanitizer.sanitize(trk.performer)) - \(cleanTitle)")
+            m3uLines.append("#EXTINF:\(Int(trk.durationSeconds)),\(KroutonCDTextSanitizer.sanitize(trk.performer)) - \(cleanTitle)")
             m3uLines.append(carSafeName)
             staged.append(Self.inspectFileOrFolder(url: destURL))
         }

@@ -129,11 +129,16 @@ func runVerifyArchitectureAndShellSuites(_ harness: inout KroutonTestHarness) {
     }
 
     harness.runSuite("3. Functional Kit Modules & Type-Safe Optical Workflow Catalog Routing") { h in
-    h.check(KroutonAudioEngine.version == "0.1.0-alpha.1", "Marmalade version")
-    h.check(KroutonVideoAuthoringEngine.version == "0.1.0-alpha.1", "VideoOven version")
-    h.check(KroutonHybridImagePlanner.version == "0.1.0-alpha.1", "Tartine version")
-    h.check(KroutonDiscImageDepot.version == "0.1.0-alpha.1", "Galette version")
-    h.check(KroutonLabelGeometryEngine.version == "0.1.0-alpha.1", "Crustini version")
+    h.check(KroutonAudioEngine.version == "0.1.0-alpha.1", "AudioKit version")
+    h.check(KroutonVideoAuthoringEngine.version == "0.1.0-alpha.1", "VideoKit version")
+    h.check(KroutonHybridImagePlanner.version == "0.1.0-alpha.1", "ImageKit Hybrid Planner version")
+    h.check(KroutonDiscImageDepot.version == "0.1.0-alpha.1", "ImageKit Depot version")
+    h.check(KroutonLabelGeometryEngine.version == "0.1.0-alpha.1", "LabelKit version")
+    let autoTrack = KroutonTrackAutoIdentifier.identifyTrack(url: URL(fileURLWithPath: "/tmp/01 - Solar Echoes.wav"), trackNumber: 1, fallbackPerformer: "Krouton Studio")
+    h.check(!autoTrack.title.isEmpty && !autoTrack.performer.isEmpty, "KroutonTrackAutoIdentifier must parse track metadata conservatively")
+    let pyramid = PeakPyramid(mono: [Float](repeating: 0.42, count: 1176))
+    h.check(!pyramid.levels.isEmpty && pyramid.levels[0].maxima.count == 2, "PeakPyramid must compute 588-sample Red Book frame peaks")
+    h.check(SpoolLANSecurityEngine.isAllowedLANEndpoint("http://192.168.1.50:7420") && !SpoolLANSecurityEngine.isAllowedLANEndpoint("https://example.com:7420"), "SpoolLANSecurityEngine must enforce RFC-1918 / mDNS LAN boundary")
 
 
     let formats = KroutonOpticalWorkflowCatalog.defaultFormats

@@ -62,7 +62,7 @@ public struct KroutonAudioEngine {
         text: String,
         startSequence: UInt8 = 0
     ) -> [KroutonCDTextPack] {
-        let clean = KroutonSeasoningSanitizer.sanitize(text)
+        let clean = KroutonCDTextSanitizer.sanitize(text)
         var nullTerminated = Array(clean.utf8)
         nullTerminated.append(0x00)
 
@@ -102,22 +102,22 @@ public struct KroutonAudioEngine {
         tracks: [KroutonRedBookTrack]
     ) -> String {
         var lines: [String] = []
-        let cleanMCN = KroutonSeasoningSanitizer.sanitizeMCN(mcnCatalog)
+        let cleanMCN = KroutonCDTextSanitizer.sanitizeMCN(mcnCatalog)
         if cleanMCN.count == 13 {
             lines.append("CATALOG \(cleanMCN)")
         }
-        lines.append("TITLE \"\(KroutonSeasoningSanitizer.sanitize(albumTitle))\"")
-        lines.append("PERFORMER \"\(KroutonSeasoningSanitizer.sanitize(albumPerformer))\"")
+        lines.append("TITLE \"\(KroutonCDTextSanitizer.sanitize(albumTitle))\"")
+        lines.append("PERFORMER \"\(KroutonCDTextSanitizer.sanitize(albumPerformer))\"")
         lines.append("FILE \"\(masterBinFilename)\" BINARY")
 
         var cursorFrames: Int64 = 0
         for (idx, cube) in tracks.enumerated() {
             let trackNum = idx + 1
             lines.append(String(format: "  TRACK %02d AUDIO", trackNum))
-            lines.append("    TITLE \"\(KroutonSeasoningSanitizer.sanitize(cube.title))\"")
-            lines.append("    PERFORMER \"\(KroutonSeasoningSanitizer.sanitize(cube.performer))\"")
+            lines.append("    TITLE \"\(KroutonCDTextSanitizer.sanitize(cube.title))\"")
+            lines.append("    PERFORMER \"\(KroutonCDTextSanitizer.sanitize(cube.performer))\"")
 
-            let cleanISRC = KroutonSeasoningSanitizer.sanitizeISRC(cube.isrcCode)
+            let cleanISRC = KroutonCDTextSanitizer.sanitizeISRC(cube.isrcCode)
             if cleanISRC.count == 12 {
                 lines.append("    ISRC \(cleanISRC)")
             }
@@ -319,8 +319,8 @@ public enum KroutonTrackAutoIdentifier {
         let performer = guessed.performer?.value ?? trimmedFallback
         let sourceLabel = guessed.title?.source.rawValue ?? MetadataSource.filenameGuess.rawValue
         return KroutonIdentifiedTrackMetadata(
-            title: KroutonSeasoningSanitizer.sanitize(title),
-            performer: performer.isEmpty ? "" : KroutonSeasoningSanitizer.sanitize(performer),
+            title: KroutonCDTextSanitizer.sanitize(title),
+            performer: performer.isEmpty ? "" : KroutonCDTextSanitizer.sanitize(performer),
             isrcCode: "",
             confidenceSource: sourceLabel
         )

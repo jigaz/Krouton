@@ -32,7 +32,7 @@ public enum KroutonHybridISO9660Writer {
         outputURL: URL
     ) throws -> HybridSynthesizedISOImage {
         let effectiveFiles: [HybridISOFileInput] = files.isEmpty
-            ? [HybridISOFileInput(fileName: "README_KROUTON.TXT", data: Data("Mastered by Krouton Tartine ISO-9660 Engine.\n".utf8))]
+            ? [HybridISOFileInput(fileName: "README_KROUTON.TXT", data: Data("Mastered by Krouton Hybrid ISO-9660 Engine.\n".utf8))]
             : files
 
         var nextLBA = 23

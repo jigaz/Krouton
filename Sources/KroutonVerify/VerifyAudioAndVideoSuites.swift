@@ -25,17 +25,17 @@ func runVerifyAudioAndVideoSuites(_ harness: inout KroutonTestHarness) {
     }
 
     harness.runSuite("9. Red Book CD-Text, ISRC (ISO 3901) & MCN Sanitizer Constraints") { h in
-    let sanitizedText = KroutonSeasoningSanitizer.sanitize("Café   Krouton — Live!\n\t")
+    let sanitizedText = KroutonCDTextSanitizer.sanitize("Café   Krouton — Live!\n\t")
     h.check(!sanitizedText.isEmpty && sanitizedText.allSatisfy { $0.isASCII }, "CD-Text ASCII sanitization")
 
-    let isrc = KroutonSeasoningSanitizer.sanitizeISRC("us-kro-26-00001-extra")
+    let isrc = KroutonCDTextSanitizer.sanitizeISRC("us-kro-26-00001-extra")
     h.check(isrc == "USKRO2600001" && isrc.count == 12, "ISRC 12-char normalization")
 
-    let mcn = KroutonSeasoningSanitizer.sanitizeMCN("0123-4567-89012-abc")
+    let mcn = KroutonCDTextSanitizer.sanitizeMCN("0123-4567-89012-abc")
     h.check(mcn == "0123456789012" && mcn.count == 13, "MCN 13-digit EAN-13 normalization")
     }
 
-    harness.runSuite("10. Red Book Audio Cube Frame (75 fps) & PCM Byte (2352 B/frame) Math") { h in
+    harness.runSuite("10. Red Book Audio CD Frame (75 fps) & PCM Byte (2352 B/frame) Math") { h in
     let cube = KroutonRedBookTrack(
         url: URL(fileURLWithPath: "/tmp/test.wav"),
         title: "Track 01",
@@ -80,7 +80,7 @@ func runVerifyAudioAndVideoSuites(_ harness: inout KroutonTestHarness) {
         KroutonRedBookTrack(
             url: URL(fileURLWithPath: "/tmp/01.wav"),
             title: "Solar Overture",
-            performer: "The Bakery",
+            performer: "Krouton Studio Ensemble",
             songWriter: "Greybeard",
             isrcCode: "USKRO2600001",
             durationSeconds: 10.0,
@@ -93,7 +93,7 @@ func runVerifyAudioAndVideoSuites(_ harness: inout KroutonTestHarness) {
         KroutonRedBookTrack(
             url: URL(fileURLWithPath: "/tmp/02.wav"),
             title: "Laser Groove",
-            performer: "The Bakery",
+            performer: "Krouton Studio Ensemble",
             songWriter: "Bruder",
             isrcCode: "USKRO2600002",
             durationSeconds: 20.0,
@@ -104,7 +104,7 @@ func runVerifyAudioAndVideoSuites(_ harness: inout KroutonTestHarness) {
     ]
     let cue = KroutonAudioEngine.compileRedBookCueSheet(
         albumTitle: "Krouton Red Book Master",
-        albumPerformer: "The Bakery",
+        albumPerformer: "Krouton Studio Ensemble",
         mcnCatalog: "0123456789012",
         tracks: tracks
     )

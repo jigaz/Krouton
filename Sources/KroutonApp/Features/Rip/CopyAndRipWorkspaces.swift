@@ -267,7 +267,7 @@ struct KroutonCopyAndRipWorkspaceView: View {
                         Toggle("Preserve Interactive Menus & Subpictures", isOn: $preserveMenusAndExtras).toggleStyle(.checkbox).font(.caption)
                         Spacer()
                     }
-                    Text(String(format: "VideoOven Requantizer Ratio: %.1f%% • Output: %.2f GB • Requantize: %@", plan.requantizationRatio * 100.0, Double(plan.estimatedOutputBytes) / 1_000_000_000.0, plan.requiresRequantization ? "ACTIVE" : "PASSTHROUGH"))
+                    Text(String(format: "VideoKit Requantizer Ratio: %.1f%% • Output: %.2f GB • Requantize: %@", plan.requantizationRatio * 100.0, Double(plan.estimatedOutputBytes) / 1_000_000_000.0, plan.requiresRequantization ? "ACTIVE" : "PASSTHROUGH"))
                         .font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundStyle(store.activeAccent)
                 }
             }
