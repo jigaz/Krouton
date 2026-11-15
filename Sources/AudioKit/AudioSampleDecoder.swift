@@ -29,7 +29,7 @@ extension KroutonAudioEngine {
         return box.track
     }
 
-    public static func decodeAudioFileToRedBookPCM(url: URL, maxSeconds: Double = 30.0) throws -> Data {
+    public static func decodeAudioFileToRedBookPCM(url: URL, maxSeconds: Double = 0.0) throws -> Data {
         let asset = AVURLAsset(url: url)
         let reader = try AVAssetReader(asset: asset)
         guard let track = loadFirstAudioTrackSync(from: asset) else {
@@ -53,9 +53,9 @@ extension KroutonAudioEngine {
             throw NSError(domain: "AudioSampleDecoder", code: -2, userInfo: [NSLocalizedDescriptionKey: "AVAssetReader failed to start on \(url.lastPathComponent)"])
         }
 
-        let maxBytes = Int(max(1.0, maxSeconds) * 44_100.0 * 4.0)
+        let maxBytes: Int? = maxSeconds > 0 ? Int(maxSeconds * 44_100.0 * 4.0) : nil
         var pcmData = Data()
-        pcmData.reserveCapacity(min(maxBytes, 1_764_000))
+        pcmData.reserveCapacity(min(maxBytes ?? 1_764_000, 1_764_000))
 
         while reader.status == .reading, let sampleBuffer = output.copyNextSampleBuffer() {
             if let blockBuffer = CMSampleBufferGetDataBuffer(sampleBuffer) {
@@ -68,7 +68,8 @@ extension KroutonAudioEngine {
                         }
                     }
                     pcmData.append(chunk)
-                    if pcmData.count >= maxBytes {
+                    if let limit = maxBytes, pcmData.count >= limit {
+                        pcmData.removeSubrange(limit..<pcmData.count)
                         reader.cancelReading()
                         break
                     }
@@ -76,12 +77,13 @@ extension KroutonAudioEngine {
             }
         }
 
+        guard !pcmData.isEmpty else {
+            throw NSError(domain: "AudioSampleDecoder", code: -3, userInfo: [NSLocalizedDescriptionKey: "Decoded 0 PCM samples from \(url.lastPathComponent)"])
+        }
+
         let remainder = pcmData.count % 2352
         if remainder != 0 {
             pcmData.append(Data(repeating: 0, count: 2352 - remainder))
-        }
-        if pcmData.isEmpty {
-            pcmData.append(Data(repeating: 0, count: 2352 * 75))
         }
         return pcmData
     }
@@ -107,10 +109,11 @@ extension KroutonAudioEngine {
             "FILE \"\(binURL.lastPathComponent)\" BINARY"
         ]
 
+        var boundaryByteOffsets: [Int] = []
         var currentSectorOffset = 0
         for (idx, url) in sourceURLs.enumerated() {
             let trackNum = idx + 1
-            let trackPCM = (try? decodeAudioFileToRedBookPCM(url: url, maxSeconds: 15.0)) ?? Data(repeating: 0, count: 2352 * 75)
+            let trackPCM = try decodeAudioFileToRedBookPCM(url: url, maxSeconds: 0.0)
             let trackSectors = max(1, trackPCM.count / 2352)
 
             let mm = (currentSectorOffset / 75) / 60
@@ -123,12 +126,40 @@ extension KroutonAudioEngine {
             cueLines.append("    PERFORMER \"\(performer)\"")
             cueLines.append(String(format: "    INDEX 01 %02d:%02d:%02d", mm, ss, ff))
 
+            if idx > 0 {
+                boundaryByteOffsets.append(combinedPCM.count)
+            }
             combinedPCM.append(trackPCM)
             currentSectorOffset += trackSectors
         }
 
-        if crossfadeSeconds > 0 && combinedPCM.count >= 4704 {
-            let fadeGainOut = cos(0.5 * Double.pi * 0.5); let fadeGainIn = sin(0.5 * Double.pi * 0.5); _ = (fadeGainOut, fadeGainIn)
+        // Apply real 16-bit stereo equal-power crossfade ramps centered across each track boundary
+        if crossfadeSeconds > 0, !boundaryByteOffsets.isEmpty {
+            let requestedFrames = max(1, Int(crossfadeSeconds * 44_100.0))
+            combinedPCM.withUnsafeMutableBytes { rawBuf in
+                guard let base = rawBuf.baseAddress?.assumingMemoryBound(to: Int16.self) else { return }
+                let totalInt16Count = rawBuf.count / 2
+                for boundaryByte in boundaryByteOffsets {
+                    let centerSampleIdx = boundaryByte / 2 // stereo interleaved Int16 index
+                    let halfSamples = min(requestedFrames * 2, centerSampleIdx, totalInt16Count - centerSampleIdx) & ~1
+                    guard halfSamples >= 4 else { continue }
+                    let totalFrames = halfSamples / 2
+                    for frame in 0..<totalFrames {
+                        let t = Double(frame) / Double(max(1, totalFrames - 1))
+                        let (gainOut, gainIn) = equalPowerCrossfadeGains(progress: t)
+                        let outIdx = (centerSampleIdx - halfSamples) + (frame * 2)
+                        let inIdx = centerSampleIdx + (frame * 2)
+                        for ch in 0..<2 {
+                            let sOut = Double(Int16(littleEndian: base[outIdx + ch]))
+                            let sIn = Double(Int16(littleEndian: base[inIdx + ch]))
+                            let mixedOut = Int16(clamping: Int((sOut * gainOut + sIn * (1.0 - gainOut)).rounded()))
+                            let mixedIn = Int16(clamping: Int((sIn * gainIn + sOut * (1.0 - gainIn)).rounded()))
+                            base[outIdx + ch] = mixedOut.littleEndian
+                            base[inIdx + ch] = mixedIn.littleEndian
+                        }
+                    }
+                }
+            }
         }
 
         try combinedPCM.write(to: binURL, options: .atomic)
