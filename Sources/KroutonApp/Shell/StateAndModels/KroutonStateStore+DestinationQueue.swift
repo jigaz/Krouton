@@ -435,18 +435,6 @@ extension KroutonStateStore {
             return
         }
         Task { @MainActor in
-            let physicalTargets = destinationQueue.filter { $0.kind == .physicalBurner && !$0.simulationMode }
-            let discCap: Int64 = primarySelectedDrive?.freeBytes ?? 4_700_372_992
-            let totalStagedBytes = stagedFiles.reduce(Int64(0)) { $0 + $1.byteSize }
-            if selectedCategory == .burn && !physicalTargets.isEmpty && (physicalTargets.count > 1 || totalStagedBytes > discCap) {
-                let ids = physicalTargets.map(\.targetDriveID).filter { !$0.isEmpty }
-                _ = await executeVerifiedBurnSetWithScheduler(
-                    driveManager: driveManager,
-                    targetDriveIDs: ids,
-                    discCapacityBytes: max(700_000_000, discCap)
-                )
-                return
-            }
             for target in destinationQueue {
                 await runTargetDestination(
                     target,

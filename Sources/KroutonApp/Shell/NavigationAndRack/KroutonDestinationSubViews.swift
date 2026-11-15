@@ -14,6 +14,14 @@ struct KroutonDestinationRackColumnView: View {
     let enableCustomFinderLayoutTab: Bool
     let finderIconSize: Double
     let primarySelectedDrive: KroutonOpticalDriveInfo?
+    @ObservedObject var burnSet: KroutonBurnSetController = .shared
+    @State private var showBurnSetSheet = false
+
+    /// Multi-disc sets are built from the staged file list, so they are offered for data workflows only.
+    private var offersMultiDiscSet: Bool {
+        store.selectedCategory == .burn
+            && store.discFormats.first(where: { $0.id == store.selectedTaskID })?.workspaceKind == .dataAndArchival
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -116,17 +124,36 @@ struct KroutonDestinationRackColumnView: View {
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                .disabled(burnSet.isBusy) // the drives belong to the running set
 
                 Text(store.queueStatusSummaryText)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+
+                if offersMultiDiscSet || burnSet.phase != .idle {
+                    Button {
+                        showBurnSetSheet = true
+                    } label: {
+                        Label(burnSet.isBusy ? "Multi-Disc Set in Progress..." : "Burn as Multi-Disc Set...",
+                              systemImage: "square.stack.3d.up.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .lineLimit(1)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(store.activeAccent)
+                    .disabled(driveManager.isExecutingQueue)
+                    .help("Split the staged files across several discs, burn them on every connected burner, and verify each one")
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
         }
         .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
         .background(Color.kroutonControlSurface)
+        .sheet(isPresented: $showBurnSetSheet) {
+            KroutonBurnSetSheetView(store: store)
+        }
     }
 }
 

@@ -21,15 +21,15 @@ public actor DiscRecordingOpticalDrive: OpticalDrive {
     public nonisolated let id: DriveID
     public nonisolated let displayName: String
     private nonisolated let abortSwitch = KroutonBurnAbortSwitch()
-    private let onStatus: (@MainActor @Sendable (String) -> Void)?
+    private let onStatus: (@MainActor @Sendable (DriveID, String) -> Void)?
     private var imageBeingBurned: URL?
 
-    /// - Parameter onStatus: short messages for the blank-disc prompt, such as
+    /// - Parameter onStatus: short messages for one drive's blank-disc prompt, such as
     ///   "The DVD-RW in this drive is not blank."
     public init(
         driveID: String,
         displayName: String,
-        onStatus: (@MainActor @Sendable (String) -> Void)? = nil
+        onStatus: (@MainActor @Sendable (DriveID, String) -> Void)? = nil
     ) {
         self.id = DriveID(driveID)
         self.displayName = displayName
@@ -38,7 +38,7 @@ public actor DiscRecordingOpticalDrive: OpticalDrive {
 
     /// One drive per connected burner. Two identical burners get distinct identifiers.
     public static func connectedDrives(
-        onStatus: (@MainActor @Sendable (String) -> Void)? = nil
+        onStatus: (@MainActor @Sendable (DriveID, String) -> Void)? = nil
     ) async -> [DiscRecordingOpticalDrive] {
         await KroutonDiscImageBurner.connectedDrives().map {
             DiscRecordingOpticalDrive(driveID: $0.id, displayName: $0.displayName, onStatus: onStatus)
@@ -54,8 +54,15 @@ public actor DiscRecordingOpticalDrive: OpticalDrive {
     public func waitForBlank(_ request: BlankRequest) async throws(BurnFailure) -> BlankMedia {
         abortSwitch.reset()
         imageBeingBurned = nil
+        let driveID = id
+        let forward: (@MainActor @Sendable (String) -> Void)?
+        if let report = onStatus {
+            forward = { message in report(driveID, message) }
+        } else {
+            forward = nil
+        }
         do {
-            let disc = try await KroutonDiscImageBurner.waitForBlank(driveID: id.raw, abort: abortSwitch, onStatus: onStatus)
+            let disc = try await KroutonDiscImageBurner.waitForBlank(driveID: id.raw, abort: abortSwitch, onStatus: forward)
             // DiscRecording does not expose the manufacturer ID, so the journal records the media type.
             return BlankMedia(mediaID: disc.mediaType, capacityBytes: disc.capacityBytes)
         } catch {
