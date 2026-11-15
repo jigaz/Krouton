@@ -40,99 +40,47 @@ extension KroutonOpticalDriveBank {
             let name = driveForID(driveID)?.displayName ?? "Optical Drive"
             driveTelemetry[driveID] = KroutonDrivePhaseScopeTelemetry(id: driveID, driveName: name, isManuallyPinnedInline: isPinned)
         }
-        if isPinned && (driveTelemetry[driveID]?.samples.isEmpty ?? true) {
-            runPhaseScopeTestSweep(for: driveID, keepPinnedAfterSweep: true)
-        }
     }
 
-    // Runs a live 6-second P-CAV Phase Scope telemetry sweep on a specific drive card so users can test & inspect the inline/floating scope anytime!
-
+    /// Snapshots the drive's current DiscRecording state without fabricating speed, RPM, or buffer curves.
     public func runPhaseScopeTestSweep(for driveID: String, keepPinnedAfterSweep: Bool = true) {
+        refreshDrives()
         let resolved = driveForID(driveID)
         let targetID = resolved?.id ?? driveID
         guard !targetID.isEmpty else { return }
         let driveName = resolved?.displayName ?? "Optical Drive"
-        let mediaType = resolved?.mediaType ?? "CD-RW"
-        let totalSectors = max(1, resolved?.freeSectorsLBA ?? 359_847)
 
         perDriveTimers[targetID]?.invalidate()
+        perDriveTimers.removeValue(forKey: targetID)
 
         let isFloated = driveTelemetry[targetID]?.isFloatingWindowOpen ?? false
         let isPinned = keepPinnedAfterSweep || (driveTelemetry[targetID]?.isManuallyPinnedInline ?? false)
-        let divisor: Double = mediaType.contains("BD") ? 4500.0 : (mediaType.contains("DVD") ? 1385.0 : 176.4)
-        let laserStr = mediaType.contains("BD") ? "405 nm Violet" : (mediaType.contains("DVD") ? "650 nm Red" : "780 nm IR")
+        let mediaType = resolved?.mediaType ?? "None"
+        let totalSectors: Int64 = max(0, resolved?.freeSectorsLBA ?? 0)
+        let laserStr = mediaType.contains("BD") ? "405 nm Violet" : (mediaType.contains("DVD") ? "650 nm Red" : (mediaType.contains("CD") ? "780 nm IR" : "—"))
 
-        let tel = KroutonDrivePhaseScopeTelemetry(
+        driveTelemetry[targetID] = KroutonDrivePhaseScopeTelemetry(
             id: targetID,
             driveName: driveName,
-            isActive: true,
+            isActive: false,
             isManuallyPinnedInline: isPinned,
             isFloatingWindowOpen: isFloated,
-            phaseTitle: "Phase Scope Calibration Sweep...",
-            progressFraction: 0.02,
-            currentSpeedX: 4.0,
-            currentSpeedKBs: 4.0 * divisor,
-            peakSpeedX: 4.0,
-            averageSpeedX: 4.0,
-            targetSpeedX: 16.0,
-            currentSpindleRPM: 2400,
+            phaseTitle: "Idle (Hardware Ready)",
+            progressFraction: 0.0,
+            currentSpeedX: 0.0,
+            currentSpeedKBs: 0.0,
+            peakSpeedX: 0.0,
+            averageSpeedX: 0.0,
+            targetSpeedX: 0.0,
+            currentSpindleRPM: 0,
             currentSectorLBA: 0,
             totalSectorsLBA: totalSectors,
-            bufferFillPercent: 99.0,
+            bufferFillPercent: 0.0,
             laserWavelengthText: laserStr,
-            writeStrategyText: "P-CAV Telemetry",
+            writeStrategyText: "—",
             elapsedSeconds: 0,
             samples: []
         )
-        driveTelemetry[targetID] = tel
-
-        let startDate = Date()
-        perDriveTimers[targetID] = Timer.scheduledTimer(withTimeInterval: 0.15, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self = self, var current = self.driveTelemetry[targetID] else { return }
-                let nextFrac = min(1.0, current.progressFraction + 0.032)
-                // Classic Nero P-CAV curve with tiny realistic optical servo jitter
-                let jitter = Double((Int(nextFrac * 100) % 5) - 2) * 0.12
-                let speedX = max(2.0, 4.2 + (11.8 * pow(nextFrac, 0.78)) + jitter)
-                let kbs = speedX * divisor
-                let rpm = Int(2250.0 + (speedX * 165.0 * (1.0 - nextFrac * 0.38)))
-
-                current.progressFraction = nextFrac
-                current.currentSpeedX = speedX
-                current.currentSpeedKBs = kbs
-                if speedX > current.peakSpeedX { current.peakSpeedX = speedX }
-                current.currentSpindleRPM = rpm
-                current.currentSectorLBA = Int64(Double(totalSectors) * nextFrac)
-                current.bufferFillPercent = Double(95 + (Int(nextFrac * 50) % 5))
-                current.elapsedSeconds = max(1, Int(Date().timeIntervalSince(startDate)))
-                current.phaseTitle = nextFrac < 0.99 ? "Phase Scope Active (\(String(format: "%.1fx", speedX)))" : "Sweep Complete"
-
-                current.samples.append(KroutonBurnTelemetrySample(
-                    progressFraction: nextFrac,
-                    speedMultiplierX: speedX,
-                    spindleRPM: Double(rpm),
-                    throughputKBs: kbs
-                ))
-                let sumX = current.samples.reduce(0.0) { $0 + $1.speedMultiplierX }
-                current.averageSpeedX = sumX / Double(max(1, current.samples.count))
-
-                if nextFrac >= 1.0 {
-                    self.perDriveTimers[targetID]?.invalidate()
-                    self.perDriveTimers.removeValue(forKey: targetID)
-                    self.driveTelemetry[targetID] = current
-                    // Mark throughput as 0 after 1.8s, but if isManuallyPinnedInline is true the mini graph stays visible!
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-                        if var finished = self.driveTelemetry[targetID], finished.progressFraction >= 1.0 {
-                            finished.isActive = false
-                            finished.phaseTitle = "Last Event: Calibration Sweep"
-                            self.driveTelemetry[targetID] = finished
-                        }
-                    }
-                } else {
-                    self.driveTelemetry[targetID] = current
-                }
-            }
-        }
     }
 
     public func driveForID(_ id: String) -> KroutonOpticalDriveInfo? {
@@ -288,8 +236,8 @@ extension KroutonOpticalDriveBank {
                     volumeName: volumeTitle,
                     sectorsWrittenLBA: 0,
                     bytesWritten: 0,
-                    averageSpeedText: "0.0x",
-                    peakSpeedText: "0.0x",
+                    averageSpeedText: "—",
+                    peakSpeedText: "—",
                     elapsedDurationText: "00:01",
                     diagnosticAdvice: "Check that the destination folder exists and has sufficient free disk space."
                 )
@@ -310,8 +258,8 @@ extension KroutonOpticalDriveBank {
                 volumeName: volumeTitle,
                 sectorsWrittenLBA: 0,
                 bytesWritten: 0,
-                averageSpeedText: "0.0x",
-                peakSpeedText: "0.0x",
+                averageSpeedText: "—",
+                peakSpeedText: "—",
                 elapsedDurationText: "00:01",
                 diagnosticAdvice: "Verify read permissions on all staged files."
             )

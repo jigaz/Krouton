@@ -92,7 +92,7 @@ extension KroutonOpticalDriveBank {
             let report = KroutonBurnSessionReport(
                 isSuccess: false, title: title, summary: summary, driveModel: driveName, firmwareRevision: fwRev,
                 mediaFormattedName: media, volumeName: volumeTitle, sectorsWrittenLBA: 0, bytesWritten: 0,
-                averageSpeedText: "0.0x", peakSpeedText: "0.0x", elapsedDurationText: "00:00", diagnosticAdvice: advice
+                averageSpeedText: "—", peakSpeedText: "—", elapsedDurationText: "00:00", diagnosticAdvice: advice
             )
             completionReport = report
             onCompletion(report)

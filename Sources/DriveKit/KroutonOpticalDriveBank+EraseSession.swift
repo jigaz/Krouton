@@ -117,7 +117,7 @@ extension KroutonOpticalDriveBank {
             for: session.driveKey,
             driveName: driveName,
             eventTitle: fullErase ? "Event: Full Sector Erase" : "Event: Quick TOC Erase",
-            totalSectorsLBA: resolvedMeta?.freeSectorsLBA ?? 359_847,
+            totalSectorsLBA: resolvedMeta?.freeSectorsLBA ?? 0,
             laserText: laserText,
             strategyText: strategyText
         )

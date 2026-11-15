@@ -140,9 +140,9 @@ extension KroutonOpticalDriveBank {
                 volumeName: sourceURL.lastPathComponent,
                 sectorsWrittenLBA: 0,
                 bytesWritten: 0,
-                averageSpeedText: "0.0x",
-                peakSpeedText: "0.0x",
-                elapsedDurationText: "00:01",
+                averageSpeedText: "—",
+                peakSpeedText: "—",
+                elapsedDurationText: "00:00",
                 diagnosticAdvice: "Verify read/write permissions in the source image folder."
             )
             self.completionReport = rep
