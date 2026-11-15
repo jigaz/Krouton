@@ -58,7 +58,7 @@ extension KroutonSettingsWindowView {
                     Spacer()
                     Button {
                         store.labelPresets.append(
-                            KroutonSliceLabelGeometry(
+                            KroutonDiscLabelGeometry(
                                 name: newPresetName,
                                 outerDiameterMM: newOuterMM,
                                 innerDiameterMM: newInnerMM,

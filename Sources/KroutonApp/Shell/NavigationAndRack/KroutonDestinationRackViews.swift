@@ -9,7 +9,7 @@ import OpticalCore
 
 struct KroutonDestinationCardView: View {
     @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonToasterBank
+    @ObservedObject var driveManager: KroutonOpticalDriveBank
     @ObservedObject var krumb: KrumbKitchenClient = .shared
     let item: KroutonBakeBatchItem
     let isRightQueueCompact: Bool

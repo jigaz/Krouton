@@ -9,7 +9,7 @@ import OpticalCore
 
 struct KroutonDestinationRackColumnView: View {
     @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonToasterBank
+    @ObservedObject var driveManager: KroutonOpticalDriveBank
     let isRightQueueCompact: Bool
     let enableCustomFinderLayoutTab: Bool
     let finderIconSize: Double
@@ -133,7 +133,7 @@ struct KroutonDestinationRackColumnView: View {
 // MARK: - Dedicated Reactive Subview for Krumb Port 7420 Network Toaster Cards
 struct KrumbNetworkToasterCardSectionView: View {
     @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonToasterBank
+    @ObservedObject var driveManager: KroutonOpticalDriveBank
     @ObservedObject var krumb: KrumbKitchenClient = .shared
 
     let item: KroutonBakeBatchItem

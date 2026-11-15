@@ -63,7 +63,7 @@ public enum KroutonTartineISO9660Writer {
         let finalData = Data(image)
         try FileManager.default.createDirectory(at: outputURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         try finalData.write(to: outputURL, options: .atomic)
-        let digest = KroutonTartineModule.computeBlockSHA256Hex(for: finalData)
+        let digest = KroutonHybridImagePlanner.computeBlockSHA256Hex(for: finalData)
 
         return TartineSynthesizedISOImage(
             url: outputURL,

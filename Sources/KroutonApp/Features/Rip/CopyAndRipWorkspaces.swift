@@ -258,7 +258,7 @@ struct KroutonCopyAndRipWorkspaceView: View {
 
     var shrinkDVDVideoWorkspaceDeck: some View {
         let sourceBytes = max(store.totalStagedBytes, scannedVideoDisc?.totalBytes ?? 0)
-        let plan = KroutonVideoOvenModule.planDVD9ToDVD5Shrink(mainFeatureBytes: sourceBytes, menusAndExtrasBytes: 0, preserveMenusAndExtras: preserveMenusAndExtras)
+        let plan = KroutonVideoAuthoringEngine.planDVD9ToDVD5Shrink(mainFeatureBytes: sourceBytes, menusAndExtrasBytes: 0, preserveMenusAndExtras: preserveMenusAndExtras)
         return VStack(alignment: .leading, spacing: 10) {
             KroutonMasteringDeckCard(store: store) {
                 VStack(alignment: .leading, spacing: 8) {
@@ -277,7 +277,7 @@ struct KroutonCopyAndRipWorkspaceView: View {
     @ViewBuilder
     func unifiedOpticalRescueMapCard(showVideoHandoff: Bool) -> some View {
         let lbaTotal = Int64(mountedCDSnapshot?.leadoutBlockLBA ?? Int(scannedVideoDisc?.totalSectorsLBA ?? max(0, store.totalStagedBytes / 2048)))
-        let map = KroutonKrustiniModule.buildOpticalRescueMap(totalSectorsLBA: lbaTotal, scratchSeverity: rescueScratchMode)
+        let map = KroutonLabelGeometryEngine.buildOpticalRescueMap(totalSectorsLBA: lbaTotal, scratchSeverity: rescueScratchMode)
         KroutonMasteringDeckCard(store: store) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {

@@ -294,6 +294,6 @@ private struct SpliceHandleOverlay: View {
 
     private func formatMMSSFF(_ seconds: Double) -> String {
         let frames = Int64((max(0.0, seconds) * 75.0).rounded())
-        return KroutonMarmaladeModule.formatFramesToMMSSFF(frames)
+        return KroutonAudioEngine.formatFramesToMMSSFF(frames)
     }
 }

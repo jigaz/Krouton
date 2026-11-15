@@ -13,25 +13,25 @@ import RescueKit
 @MainActor
 func runKroutonVerifySuite22MultiDisc(_ harness: inout KroutonTestHarness) {
     harness.runSuite("19. AudioKit Splice Overlap Math, Equal-Power Crossfade & CD-Text CRC-16") { h in
-        let gainMid = KroutonMarmaladeModule.equalPowerCrossfadeGains(progress: 0.5)
+        let gainMid = KroutonAudioEngine.equalPowerCrossfadeGains(progress: 0.5)
         let powerSum = gainMid.fadeOut * gainMid.fadeOut + gainMid.fadeIn * gainMid.fadeIn
         h.check(abs(powerSum - 1.0) < 1e-6, "Equal-power crossfade midpoint must preserve unity acoustic power (sin^2 + cos^2 == 1.0)")
 
-        let crc = KroutonMarmaladeModule.computeCDTextInvertedCRC16([0x80, 0x00, 0x01, 0x00, 0x4B, 0x52, 0x4F, 0x55, 0x54, 0x4F, 0x4E, 0x00, 0x00, 0x00, 0x00, 0x00])
+        let crc = KroutonAudioEngine.computeCDTextInvertedCRC16([0x80, 0x00, 0x01, 0x00, 0x4B, 0x52, 0x4F, 0x55, 0x54, 0x4F, 0x4E, 0x00, 0x00, 0x00, 0x00, 0x00])
         h.check(crc != 0, "18-byte Sony/Philips Red Book CD-Text pack CRC-16-CCITT must compute non-zero checksum")
     }
 
     harness.runSuite("20. LabelKit Polar 300-DPI Geometry, Photo Adjustments & 1:1 Vector PDF Print Sheet") { h in
         let dim120 = KroutonDiscHubGeometry.fullFace120mmHub22mm.canvasPixelDimension(dpi: 300.0)
         h.check(dim120 == 1417, "120mm disc at 300 DPI must equal 1417 pixels")
-        let glyphs = KroutonKrustiniModule.computePolarArcGlyphLayout(
+        let glyphs = KroutonLabelGeometryEngine.computePolarArcGlyphLayout(
             text: "KROUTON ARCHIVAL EDITION",
             centerX: 180.0,
             centerY: 180.0,
             radiusPoints: 136.0
         )
         h.check(glyphs.count == "KROUTON ARCHIVAL EDITION".count,
-                "KroutonKrustiniModule.layoutPolarArcText must position one polar glyph per character")
+                "KroutonLabelGeometryEngine.layoutPolarArcText must position one polar glyph per character")
     }
 
     harness.runSuite("21. Persistence SessionStore, RunLock Crash Recovery & Security-Scoped Bookmark Vault") { h in

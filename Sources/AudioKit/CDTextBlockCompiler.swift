@@ -2,7 +2,7 @@ import Foundation
 
 // CD-TEXT block compiler.
 //
-// Replaces `KroutonMarmaladeModule.buildCDTextPacks`, which packed one string at a
+// Replaces `KroutonAudioEngine.buildCDTextPacks`, which packed one string at a
 // time. A CD-TEXT block is compiled as a whole, because:
 //
 //   1. All strings of one pack type (album, track 1, track 2, ...) form ONE byte

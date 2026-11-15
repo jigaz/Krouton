@@ -10,7 +10,7 @@ import AVFoundation
 import CryptoKit
 
 @MainActor
-public final class KroutonToasterBank: ObservableObject, OpticalDriveControlling, KroutonDriveTelemetryStore {
+public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveControlling, KroutonDriveTelemetryStore {
     public var mediaKind: OpticalMediaKind {
         OpticalMediaKind(mediaDescription: availableDrives.first?.mediaType ?? "DVD-R")
     }

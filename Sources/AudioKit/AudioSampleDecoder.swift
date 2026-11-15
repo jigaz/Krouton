@@ -13,7 +13,7 @@ public struct MarmaladeMasteredDiscResult: Sendable, Equatable {
     public let cueSheetText: String
 }
 
-extension KroutonMarmaladeModule {
+extension KroutonAudioEngine {
     /// Decodes any macOS-supported audio file (.wav, .aiff, .m4a, .mp3, .flac) into raw
     /// 44.1 kHz, 16-bit, 2-channel signed little-endian Red Book Audio CD PCM bytes, padded to a 2,352-byte sector multiple.
     @available(macOS, deprecated: 15.0)
@@ -33,7 +33,7 @@ extension KroutonMarmaladeModule {
         let asset = AVURLAsset(url: url)
         let reader = try AVAssetReader(asset: asset)
         guard let track = loadFirstAudioTrackSync(from: asset) else {
-            throw NSError(domain: "MarmaladeAudioDecoder", code: -1, userInfo: [NSLocalizedDescriptionKey: "No audio track found in \(url.lastPathComponent)"])
+            throw NSError(domain: "AudioSampleDecoder", code: -1, userInfo: [NSLocalizedDescriptionKey: "No audio track found in \(url.lastPathComponent)"])
         }
 
         let outputSettings: [String: Any] = [
@@ -50,7 +50,7 @@ extension KroutonMarmaladeModule {
         output.alwaysCopiesSampleData = false
         reader.add(output)
         guard reader.startReading() else {
-            throw NSError(domain: "MarmaladeAudioDecoder", code: -2, userInfo: [NSLocalizedDescriptionKey: "AVAssetReader failed to start on \(url.lastPathComponent)"])
+            throw NSError(domain: "AudioSampleDecoder", code: -2, userInfo: [NSLocalizedDescriptionKey: "AVAssetReader failed to start on \(url.lastPathComponent)"])
         }
 
         let maxBytes = Int(max(1.0, maxSeconds) * 44_100.0 * 4.0)
@@ -276,7 +276,7 @@ public enum KroutonRealCDExtractor {
                 : baseName
             descriptors.append(KroutonMountedCDTrackDescriptor(
                 trackNumber: tNum, sourceAIFFURL: aiffURL, startBlockLBA: startLBA,
-                frameCount75fps: frames, durationMMSSFF: KroutonMarmaladeModule.formatFramesToMMSSFF(Int64(frames)),
+                frameCount75fps: frames, durationMMSSFF: KroutonAudioEngine.formatFramesToMMSSFF(Int64(frames)),
                 byteSize: fSize, preEmphasis: preEmp, title: cleanTitle,
                 performer: volName
             ))

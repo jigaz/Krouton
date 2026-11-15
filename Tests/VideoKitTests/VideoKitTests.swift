@@ -16,7 +16,7 @@ public func XCTAssertLessThan<T: Comparable>(_ a: T, _ b: T) { precondition(a < 
 
 final class VideoKitTests: XCTestCase {
     func testOpticalBitrateBudgetAndDVDShrinkMath() {
-        let result = KroutonVideoOvenModule.computeBitrateBudget(durationSeconds: 1800, audioKbps: 448, medium: .dvd5SingleLayer)
+        let result = KroutonVideoAuthoringEngine.computeBitrateBudget(durationSeconds: 1800, audioKbps: 448, medium: .dvd5SingleLayer)
         XCTAssertFalse(String(describing: result).isEmpty)
     }
 }

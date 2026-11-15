@@ -127,7 +127,7 @@ extension KroutonStateStore {
         }
         for url in compatibleURLs {
             if !stagedFiles.contains(where: { $0.url == url }) {
-                let entry = KroutonToasterBank.inspectFileOrFolder(url: url)
+                let entry = KroutonOpticalDriveBank.inspectFileOrFolder(url: url)
                 stagedFiles.append(entry)
             }
         }
@@ -208,7 +208,7 @@ extension KroutonStateStore {
                 return
             }
             if let currentIdx = stagedFiles.firstIndex(where: { $0.id == id }) {
-                stagedFiles[currentIdx] = KroutonToasterBank.inspectFileOrFolder(url: outURL)
+                stagedFiles[currentIdx] = KroutonOpticalDriveBank.inspectFileOrFolder(url: outURL)
                 announceForVoiceOver(report.title)
             }
         }
@@ -227,7 +227,7 @@ extension KroutonStateStore {
             rejectedDropNotice = "'\(item.title)' is not present in local cache (\(isoURL.lastPathComponent))."
             return
         }
-        stagedFiles = [KroutonToasterBank.inspectFileOrFolder(url: isoURL)]
+        stagedFiles = [KroutonOpticalDriveBank.inspectFileOrFolder(url: isoURL)]
         stagedDepotItemID = item.id
         discVolumeTitle = item.id.uppercased().replacingOccurrences(of: "-", with: "_")
         if jumpToInspector {
@@ -453,7 +453,7 @@ public func kroutonSynthesizeVerifiedISO9660ImageOnDisk(
             outputURL: outURL
         )
         if let rawData = try? Data(contentsOf: result.url) {
-            _ = KroutonGaletteModule.classifyBootableImage(headerBytes: rawData)
+            _ = KroutonDiscImageDepot.classifyBootableImage(headerBytes: rawData)
         }
         return (result.url, result.sha256Hex, result.totalBytes)
     } catch {

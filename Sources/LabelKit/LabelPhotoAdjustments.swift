@@ -7,7 +7,7 @@ import OpticalCore
 
 // MARK: - Unified CoreImage GPU Background Adjustment Pipeline (sRGB & Resolution-Independent)
 
-extension KroutonKrustiniModule {
+extension KroutonLabelGeometryEngine {
 
     /// Applies the 5 core graphic adjustments on the GPU with resolution-independent blur scaling
     /// so interactive preview (360pt) and 300-DPI print export (1417px) match identically.

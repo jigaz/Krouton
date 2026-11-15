@@ -10,7 +10,7 @@ import RescueKit
 
 struct KroutonLeftFormatChooserColumnView: View {
     @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonToasterBank
+    @ObservedObject var driveManager: KroutonOpticalDriveBank
     let isLeftSidebarUltraSkinny: Bool
 
     func taskRowButton(id: String, category: KroutonBakeryStation, title: String,

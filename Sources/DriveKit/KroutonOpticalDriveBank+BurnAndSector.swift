@@ -8,13 +8,13 @@ import IOKit.storage
 import AVFoundation
 import CryptoKit
 
-// MARK: - KroutonToasterBank Physical Burn Engine & .BIN/.CUE <-> .ISO Sector Converter
+// MARK: - KroutonOpticalDriveBank Physical Burn Engine & .BIN/.CUE <-> .ISO Sector Converter
 
 @MainActor
-extension KroutonToasterBank {
+extension KroutonOpticalDriveBank {
     public func startPhysicalDataBurn(
         driveID: String? = nil,
-        stagedFiles: [KroutonLoafFileEntry],
+        stagedFiles: [KroutonStagedFileEntry],
         volumeTitle: String,
         requestedSpeedLabel: String,
         simulationMode: Bool,
@@ -478,10 +478,10 @@ extension KroutonToasterBank {
     }
 
     // Stages a Car-Safe MP3/FLAC Folder Tree (Zero-padded 001_ prefixes + strips .DS_Store & ._AppleDouble files!)
-    public static func stageCarSafeAudioDirectory(tracks: [KroutonAudioCube], tempRoot: URL) throws -> [KroutonLoafFileEntry] {
+    public static func stageCarSafeAudioDirectory(tracks: [KroutonAudioCube], tempRoot: URL) throws -> [KroutonStagedFileEntry] {
         let fm = FileManager.default
         try fm.createDirectory(at: tempRoot, withIntermediateDirectories: true)
-        var staged: [KroutonLoafFileEntry] = []
+        var staged: [KroutonStagedFileEntry] = []
         var m3uLines: [String] = ["#EXTM3U"]
 
         for (idx, trk) in tracks.enumerated() {
@@ -507,7 +507,7 @@ extension KroutonToasterBank {
         return staged
     }
 
-    public static func inspectFileOrFolder(url: URL) -> KroutonLoafFileEntry {
+    public static func inspectFileOrFolder(url: URL) -> KroutonStagedFileEntry {
         let fm = FileManager.default
         var isDir: ObjCBool = false
         _ = fm.fileExists(atPath: url.path, isDirectory: &isDir)
@@ -549,7 +549,7 @@ extension KroutonToasterBank {
         let defaultMac = !(lowerName == "autorun.inf" || lowerName.hasSuffix(".exe") || lowerName.hasSuffix(".msi") || lowerName.hasSuffix(".bat"))
         let defaultPC = !(lowerName == ".ds_store" || lowerName == ".localized")
 
-        return KroutonLoafFileEntry(
+        return KroutonStagedFileEntry(
             url: url,
             name: url.lastPathComponent,
             isDirectory: isDir.boolValue,

@@ -336,7 +336,7 @@ struct KroutonWorkspaceCommands: Commands {
             Button(KroutonL10n.tr("Copy Archival Quality Certificate")) {
                 let drv = wm.driveManager.availableDrives.first
                 let lba = max(150, Int64((drv?.usedBytes ?? wm.store.totalStagedBytes) / 2048))
-                let cert = KroutonKrustiniModule.evaluateArchivalDiscGrade(
+                let cert = KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(
                     driveModel: drv?.displayName ?? "Optical Drive",
                     mediaType: drv?.mediaType ?? "Optical Media",
                     sectorsWrittenLBA: lba,

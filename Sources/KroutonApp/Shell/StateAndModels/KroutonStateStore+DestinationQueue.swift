@@ -60,7 +60,7 @@ extension KroutonStateStore {
             return [.discPrinter, .pdfVector]
         }
     }
-    func reconcileUniqueDriveAssignments(driveManager: KroutonToasterBank) {
+    func reconcileUniqueDriveAssignments(driveManager: KroutonOpticalDriveBank) {
         let allowed = allowedDestinationsForCurrentCategory
         var claimedIDs = Set<String>()
         for idx in destinationQueue.indices {
@@ -233,7 +233,7 @@ extension KroutonStateStore {
     /// 2. If switching within the same domain (e.g. Audio CD -> DVD-Video -> Hybrid Data), keeps compatible
     ///    USB Burner & LAN Server cards and updates any .discImage extension (.cue <-> .iso <-> .dmg)!
     /// 3. If switching to a different domain (e.g. Label -> Audio CD -> Label), restores the saved queue for that domain!
-    public func syncDefaultDestinationForCategory(_ category: KroutonBakeryStation, taskID: String, driveManager: KroutonToasterBank) {
+    public func syncDefaultDestinationForCategory(_ category: KroutonBakeryStation, taskID: String, driveManager: KroutonOpticalDriveBank) {
         let targetDomain = Self.destinationDomainKey(category: category, taskID: taskID)
         let allowed = allowedDestinationsForCurrentCategory
         // 1. Check if we already have a saved queue for the target domain (or compatible cards in the current queue)
@@ -299,7 +299,7 @@ extension KroutonStateStore {
         }
         savedQueuesByDomain[targetDomain] = destinationQueue
     }
-    func appendContextAwareDestination(driveManager: KroutonToasterBank) {
+    func appendContextAwareDestination(driveManager: KroutonOpticalDriveBank) {
         switch selectedCategory {
         case .depot:
             let usedDriveIDs = Set(destinationQueue.filter { $0.kind == .physicalBurner }.map { $0.targetDriveID })
@@ -367,7 +367,7 @@ extension KroutonStateStore {
     }
     func executeSingleDestination(
         _ target: KroutonBakeBatchItem,
-        driveManager: KroutonToasterBank,
+        driveManager: KroutonOpticalDriveBank,
         primarySelectedDrive: KroutonToasterInfo?,
         enableCustomFinderLayoutTab: Bool,
         finderIconSize: Double
@@ -405,7 +405,7 @@ extension KroutonStateStore {
         }
     }
     func executeDestinationQueue(
-        driveManager: KroutonToasterBank,
+        driveManager: KroutonOpticalDriveBank,
         primarySelectedDrive: KroutonToasterInfo?,
         enableCustomFinderLayoutTab: Bool,
         finderIconSize: Double
@@ -446,7 +446,7 @@ extension KroutonStateStore {
     }
     func runTargetDestination(
         _ target: KroutonBakeBatchItem,
-        driveManager: KroutonToasterBank,
+        driveManager: KroutonOpticalDriveBank,
         primarySelectedDrive: KroutonToasterInfo?,
         enableCustomFinderLayoutTab: Bool,
         finderIconSize: Double

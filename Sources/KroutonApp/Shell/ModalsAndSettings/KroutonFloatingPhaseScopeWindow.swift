@@ -6,7 +6,7 @@ import OpticalCore
 struct KroutonFloatingThermometerView: View {
     let driveID: String
     @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonToasterBank
+    @ObservedObject var driveManager: KroutonOpticalDriveBank
     let onDockInline: () -> Void
 
     var drive: KroutonToasterInfo? { driveManager.driveForID(driveID) }

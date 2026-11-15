@@ -97,7 +97,7 @@ extension KroutonSettingsWindowView {
                         .foregroundStyle(.secondary)
                 }
                 Divider()
-                ForEach(KroutonPantryPrepEngine.liveHardwareCodecMatrix) { row in
+                ForEach(KroutonMediaPrepEngine.liveHardwareCodecMatrix) { row in
                     VStack(alignment: .leading, spacing: 3) {
                         HStack {
                             Image(systemName: row.isHardwareAccelerated ? "bolt.shield.fill" : "cpu")
@@ -218,7 +218,7 @@ extension KroutonSettingsWindowView {
         }
     }
 
-    // MARK: - 6. BURNERS & NETWORK PANE (Live Connected Hardware via KroutonToasterBank)
+    // MARK: - 6. BURNERS & NETWORK PANE (Live Connected Hardware via KroutonOpticalDriveBank)
     var burnersNetworkPane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "Connected Optical Burners (Live IOKit / DiscRecording Bus)") {

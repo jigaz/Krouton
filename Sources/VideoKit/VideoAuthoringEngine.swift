@@ -60,7 +60,7 @@ public struct KroutonDVD9ShrinkPlan: Sendable, Equatable {
     public let estimatedOutputBytes: Int64
 }
 
-public struct KroutonVideoOvenModule {
+public struct KroutonVideoAuthoringEngine {
     public static let version = "0.1.0-alpha.1"
 
     /// Computes exact video kbps budget for a given program duration, audio stream bitrate, and optical medium
@@ -175,7 +175,7 @@ public struct KroutonDVD9MenuShrinkBlueprint: Sendable, Equatable {
     public let relinkedCells: [KroutonShrunkDVD5CellEntry]
 }
 
-extension KroutonVideoOvenModule {
+extension KroutonVideoAuthoringEngine {
     public static let dvd5SafeUsableSectors: Int64 = 2_260_677 // 98.5% of 2,295,104 DVD-5 sectors (~4.63 GB)
     public static let dvdECCBlockSectors: Int64 = 16           // 32 KiB (16 x 2048B) hardware ECC block
 
@@ -313,7 +313,7 @@ public struct KroutonStreamMuxDescriptor: Identifiable, Hashable, Codable, Senda
     }
 
     public var compiledChapters: [KroutonVideoChapterMarker] {
-        KroutonVideoOvenModule.compileTimestampChapters(chapterTimestampsRaw)
+        KroutonVideoAuthoringEngine.compileTimestampChapters(chapterTimestampsRaw)
     }
 
     public var muxBadgeSummary: String {
@@ -323,7 +323,7 @@ public struct KroutonStreamMuxDescriptor: Identifiable, Hashable, Codable, Senda
     }
 }
 
-extension KroutonVideoOvenModule {
+extension KroutonVideoAuthoringEngine {
     /// Parses timestamp strings ("00:00:00 Opening | 00:05:30 Act I" or newline-separated) into 90 kHz PTS chapter markers
     public static func compileTimestampChapters(_ raw: String) -> [KroutonVideoChapterMarker] {
         let chunks = raw
@@ -368,7 +368,7 @@ extension KroutonVideoOvenModule {
 }
 
 
-extension KroutonVideoOvenModule {
+extension KroutonVideoAuthoringEngine {
     /// Executes an on-disk DVD-9 -> DVD-5 shrink of a `VIDEO_TS` folder, preserving menus when requested,
     /// patching `.IFO`/`.BUP` sector pointers and layer-break flags, and aligning `.VOB` outputs to 2,048-byte DVD packs.
     @discardableResult

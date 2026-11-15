@@ -522,7 +522,7 @@ extension KroutonDiscLabelWorkspaceView {
     }
 
     @MainActor
-    func exportHighRes300DPILabelPNG(preset: KroutonSliceLabelGeometry, isTestPrintSheet: Bool) {
+    func exportHighRes300DPILabelPNG(preset: KroutonDiscLabelGeometry, isTestPrintSheet: Bool) {
         let exportPixels: CGFloat = preset.outerDiameterMM <= 85.0 ? 945.0 : 1417.0
         let exportCanvas = KroutonDiscLabelArtworkCanvas(
             preset: preset,
@@ -553,7 +553,7 @@ extension KroutonDiscLabelWorkspaceView {
         let renderer = ImageRenderer(content: exportCanvas)
         renderer.scale = 1.0
         if let cgImg = renderer.cgImage {
-            let files = KroutonKrustiniModule.writeDiscLabelExportFiles(
+            let files = KroutonLabelGeometryEngine.writeDiscLabelExportFiles(
                 discCGImage: cgImg,
                 presetName: preset.name,
                 outerDiameterMM: preset.outerDiameterMM,

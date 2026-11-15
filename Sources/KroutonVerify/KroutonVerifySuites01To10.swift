@@ -110,11 +110,11 @@ func runKroutonVerifySuites01To10(_ harness: inout KroutonTestHarness) {
     }
 
     harness.runSuite("3. Functional Kit Modules & Type-Safe Optical Recipe Catalog Routing") { h in
-    h.check(KroutonMarmaladeModule.version == "0.1.0-alpha.1", "Marmalade version")
-    h.check(KroutonVideoOvenModule.version == "0.1.0-alpha.1", "VideoOven version")
-    h.check(KroutonTartineModule.version == "0.1.0-alpha.1", "Tartine version")
-    h.check(KroutonGaletteModule.version == "0.1.0-alpha.1", "Galette version")
-    h.check(KroutonKrustiniModule.version == "0.1.0-alpha.1", "Crustini version")
+    h.check(KroutonAudioEngine.version == "0.1.0-alpha.1", "Marmalade version")
+    h.check(KroutonVideoAuthoringEngine.version == "0.1.0-alpha.1", "VideoOven version")
+    h.check(KroutonHybridImagePlanner.version == "0.1.0-alpha.1", "Tartine version")
+    h.check(KroutonDiscImageDepot.version == "0.1.0-alpha.1", "Galette version")
+    h.check(KroutonLabelGeometryEngine.version == "0.1.0-alpha.1", "Crustini version")
 
 
     let formats = KroutonOpticalRecipeCatalog.defaultFormats
@@ -151,7 +151,7 @@ func runKroutonVerifySuites01To10(_ harness: inout KroutonTestHarness) {
     harness.runSuite("4. ISO-9660 / Joliet / UDF File Entry Limits & 2048-Byte LBA Math") { h in
     let fiveGiB: Int64 = 5 * 1024 * 1024 * 1024
     let longName = String(repeating: "K", count: 70) + ".iso"
-    let entry = KroutonLoafFileEntry(
+    let entry = KroutonStagedFileEntry(
         url: URL(fileURLWithPath: "/tmp/\(longName)"),
         name: longName,
         isDirectory: false,
@@ -168,15 +168,15 @@ func runKroutonVerifySuites01To10(_ harness: inout KroutonTestHarness) {
     }
 
     harness.runSuite("5. ImageKit Hybrid Data LBA Planner (PVD LBA 16, El Torito LBA 17, UDF LBA 256 & Deduplication)") { h in
-    let vol = KroutonTartineModule.sanitizeVolumeIdentifier("Krouton Master 2026! (v1.0)")
+    let vol = KroutonHybridImagePlanner.sanitizeVolumeIdentifier("Krouton Master 2026! (v1.0)")
     h.check(vol == "KROUTON_MASTER_2026___V1_0", "ECMA-119 d-character volume label sanitization")
 
-    let isoFile = KroutonTartineModule.sanitizeISO9660FileIdentifier("my-super-archive-2026.tar.gz")
+    let isoFile = KroutonHybridImagePlanner.sanitizeISO9660FileIdentifier("my-super-archive-2026.tar.gz")
     h.check(isoFile.hasSuffix(".GZ;1") && isoFile.count <= 31, "ISO-9660 Level 2 filename + ;1 version")
 
     let fiveGiB: Int64 = 5 * 1024 * 1024 * 1024
     let entries = [
-        KroutonLoafFileEntry(
+        KroutonStagedFileEntry(
             url: URL(fileURLWithPath: "/tmp/SharedInstaller.pkg"),
             name: "SharedInstaller.pkg",
             isDirectory: false,
@@ -187,7 +187,7 @@ func runKroutonVerifySuites01To10(_ harness: inout KroutonTestHarness) {
             showOnMac: true,
             showOnPC: true
         ),
-        KroutonLoafFileEntry(
+        KroutonStagedFileEntry(
             url: URL(fileURLWithPath: "/tmp/Giant4KMaster.mov"),
             name: "Giant4KMaster.mov",
             isDirectory: false,
@@ -200,7 +200,7 @@ func runKroutonVerifySuites01To10(_ harness: inout KroutonTestHarness) {
         )
     ]
 
-    let plan = KroutonTartineModule.planHybridDataLayout(
+    let plan = KroutonHybridImagePlanner.planHybridDataLayout(
         volumeLabel: "Krouton Boot Hybrid",
         entries: entries,
         isElToritoBootable: true
@@ -228,26 +228,26 @@ func runKroutonVerifySuites01To10(_ harness: inout KroutonTestHarness) {
         INDEX 00 02:00:00
         INDEX 01 02:02:00
     """
-    let parsedTracks = KroutonGaletteModule.parseCueSheet(sampleCue)
+    let parsedTracks = KroutonDiscImageDepot.parseCueSheet(sampleCue)
     h.check(parsedTracks.count == 2, "Mixed-mode CUE sheet must parse 2 tracks")
     h.check(parsedTracks[0].mode == .mode1_2352 && parsedTracks[0].index01LBA == 0, "Track 1 Mode1/2352 @ LBA 0")
     h.check(parsedTracks[1].mode == .audio2352 && parsedTracks[1].index00LBA == 9000 && parsedTracks[1].index01LBA == 9150,
             "Track 2 Audio INDEX 00 @ 02:00:00 (9000 LBA) and INDEX 01 @ 02:02:00 (9150 LBA)")
 
     // 14b. Raw 2352-byte Mode 1 & Mode 2 Form 1 -> 2048-byte ISO payload extraction
-    var mode1Raw = Data(KroutonGaletteModule.cdRomSyncPattern) // 12 bytes
+    var mode1Raw = Data(KroutonDiscImageDepot.cdRomSyncPattern) // 12 bytes
     mode1Raw.append(contentsOf: [0x00, 0x02, 0x00, 0x01])      // 4B header (00:02:00, Mode 1 = 0x01)
     let expectedPayload = Data(repeating: 0x5A, count: 2048)
     mode1Raw.append(expectedPayload)                           // 2048B user payload
     mode1Raw.append(Data(repeating: 0xEE, count: 288))         // 288B EDC/ECC parity
     h.check(mode1Raw.count == 2352, "Synthetic Mode 1 raw sector must be 2352 bytes")
 
-    let extractedISO = KroutonGaletteModule.extractISO2048SectorFromRaw2352(mode1Raw)
+    let extractedISO = KroutonDiscImageDepot.extractISO2048SectorFromRaw2352(mode1Raw)
     h.check(extractedISO == expectedPayload && extractedISO?.count == 2048,
             "Mode 1 2352B sector extractor must strip 16B header and 288B ECC to yield exact 2048B ISO payload")
 
     // 14c. Depot Boot & Media Badge classification
-    let depotClass = KroutonGaletteModule.classifyDepotImage(
+    let depotClass = KroutonDiscImageDepot.classifyDepotImage(
         byteSize: 4_100_000_000,
         signatureSampleASCII: "CD001 EL TORITO SPECIFICATION UDF NSR03"
     )

@@ -11,13 +11,13 @@ import RescueKit
 @MainActor
 func runKroutonVerifySuites11To21(_ harness: inout KroutonTestHarness) {
     harness.runSuite("8. Hardware Acceleration Codec Matrix & Container Stream Probing") { h in
-    let matrix = KroutonPantryPrepEngine.liveHardwareCodecMatrix
+    let matrix = KroutonMediaPrepEngine.liveHardwareCodecMatrix
     h.check(matrix.count >= 6, "Expected at least 6 codec rows in hardware matrix")
 
-    let mkvProbe = KroutonPantryPrepEngine.probeFile(URL(fileURLWithPath: "/tmp/concert.mkv"))
+    let mkvProbe = KroutonMediaPrepEngine.probeFile(URL(fileURLWithPath: "/tmp/concert.mkv"))
     h.check(mkvProbe.fileExtension == "MKV" && mkvProbe.isHardwareAccelerated, "MKV hardware probe")
 
-    let flacProbe = KroutonPantryPrepEngine.probeFile(URL(fileURLWithPath: "/tmp/master.flac"))
+    let flacProbe = KroutonMediaPrepEngine.probeFile(URL(fileURLWithPath: "/tmp/master.flac"))
     h.check(flacProbe.accelerationTier == .accelerateSIMD, "FLAC Accelerate SIMD tier")
     }
 
@@ -53,13 +53,13 @@ func runKroutonVerifySuites11To21(_ harness: inout KroutonTestHarness) {
     // 11a. Equal-power crossfade energy conservation (fadeOut^2 + fadeIn^2 == 1.0)
     for step in 0...10 {
         let t = Double(step) / 10.0
-        let (outG, inG) = KroutonMarmaladeModule.equalPowerCrossfadeGains(progress: t)
+        let (outG, inG) = KroutonAudioEngine.equalPowerCrossfadeGains(progress: t)
         let energySum = (outG * outG) + (inG * inG)
         h.check(abs(energySum - 1.0) < 1e-9, "Equal-power crossfade energy must equal 1.0 at t=\(t)")
     }
 
     // 11b. 18-Byte Sony/Philips CD-Text Pack & CRC-16 CCITT verification
-    let packs = KroutonMarmaladeModule.buildCDTextPacks(
+    let packs = KroutonAudioEngine.buildCDTextPacks(
         packType: 0x80,
         trackNumber: 1,
         text: "KROUTON OVERDRIVE SUITE"
@@ -68,7 +68,7 @@ func runKroutonVerifySuites11To21(_ harness: inout KroutonTestHarness) {
     for p in packs {
         let raw = p.raw18Bytes
         h.check(raw.count == 18, "Each Sony/Philips CD-Text pack must be exactly 18 bytes")
-        let recomputedCRC = KroutonMarmaladeModule.computeCDTextInvertedCRC16(Array(raw.prefix(16)))
+        let recomputedCRC = KroutonAudioEngine.computeCDTextInvertedCRC16(Array(raw.prefix(16)))
         h.check(recomputedCRC == p.crc16Inverted, "CD-Text CRC-16 CCITT must match inverted header+payload checksum")
     }
 
@@ -99,7 +99,7 @@ func runKroutonVerifySuites11To21(_ harness: inout KroutonTestHarness) {
             transitionStyle: .gapless0s
         )
     ]
-    let cue = KroutonMarmaladeModule.compileRedBookCueSheet(
+    let cue = KroutonAudioEngine.compileRedBookCueSheet(
         albumTitle: "Krouton Red Book Master",
         albumPerformer: "The Bakery",
         mcnCatalog: "0123456789012",
@@ -118,24 +118,24 @@ func runKroutonVerifySuites11To21(_ harness: inout KroutonTestHarness) {
     h.check(KroutonVideoTargetMedium.bd25SingleLayer.capacityBytes == 25_025_314_816, "Exact BD-25 byte capacity")
 
     // Short 30-minute program on DVD-5 should clamp strictly to the 9,800 kbps DVD-Video hardware ceiling
-    let shortDVD = KroutonVideoOvenModule.computeBitrateBudget(durationSeconds: 1800, audioKbps: 448, medium: .dvd5SingleLayer)
+    let shortDVD = KroutonVideoAuthoringEngine.computeBitrateBudget(durationSeconds: 1800, audioKbps: 448, medium: .dvd5SingleLayer)
     h.check(shortDVD.targetVideoKbps == 9_800, "Short DVD program must clamp to 9,800 kbps DVD-Video spec ceiling")
     h.check(shortDVD.vbvBufferKilobits == 1_835 && shortDVD.isSpecCompliant, "DVD VBV buffer must be 1,835 kb")
 
     // 2.5-hour (9000s) feature film on DVD-5 must compute a custom VBR target below 9,800 kbps to fit 100% of disc
-    let featureDVD = KroutonVideoOvenModule.computeBitrateBudget(durationSeconds: 9000, audioKbps: 448, medium: .dvd5SingleLayer)
+    let featureDVD = KroutonVideoAuthoringEngine.computeBitrateBudget(durationSeconds: 9000, audioKbps: 448, medium: .dvd5SingleLayer)
     h.check(featureDVD.targetVideoKbps > 3_000 && featureDVD.targetVideoKbps < 4_200, "150-min DVD-5 target video bitrate in [3000, 4200] kbps")
     h.check(featureDVD.estimatedDiscFillRatio > 0.98, "150-min DVD-5 bitrate budget should utilize >98% of disc capacity")
 
     // DVD-9 (7.2 GB main + 0.8 GB extras) -> DVD-5 shrink test with and without extras
     let mainBytes: Int64 = 6_800_000_000
     let extraBytes: Int64 = 900_000_000
-    let shrinkWithExtras = KroutonVideoOvenModule.planDVD9ToDVD5Shrink(
+    let shrinkWithExtras = KroutonVideoAuthoringEngine.planDVD9ToDVD5Shrink(
         mainFeatureBytes: mainBytes,
         menusAndExtrasBytes: extraBytes,
         preserveMenusAndExtras: true
     )
-    let shrinkMainOnly = KroutonVideoOvenModule.planDVD9ToDVD5Shrink(
+    let shrinkMainOnly = KroutonVideoAuthoringEngine.planDVD9ToDVD5Shrink(
         mainFeatureBytes: mainBytes,
         menusAndExtrasBytes: extraBytes,
         preserveMenusAndExtras: false
@@ -153,7 +153,7 @@ func runKroutonVerifySuites11To21(_ harness: inout KroutonTestHarness) {
         KroutonDVD9CellDescriptor(cellID: 2, originalStartSectorLBA: 1_200_000, originalSectorCountLBA: 1_100_000, hadDualLayerBreakPause: true), // Layer 0 -> Layer 1 break cell!
         KroutonDVD9CellDescriptor(cellID: 3, originalStartSectorLBA: 2_300_000, originalSectorCountLBA: 1_100_000, hadDualLayerBreakPause: false)
     ]
-    let blueprint = KroutonVideoOvenModule.buildDVD9ToDVD5MenuShrinkBlueprint(
+    let blueprint = KroutonVideoAuthoringEngine.buildDVD9ToDVD5MenuShrinkBlueprint(
         ifoTableBytes: 65_536,
         menuVobBytes: 450_000_000,
         preserveMenus: true,

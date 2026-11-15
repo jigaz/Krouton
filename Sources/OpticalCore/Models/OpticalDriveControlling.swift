@@ -49,9 +49,9 @@ public enum OpticalMediaKind: String, Codable, Sendable, CaseIterable {
 
 /// Centralized `os.Logger` diagnostics for hardware, filesystem, and network operations.
 public enum KroutonDiagnostics {
-    public static let hardwareLogger = Logger(subsystem: "com.krouton.optical", category: "HardwareDrive")
-    public static let masteringLogger = Logger(subsystem: "com.krouton.optical", category: "MasteringEngine")
-    public static let networkLogger = Logger(subsystem: "com.krouton.optical", category: "KrumbLAN")
+    public static let hardwareLogger = Logger(subsystem: "app.krouton.optical", category: "HardwareDrive")
+    public static let masteringLogger = Logger(subsystem: "app.krouton.optical", category: "MasteringEngine")
+    public static let networkLogger = Logger(subsystem: "app.krouton.optical", category: "KrumbLAN")
 }
 
 /// Protocol abstracting physical optical drive state so domain logic and unit tests

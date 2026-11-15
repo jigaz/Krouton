@@ -322,7 +322,7 @@ struct KroutonMiniThermometerView: View {
 
 // MARK: - ISO-9660 Level 1 Filename Helper & 6-Channel Telemetry Grid
 
-extension KroutonLoafFileEntry {
+extension KroutonStagedFileEntry {
     var iso9660Level1Name: String {
         let ext = url.pathExtension.uppercased().prefix(3)
         let base = url.deletingPathExtension().lastPathComponent.uppercased().replacingOccurrences(of: " ", with: "_").filter { $0.isLetter || $0.isNumber || $0 == "_" }.prefix(8)

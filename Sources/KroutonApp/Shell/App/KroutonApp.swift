@@ -89,7 +89,7 @@ public enum KroutonOSDesktopBridge {
 final class KroutonWindowManager: ObservableObject {
     static let shared = KroutonWindowManager()
     let store = KroutonStateStore()
-    let driveManager = KroutonToasterBank()
+    let driveManager = KroutonOpticalDriveBank()
     var openWindowAction: OpenWindowAction?
     var dismissWindowAction: DismissWindowAction?
 
@@ -112,7 +112,7 @@ final class KroutonWindowManager: ObservableObject {
 
     func openMainWindow() { openWindowAction?(id: "main") }
 
-    func openSettingsWindow(store: KroutonStateStore, driveManager: KroutonToasterBank, pane: KroutonSettingsCategory? = nil) {
+    func openSettingsWindow(store: KroutonStateStore, driveManager: KroutonOpticalDriveBank, pane: KroutonSettingsCategory? = nil) {
         if let p = pane { store.selectedSettingsPane = p }
         openWindowAction?(id: "settings")
     }
@@ -184,7 +184,7 @@ struct KroutonApp: App {
 
 struct KroutonMainWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonToasterBank
+    @ObservedObject var driveManager: KroutonOpticalDriveBank
     @ObservedObject var krumb: KrumbKitchenClient = .shared
 
     @State var enableCustomFinderLayoutTab: Bool = false
@@ -556,7 +556,7 @@ struct KroutonMainWorkspaceView: View {
 
 struct KroutonProjectSheetModifier: ViewModifier {
     @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonToasterBank
+    @ObservedObject var driveManager: KroutonOpticalDriveBank
     @ObservedObject private var bridge = KroutonProjectDialogBridge.shared
 
     func body(content: Content) -> some View {

@@ -236,7 +236,7 @@ public struct KroutonPantryFeedSubscription: Identifiable, Hashable, Sendable {
     public var sfSymbol: String
 }
 
-public struct KroutonSliceLabelGeometry: Identifiable, Hashable, Sendable {
+public struct KroutonDiscLabelGeometry: Identifiable, Hashable, Sendable {
     public var id = UUID()
     public var name: String
     public var outerDiameterMM: Double

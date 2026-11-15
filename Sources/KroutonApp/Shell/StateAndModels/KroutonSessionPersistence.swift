@@ -248,13 +248,13 @@ public final class KroutonCrashRecoveryController: ObservableObject {
             : snap.stagedFilePaths.map { FileReference(url: URL(fileURLWithPath: $0)) }
 
         let resolutions = await sessionStore.resolve(refs, timeoutPerFile: 2.0)
-        var restoredEntries: [KroutonLoafFileEntry] = []
+        var restoredEntries: [KroutonStagedFileEntry] = []
         var missingPaths: [String] = []
 
         for res in resolutions {
             switch res {
             case .found(let url):
-                restoredEntries.append(KroutonToasterBank.inspectFileOrFolder(url: url))
+                restoredEntries.append(KroutonOpticalDriveBank.inspectFileOrFolder(url: url))
             case .missing(let path):
                 missingPaths.append(path)
             }

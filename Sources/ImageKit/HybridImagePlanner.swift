@@ -15,7 +15,7 @@ public struct KroutonTartineExtent: Sendable, Equatable, Identifiable {
     public let requiresUDFMultiExtent: Bool
 }
 
-public struct KroutonTartineLayoutPlan: Sendable, Equatable {
+public struct KroutonHybridLayoutPlan: Sendable, Equatable {
     public let volumeIdentifier: String
     public let pvdSectorLBA: Int64              // Always LBA 16
     public let elToritoBootRecordLBA: Int64?    // LBA 17 when bootable
@@ -28,7 +28,7 @@ public struct KroutonTartineLayoutPlan: Sendable, Equatable {
     public let warnings: [String]
 }
 
-public struct KroutonTartineModule {
+public struct KroutonHybridImagePlanner {
     public static let version = "0.1.0-alpha.1"
     public static let sectorSize: Int64 = 2048
     public static let iso9660FourGiBLimit: Int64 = 4_294_967_295
@@ -77,9 +77,9 @@ public struct KroutonTartineModule {
     /// Plans a deduplicated Hybrid Mac (HFS+/UDF) + PC (ISO-9660/Joliet) + El Torito LBA sector layout
     public static func planHybridDataLayout(
         volumeLabel: String,
-        entries: [KroutonLoafFileEntry],
+        entries: [KroutonStagedFileEntry],
         isElToritoBootable: Bool = false
-    ) -> KroutonTartineLayoutPlan {
+    ) -> KroutonHybridLayoutPlan {
         let cleanVol = sanitizeVolumeIdentifier(volumeLabel)
         let pvdLBA: Int64 = 16
         let bootLBA: Int64? = isElToritoBootable ? 17 : nil
@@ -125,7 +125,7 @@ public struct KroutonTartineModule {
 
         // Reserve 16 sectors at end of session for secondary UDF AVDP + Lead-Out pad
         let totalSectors = cursorLBA + 16
-        return KroutonTartineLayoutPlan(
+        return KroutonHybridLayoutPlan(
             volumeIdentifier: cleanVol,
             pvdSectorLBA: pvdLBA,
             elToritoBootRecordLBA: bootLBA,

@@ -6,7 +6,7 @@ import CoreImage
 import CoreImage.CIFilterBuiltins
 import OpticalCore
 
-extension KroutonKrustiniModule {
+extension KroutonLabelGeometryEngine {
     // MARK: - Freehand Drawn Shape -> Automatic Crisp Vector Shape Recognizer
 
     public static func recognizeAndVectorizeDrawnStroke(
@@ -349,7 +349,7 @@ extension KroutonKrustiniModule {
     // MARK: - Apple Silicon Metal GPU Kaleidoscope, 360° Tiny Planet Globe & Vision Foreground Lifter
 
     private static let sharedMetalCIContext: CIContext = {
-        CIContext(options: [.useSoftwareRenderer: false, .workingColorSpace: KroutonKrustiniModule.sRGBColorSpace, .outputColorSpace: KroutonKrustiniModule.sRGBColorSpace])
+        CIContext(options: [.useSoftwareRenderer: false, .workingColorSpace: KroutonLabelGeometryEngine.sRGBColorSpace, .outputColorSpace: KroutonLabelGeometryEngine.sRGBColorSpace])
     }()
 
     /// Replicates a drawn vector shape N times radially around the (0,0) spindle center

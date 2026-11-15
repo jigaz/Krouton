@@ -132,7 +132,7 @@ extension KroutonDiscLabelWorkspaceView {
             store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
             let (cr, cg, cb, _) = KroutonPureColorMath.extractSRGB(store.activeAccent)
             let stroke = KroutonRGBAColor(r: Double(cr), g: Double(cg), b: Double(cb), a: 0.92)
-            let shape = KroutonKrustiniModule.makeParametricVectorShape(
+            let shape = KroutonLabelGeometryEngine.makeParametricVectorShape(
                 kind: kind,
                 centerX: 0.0,
                 centerY: cy,
@@ -164,7 +164,7 @@ extension KroutonDiscLabelWorkspaceView {
             store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
             let (cr, cg, cb, _) = KroutonPureColorMath.extractSRGB(store.activeAccent)
             let stroke = KroutonRGBAColor(r: Double(cr), g: Double(cg), b: Double(cb), a: 0.90)
-            let shape = KroutonKrustiniModule.makeParametricVectorShape(
+            let shape = KroutonLabelGeometryEngine.makeParametricVectorShape(
                 kind: kind,
                 centerX: 0.0,
                 centerY: 0.50,
@@ -245,7 +245,7 @@ extension KroutonDiscLabelWorkspaceView {
                     guard store.labelVectorShapes.indices.contains(index) else { return }
                     store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
                     let base = store.labelVectorShapes[index]
-                    let ring = KroutonKrustiniModule.replicateShapeWithPolarSymmetry(baseShape: base, symmetryCount: 4)
+                    let ring = KroutonLabelGeometryEngine.replicateShapeWithPolarSymmetry(baseShape: base, symmetryCount: 4)
                     store.labelVectorShapes.append(contentsOf: ring.dropFirst())
                 }
                 .buttonStyle(.bordered)
@@ -271,17 +271,17 @@ extension KroutonDiscLabelWorkspaceView {
                 Button("-Scale") {
                     guard store.labelVectorShapes.indices.contains(index) else { return }
                     store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
-                    store.labelVectorShapes[index] = KroutonKrustiniModule.transformVectorShape(store.labelVectorShapes[index], scaleFactor: 0.88)
+                    store.labelVectorShapes[index] = KroutonLabelGeometryEngine.transformVectorShape(store.labelVectorShapes[index], scaleFactor: 0.88)
                 }.buttonStyle(.bordered).controlSize(.mini)
                 Button("+Scale") {
                     guard store.labelVectorShapes.indices.contains(index) else { return }
                     store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
-                    store.labelVectorShapes[index] = KroutonKrustiniModule.transformVectorShape(store.labelVectorShapes[index], scaleFactor: 1.14)
+                    store.labelVectorShapes[index] = KroutonLabelGeometryEngine.transformVectorShape(store.labelVectorShapes[index], scaleFactor: 1.14)
                 }.buttonStyle(.bordered).controlSize(.mini)
                 Button("Rot 15°") {
                     guard store.labelVectorShapes.indices.contains(index) else { return }
                     store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
-                    store.labelVectorShapes[index] = KroutonKrustiniModule.transformVectorShape(store.labelVectorShapes[index], rotateDegrees: 15.0)
+                    store.labelVectorShapes[index] = KroutonLabelGeometryEngine.transformVectorShape(store.labelVectorShapes[index], rotateDegrees: 15.0)
                 }.buttonStyle(.bordered).controlSize(.mini)
             }
         }
@@ -367,7 +367,7 @@ extension KroutonDiscLabelWorkspaceView {
     func traceActiveGPUPatternContoursWithVision() {
         let (r1, g1, b1, a1) = KroutonPureColorMath.extractSRGB(store.labelBgPrimaryColor)
         let (r2, g2, b2, a2) = KroutonPureColorMath.extractSRGB(store.labelBgSecondaryColor)
-        let seedCI = KroutonKrustiniModule.makeGPUSeedCIImage(
+        let seedCI = KroutonLabelGeometryEngine.makeGPUSeedCIImage(
             pattern: store.labelGPUSeedPattern,
             primaryColor: KroutonRGBAColor(r: Double(r1), g: Double(g1), b: Double(b1), a: Double(a1)),
             secondaryColor: KroutonRGBAColor(r: Double(r2), g: Double(g2), b: Double(b2), a: Double(a2)),
@@ -377,7 +377,7 @@ extension KroutonDiscLabelWorkspaceView {
         guard let cgImg = ciCtx.createCGImage(seedCI, from: CGRect(x: 0, y: 0, width: 256, height: 256)) else { return }
         let (cr, cg, cb, _) = KroutonPureColorMath.extractSRGB(store.activeAccent)
         let stroke = KroutonRGBAColor(r: Double(cr), g: Double(cg), b: Double(cb), a: 0.88)
-        let traced = KroutonKrustiniModule.traceImageContoursWithVision(cgImage: cgImg, strokeColor: stroke)
+        let traced = KroutonLabelGeometryEngine.traceImageContoursWithVision(cgImage: cgImg, strokeColor: stroke)
         guard !traced.isEmpty else {
             showTransientBanner("No High-Contrast Contours Found in Current Pattern")
             return
@@ -422,7 +422,7 @@ extension KroutonStateStore {
     func executeLabelDestinationExport() {
         let idx = min(max(0, selectedLabelPresetIndex), max(0, labelPresets.count - 1))
         let preset = labelWorkspaceSubStore.workingGeometryOverride ?? (labelPresets.isEmpty
-            ? KroutonSliceLabelGeometry(name: "Standard 120mm Disc", outerDiameterMM: 120, innerDiameterMM: 18, offsetXMM: 0, offsetYMM: 0)
+            ? KroutonDiscLabelGeometry(name: "Standard 120mm Disc", outerDiameterMM: 120, innerDiameterMM: 18, offsetXMM: 0, offsetYMM: 0)
             : labelPresets[idx])
         let exportPixels: CGFloat = preset.outerDiameterMM <= 85.0 ? 945.0 : 1417.0
         let exportCanvas = KroutonDiscLabelArtworkCanvas(
@@ -455,7 +455,7 @@ extension KroutonStateStore {
         let renderer = ImageRenderer(content: exportCanvas)
         renderer.scale = 1.0
         if let cgImg = renderer.cgImage {
-            let files = KroutonKrustiniModule.writeDiscLabelExportFiles(
+            let files = KroutonLabelGeometryEngine.writeDiscLabelExportFiles(
                 discCGImage: cgImg,
                 presetName: preset.name,
                 outerDiameterMM: preset.outerDiameterMM,

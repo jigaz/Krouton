@@ -21,10 +21,10 @@ public struct KroutonLabelCanvasSnapshot: Equatable, Sendable {
     public var bgAdjustments: KroutonBackgroundAdjustments
     public var textElements: [KroutonLabelTextElement]
     public var selectedTextID: UUID?
-    public var workingGeometryOverride: KroutonSliceLabelGeometry?
+    public var workingGeometryOverride: KroutonDiscLabelGeometry?
 
     @MainActor
-    public init(from store: KroutonStateStore, overrideGeometry: KroutonSliceLabelGeometry?) {
+    public init(from store: KroutonStateStore, overrideGeometry: KroutonDiscLabelGeometry?) {
         let (r1, g1, b1, a1) = KroutonPureColorMath.extractSRGB(store.labelBgPrimaryColor)
         let (r2, g2, b2, a2) = KroutonPureColorMath.extractSRGB(store.labelBgSecondaryColor)
         self.templateStyle = store.selectedLabelTemplate
@@ -80,7 +80,7 @@ public struct KroutonLabelCanvasSnapshot: Equatable, Sendable {
     }
 
     @MainActor
-    public func apply(to store: KroutonStateStore) -> KroutonSliceLabelGeometry? {
+    public func apply(to store: KroutonStateStore) -> KroutonDiscLabelGeometry? {
         store.selectedLabelTemplate = templateStyle
         store.labelBackgroundStyle = backgroundStyle
         store.labelVectorShapes = vectorShapes
@@ -108,7 +108,7 @@ public struct KroutonLabelCanvasSnapshot: Equatable, Sendable {
 @Observable
 @MainActor
 public final class KroutonLabelWorkspaceSubStore {
-    public var workingGeometryOverride: KroutonSliceLabelGeometry? = nil
+    public var workingGeometryOverride: KroutonDiscLabelGeometry? = nil
     public var transientStatusBanner: String = ""
     public var isFreehandDrawMode: Bool = false
     public var autoSnapFreehandShapes: Bool = true
@@ -198,11 +198,11 @@ public final class KroutonGaletteInspectorSubStore {
     public init() {}
 
     public func analyzeImageWithGalette(imageBytes: Data, sampleCueText: String? = nil) {
-        let classification = KroutonGaletteModule.classifyBootableImage(headerBytes: imageBytes)
+        let classification = KroutonDiscImageDepot.classifyBootableImage(headerBytes: imageBytes)
         self.bootArchitecture = classification.architectureDescription
         self.isBootableVerified = classification.isBootable
         let cueSource = sampleCueText ?? "FILE \"KROUTON_MASTER.BIN\" BINARY\n  TRACK 01 MODE1/2352\n    INDEX 01 00:00:00\n"
-        let cueSheet = KroutonGaletteModule.parseCueSheet(cueText: cueSource)
+        let cueSheet = KroutonDiscImageDepot.parseCueSheet(cueText: cueSource)
         self.parsedCueTrackCount = cueSheet.tracks.count
         self.lastClassifiedSummary = "Galette Verified: \(classification.formatName) | Bootable: \(classification.isBootable ? "YES" : "NO") (\(classification.architectureDescription)) | CUE Tracks: \(cueSheet.tracks.count)"
     }

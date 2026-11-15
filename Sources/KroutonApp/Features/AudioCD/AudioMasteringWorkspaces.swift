@@ -211,7 +211,7 @@ struct KroutonRedBookAudioWorkspaceView: View {
         let spans = project.discPlan().discs
         HStack(spacing: 12) {
             if let totalFrames = project.totalFrames {
-                Text("\(project.tracks.count) Tracks across \(spans.count) Disc\(spans.count == 1 ? "" : "s") • \(KroutonMarmaladeModule.formatFramesToMMSSFF(totalFrames)) Total")
+                Text("\(project.tracks.count) Tracks across \(spans.count) Disc\(spans.count == 1 ? "" : "s") • \(KroutonAudioEngine.formatFramesToMMSSFF(totalFrames)) Total")
                     .kroutonReadout(emphasised: spans.count > 1)
             } else {
                 Text("\(project.tracks.count) Tracks • Analysing length…")
@@ -389,7 +389,7 @@ struct KroutonRedBookAudioWorkspaceView: View {
             // 6. Analysed Red Book Length (MM:SS:FF)
             Group {
                 if let frames = track.frameCount {
-                    Text(KroutonMarmaladeModule.formatFramesToMMSSFF(frames))
+                    Text(KroutonAudioEngine.formatFramesToMMSSFF(frames))
                         .kroutonReadout(emphasised: true)
                 } else if case .failed? = state {
                     Text("Unreadable").font(.system(size: 9.5, weight: .bold)).foregroundStyle(.red)

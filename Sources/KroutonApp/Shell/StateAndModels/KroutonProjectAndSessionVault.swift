@@ -35,7 +35,7 @@ public struct KroutonProjectSourceRecord: Codable, Hashable, Sendable {
         return normalized
     }
 
-    public init(from entry: KroutonLoafFileEntry, relativeTo projectURL: URL? = nil) {
+    public init(from entry: KroutonStagedFileEntry, relativeTo projectURL: URL? = nil) {
         self.absolutePath = Self.redactHomePath(entry.url.path)
         if let baseDir = projectURL?.deletingLastPathComponent().path,
            entry.url.path.hasPrefix(baseDir + "/") {
@@ -279,7 +279,7 @@ extension KroutonStateStore {
         )
     }
 
-    public func applyProjectManifest(_ manifest: KroutonProjectManifest, projectURL: URL? = nil, driveManager: KroutonToasterBank? = nil) {
+    public func applyProjectManifest(_ manifest: KroutonProjectManifest, projectURL: URL? = nil, driveManager: KroutonOpticalDriveBank? = nil) {
         if let cat = KroutonBakeryStation(rawValue: manifest.selectedCategoryRaw) {
             selectedCategory = cat
         }
@@ -329,13 +329,13 @@ extension KroutonStateStore {
         }
 
         var missingNames: [String] = []
-        var restoredFiles: [KroutonLoafFileEntry] = []
+        var restoredFiles: [KroutonStagedFileEntry] = []
         for src in manifest.stagedSources {
             let (resolvedURL, isMissing) = src.resolveURL(relativeTo: projectURL)
             if isMissing {
                 missingNames.append(src.name)
             }
-            let entry = KroutonLoafFileEntry(
+            let entry = KroutonStagedFileEntry(
                 url: resolvedURL,
                 name: src.name,
                 isDirectory: src.isDirectory,

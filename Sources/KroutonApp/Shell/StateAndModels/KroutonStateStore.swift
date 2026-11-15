@@ -169,7 +169,7 @@ public final class KroutonStateStore: ObservableObject {
     public var labelBgAdjustments: KroutonBackgroundAdjustments { get { label.bgAdjustments } set { label.bgAdjustments = newValue } }
     public var labelShowAlignmentGrid: Bool { get { label.showAlignmentGrid } set { label.showAlignmentGrid = newValue } }
     public var labelCanvasZoom: Double { get { label.canvasZoom } set { label.canvasZoom = newValue } }
-    public var labelPresets: [KroutonSliceLabelGeometry] { get { label.presets } set { label.presets = newValue } }
+    public var labelPresets: [KroutonDiscLabelGeometry] { get { label.presets } set { label.presets = newValue } }
     public var selectedLabelPresetIndex: Int { get { label.selectedPresetIndex } set { label.selectedPresetIndex = newValue } }
     public var defaultAutoLabelStyle: String { get { label.defaultAutoLabelStyle } set { label.defaultAutoLabelStyle = newValue } }
     public var visionHoleAvoidance: Bool { get { label.visionHoleAvoidance } set { label.visionHoleAvoidance = newValue } }
@@ -232,7 +232,7 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var autoLoadNextDiscBatchMode: Bool = true
     @Published public var autoLoadCountdownSeconds: Int = 5
 
-    @Published public var stagedFiles: [KroutonLoafFileEntry] = []
+    @Published public var stagedFiles: [KroutonStagedFileEntry] = []
     @Published public var rejectedDropNotice: String? = nil
 
     lazy var audioController = AudioProjectController { [weak self] _ in
@@ -389,7 +389,7 @@ extension KroutonStateStore {
         mcnCatalog: String = "",
         tracks: [KroutonAudioCube] = []
     ) -> String {
-        audioController.project.compileCueSheet() ?? KroutonMarmaladeModule.compileRedBookCueSheet(
+        audioController.project.compileCueSheet() ?? KroutonAudioEngine.compileRedBookCueSheet(
             albumTitle: albumTitle,
             albumPerformer: albumPerformer,
             mcnCatalog: mcnCatalog,
@@ -412,10 +412,10 @@ extension KroutonStateStore {
 
     public func planLiveTartineHybridLayout(
         volumeLabel: String = "",
-        entries: [KroutonLoafFileEntry] = [],
+        entries: [KroutonStagedFileEntry] = [],
         isElToritoBootable: Bool = false
-    ) -> KroutonTartineLayoutPlan {
-        KroutonTartineModule.planHybridDataLayout(
+    ) -> KroutonHybridLayoutPlan {
+        KroutonHybridImagePlanner.planHybridDataLayout(
             volumeLabel: volumeLabel,
             entries: entries,
             isElToritoBootable: isElToritoBootable
@@ -427,7 +427,7 @@ extension KroutonStateStore {
         audioKbps: Int = 448,
         medium: KroutonVideoTargetMedium = .dvd5SingleLayer
     ) -> KroutonVideoBitrateBudget {
-        KroutonVideoOvenModule.computeBitrateBudget(
+        KroutonVideoAuthoringEngine.computeBitrateBudget(
             durationSeconds: max(60.0, durationSeconds),
             audioKbps: audioKbps,
             medium: medium

@@ -142,7 +142,7 @@ struct KroutonVideoAuthoringWorkspaceView: View {
                             ForEach(Array(store.stagedFiles.enumerated()), id: \.element.id) { idx, entry in
                                 let mux = muxFor(entry.id)
                                 let isExpanded = (expandedMuxEntryID == entry.id)
-                                let vProbe = KroutonPantryPrepEngine.probeFile(entry.url)
+                                let vProbe = KroutonMediaPrepEngine.probeFile(entry.url)
 
                                 HStack(spacing: 10) {
                                     Text(String(format: "VTS_%02d", idx + 1)).font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundStyle(store.activeAccent).frame(width: 48, alignment: .leading)
@@ -187,7 +187,7 @@ struct KroutonVideoAuthoringWorkspaceView: View {
     }
 
     @ViewBuilder
-    private func inlineStreamMuxDrawer(for entry: KroutonLoafFileEntry) -> some View {
+    private func inlineStreamMuxDrawer(for entry: KroutonStagedFileEntry) -> some View {
         let binding = Binding<KroutonStreamMuxDescriptor>(
             get: { muxFor(entry.id) },
             set: { streamMuxConfigs[entry.id] = $0 }

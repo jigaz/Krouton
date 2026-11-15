@@ -392,7 +392,7 @@ struct KroutonDataAndArchivalWorkspaceView: View {
 
 
     @ViewBuilder
-    private func stagedFileTableRow(entry: KroutonLoafFileEntry, isUniversalHybrid: Bool, isRetro83: Bool) -> some View {
+    private func stagedFileTableRow(entry: KroutonStagedFileEntry, isUniversalHybrid: Bool, isRetro83: Bool) -> some View {
                                         HStack(spacing: 12) {
                                             Image(systemName: entry.isDirectory ? "folder.fill" : "doc.fill")
                                                 .foregroundStyle(entry.isDirectory ? store.resolvedFolderIconColor : store.activeAccent)

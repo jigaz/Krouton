@@ -42,7 +42,7 @@ public struct KroutonDiscLabelWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
     @State var activeTool: KroutonStage1Tool = .background
     @State var newPresetName: String = ""
-    @State var workingGeometryOverride: KroutonSliceLabelGeometry? = nil
+    @State var workingGeometryOverride: KroutonDiscLabelGeometry? = nil
     @State var statusBanner: String = ""
 
     public init(store: KroutonStateStore) {
@@ -57,10 +57,10 @@ public struct KroutonDiscLabelWorkspaceView: View {
         KroutonLabelCanvasSnapshot(from: store, overrideGeometry: store.labelWorkspaceSubStore.workingGeometryOverride)
     }
 
-    var activePreset: KroutonSliceLabelGeometry {
+    var activePreset: KroutonDiscLabelGeometry {
         if let override = store.labelWorkspaceSubStore.workingGeometryOverride { return override }
         guard !store.labelPresets.isEmpty else {
-            return KroutonSliceLabelGeometry(
+            return KroutonDiscLabelGeometry(
                 name: "Standard 120mm Disc",
                 outerDiameterMM: 120.0,
                 innerDiameterMM: 18.0,
@@ -92,12 +92,12 @@ public struct KroutonDiscLabelWorkspaceView: View {
     }
 
 
-    var activeGeometryBinding: Binding<KroutonSliceLabelGeometry> {
+    var activeGeometryBinding: Binding<KroutonDiscLabelGeometry> {
         Binding(
             get: {
                 if let override = store.labelWorkspaceSubStore.workingGeometryOverride { return override }
                 guard !store.labelPresets.isEmpty else {
-                    return KroutonSliceLabelGeometry(
+                    return KroutonDiscLabelGeometry(
                         name: "Standard 120mm Disc",
                         outerDiameterMM: 120.0,
                         innerDiameterMM: 18.0,
@@ -171,7 +171,7 @@ public struct KroutonDiscLabelWorkspaceView: View {
                                     store.labelWorkspaceSubStore.recordUndoSnapshot(from: store, coalesceWindow: 0.45)
                                     if let idx = store.labelVectorShapes.firstIndex(where: { $0.id == shapeID }),
                                        store.labelVectorShapes.indices.contains(idx) {
-                                        store.labelVectorShapes[idx] = KroutonKrustiniModule.recenterVectorShape(
+                                        store.labelVectorShapes[idx] = KroutonLabelGeometryEngine.recenterVectorShape(
                                             store.labelVectorShapes[idx],
                                             toNormalizedX: nx,
                                             normalizedY: ny
@@ -183,7 +183,7 @@ public struct KroutonDiscLabelWorkspaceView: View {
                                     store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
                                     let (cr, cg, cb, _) = KroutonPureColorMath.extractSRGB(store.activeAccent)
                                     let stroke = KroutonRGBAColor(r: Double(cr), g: Double(cg), b: Double(cb), a: 0.95)
-                                    let recognized = KroutonKrustiniModule.recognizeAndVectorizeDrawnStroke(
+                                    let recognized = KroutonLabelGeometryEngine.recognizeAndVectorizeDrawnStroke(
                                         rawPoints: pts,
                                         autoSnapGeometry: store.labelWorkspaceSubStore.autoSnapFreehandShapes,
                                         strokeColor: stroke
@@ -216,7 +216,7 @@ public struct KroutonDiscLabelWorkspaceView: View {
 
     // MARK: - Top Header Bar (Preset Selector + Export 300-DPI PNG)
 
-    private func topHeaderBar(preset: KroutonSliceLabelGeometry) -> some View {
+    private func topHeaderBar(preset: KroutonDiscLabelGeometry) -> some View {
         HStack(spacing: 10) {
             Image(systemName: "opticaldisc")
                 .font(.title3)
@@ -388,7 +388,7 @@ public struct KroutonDiscLabelWorkspaceView: View {
 
     // MARK: - 2. Bottom Canvas Bar (Zoom, 10mm Alignment Grid, Test Print)
 
-    private func bottomCanvasStatusBar(preset: KroutonSliceLabelGeometry) -> some View {
+    private func bottomCanvasStatusBar(preset: KroutonDiscLabelGeometry) -> some View {
         HStack(spacing: 10) {
             Button { store.labelCanvasZoom = max(0.65, store.labelCanvasZoom - 0.10) } label: {
                 Image(systemName: "minus.magnifyingglass").font(.caption.bold())
@@ -533,7 +533,7 @@ public struct KroutonDiscLabelWorkspaceView: View {
                     let nameToSave = trimmed.isEmpty
                         ? "Custom Disc (\(Int(cur.outerDiameterMM))mm / \(Int(cur.innerDiameterMM))mm)"
                         : trimmed
-                    let saved = KroutonSliceLabelGeometry(
+                    let saved = KroutonDiscLabelGeometry(
                         name: nameToSave,
                         outerDiameterMM: cur.outerDiameterMM,
                         innerDiameterMM: cur.innerDiameterMM,

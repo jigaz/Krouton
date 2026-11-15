@@ -70,7 +70,7 @@ func runKroutonVerifySuites19To21(_ harness: inout KroutonTestHarness) {
         let ang = Double(i) * (2.0 * Double.pi / 24.0)
         return KroutonNormalizedPoint(nx: 0.25 + cos(ang) * 0.20, ny: -0.20 + sin(ang) * 0.20)
     }
-    let snappedCircle = KroutonKrustiniModule.recognizeAndVectorizeDrawnStroke(rawPoints: roughCirclePts, autoSnapGeometry: true)
+    let snappedCircle = KroutonLabelGeometryEngine.recognizeAndVectorizeDrawnStroke(rawPoints: roughCirclePts, autoSnapGeometry: true)
     h.check(snappedCircle.kind == .circle && snappedCircle.isClosed && snappedCircle.points.count == 36, "Freehand circular stroke must auto-snap to 36-vertex vector circle")
     embeddedLabel.vectorShapeLayers = [snappedCircle]
     embeddedLabel.backgroundStyle = .linearGradient
@@ -79,10 +79,10 @@ func runKroutonVerifySuites19To21(_ harness: inout KroutonTestHarness) {
     h.check(lblDecoded == embeddedLabel && lblDecoded.vectorShapeLayers.count == 1, "KroutonEmbeddedLabelSpec round-trip with editable vector shapes & gradient")
 
     // Verify Metal GPU Kaleidoscope Workspace, 360° Tiny Planet Globe & 8x Polar Mandala Symmetry
-    let sym8 = KroutonKrustiniModule.replicateShapeWithPolarSymmetry(baseShape: snappedCircle, symmetryCount: 8)
+    let sym8 = KroutonLabelGeometryEngine.replicateShapeWithPolarSymmetry(baseShape: snappedCircle, symmetryCount: 8)
     h.check(sym8.count == 8 && sym8[0].points.count == 36, "8x Polar Symmetry must generate 8 radially rotated vector shapes")
 
-    let kalImg = KroutonKrustiniModule.renderGPUKaleidoscopeOrTinyPlanetCGImage(
+    let kalImg = KroutonLabelGeometryEngine.renderGPUKaleidoscopeOrTinyPlanetCGImage(
         style: .gpuKaleidoscope,
         seedPattern: .neonLaserPrism,
         primaryColor: KroutonRGBAColor(r: 0.12, g: 0.25, b: 0.85),
@@ -93,7 +93,7 @@ func runKroutonVerifySuites19To21(_ harness: inout KroutonTestHarness) {
     )
     h.check(kalImg != nil && kalImg!.width == 256 && kalImg!.height == 256, "Metal GPU Kaleidoscope shader must render valid 256x256 CGImage")
 
-    let planetImg = KroutonKrustiniModule.renderGPUKaleidoscopeOrTinyPlanetCGImage(
+    let planetImg = KroutonLabelGeometryEngine.renderGPUKaleidoscopeOrTinyPlanetCGImage(
         style: .tinyPlanetGlobe,
         seedPattern: .holographicFoil,
         primaryColor: KroutonRGBAColor(r: 0.08, g: 0.65, b: 0.55),
@@ -105,19 +105,19 @@ func runKroutonVerifySuites19To21(_ harness: inout KroutonTestHarness) {
     h.check(planetImg != nil && planetImg!.width == 256 && planetImg!.height == 256, "Metal GPU 360 Tiny Planet Globe shader must render valid 256x256 CGImage")
 
     // Verify Apple Pages Shape Palette (`capsule`, `arrow`, `diamond`) & Arrange Transform Engine
-    let arrowShape = KroutonKrustiniModule.makeParametricVectorShape(kind: .arrow)
-    let scaledRotatedArrow = KroutonKrustiniModule.transformVectorShape(arrowShape, scaleFactor: 1.25, rotateDegrees: 45.0, flipHorizontal: true)
+    let arrowShape = KroutonLabelGeometryEngine.makeParametricVectorShape(kind: .arrow)
+    let scaledRotatedArrow = KroutonLabelGeometryEngine.transformVectorShape(arrowShape, scaleFactor: 1.25, rotateDegrees: 45.0, flipHorizontal: true)
     h.check(scaledRotatedArrow.points.count == arrowShape.points.count && scaledRotatedArrow.points != arrowShape.points, "Pages Arrange transform must scale, rotate & flip vector shape")
 
         // Phase A Verification: Real AVFoundation 44.1kHz PCM Audio Decoder & Multi-Extent ISO-9660 Writer
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("KroutonPhaseAVerify", isDirectory: true)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         let toneURL = tempDir.appendingPathComponent("Test440Hz.wav")
-        try KroutonMarmaladeModule.synthesizeTestToneWAV(at: toneURL, durationSeconds: 0.15)
-        let decodedPCM = try KroutonMarmaladeModule.decodeAudioFileToRedBookPCM(url: toneURL, maxSeconds: 1.0)
+        try KroutonAudioEngine.synthesizeTestToneWAV(at: toneURL, durationSeconds: 0.15)
+        let decodedPCM = try KroutonAudioEngine.decodeAudioFileToRedBookPCM(url: toneURL, maxSeconds: 1.0)
         h.check(!decodedPCM.isEmpty && decodedPCM.count % 2352 == 0, "AVAssetReader decoded PCM must be non-empty and sector-aligned to 2,352 bytes")
 
-        let masteredAudio = try KroutonMarmaladeModule.masterRedBookAudioTracksToDisk(
+        let masteredAudio = try KroutonAudioEngine.masterRedBookAudioTracksToDisk(
             sourceURLs: [toneURL],
             albumTitle: "KROUTON_PHASE_A",
             performer: "KROUTON_DSP",
@@ -360,14 +360,14 @@ func runKroutonVerifySuites19To21(_ harness: inout KroutonTestHarness) {
 
     harness.runSuite("16. RescueKit Optical Bad-Sector Rescue Copy Engine & Archival Disc Quality Grading") { h in
     // 15a. Optical Rescue 3-stage state machine (Clean -> 2x CLV Downshift -> Zero-Pad Substitute)
-    let clean = KroutonKrustiniModule.evaluateSectorRescue(lba: 1000, c2ErrorCount: 0, retryAttempt: 0)
+    let clean = KroutonLabelGeometryEngine.evaluateSectorRescue(lba: 1000, c2ErrorCount: 0, retryAttempt: 0)
     h.check(clean.action == .readCleanFullSpeed && clean.nextCursorLBA == 1001, "Clean sector advances LBA by 1 at full speed")
 
-    let retry = KroutonKrustiniModule.evaluateSectorRescue(lba: 1000, c2ErrorCount: 4, retryAttempt: 2, maxRetries: 5)
+    let retry = KroutonLabelGeometryEngine.evaluateSectorRescue(lba: 1000, c2ErrorCount: 4, retryAttempt: 2, maxRetries: 5)
     h.check(retry.action == .downshiftRetry2xCLV && retry.recommendedSpindleSpeedX == 2 && retry.nextCursorLBA == 1000,
             "Damaged sector under retry threshold downshifts to 2x CLV and re-reads same LBA")
 
-    let exhausted = KroutonKrustiniModule.evaluateSectorRescue(
+    let exhausted = KroutonLabelGeometryEngine.evaluateSectorRescue(
         lba: 1000,
         c2ErrorCount: 12,
         retryAttempt: 5,

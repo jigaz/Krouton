@@ -7,7 +7,7 @@ import OpticalCore
 
 // MARK: - Stylized Procedural Optical Chamber & CoreImage Kaleidoscope / Tiny Planet Engine
 
-extension KroutonKrustiniModule {
+extension KroutonLabelGeometryEngine {
 
     internal static let sRGBColorSpace: CGColorSpace = {
         CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()

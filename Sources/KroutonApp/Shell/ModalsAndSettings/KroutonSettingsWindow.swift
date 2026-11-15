@@ -34,7 +34,7 @@ public enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendabl
 
 public struct KroutonSettingsWindowView: View {
     @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonToasterBank
+    @ObservedObject var driveManager: KroutonOpticalDriveBank
     @ObservedObject var krumb: KrumbKitchenClient = .shared
     @State var isShowingKrumbFileExporter: Bool = false
     @State var isShowingScratchFolderImporter: Bool = false
@@ -56,7 +56,7 @@ public struct KroutonSettingsWindowView: View {
     @State var newOffsetX: Double = 0.0
     @State var newOffsetY: Double = 0.0
 
-    public init(store: KroutonStateStore, driveManager: KroutonToasterBank) {
+    public init(store: KroutonStateStore, driveManager: KroutonOpticalDriveBank) {
         self.store = store
         self.driveManager = driveManager
     }

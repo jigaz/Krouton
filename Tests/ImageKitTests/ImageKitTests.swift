@@ -16,7 +16,7 @@ public func XCTAssertLessThan<T: Comparable>(_ a: T, _ b: T) { precondition(a < 
 
 final class ImageKitTests: XCTestCase {
     func testHybridDataLBAPlanner() {
-        let entry = KroutonLoafFileEntry(
+        let entry = KroutonStagedFileEntry(
             url: URL(fileURLWithPath: "/tmp/readme.txt"),
             name: "readme.txt",
             isDirectory: false,
@@ -25,7 +25,7 @@ final class ImageKitTests: XCTestCase {
             posixPermissions: "rw-r--r--",
             modifiedDate: Date()
         )
-        let plan = KroutonTartineModule.planHybridDataLayout(
+        let plan = KroutonHybridImagePlanner.planHybridDataLayout(
             volumeLabel: "KROUTON_DATA",
             entries: [entry],
             isElToritoBootable: false

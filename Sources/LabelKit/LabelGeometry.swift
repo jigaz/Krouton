@@ -39,7 +39,7 @@ public struct KroutonPolarArcGlyphPlacement: Sendable, Equatable, Identifiable {
     public let tangentRotationRadians: Double
 }
 
-public struct KroutonKrustiniModule {
+public struct KroutonLabelGeometryEngine {
     public static let version = "0.1.0-alpha.1"
 
     /// Evaluates what the optical rescue reader should do when encountering a sector at `lba`
@@ -144,7 +144,7 @@ public struct KroutonKrustiniModule {
 
 // MARK: - Sprint 3: Unified Bad-Sector Optical Rescue Map & Post-Burn Archival Grading
 
-extension KroutonKrustiniModule {
+extension KroutonLabelGeometryEngine {
     public static func buildOpticalRescueMap(
         totalSectorsLBA: Int64 = 333_000,
         scratchSeverity: Int = 0

@@ -78,7 +78,7 @@ public enum KroutonLoafBootInspector {
     }
 }
 
-public struct KroutonLoafFileEntry: Identifiable, Hashable, Sendable {
+public struct KroutonStagedFileEntry: Identifiable, Hashable, Sendable {
     public let id: UUID
     public let url: URL
     public let name: String

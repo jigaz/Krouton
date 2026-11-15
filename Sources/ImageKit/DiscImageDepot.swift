@@ -8,7 +8,7 @@ public enum KroutonRawSectorMode: String, Codable, Sendable, Equatable {
     case audio2352       = "AUDIO"
 }
 
-public struct KroutonGaletteCueTrack: Sendable, Equatable, Identifiable {
+public struct KroutonDiscImageCueTrack: Sendable, Equatable, Identifiable {
     public var id: Int { trackNumber }
     public let trackNumber: Int
     public let mode: KroutonRawSectorMode
@@ -25,7 +25,7 @@ public struct KroutonGaletteDepotClassification: Sendable, Equatable {
     public let totalSectors2048: Int64
 }
 
-public struct KroutonGaletteModule {
+public struct KroutonDiscImageDepot {
     public static let version = "0.1.0-alpha.1"
 
     /// Canonical 12-byte CD-ROM sync header: 00 FF FF FF FF FF FF FF FF FF FF 00
@@ -44,8 +44,8 @@ public struct KroutonGaletteModule {
     }
 
     /// Parses a .cue sheet into structured track layout entries with exact LBA sector addresses
-    public static func parseCueSheet(_ cueText: String) -> [KroutonGaletteCueTrack] {
-        var tracks: [KroutonGaletteCueTrack] = []
+    public static func parseCueSheet(_ cueText: String) -> [KroutonDiscImageCueTrack] {
+        var tracks: [KroutonDiscImageCueTrack] = []
         var currentNum: Int? = nil
         var currentMode: KroutonRawSectorMode = .audio2352
         var currentTitle: String = ""
@@ -55,7 +55,7 @@ public struct KroutonGaletteModule {
         let flushCurrent = {
             if let num = currentNum {
                 tracks.append(
-                    KroutonGaletteCueTrack(
+                    KroutonDiscImageCueTrack(
                         trackNumber: num,
                         mode: currentMode,
                         title: currentTitle.isEmpty ? String(format: "Track %02d", num) : currentTitle,
@@ -176,7 +176,7 @@ public struct GaletteParsedCueSheet: Sendable, Equatable {
     public let tracks: [GaletteParsedTrack]
 }
 
-extension KroutonGaletteModule {
+extension KroutonDiscImageDepot {
     /// Classifies an ISO-9660 / El Torito / UDF header buffer for boot signatures.
     public static func classifyBootableImage(headerBytes: Data) -> GaletteBootClassification {
         let pvdOffset = 16 * 2048
@@ -227,7 +227,7 @@ public struct KroutonSoftPatchSummary: Sendable, Equatable {
     public let chdCompressionBadge: String
 }
 
-extension KroutonGaletteModule {
+extension KroutonDiscImageDepot {
     /// Computes Yellow Book / CD-ROM XA 32-bit EDC checksum over a slice (polynomial 0xD8018001)
     public static func computeCDRomEDC32<S: Sequence>(_ bytes: S) -> UInt32 where S.Element == UInt8 {
         var edc: UInt32 = 0

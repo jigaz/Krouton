@@ -17,7 +17,7 @@ public func XCTAssertLessThan<T: Comparable>(_ a: T, _ b: T) { precondition(a < 
 final class LabelKitTests: XCTestCase {
     func testPolar300DPILayoutAndGlyphArc() {
         XCTAssertEqual(KroutonDiscHubGeometry.fullFace120mmHub22mm.canvasPixelDimension(dpi: 300.0), 1417)
-        let glyphs = KroutonKrustiniModule.computePolarArcGlyphLayout(
+        let glyphs = KroutonLabelGeometryEngine.computePolarArcGlyphLayout(
             text: "KROUTON",
             centerX: 180.0,
             centerY: 180.0,

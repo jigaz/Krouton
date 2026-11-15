@@ -60,7 +60,7 @@ public struct KroutonRecipeCodecRow: Identifiable, Hashable, Sendable {
     public let isHardwareAccelerated: Bool
 }
 
-public enum KroutonPantryPrepEngine {
+public enum KroutonMediaPrepEngine {
     public static var liveHardwareCodecMatrix: [KroutonRecipeCodecRow] {
         let h264HW = VTIsHardwareDecodeSupported(kCMVideoCodecType_H264)
         let hevcHW = VTIsHardwareDecodeSupported(kCMVideoCodecType_HEVC)
@@ -271,8 +271,8 @@ public enum KroutonPantryPrepEngine {
     }
 }
 
-// MARK: - KroutonLoafFileEntry Bootability & .BIN/.CUE <-> .ISO Conversion UI Helpers
-extension KroutonLoafFileEntry {
+// MARK: - KroutonStagedFileEntry Bootability & .BIN/.CUE <-> .ISO Conversion UI Helpers
+extension KroutonStagedFileEntry {
     public var conversionTargetLabel: String {
         let ext = url.pathExtension.lowercased()
         if ext == "bin" {

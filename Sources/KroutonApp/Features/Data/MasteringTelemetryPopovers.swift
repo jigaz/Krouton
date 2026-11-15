@@ -224,7 +224,7 @@ struct KroutonVideoOvenPopoverView: View {
         )
         let mainBytes: Int64 = stagedBytes
         let extrasBytes: Int64 = 0
-        let shrinkPlan = KroutonVideoOvenModule.planDVD9ToDVD5Shrink(
+        let shrinkPlan = KroutonVideoAuthoringEngine.planDVD9ToDVD5Shrink(
             mainFeatureBytes: mainBytes,
             menusAndExtrasBytes: extrasBytes,
             preserveMenusAndExtras: store.fitToDiscPreserveMenus
@@ -293,7 +293,7 @@ struct KroutonVideoOvenPopoverView: View {
                 let sectors = max(1, entry.byteSize / 2048)
                 return KroutonDVD9CellDescriptor(cellID: idx + 1, originalStartSectorLBA: 0, originalSectorCountLBA: sectors, hadDualLayerBreakPause: totalLBA > 2_086_912 && idx == 0)
             }
-            let blueprint = KroutonVideoOvenModule.buildDVD9ToDVD5MenuShrinkBlueprint(
+            let blueprint = KroutonVideoAuthoringEngine.buildDVD9ToDVD5MenuShrinkBlueprint(
                 menuVobBytes: extrasBytes,
                 preserveMenus: store.fitToDiscPreserveMenus,
                 sourceCells: sampleCells

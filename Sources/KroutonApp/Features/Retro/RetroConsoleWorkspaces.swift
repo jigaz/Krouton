@@ -178,7 +178,7 @@ struct KroutonRetroConsoleWorkspaceView: View {
                     ScrollView {
                         LazyVStack(spacing: 0) {
                             ForEach(store.stagedFiles) { entry in
-                                let patchInfo = KroutonGaletteModule.evaluateRetroSoftPatchAndCHD(fileName: entry.name, byteSize: entry.byteSize, patchFormat: selectedSoftPatch, exportCHD: exportCompanionCHD)
+                                let patchInfo = KroutonDiscImageDepot.evaluateRetroSoftPatchAndCHD(fileName: entry.name, byteSize: entry.byteSize, patchFormat: selectedSoftPatch, exportCHD: exportCompanionCHD)
                                 let modeBadge = selectedSoftPatch == .none ? patchInfo.chdCompressionBadge : "\(patchInfo.chdCompressionBadge) • Patched \(patchInfo.patchedSectorCount) Sec (EDC \(patchInfo.edcChecksumHex) + P/Q ECC)"
                                 HStack(spacing: 12) {
                                     Image(systemName: "opticaldisc.fill").foregroundStyle(store.activeAccent).frame(width: 22)

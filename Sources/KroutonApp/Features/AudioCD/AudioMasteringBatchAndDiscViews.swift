@@ -143,8 +143,8 @@ struct AudioAdditionalDiscHeaderView: View {
 
     var body: some View {
         let dNum = disc.number
-        let usedStr = KroutonMarmaladeModule.formatFramesToMMSSFF(disc.usedFrames)
-        let capStr = KroutonMarmaladeModule.formatFramesToMMSSFF(disc.capacityFrames)
+        let usedStr = KroutonAudioEngine.formatFramesToMMSSFF(disc.usedFrames)
+        let capStr = KroutonAudioEngine.formatFramesToMMSSFF(disc.capacityFrames)
 
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {

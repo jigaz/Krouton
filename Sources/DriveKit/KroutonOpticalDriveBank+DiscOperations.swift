@@ -8,10 +8,10 @@ import IOKit.storage
 import AVFoundation
 import CryptoKit
 
-// MARK: - KroutonToasterBank Phase Scope Sweep, Eject, Erase & Disc Image Authoring
+// MARK: - KroutonOpticalDriveBank Phase Scope Sweep, Eject, Erase & Disc Image Authoring
 
 @MainActor
-extension KroutonToasterBank {
+extension KroutonOpticalDriveBank {
     public func telemetryForDrive(_ driveID: String) -> KroutonKitchenThermometer? {
         if let existing = driveTelemetry[driveID] {
             return existing
@@ -392,7 +392,7 @@ extension KroutonToasterBank {
     }
 
     public func createDiscImageFile(
-        stagedFiles: [KroutonLoafFileEntry],
+        stagedFiles: [KroutonStagedFileEntry],
         volumeTitle: String,
         outputPathString: String,
         compressImage: Bool,

@@ -9,7 +9,7 @@ import CryptoKit
 extension KrumbKitchenClient {
     public func executeSpoolAndBurn(
         endpoint: String,
-        stagedFiles: [KroutonLoafFileEntry],
+        stagedFiles: [KroutonStagedFileEntry],
         audioCubes: [KroutonAudioCube],
         volumeTitle: String,
         performer: String,

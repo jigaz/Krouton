@@ -8,7 +8,7 @@ import OpticalCore
 
 // MARK: - 1:1 Millimeter-Calibrated Vector PDF Print Sheet & 300-DPI PNG Encoder
 
-extension KroutonKrustiniModule {
+extension KroutonLabelGeometryEngine {
     /// Exact PostScript/PDF points per physical millimeter (72 points/inch / 25.4 mm/inch)
     public static let pointsPerMillimeter: CGFloat = 72.0 / 25.4
 

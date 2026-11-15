@@ -374,7 +374,7 @@ extension AudioProject {
     /// Returns nil when any track has not been analysed yet (`layout().layout == nil`).
     public func compileCueSheet(masterBinFilename: String = "KROUTON_AUDIO_MASTER.BIN") -> String? {
         guard let resolvedLayout = layout().layout else { return nil }
-        return KroutonMarmaladeModule.compileCueSheet(
+        return KroutonAudioEngine.compileCueSheet(
             project: self,
             layout: resolvedLayout,
             masterBinFilename: masterBinFilename
@@ -402,7 +402,7 @@ extension AudioProject {
     }
 }
 
-extension KroutonMarmaladeModule {
+extension KroutonAudioEngine {
     /// Compiles a Red Book .cue sheet directly from `AudioProject` and `[AudioTrackLayout]`.
     /// Every INDEX 00 and INDEX 01 comes straight from `AudioTrackLayout`, so the transition after track N
     /// sets track (N+1)'s pregap or overlap splice point.

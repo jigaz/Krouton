@@ -60,7 +60,7 @@ extension KroutonCopyAndRipWorkspaceView {
                         tempShrinkRoot = tmp
                         let vtsIn = URL(fileURLWithPath: activeDisc.mountPath).appendingPathComponent("VIDEO_TS")
                         let vtsOut = tmp.appendingPathComponent("VIDEO_TS")
-                        _ = try KroutonVideoOvenModule.executeDVD9ToDVD5ShrinkOnDisk(
+                        _ = try KroutonVideoAuthoringEngine.executeDVD9ToDVD5ShrinkOnDisk(
                             sourceVideoTSDirectory: FileManager.default.fileExists(atPath: vtsIn.path) ? vtsIn : URL(fileURLWithPath: activeDisc.mountPath),
                             outputVideoTSDirectory: vtsOut,
                             preserveMenus: preserveMenus

@@ -286,7 +286,7 @@ extension AudioProject {
                 $0.transitionToNext = src.transitionToNext
             }
         }
-        return KroutonMarmaladeModule.compileCueSheet(
+        return KroutonAudioEngine.compileCueSheet(
             project: subProject,
             layout: discLayout,
             masterBinFilename: binName

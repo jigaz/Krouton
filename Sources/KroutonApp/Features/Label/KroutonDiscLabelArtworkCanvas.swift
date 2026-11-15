@@ -10,7 +10,7 @@ public struct KroutonDiscLabelArtworkCanvas: View {
     @State private var activeDragTargetID: UUID?
     @State private var freehandDraftPoints: [KroutonNormalizedPoint] = []
     public var onCommitFreehandStroke: (([KroutonNormalizedPoint]) -> Void)? = nil
-    public let preset: KroutonSliceLabelGeometry
+    public let preset: KroutonDiscLabelGeometry
     public let template: KroutonCroutonLabelStyle
     public let title: String
     public let subtitle: String
@@ -43,7 +43,7 @@ public struct KroutonDiscLabelArtworkCanvas: View {
     public var onDragVectorShape: ((UUID, Double, Double) -> Void)?
 
     public init(
-        preset: KroutonSliceLabelGeometry,
+        preset: KroutonDiscLabelGeometry,
         template: KroutonCroutonLabelStyle,
         title: String,
         subtitle: String,
@@ -173,7 +173,7 @@ public struct KroutonDiscLabelArtworkCanvas: View {
                         if activeDragTargetID == nil {
                             let sNX = Double(val.startLocation.x - center.x) / halfD
                             let sNY = Double(val.startLocation.y - center.y) / halfD
-                            activeDragTargetID = KroutonKrustiniModule.nearestVectorShapeID(in: vectorShapes, normalizedX: sNX, normalizedY: sNY)
+                            activeDragTargetID = KroutonLabelGeometryEngine.nearestVectorShapeID(in: vectorShapes, normalizedX: sNX, normalizedY: sNY)
                         }
                         if let shapeID = activeDragTargetID {
                             let curNX = Double(val.location.x - center.x) / halfD
@@ -231,7 +231,7 @@ public struct KroutonDiscLabelArtworkCanvas: View {
         let (r1, g1, b1, _) = KroutonPureColorMath.extractSRGB(bgPrimaryColor)
         let (r2, g2, b2, _) = KroutonPureColorMath.extractSRGB(bgSecondaryColor)
         if (!bgAdjustments.isIdentity && backgroundStyle != .templateDefault) || backgroundStyle == .gpuKaleidoscope || backgroundStyle == .tinyPlanetGlobe {
-            if let cgImg = KroutonKrustiniModule.renderOpticalPlaygroundCGImage(
+            if let cgImg = KroutonLabelGeometryEngine.renderOpticalPlaygroundCGImage(
                 style: backgroundStyle,
                 seedPattern: gpuSeedPattern,
                 mirrorRig: kaleidoscopeRig,

@@ -14,7 +14,7 @@ public typealias DriveManager                = any KroutonDriveTelemetryStore
 public typealias OpticalDriveDevice          = KroutonToasterInfo
 public typealias DrivePhaseScopeTelemetry    = KroutonKitchenThermometer
 public typealias NeroTelemetrySample         = KroutonToastingSample
-public typealias StagedFileEntry             = KroutonLoafFileEntry
+public typealias StagedFileEntry             = KroutonStagedFileEntry
 public typealias RedBookAudioTrack           = KroutonAudioCube
 public typealias AudioTransitionStyle        = KroutonCubePregapStyle
 public typealias CDTextSanitizer             = KroutonSeasoningSanitizer
@@ -26,7 +26,7 @@ public typealias BurnCompletionReport        = KroutonToastReport
 public typealias HardwareAccelerationTier    = KroutonHeatTier
 public typealias MediaStreamProbeResult      = KroutonCubeProbeResult
 public typealias CodecCapabilityRow          = KroutonRecipeCodecRow
-public typealias UniversalMediaDecoderEngine = KroutonPantryPrepEngine
+public typealias UniversalMediaDecoderEngine = KroutonMediaPrepEngine
 public typealias OpticalDriveTelemetry       = KroutonKitchenThermometer
 public typealias DrivePhaseScopeSample       = KroutonToastingSample
 

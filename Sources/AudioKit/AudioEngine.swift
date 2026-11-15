@@ -19,7 +19,7 @@ public struct KroutonCDTextPack: Sendable, Equatable {
     }
 }
 
-public struct KroutonMarmaladeModule {
+public struct KroutonAudioEngine {
     public static let version = "0.1.0-alpha.1"
 
     /// Converts a Red Book frame count (75 frames/sec) into canonical MM:SS:FF timecode
