@@ -370,7 +370,8 @@ extension KroutonStateStore {
         driveManager: KroutonOpticalDriveBank,
         primarySelectedDrive: KroutonOpticalDriveInfo?,
         enableCustomFinderLayoutTab: Bool,
-        finderIconSize: Double
+        finderIconSize: Double,
+        isAutoLoadedCopy: Bool = false
     ) {
         if driveManager.isExecutingQueue {
             driveManager.abortActiveBurn()
@@ -400,7 +401,8 @@ extension KroutonStateStore {
                 driveManager: driveManager,
                 primarySelectedDrive: primarySelectedDrive,
                 enableCustomFinderLayoutTab: enableCustomFinderLayoutTab,
-                finderIconSize: finderIconSize
+                finderIconSize: finderIconSize,
+                isAutoLoadedCopy: isAutoLoadedCopy
             )
         }
     }
@@ -449,7 +451,8 @@ extension KroutonStateStore {
         driveManager: KroutonOpticalDriveBank,
         primarySelectedDrive: KroutonOpticalDriveInfo?,
         enableCustomFinderLayoutTab: Bool,
-        finderIconSize: Double
+        finderIconSize: Double,
+        isAutoLoadedCopy: Bool = false
     ) async {
         let drvName = primarySelectedDrive?.displayName ?? "Optical Drive"
         KroutonNotificationAndCompanionService.shared.dispatchEvent(
@@ -492,7 +495,8 @@ extension KroutonStateStore {
                     volumeTitle: discVolumeTitle,
                     requestedSpeedLabel: target.speedOrCodec,
                     simulationMode: target.simulationMode,
-                    verifyDisc: target.verifyAfterBurn
+                    verifyDisc: target.verifyAfterBurn,
+                    allowOverwriteOfWrittenMedia: !isAutoLoadedCopy
                 ) { report in
                     continuation.resume(returning: report.isSuccess)
                 }
@@ -516,7 +520,8 @@ extension KroutonStateStore {
                                 driveManager: driveManager,
                                 primarySelectedDrive: primarySelectedDrive,
                                 enableCustomFinderLayoutTab: enableCustomFinderLayoutTab,
-                                finderIconSize: finderIconSize
+                                finderIconSize: finderIconSize,
+                                isAutoLoadedCopy: true
                             )
                         }
                     }

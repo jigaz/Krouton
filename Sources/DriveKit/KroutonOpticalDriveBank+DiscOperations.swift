@@ -142,16 +142,35 @@ extension KroutonOpticalDriveBank {
         return selectedDrive ?? availableDrives.first
     }
 
-    func resolveDRDevice(id: String? = nil) -> DRDevice? {
-        guard let devices = DRDevice.devices() as? [DRDevice], !devices.isEmpty else { return nil }
-        return devices.first { dev in
-            guard let targetID = id, !targetID.isEmpty else { return true }
+    /// Every connected drive paired with its identifier. Two identical drives get distinct identifiers.
+    func identifiedDevices() -> [(device: DRDevice, id: String)] {
+        guard let devices = DRDevice.devices() as? [DRDevice], !devices.isEmpty else { return [] }
+        var baseIDs: [String] = []
+        var registryPaths: [String] = []
+        for dev in devices {
             let info = dev.info() as? [String: Any] ?? [:]
-            let vendor = (info[DRDeviceVendorNameKey] as? String ?? "").trimmingCharacters(in: .whitespaces)
-            let product = (info[DRDeviceProductNameKey] as? String ?? "").trimmingCharacters(in: .whitespaces)
-            let rev = (info[DRDeviceFirmwareRevisionKey] as? String ?? "").trimmingCharacters(in: .whitespaces)
-            return "\(vendor)-\(product)-\(rev)" == targetID
-        } ?? devices[0]
+            baseIDs.append(KroutonDriveIdentity.baseID(
+                vendor: (info[DRDeviceVendorNameKey] as? String ?? "").trimmingCharacters(in: .whitespaces),
+                product: (info[DRDeviceProductNameKey] as? String ?? "Optical Drive").trimmingCharacters(in: .whitespaces),
+                firmware: (info[DRDeviceFirmwareRevisionKey] as? String ?? "1.0").trimmingCharacters(in: .whitespaces)
+            ))
+            registryPaths.append(info[DRDeviceIORegistryEntryPathKey] as? String ?? "")
+        }
+        let ids = KroutonDriveIdentity.uniqueIDs(baseIDs: baseIDs, registryPaths: registryPaths)
+        return zip(devices, ids).map { (device: $0, id: $1) }
+    }
+
+    /// With no identifier: the selected drive, else the first one. With an identifier: that
+    /// drive or nil. It never substitutes a different drive for one that has gone away.
+    func resolveDRDevice(id: String? = nil) -> DRDevice? {
+        let identified = identifiedDevices()
+        guard let targetID = id, !targetID.isEmpty else {
+            if let selectedID = selectedDrive?.id, let match = identified.first(where: { $0.id == selectedID }) {
+                return match.device
+            }
+            return identified.first?.device
+        }
+        return identified.first { $0.id == targetID }?.device
     }
 
     public func ejectDrive(id: String? = nil) {

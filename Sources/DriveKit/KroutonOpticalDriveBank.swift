@@ -44,7 +44,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
     @Published public var completionReport: KroutonBurnSessionReport? = nil
 
     var pollTimer: Timer?
-    var activeDRBurn: DRBurn?
+    var activeBurnSession: KroutonActiveBurnSession?
     var activeDRErase: DRErase?
     public var burnMonitorTimer: Timer?
     public var eraseMonitorTimer: Timer?
@@ -202,8 +202,8 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
     public func refreshDrives() {
         var found: [KroutonOpticalDriveInfo] = []
 
-        if let devices = DRDevice.devices() as? [DRDevice] {
-            for dev in devices {
+        do {
+            for (dev, deviceID) in identifiedDevices() {
                 let info = dev.info() as? [String: Any] ?? [:]
                 let status = dev.status() as? [String: Any] ?? [:]
 
@@ -339,7 +339,6 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
                     }
                 }
 
-                let deviceID = "\(vendor)-\(product)-\(revision)"
                 found.append(KroutonOpticalDriveInfo(
                     id: deviceID,
                     vendor: vendor,
@@ -485,8 +484,10 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
                     return
                 }
                 self.refreshDrives()
-                let currentDrive = self.driveForID(key)
+                // Exact match only: never read another drive's tray, and never count a written disc as a blank.
+                let currentDrive = self.availableDrives.first { $0.id == key }
                 let mediaNowPresent = currentDrive?.isMediaPresent ?? false
+                let blankNowPresent = mediaNowPresent && (currentDrive?.isMediaBlank ?? false)
 
                 if !mediaNowPresent {
                     st.hasDetectedDiscEject = true
@@ -494,7 +495,12 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
                 }
 
                 if let remaining = st.countdownSecondsRemaining {
-                    if remaining <= 1 {
+                    if !blankNowPresent { // disc pulled or swapped during the countdown
+                        st.isWaitingForBlankDisc = true
+                        st.countdownSecondsRemaining = nil
+                        st.statusMessage = "Countdown Cancelled — Insert Blank Disc #\(nextCopy) to Auto-Start"
+                        self.batchStates[key] = st
+                    } else if remaining <= 1 {
                         self.batchCountdownTimers[key]?.invalidate()
                         self.batchCountdownTimers.removeValue(forKey: key)
                         st.isWaitingForBlankDisc = false
@@ -507,7 +513,10 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
                         st.statusMessage = "Blank Disc Locked — Auto-Starting Copy #\(nextCopy)/\(totalCopies) in \(remaining - 1)s..."
                         self.batchStates[key] = st
                     }
-                } else if st.hasDetectedDiscEject && mediaNowPresent {
+                } else if st.hasDetectedDiscEject && mediaNowPresent && !blankNowPresent {
+                    st.statusMessage = "Disc in \(name) Is Not Blank — Swap It for Blank Disc #\(nextCopy)"
+                    self.batchStates[key] = st
+                } else if st.hasDetectedDiscEject && blankNowPresent {
                     let startSec = max(1, countdownSeconds)
                     st.isWaitingForBlankDisc = false
                     st.countdownSecondsRemaining = startSec
