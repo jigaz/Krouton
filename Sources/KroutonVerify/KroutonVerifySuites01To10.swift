@@ -36,6 +36,24 @@ func runKroutonVerifySuites01To10(_ harness: inout KroutonTestHarness) {
         h.check(KroutonDomainIdentity.reverseDNSPrefix == "app.krouton", "Reverse-DNS prefix must be app.krouton")
         h.check(KroutonDomainIdentity.Module.allCases.count == 11, "KroutonDomainIdentity.Module must enumerate all 11 targets")
         h.check(KroutonDomainIdentity.Module.driveKit.subsystem == "app.krouton.drivekit", "DriveKit subsystem must be app.krouton.drivekit")
+
+        let culinaryTypeRegex = try! NSRegularExpression(
+            pattern: #"\b(?:struct|enum|class|actor|protocol|typealias)\s+[A-Za-z0-9_]*(?:Toaster|Toast|Loaf|AudioCube|Cube|Recipe|Bakery|Pantry|Crustini|Krustini|Crust|Slice|Dough|Oven|Marmalade|Tartine|Galette|Krumb|Crumb|Baguette|Brioche)[A-Za-z0-9_]*"#,
+            options: [.caseInsensitive]
+        )
+        var culinaryTypeViolations: [String] = []
+        for fileURL in allSwiftFiles {
+            let content = (try? String(contentsOf: fileURL, encoding: .utf8)) ?? ""
+            for line in content.components(separatedBy: .newlines) {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if trimmed.hasPrefix("//") { continue }
+                let range = NSRange(trimmed.startIndex..<trimmed.endIndex, in: trimmed)
+                if culinaryTypeRegex.firstMatch(in: trimmed, options: [], range: range) != nil {
+                    culinaryTypeViolations.append("\(fileURL.lastPathComponent): \(trimmed)")
+                }
+            }
+        }
+        h.check(culinaryTypeViolations.isEmpty, "Zero culinary type declarations allowed across Sources/: \(culinaryTypeViolations.joined(separator: ", "))")
         let expectedModules = [
             "OpticalCore", "DriveKit", "BurnKit", "AudioKit", "ImageKit",
             "RescueKit", "LabelKit", "VideoKit", "NetworkSpool", "Persistence", "KroutonApp"
