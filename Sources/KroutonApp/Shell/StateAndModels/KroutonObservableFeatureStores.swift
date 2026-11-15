@@ -189,7 +189,7 @@ public final class KroutonLabelWorkspaceSubStore {
 /// Fine-grained `@Observable` sub-store for `Galette` disc image inspection and CUE sheet parsing.
 @Observable
 @MainActor
-public final class KroutonGaletteInspectorSubStore {
+public final class KroutonDiscImageInspectorSubStore {
     public var lastClassifiedSummary: String = ""
     public var parsedCueTrackCount: Int = 0
     public var bootArchitecture: String = ""
@@ -197,7 +197,7 @@ public final class KroutonGaletteInspectorSubStore {
 
     public init() {}
 
-    public func analyzeImageWithGalette(imageBytes: Data, sampleCueText: String? = nil) {
+    public func analyzeImageWithDiscDepot(imageBytes: Data, sampleCueText: String? = nil) {
         let classification = KroutonDiscImageDepot.classifyBootableImage(headerBytes: imageBytes)
         self.bootArchitecture = classification.architectureDescription
         self.isBootableVerified = classification.isBootable

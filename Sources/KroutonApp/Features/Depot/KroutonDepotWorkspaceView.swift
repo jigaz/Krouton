@@ -10,7 +10,7 @@ struct KroutonDepotWorkspaceView: View {
 
     @State private var depotSearchQuery: String = ""
 
-    var filteredDepotItems: [KroutonPantryCatalogItem] {
+    var filteredDepotItems: [KroutonDepotCatalogItem] {
         let channelFilter: String? = {
             switch store.selectedTaskID {
             case "depot-rescue": return "Rescue & Diagnostics"
@@ -37,7 +37,7 @@ struct KroutonDepotWorkspaceView: View {
         }
     }
 
-    var depotHeroSelectedItem: KroutonPantryCatalogItem {
+    var depotHeroSelectedItem: KroutonDepotCatalogItem {
         let items = filteredDepotItems
         if let selID = store.selectedDepotHeroItemID,
            let match = items.first(where: { $0.id == selID }) {

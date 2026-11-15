@@ -219,7 +219,7 @@ extension KroutonStateStore {
         stageDepotItemForBurning(item, jumpToInspector: jumpToInspector)
     }
 
-    public func stageDepotItemForBurning(_ item: KroutonPantryCatalogItem, jumpToInspector: Bool = false) {
+    public func stageDepotItemForBurning(_ item: KroutonDepotCatalogItem, jumpToInspector: Bool = false) {
         let cacheDir = URL(fileURLWithPath: "/tmp/KroutonDepotCache", isDirectory: true)
         let safeFilename = item.id + "-" + item.version.replacingOccurrences(of: " ", with: "_") + ".iso"
         let isoURL = cacheDir.appendingPathComponent(safeFilename)
@@ -265,7 +265,7 @@ extension KroutonStateStore {
                         let year = (doc["year"] as? String) ?? "Archive.org"
                         let descRaw = (doc["description"] as? String) ?? "Verified Internet Archive Optical Software Item (archive.org/details/\(ident))"
                         let cleanDesc = descRaw.components(separatedBy: .newlines).joined(separator: " ").prefix(135)
-                        let newItem = KroutonPantryCatalogItem(
+                        let newItem = KroutonDepotCatalogItem(
                             id: String(itemID),
                             title: title,
                             subtitle: String(cleanDesc),

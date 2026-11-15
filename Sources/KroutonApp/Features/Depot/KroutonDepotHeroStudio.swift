@@ -1,8 +1,8 @@
 import SwiftUI
 import OpticalCore
 
-struct KroutonRecipeBlueprintView: View {
-    let item: KroutonPantryCatalogItem
+struct KroutonWorkflowBlueprintView: View {
+    let item: KroutonDepotCatalogItem
     let accent: Color
     let isNarrow: Bool
     var useHarmony: Bool = true

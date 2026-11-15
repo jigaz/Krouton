@@ -35,7 +35,7 @@ struct KroutonFloatingThermometerView: View {
 
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
-                KroutonSliceArtworkView(
+                KroutonDiscArtworkView(
                     mediaType: drive?.mediaType ?? "CD-RW",
                     isMediaPresent: drive?.isMediaPresent ?? true,
                     isErasable: drive?.isMediaErasable ?? true,

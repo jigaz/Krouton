@@ -20,7 +20,7 @@ struct KroutonRedBookAudioWorkspaceView: View {
     @Binding var isDropTargeted: Bool
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 
-    @State private var showMarmaladeCuePopover: Bool = false
+    @State private var showAudioCuePopover: Bool = false
     @State private var expandedTransitionTrackID: UUID? = nil
     @State private var selectedTrackIDs: Set<UUID> = []
     @State private var draggedTrackID: UUID? = nil
@@ -534,14 +534,14 @@ struct KroutonRedBookAudioWorkspaceView: View {
                     }.buttonStyle(.bordered).controlSize(.small)
 
                     Button {
-                        showMarmaladeCuePopover.toggle()
+                        showAudioCuePopover.toggle()
                     } label: {
                         Label(".CUE (\(packs) Packs)", systemImage: "doc.text.magnifyingglass")
                             .font(.system(size: 10, weight: .bold, design: .monospaced))
                     }
                     .buttonStyle(.bordered).controlSize(.small)
-                    .popover(isPresented: $showMarmaladeCuePopover, arrowEdge: .bottom) {
-                        KroutonMarmaladeCuePopoverView(store: store)
+                    .popover(isPresented: $showAudioCuePopover, arrowEdge: .bottom) {
+                        KroutonAudioCuePopoverView(store: store)
                     }
                 }
 

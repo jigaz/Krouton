@@ -72,21 +72,21 @@ public enum KroutonRoastAppearanceMode: String, CaseIterable, Identifiable, Send
     }
 }
 
-public enum KroutonBurntToastSeverity: String, Sendable {
+public enum KroutonBurnFailureSeverity: String, Sendable {
     case criticalOverburn
     case warning4GBNoUDF
     case warningFilenameLength
     case warningConsoleMedia
 }
 
-public struct KroutonPantryCalibrationCheck: Identifiable, Hashable, Sendable {
+public struct KroutonDriveCalibrationCheck: Identifiable, Hashable, Sendable {
     public let id: String
-    public let severity: KroutonBurntToastSeverity
+    public let severity: KroutonBurnFailureSeverity
     public let title: String
     public let detail: String
     public let actionButtonTitle: String?
 
-    public init(id: String, severity: KroutonBurntToastSeverity, title: String, detail: String, actionButtonTitle: String? = nil) {
+    public init(id: String, severity: KroutonBurnFailureSeverity, title: String, detail: String, actionButtonTitle: String? = nil) {
         self.id = id
         self.severity = severity
         self.title = title
@@ -103,7 +103,7 @@ public enum KroutonGarnishStyleMode: String, CaseIterable, Identifiable, Sendabl
     public var id: String { rawValue }
 }
 
-public enum KroutonCubeIconSizeMode: String, CaseIterable, Identifiable, Sendable {
+public enum KroutonTrackIconSizeMode: String, CaseIterable, Identifiable, Sendable {
     case small = "Small"
     case medium = "Medium"
     case large = "Large"
@@ -134,7 +134,7 @@ public enum KroutonCubeIconSizeMode: String, CaseIterable, Identifiable, Sendabl
     }
 }
 
-public enum KroutonPantryFolderColorMode: String, CaseIterable, Identifiable, Sendable {
+public enum KroutonStageFolderColorMode: String, CaseIterable, Identifiable, Sendable {
     case automatic = "Automatic"
     case classicAqua = "Classic Aqua Blue"
     case accentTinted = "Theme Accent"
@@ -205,7 +205,7 @@ public enum KroutonLanguage: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-public enum KroutonBakeryStation: String, CaseIterable, Identifiable, Sendable {
+public enum KroutonMasteringStation: String, CaseIterable, Identifiable, Sendable {
     case burn = "BURN"
     case depot = "DISC IMAGE DEPOT"
     case copy = "COPY"
@@ -213,7 +213,7 @@ public enum KroutonBakeryStation: String, CaseIterable, Identifiable, Sendable {
     public var id: String { rawValue }
 }
 
-public struct KroutonPantryCatalogItem: Identifiable, Hashable, Sendable {
+public struct KroutonDepotCatalogItem: Identifiable, Hashable, Sendable {
     public let id: String
     public var title: String
     public var subtitle: String
@@ -227,7 +227,7 @@ public struct KroutonPantryCatalogItem: Identifiable, Hashable, Sendable {
     public var isDownloaded: Bool
 }
 
-public struct KroutonPantryFeedSubscription: Identifiable, Hashable, Sendable {
+public struct KroutonDepotFeedSubscription: Identifiable, Hashable, Sendable {
     public let id: String
     public var name: String
     public var description: String
@@ -255,7 +255,7 @@ public struct KroutonKitchenEventRow: Identifiable, Hashable, Sendable {
     public var soundEnabled: Bool
 }
 
-public enum KroutonToasterOutputKind: String, CaseIterable, Identifiable, Codable, Sendable {
+public enum KroutonBurnDestinationKind: String, CaseIterable, Identifiable, Codable, Sendable {
     case physicalBurner = "Physical Burner"
     case networkBurner = "Network Server Burner"
     case discImage = "Disc Image File"
@@ -292,7 +292,7 @@ public enum KroutonToasterOutputKind: String, CaseIterable, Identifiable, Codabl
 
 public struct KroutonBakeBatchItem: Identifiable, Hashable, Codable, Sendable {
     public var id: UUID = UUID()
-    public var kind: KroutonToasterOutputKind
+    public var kind: KroutonBurnDestinationKind
     public var targetDriveID: String = ""
     public var hardwareOrPath: String
     public var speedOrCodec: String

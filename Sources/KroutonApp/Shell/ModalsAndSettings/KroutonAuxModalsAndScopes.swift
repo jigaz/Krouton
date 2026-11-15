@@ -5,7 +5,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 import Foundation
 
-struct KroutonSliceArtworkView: View {
+struct KroutonDiscArtworkView: View {
     let mediaType: String
     let isMediaPresent: Bool
     let isErasable: Bool
@@ -36,7 +36,7 @@ struct KroutonSliceArtworkView: View {
     }
 }
 
-struct KroutonSliceMediaPopover: View {
+struct KroutonDiscMediaPopover: View {
     let drive: KroutonOpticalDriveInfo
     let accent: Color
 
@@ -49,7 +49,7 @@ struct KroutonSliceMediaPopover: View {
 
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 14) {
-                KroutonSliceArtworkView(mediaType: drive.mediaType, isMediaPresent: drive.isMediaPresent, isErasable: drive.isMediaErasable, isBlank: drive.isMediaBlank)
+                KroutonDiscArtworkView(mediaType: drive.mediaType, isMediaPresent: drive.isMediaPresent, isErasable: drive.isMediaErasable, isBlank: drive.isMediaBlank)
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(drive.statusBadgeText).font(.system(size: 15, weight: .bold, design: .rounded))

@@ -10,8 +10,8 @@ public struct AppearancePreferences: Equatable, Sendable {
     public var appearanceMode: KroutonRoastAppearanceMode = .auto
     public var selectedAccentIndex: Int = 8
     public var iconWidgetStyle: KroutonGarnishStyleMode = .defaultStyle
-    public var folderColorMode: KroutonPantryFolderColorMode = .automatic
-    public var sidebarIconSize: KroutonCubeIconSizeMode = .medium
+    public var folderColorMode: KroutonStageFolderColorMode = .automatic
+    public var sidebarIconSize: KroutonTrackIconSizeMode = .medium
     public var appLanguage: KroutonLanguage = .english
     public var voiceOverSpokenTelemetry: Bool = true
     public var a11yIncreaseContrast: Bool = false
@@ -57,11 +57,11 @@ public struct AppearancePreferences: Equatable, Sendable {
             iconWidgetStyle = style
         }
         if let rawFolder = defaults.string(forKey: "krouton.pref.folderColorMode"),
-           let fMode = KroutonPantryFolderColorMode(rawValue: rawFolder) {
+           let fMode = KroutonStageFolderColorMode(rawValue: rawFolder) {
             folderColorMode = fMode
         }
         if let rawSize = defaults.string(forKey: "krouton.pref.sidebarIconSize"),
-           let sSize = KroutonCubeIconSizeMode(rawValue: rawSize) {
+           let sSize = KroutonTrackIconSizeMode(rawValue: rawSize) {
             sidebarIconSize = sSize
         }
         if let rawLang = defaults.string(forKey: "krouton.pref.appLanguage"),

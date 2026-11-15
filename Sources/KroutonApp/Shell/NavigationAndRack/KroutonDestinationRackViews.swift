@@ -52,7 +52,7 @@ struct KroutonDestinationCardView: View {
                 physicalBurnerDriveAndSpeedSection
                 physicalBurnerBatchAndOptionsSection
             } else if item.kind == .networkBurner {
-                KrumbNetworkToasterCardSectionView(
+                NetworkSpoolDriveCardSectionView(
                     store: store,
                     driveManager: driveManager,
                     item: item,

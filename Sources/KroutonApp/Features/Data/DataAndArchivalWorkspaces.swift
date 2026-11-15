@@ -22,7 +22,7 @@ struct KroutonDataAndArchivalWorkspaceView: View {
     @Binding var isDropTargeted: Bool
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 
-    @State private var showTartineLBAMapPopover: Bool = false
+    @State private var showHybridLBAMapPopover: Bool = false
     @State private var activeDataWorkspaceTab: Int = 0
     @State private var finderBgColor: Color = Color(red: 0.13, green: 0.17, blue: 0.24)
     @State private var mdiscPar2RedundancyPct: Double = 15.0
@@ -155,7 +155,7 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                         Spacer(minLength: 4)
 
                         Button {
-                            showTartineLBAMapPopover.toggle()
+                            showHybridLBAMapPopover.toggle()
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "memorychip.fill")
@@ -169,8 +169,8 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                             .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
-                        .popover(isPresented: $showTartineLBAMapPopover, arrowEdge: .bottom) {
-                            KroutonTartineLBAMapPopoverView(store: store, activeSpec: activeSpec)
+                        .popover(isPresented: $showHybridLBAMapPopover, arrowEdge: .bottom) {
+                            KroutonHybridLBAMapPopoverView(store: store, activeSpec: activeSpec)
                         }
 
                         if !isRetro83 {
@@ -207,7 +207,7 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                                 .textFieldStyle(.roundedBorder)
                                 .accessibilityLabel(KroutonL10n.tr("Disc Volume Title"))
                             Button {
-                                showTartineLBAMapPopover.toggle()
+                                showHybridLBAMapPopover.toggle()
                             } label: {
                                 HStack(spacing: 4) {
                                     Image(systemName: "memorychip.fill")

@@ -16,12 +16,12 @@ import Combine
 
 // MARK: - Standalone Mastering Telemetry Popover Views
 
-struct KroutonTartineLBAMapPopoverView: View {
+struct KroutonHybridLBAMapPopoverView: View {
     @ObservedObject var store: KroutonStateStore
     let activeSpec: KroutonOpticalWorkflowSpec
 
     var body: some View {
-        let plan = store.planLiveTartineHybridLayout(
+        let plan = store.planLiveHybridDataLayout(
             volumeLabel: store.discVolumeTitle,
             entries: store.stagedFiles,
             isElToritoBootable: (activeSpec.id == "data-hybrid" || activeSpec.id.contains("boot") || activeSpec.technicalName.localizedCaseInsensitiveContains("El Torito"))
@@ -103,7 +103,7 @@ struct KroutonTartineLBAMapPopoverView: View {
     }
 }
 
-struct KroutonMarmaladeCuePopoverView: View {
+struct KroutonAudioCuePopoverView: View {
     @ObservedObject var store: KroutonStateStore
 
     private var project: AudioProject { store.audioController.project }
@@ -196,7 +196,7 @@ struct KroutonMarmaladeCuePopoverView: View {
     }
 }
 
-struct KroutonVideoOvenPopoverView: View {
+struct KroutonVideoBitratePopoverView: View {
     @ObservedObject var store: KroutonStateStore
     let spec: KroutonOpticalWorkflowSpec
     let isBluRay: Bool
@@ -217,7 +217,7 @@ struct KroutonVideoOvenPopoverView: View {
         let estimatedDurationSec: Double = stagedBytes > 0
             ? max(300.0, min(14_400.0, Double(stagedBytes) / 750_000.0))
             : 6_600.0
-        let budget = store.computeLiveVideoOvenBitrateBudget(
+        let budget = store.computeLiveVideoBitrateBudget(
             durationSeconds: estimatedDurationSec,
             audioKbps: isBluRay ? 1_536 : 448,
             medium: medium

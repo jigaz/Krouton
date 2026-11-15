@@ -373,7 +373,7 @@ struct KroutonDualHarmonySwitch: View {
 
 
 // MARK: - Pure SwiftUI FileDocument for Non-Blocking Krumb Artifact Exports
-struct KrumbPlainTextFileDocument: FileDocument {
+struct SpoolPlainTextFileDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.plainText, .log] }
     var text: String
 

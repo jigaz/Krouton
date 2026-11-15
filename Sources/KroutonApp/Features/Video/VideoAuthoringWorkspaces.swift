@@ -15,7 +15,7 @@ struct KroutonVideoAuthoringWorkspaceView: View {
     @Binding var isDropTargeted: Bool
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 
-    @State private var showVideoOvenPopover: Bool = false
+    @State private var showVideoBitratePopover: Bool = false
     @State private var videoMenuTemplate: String = "Dark Workspace Chapter Grid"
     @State private var videoSystemStandard: String = "NTSC 16:9 (29.97 / 23.976p)"
     @State private var videoDualLayerBreakSector: String = "Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)"
@@ -57,13 +57,13 @@ struct KroutonVideoAuthoringWorkspaceView: View {
                         Text(isBluRay ? "BDMV + CERTIFICATE Auto-Built" : "VIDEO_TS + Empty AUDIO_TS Enforced")
                             .font(.system(size: 9, weight: .bold, design: .monospaced)).foregroundStyle(.green).lineLimit(1)
                         Button {
-                            showVideoOvenPopover.toggle()
+                            showVideoBitratePopover.toggle()
                         } label: {
                             Label("Bitrate & Fit", systemImage: "gauge.with.dots.needle.67percent").font(.system(size: 10, weight: .bold, design: .monospaced))
                         }
                         .buttonStyle(.bordered).controlSize(.small)
-                        .popover(isPresented: $showVideoOvenPopover, arrowEdge: .bottom) {
-                            KroutonVideoOvenPopoverView(store: store, spec: spec, isBluRay: isBluRay, isDualLayer: isDualLayer, fitToDiscDVD9Shrink: fitToDiscDVD9Shrink, preserveMenusAndExtras: preserveMenusAndExtras)
+                        .popover(isPresented: $showVideoBitratePopover, arrowEdge: .bottom) {
+                            KroutonVideoBitratePopoverView(store: store, spec: spec, isBluRay: isBluRay, isDualLayer: isDualLayer, fitToDiscDVD9Shrink: fitToDiscDVD9Shrink, preserveMenusAndExtras: preserveMenusAndExtras)
                         }
                     }
 

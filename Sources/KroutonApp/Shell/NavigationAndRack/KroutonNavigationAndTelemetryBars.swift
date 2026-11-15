@@ -13,7 +13,7 @@ struct KroutonLeftFormatChooserColumnView: View {
     @ObservedObject var driveManager: KroutonOpticalDriveBank
     let isLeftSidebarUltraSkinny: Bool
 
-    func taskRowButton(id: String, category: KroutonBakeryStation, title: String,
+    func taskRowButton(id: String, category: KroutonMasteringStation, title: String,
         shortTitle: String? = nil, colloquial: String, badge: String = "", sfSymbol: String) -> some View {
         let isSelected = (store.selectedTaskID == id)
         return Button {

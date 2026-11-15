@@ -36,10 +36,10 @@ public struct KroutonSettingsWindowView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var driveManager: KroutonOpticalDriveBank
     @ObservedObject var krumb: KrumbKitchenClient = .shared
-    @State var isShowingKrumbFileExporter: Bool = false
+    @State var isShowingSpoolFileExporter: Bool = false
     @State var isShowingScratchFolderImporter: Bool = false
-    @State var krumbExportDocument: KrumbPlainTextFileDocument = KrumbPlainTextFileDocument(text: "")
-    @State var krumbExportDefaultFilename: String = "Krumb_Export.log"
+    @State var spoolExportDocument: SpoolPlainTextFileDocument = SpoolPlainTextFileDocument(text: "")
+    @State var spoolExportDefaultFilename: String = "Krumb_Export.log"
     // Bound to store.selectedSettingsPane for direct Format Chooser deep-linking
     @State var searchText: String = ""
 
@@ -324,7 +324,7 @@ public struct KroutonSettingsWindowView: View {
                         Image(systemName: "folder.fill")
                             .foregroundStyle(store.resolvedFolderIconColor)
                         Picker("", selection: $store.folderColorMode) {
-                            ForEach(KroutonPantryFolderColorMode.allCases) { fMode in
+                            ForEach(KroutonStageFolderColorMode.allCases) { fMode in
                                 Text(KroutonL10n.tr(fMode.rawValue)).tag(fMode)
                             }
                         }
@@ -347,7 +347,7 @@ public struct KroutonSettingsWindowView: View {
                         .fontWeight(.medium)
                     Spacer()
                     Picker("", selection: $store.sidebarIconSize) {
-                        ForEach(KroutonCubeIconSizeMode.allCases) { sz in
+                        ForEach(KroutonTrackIconSizeMode.allCases) { sz in
                             Text(KroutonL10n.tr(sz.rawValue)).tag(sz)
                         }
                     }

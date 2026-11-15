@@ -38,7 +38,7 @@ extension KroutonStateStore {
         }
     }
     /// Strict task-aware allowed destination types (never offer Video Transcode on Audio CD or Burners on Rip tasks!)
-    public var allowedDestinationsForCurrentCategory: [KroutonToasterOutputKind] {
+    public var allowedDestinationsForCurrentCategory: [KroutonBurnDestinationKind] {
         switch selectedCategory {
         case .depot:
             return [.physicalBurner, .networkBurner]
@@ -128,7 +128,7 @@ extension KroutonStateStore {
             }
         }
     }
-    func cardActionTitle(for kind: KroutonToasterOutputKind) -> String {
+    func cardActionTitle(for kind: KroutonBurnDestinationKind) -> String {
         switch kind {
         case .physicalBurner, .networkBurner: return "Burn Disc"
         case .discImage: return "Save Image"
@@ -138,7 +138,7 @@ extension KroutonStateStore {
         case .pdfVector: return "Save PDF"
         }
     }
-    func cardActionSymbol(for kind: KroutonToasterOutputKind) -> String {
+    func cardActionSymbol(for kind: KroutonBurnDestinationKind) -> String {
         switch kind {
         case .physicalBurner, .networkBurner: return "flame.fill"
         case .discImage: return "internaldrive.fill"
@@ -203,7 +203,7 @@ extension KroutonStateStore {
         }
     }
     /// Maps any (category, taskID) pair to its logical Destination Domain bucket
-    public static func destinationDomainKey(category: KroutonBakeryStation, taskID: String) -> String {
+    public static func destinationDomainKey(category: KroutonMasteringStation, taskID: String) -> String {
         switch category {
         case .burn, .depot:
             return "domain.opticalBurn"
@@ -233,7 +233,7 @@ extension KroutonStateStore {
     /// 2. If switching within the same domain (e.g. Audio CD -> DVD-Video -> Hybrid Data), keeps compatible
     ///    USB Burner & LAN Server cards and updates any .discImage extension (.cue <-> .iso <-> .dmg)!
     /// 3. If switching to a different domain (e.g. Label -> Audio CD -> Label), restores the saved queue for that domain!
-    public func syncDefaultDestinationForCategory(_ category: KroutonBakeryStation, taskID: String, driveManager: KroutonOpticalDriveBank) {
+    public func syncDefaultDestinationForCategory(_ category: KroutonMasteringStation, taskID: String, driveManager: KroutonOpticalDriveBank) {
         let targetDomain = Self.destinationDomainKey(category: category, taskID: taskID)
         let allowed = allowedDestinationsForCurrentCategory
         // 1. Check if we already have a saved queue for the target domain (or compatible cards in the current queue)

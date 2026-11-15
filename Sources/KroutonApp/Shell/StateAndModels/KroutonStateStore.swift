@@ -15,7 +15,7 @@ public final class KroutonStateStore: ObservableObject {
 
     // MARK: - Modular Feature Sub-Stores & Domain Models
     public let labelWorkspaceSubStore = KroutonLabelWorkspaceSubStore()
-    public let galetteInspectorSubStore = KroutonGaletteInspectorSubStore()
+    public let discImageInspectorSubStore = KroutonDiscImageInspectorSubStore()
     public let burnQueueSubStore = KroutonBurnQueueSubStore()
     public let depotCatalogSubStore = KroutonDepotCatalogSubStore()
 
@@ -69,7 +69,7 @@ public final class KroutonStateStore: ObservableObject {
             }
         }
     }
-    public var folderColorMode: KroutonPantryFolderColorMode {
+    public var folderColorMode: KroutonStageFolderColorMode {
         get { appearance.folderColorMode }
         set {
             appearance.folderColorMode = newValue
@@ -78,7 +78,7 @@ public final class KroutonStateStore: ObservableObject {
             }
         }
     }
-    public var sidebarIconSize: KroutonCubeIconSizeMode {
+    public var sidebarIconSize: KroutonTrackIconSizeMode {
         get { appearance.sidebarIconSize }
         set {
             appearance.sidebarIconSize = newValue
@@ -177,8 +177,8 @@ public final class KroutonStateStore: ObservableObject {
     public var customFanartKey: String { get { label.customFanartKey } set { label.customFanartKey = newValue } }
 
     // MARK: - Depot Catalogue Forwarding
-    public var depotChannels: [KroutonPantryFeedSubscription] { get { depot.channels } set { depot.channels = newValue } }
-    public var depotItems: [KroutonPantryCatalogItem] { get { depot.items } set { depot.items = newValue } }
+    public var depotChannels: [KroutonDepotFeedSubscription] { get { depot.channels } set { depot.channels = newValue } }
+    public var depotItems: [KroutonDepotCatalogItem] { get { depot.items } set { depot.items = newValue } }
     public var customDepotFeedURL: String { get { depot.customFeedURL } set { depot.customFeedURL = newValue } }
     public var autoVerifyDepotSHA256: Bool { get { depot.autoVerifySHA256 } set { depot.autoVerifySHA256 = newValue } }
     public var enableVMTestBootInDepot: Bool { get { depot.enableVMTestBoot } set { depot.enableVMTestBoot = newValue } }
@@ -215,7 +215,7 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var scratchDiskPath: String = "~/Library/Caches/app.krouton.staging"
     @Published public var autoPurgeScratch: Bool = true
     @Published public var selectedSettingsPane: KroutonSettingsCategory = .general
-    @Published public var selectedCategory: KroutonBakeryStation = .burn {
+    @Published public var selectedCategory: KroutonMasteringStation = .burn {
         didSet {
             guard !isHydratingPreferences, rememberLastTaskOnLaunch else { return }
             UserDefaults.standard.set(selectedCategory.rawValue, forKey: "krouton.pref.lastCategory")
@@ -278,7 +278,7 @@ public final class KroutonStateStore: ObservableObject {
     ]
 
     // MARK: - Single Consolidated Colour-Scheme & Accent Resolution
-    public func multicolorPresetID(forTaskID taskID: String, category: KroutonBakeryStation) -> Int {
+    public func multicolorPresetID(forTaskID taskID: String, category: KroutonMasteringStation) -> Int {
         switch category {
         case .depot: return 4
         case .copy:  return 1
@@ -308,7 +308,7 @@ public final class KroutonStateStore: ObservableObject {
             ?? KroutonSeasoningColorPreset.allPresets[0]
     }
 
-    public func effectiveColorForTask(id taskID: String, category: KroutonBakeryStation) -> Color {
+    public func effectiveColorForTask(id taskID: String, category: KroutonMasteringStation) -> Color {
         if selectedAccentIndex == -1 {
             let pid = multicolorPresetID(forTaskID: taskID, category: category)
             let p = KroutonSeasoningColorPreset.allPresets.first(where: { $0.id == pid }) ?? resolvedAccentPreset
@@ -345,7 +345,7 @@ public final class KroutonStateStore: ObservableObject {
         }
         if appearance.rememberLastTaskOnLaunch {
             if let rawCat = defaults.string(forKey: "krouton.pref.lastCategory"),
-               let cat = KroutonBakeryStation(rawValue: rawCat) {
+               let cat = KroutonMasteringStation(rawValue: rawCat) {
                 selectedCategory = cat
             }
             if let lastTask = defaults.string(forKey: "krouton.pref.lastTaskID"), !lastTask.isEmpty {
@@ -383,7 +383,7 @@ public enum KroutonL10n {
 
 // MARK: - Live Backend Engine Bridge Across Culinary Modules
 extension KroutonStateStore {
-    public func compileLiveMarmaladeCueSheet(
+    public func compileLiveAudioCueSheet(
         albumTitle: String = "",
         albumPerformer: String = "",
         mcnCatalog: String = "",
@@ -397,7 +397,7 @@ extension KroutonStateStore {
         )
     }
 
-    public func computeLiveMarmaladeCDTextPackCount(
+    public func computeLiveCDTextPackCount(
         albumTitle: String = "",
         albumPerformer: String = "",
         tracks: [KroutonRedBookTrack] = []
@@ -410,7 +410,7 @@ extension KroutonStateStore {
         return (try? CDTextBlockCompiler.compile(CDTextInput(album: albumFields, tracks: trackFields)).packs.count) ?? 0
     }
 
-    public func planLiveTartineHybridLayout(
+    public func planLiveHybridDataLayout(
         volumeLabel: String = "",
         entries: [KroutonStagedFileEntry] = [],
         isElToritoBootable: Bool = false
@@ -422,7 +422,7 @@ extension KroutonStateStore {
         )
     }
 
-    public func computeLiveVideoOvenBitrateBudget(
+    public func computeLiveVideoBitrateBudget(
         durationSeconds: Double = 5400.0,
         audioKbps: Int = 448,
         medium: KroutonVideoTargetMedium = .dvd5SingleLayer

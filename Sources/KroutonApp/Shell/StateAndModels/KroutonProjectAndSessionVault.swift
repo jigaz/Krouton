@@ -107,7 +107,7 @@ public struct KroutonSavedDestinationRecord: Codable, Hashable, Sendable {
     }
 
     public func toBatchItem() -> KroutonBakeBatchItem {
-        let resolvedKind = KroutonToasterOutputKind(rawValue: kindRawValue) ?? .physicalBurner
+        let resolvedKind = KroutonBurnDestinationKind(rawValue: kindRawValue) ?? .physicalBurner
         return KroutonBakeBatchItem(
             kind: resolvedKind,
             targetDriveID: targetDriveID,
@@ -280,7 +280,7 @@ extension KroutonStateStore {
     }
 
     public func applyProjectManifest(_ manifest: KroutonProjectManifest, projectURL: URL? = nil, driveManager: KroutonOpticalDriveBank? = nil) {
-        if let cat = KroutonBakeryStation(rawValue: manifest.selectedCategoryRaw) {
+        if let cat = KroutonMasteringStation(rawValue: manifest.selectedCategoryRaw) {
             selectedCategory = cat
         }
         selectedTaskID = manifest.selectedTaskID

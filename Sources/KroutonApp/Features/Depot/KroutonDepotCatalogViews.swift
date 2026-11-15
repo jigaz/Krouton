@@ -36,7 +36,7 @@ private extension View {
 
 struct KroutonDepotHeroBannerView: View {
     @ObservedObject var store: KroutonStateStore
-    let item: KroutonPantryCatalogItem
+    let item: KroutonDepotCatalogItem
     let isNarrow: Bool
 
     var body: some View {
@@ -60,7 +60,7 @@ struct KroutonDepotHeroBannerView: View {
 
             // 2. Multi-Layer Isometric & Pixel-Matrix CAD Blueprint Art Workspace
             //    Masked with a directional fade gradient so foreground typography pops with 100% clarity!
-            KroutonRecipeBlueprintView(item: item, accent: store.activeAccent, isNarrow: isNarrow, useHarmony: store.enableSecondaryAccentUITints).id("\(item.id)-\(store.enableSecondaryAccentUITints)")
+            KroutonWorkflowBlueprintView(item: item, accent: store.activeAccent, isNarrow: isNarrow, useHarmony: store.enableSecondaryAccentUITints).id("\(item.id)-\(store.enableSecondaryAccentUITints)")
                 .mask(
                     LinearGradient(
                         stops: [
@@ -271,7 +271,7 @@ struct KroutonDepotHeroBannerView: View {
 
 struct KroutonDepotAppStoreCardView: View {
     @ObservedObject var store: KroutonStateStore
-    let item: KroutonPantryCatalogItem
+    let item: KroutonDepotCatalogItem
     let isSelectedInHero: Bool
 
     var body: some View {

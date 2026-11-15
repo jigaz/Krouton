@@ -280,7 +280,7 @@ extension KroutonDestinationCardView {
                                 get: { activeDiscPopoverCardID == cardID },
                                 set: { if !$0 { activeDiscPopoverCardID = nil } }
                             ), arrowEdge: .leading) {
-                                KroutonSliceMediaPopover(drive: activeDrive, accent: store.uiSecondaryAccent)
+                                KroutonDiscMediaPopover(drive: activeDrive, accent: store.uiSecondaryAccent)
                             }
                             Spacer(minLength: 0)
                         }

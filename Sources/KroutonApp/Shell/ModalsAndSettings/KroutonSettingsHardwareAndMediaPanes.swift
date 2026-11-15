@@ -358,17 +358,17 @@ extension KroutonSettingsWindowView {
                     pillToggleButton(title: "Export Thermometer (.log + .toc)", sfSymbol: "thermometer.medium", isSelected: false) {
                         Task {
                             let artifact = await krumb.prepareKitchenThermometerArtifact()
-                            krumbExportDocument = KrumbPlainTextFileDocument(text: artifact.contentText)
-                            krumbExportDefaultFilename = artifact.defaultFilename
-                            isShowingKrumbFileExporter = true
+                            spoolExportDocument = SpoolPlainTextFileDocument(text: artifact.contentText)
+                            spoolExportDefaultFilename = artifact.defaultFilename
+                            isShowingSpoolFileExporter = true
                         }
                     }
                     pillToggleButton(title: "Download DoggyBag", sfSymbol: "takeoutbag.and.cup.and.straw.fill", isSelected: false) {
                         Task {
                             let artifact = await krumb.prepareDoggyBagArtifact()
-                            krumbExportDocument = KrumbPlainTextFileDocument(text: artifact.contentText)
-                            krumbExportDefaultFilename = artifact.defaultFilename
-                            isShowingKrumbFileExporter = true
+                            spoolExportDocument = SpoolPlainTextFileDocument(text: artifact.contentText)
+                            spoolExportDefaultFilename = artifact.defaultFilename
+                            isShowingSpoolFileExporter = true
                         }
                     }
                 }
@@ -378,10 +378,10 @@ extension KroutonSettingsWindowView {
                 Toggle(KroutonL10n.tr("Pre-stage full compiled disc image to remote Krumb Pantry before igniting laser"), isOn: $store.preStageImageToServerSSD)
             }
             .fileExporter(
-                isPresented: $isShowingKrumbFileExporter,
-                document: krumbExportDocument,
+                isPresented: $isShowingSpoolFileExporter,
+                document: spoolExportDocument,
                 contentType: .plainText,
-                defaultFilename: krumbExportDefaultFilename
+                defaultFilename: spoolExportDefaultFilename
             ) { result in
                 if case .success(let savedURL) = result {
                     krumb.appendEventLog("Saved \(savedURL.lastPathComponent) via SwiftUI FileExporter")

@@ -231,7 +231,7 @@ public final class KroutonCrashRecoveryController: ObservableObject {
     }
 
     private func applySnapshotAsync(_ snap: KroutonPersistedSessionSnapshot, to store: KroutonStateStore) async {
-        if let cat = KroutonBakeryStation(rawValue: snap.selectedCategoryRaw) {
+        if let cat = KroutonMasteringStation(rawValue: snap.selectedCategoryRaw) {
             store.selectedCategory = cat
         }
         store.selectedTaskID = snap.selectedTaskID

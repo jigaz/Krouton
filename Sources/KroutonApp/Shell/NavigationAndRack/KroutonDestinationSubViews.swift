@@ -131,7 +131,7 @@ struct KroutonDestinationRackColumnView: View {
 }
 
 // MARK: - Dedicated Reactive Subview for Krumb Port 7420 Network Toaster Cards
-struct KrumbNetworkToasterCardSectionView: View {
+struct NetworkSpoolDriveCardSectionView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var driveManager: KroutonOpticalDriveBank
     @ObservedObject var krumb: KrumbKitchenClient = .shared
@@ -143,7 +143,7 @@ struct KrumbNetworkToasterCardSectionView: View {
     let onUpdateHost: (String) -> Void
 
     var body: some View {
-        let firstToaster = krumb.remoteToasters.first
+        let firstOpticalDrive = krumb.remoteToasters.first
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 6) {
                 Image(systemName: "server.rack")
@@ -265,7 +265,7 @@ struct KrumbNetworkToasterCardSectionView: View {
                 }
                 .buttonStyle(.plain)
 
-                if let toaster = firstToaster {
+                if let toaster = firstOpticalDrive {
                     Button {
                         Task {
                             await krumb.toggleToasterRack(toasterID: toaster.id, endpoint: item.hardwareOrPath)
