@@ -35,8 +35,8 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
     @Published public var averageSpeedX: Double = 0.0
     @Published public var currentSpindleRPM: Int = 0
     @Published public var currentSectorLBA: Int64 = 0
-    @Published public var totalTargetSectorsLBA: Int64 = 359_847
-    @Published public var driveBufferFillPercent: Double = 98.0
+    @Published public var totalTargetSectorsLBA: Int64 = 0
+    @Published public var driveBufferFillPercent: Double = 0.0
     @Published public var laserWavelengthText: String = "780 nm IR (CD)"
     @Published public var writeStrategyText: String = "P-CAV / CLV"
     @Published public var activeTrackNumber: Int = 1
@@ -251,7 +251,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
                 var blockSpec = "—"
                 var drmStatus = "Unencrypted (Clear Sectors)"
                 var mountedVols: [KroutonMountedDiscVolume] = []
-                var speeds: [String] = ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
+                var speeds: [String] = ["Max Safe (Auto)"]
 
                 if isTransition {
                     humanState = "Reading Slot..."
@@ -316,7 +316,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
                     }
 
                     if let rawSpeeds = mediaInfo[DRDeviceBurnSpeedsKey] as? [NSNumber], !rawSpeeds.isEmpty {
-                        let divisor: Double = mType.contains("DVD") ? 1385.0 : 176.4
+                        let divisor: Double = mType.contains("BD") ? 4500.0 : (mType.contains("DVD") ? 1385.0 : 176.4)
                         var parsedSpeeds: [String] = ["Max Safe (Auto)"]
                         for kbs in rawSpeeds {
                             let mult = max(1, Int(round(kbs.doubleValue / divisor)))
@@ -324,9 +324,6 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
                             if !parsedSpeeds.contains(label) {
                                 parsedSpeeds.append(label)
                             }
-                        }
-                        for fallback in speeds where !parsedSpeeds.contains(fallback) {
-                            parsedSpeeds.append(fallback)
                         }
                         speeds = parsedSpeeds
                     }
@@ -413,11 +410,11 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
             currentSpeedKBs: 0.0,
             peakSpeedX: 0.0,
             averageSpeedX: 0.0,
-            targetSpeedX: 16.0,
+            targetSpeedX: 0.0,
             currentSpindleRPM: 0,
             currentSectorLBA: 0,
-            totalSectorsLBA: max(1, totalSectorsLBA),
-            bufferFillPercent: 100.0,
+            totalSectorsLBA: max(0, totalSectorsLBA),
+            bufferFillPercent: 0.0,
             laserWavelengthText: laserText,
             writeStrategyText: strategyText,
             elapsedSeconds: 0,
