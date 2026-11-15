@@ -195,7 +195,7 @@ struct KroutonMiniPhaseScopeView: View {
                     .font(.system(size: 9.5, weight: .bold, design: .monospaced))
                     .foregroundStyle(primaryColor).lineLimit(1).fixedSize(horizontal: true, vertical: false)
                 Spacer(minLength: 4)
-                Text(telemetry.currentSpindleRPM > 0 ? "\(telemetry.currentSpindleRPM) RPM" : "— RPM")
+                Text(telemetry.currentSpindleRPM > 0 ? "\(telemetry.currentSpindleRPM) RPM" : "RPM n/a")
                     .font(.system(size: 9.5, weight: .bold, design: .monospaced))
                     .foregroundStyle(rpmColor).lineLimit(1).fixedSize(horizontal: true, vertical: false)
             }
@@ -335,11 +335,11 @@ extension KroutonFloatingPhaseScopeView {
     func floatingTelemetryChannelGrid(primaryColor: Color, harmonyColor: Color, rpmColor: Color, useHarmony: Bool) -> some View {
         let tiles: [(String, String, String, Color)] = [
             ("THROUGHPUT", telemetry.currentSpeedKBs > 0 ? String(format: "Live %.1fx (%.0f KB/s)", telemetry.currentSpeedX, telemetry.currentSpeedKBs) : "—", telemetry.peakSpeedX > 0 ? String(format: "Avg %.1fx • Peak %.1fx", telemetry.averageSpeedX, telemetry.peakSpeedX) : "Reported by DiscRecording", primaryColor),
-            ("SPINDLE MOTOR", telemetry.currentSpindleRPM > 0 ? "\(telemetry.currentSpindleRPM) RPM" : "—", telemetry.writeStrategyText, rpmColor),
-            ("LASER WAVELENGTH", telemetry.laserWavelengthText, "OPC Power Managed by Drive Firmware", primaryColor),
-            ("RADIAL PROGRESS", "LBA \(telemetry.currentSectorLBA) / \(telemetry.totalSectorsLBA)", String(format: "Progress: %.1f%%", telemetry.progressFraction * 100.0), useHarmony ? harmonyColor : primaryColor),
-            ("BUFFER", telemetry.bufferFillPercent > 0 ? String(format: "%.0f%%", telemetry.bufferFillPercent) : "—", "Managed by Drive Hardware", primaryColor),
-            ("ELAPSED TIME", String(format: "%02d:%02d", telemetry.elapsedSeconds / 60, telemetry.elapsedSeconds % 60), telemetry.phaseTitle, useHarmony ? harmonyColor : primaryColor)
+            ("SPINDLE MOTOR", telemetry.currentSpindleRPM > 0 ? "\(telemetry.currentSpindleRPM) RPM" : "Not reported", telemetry.writeStrategyText, rpmColor),
+            ("LASER", telemetry.laserWavelengthText, "Write power is not reported by the drive", primaryColor),
+            ("RADIAL TRACKING", "LBA \(telemetry.currentSectorLBA) / \(telemetry.totalSectorsLBA)", String(format: "Radius r = %.2f / 58.00 mm (%.1f%%)", telemetry.radialMillimeters, telemetry.progressFraction * 100.0), useHarmony ? harmonyColor : primaryColor),
+            ("BUFFER", telemetry.bufferFillPercent > 0 ? String(format: "%.0f%% Full", telemetry.bufferFillPercent) : "Not reported", "Underrun protection is handled inside the drive", primaryColor),
+            ("ERROR SCAN", "Not measured", "No C1/C2 or jitter scan runs during a burn", useHarmony ? harmonyColor : primaryColor)
         ]
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
             ForEach(tiles, id: \.0) { title, pri, sec, col in

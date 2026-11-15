@@ -34,7 +34,6 @@ struct KroutonCopyAndRipWorkspaceView: View {
     @State var copySourceOverrideLabel: String = ""
     @State var copyOutputFolderPath: String = "~/Music/Krouton Rips"
     @State var copyStatusBanner: String = ""
-    @State var rescueScratchMode: Int = 0
     @State var audioRipTracks: [KroutonRipTrackItem] = []
     @State var mountedCDSnapshot: KroutonMountedAudioCDSnapshot? = nil
     @State var scannedVideoDisc: ScannedOpticalVideoDisc? = nil
@@ -274,26 +273,27 @@ struct KroutonCopyAndRipWorkspaceView: View {
         }
     }
 
+    /// What actually happened to each track in the last rip. Krouton reads discs through the mounted
+    /// volume and does not re-read damaged sectors yet, so there is no sector-level rescue map to show.
     @ViewBuilder
     func unifiedOpticalRescueMapCard(showVideoHandoff: Bool) -> some View {
-        let lbaTotal = Int64(mountedCDSnapshot?.leadoutBlockLBA ?? Int(scannedVideoDisc?.totalSectorsLBA ?? max(0, store.totalStagedBytes / 2048)))
-        let map = KroutonLabelGeometryEngine.buildOpticalRescueMap(totalSectorsLBA: lbaTotal, scratchSeverity: rescueScratchMode)
+        let outcomes = audioRipTracks.map { KroutonRipTrackOutcome(status: $0.arStatus) }
+        let ripped = outcomes.filter { $0 == .ripped }.count
+        let failed = outcomes.filter { $0 == .readError }.count
+        let cancelled = outcomes.filter { $0 == .cancelled }.count
+        let waiting = outcomes.filter { $0 == .notRipped }.count
         KroutonMasteringDeckCard(store: store) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
                     Image(systemName: "lifepreserver.fill").foregroundStyle(store.activeAccent)
-                    Text("OPTICAL BAD-SECTOR RESCUE MAP (\(String(format: "%.2f%%", map.recoveryIntegrityPercent)) INTEGRITY)")
+                    Text("TRACK RIP RESULTS")
                         .font(.system(size: 9.5, weight: .heavy, design: .monospaced)).foregroundStyle(.secondary).lineLimit(1)
                     Spacer(minLength: 4)
-                    Picker("", selection: $rescueScratchMode) {
-                        Text("Pristine").tag(0)
-                        Text("Light Scratch").tag(1)
-                        Text("Deep Gouge").tag(2)
-                    }.labelsHidden().font(.caption).frame(width: 115)
-                    Button("Copy .MAP") {
-                        KroutonOSDesktopBridge.copyTextToClipboard(map.exportRescueMapLog(volumeName: store.discVolumeTitle))
-                        copyStatusBanner = "Copied .MAP Sector Rescue Log to Clipboard"
-                    }.buttonStyle(.bordered).controlSize(.mini).fixedSize()
+                    Button("Copy Results") {
+                        let lines = audioRipTracks.map { String(format: "Track %02d: %@", $0.num, $0.arStatus) }
+                        KroutonOSDesktopBridge.copyTextToClipboard(lines.joined(separator: "\n"))
+                        copyStatusBanner = "Copied Track Rip Results to Clipboard"
+                    }.buttonStyle(.bordered).controlSize(.mini).fixedSize().disabled(audioRipTracks.isEmpty)
                     if showVideoHandoff {
                         Button("Send to Video Author ->") {
                             store.selectedTaskID = "dvd-video"
@@ -301,22 +301,55 @@ struct KroutonCopyAndRipWorkspaceView: View {
                         }.buttonStyle(.borderedProminent).tint(store.uiSecondaryAccent).controlSize(.mini).fixedSize()
                     }
                 }
-                HStack(spacing: 2) {
-                    ForEach(Array(map.buckets.enumerated()), id: \.offset) { _, status in
-                        let col: Color = status == .healthyBurst ? .green : (status == .retried2xCLV ? .orange : (status == .c2Interpolated ? .cyan : .red))
-                        RoundedRectangle(cornerRadius: 1.5).fill(col.opacity(0.85)).frame(height: 8)
+                if outcomes.isEmpty {
+                    Text("Per-track results appear here after an Audio CD rip. Re-reading damaged sectors is not available yet, so a track with a read error is reported as failed, not repaired.")
+                        .font(.system(size: 10)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                } else {
+                    HStack(spacing: 2) {
+                        ForEach(Array(outcomes.enumerated()), id: \.offset) { _, outcome in
+                            RoundedRectangle(cornerRadius: 1.5).fill(outcome.color.opacity(0.85)).frame(height: 8)
+                        }
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Track rip results")
+                    .accessibilityValue("\(ripped) ripped, \(failed) read errors, \(cancelled) cancelled, \(waiting) not ripped")
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 135), alignment: .leading)], spacing: 4) {
+                        Label("Ripped: \(ripped)/\(outcomes.count)", systemImage: "checkmark.circle.fill").foregroundStyle(.green).lineLimit(1)
+                        Label("Read Errors: \(failed)", systemImage: "exclamationmark.octagon.fill").foregroundStyle(.red).lineLimit(1)
+                        Label("Cancelled: \(cancelled)", systemImage: "xmark.circle").foregroundStyle(.orange).lineLimit(1)
+                        Label("Not Ripped: \(waiting)", systemImage: "circle").foregroundStyle(.secondary).lineLimit(1)
+                    }.font(.system(size: 9.5, weight: .semibold, design: .monospaced))
                 }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(KroutonL10n.tr("Optical Bad-Sector Rescue Map"))
-                .accessibilityValue("\(String(format: "%.2f%%", map.recoveryIntegrityPercent)) integrity, \(map.healthyCount) clean, \(map.retriedCount) retried, \(map.c2InterpolatedCount) C2 interpolated, \(map.zeroPaddedCount) zero-padded")
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 135), alignment: .leading)], spacing: 4) {
-                    Label("Clean: \(map.healthyCount)/64", systemImage: "checkmark.circle.fill").foregroundStyle(.green).lineLimit(1)
-                    Label("2x CLV Retry: \(map.retriedCount)", systemImage: "arrow.triangle.2.circlepath").foregroundStyle(.orange).lineLimit(1)
-                    Label("C2 Interp: \(map.c2InterpolatedCount)", systemImage: "waveform.badge.magnifyingglass").foregroundStyle(.cyan).lineLimit(1)
-                    Label("Zero-Pad: \(map.zeroPaddedCount)", systemImage: "exclamationmark.octagon.fill").foregroundStyle(.red).lineLimit(1)
-                }.font(.system(size: 9.5, weight: .semibold, design: .monospaced))
             }
+        }
+    }
+}
+
+/// A track's rip outcome, read from the status text the ripper writes for it.
+enum KroutonRipTrackOutcome: Equatable {
+    case ripped
+    case readError
+    case cancelled
+    case notRipped
+
+    init(status: String) {
+        if status.contains("Read Error") {
+            self = .readError
+        } else if status.contains("Cancelled") {
+            self = .cancelled
+        } else if status.hasPrefix("CRC ") {
+            self = .ripped
+        } else {
+            self = .notRipped
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .ripped: return .green
+        case .readError: return .red
+        case .cancelled: return .orange
+        case .notRipped: return .gray
         }
     }
 }

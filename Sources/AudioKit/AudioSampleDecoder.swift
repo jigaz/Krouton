@@ -424,7 +424,10 @@ public enum KroutonRealCDExtractor {
             let bytePtr = rawBuffer.assumingMemoryBound(to: UInt8.self)
             for i in stride(from: 0, to: validBytes, by: 4) {
                 let s32 = UInt32(bytePtr[i]) | (UInt32(bytePtr[i+1]) << 8) | (UInt32(bytePtr[i+2]) << 16) | (UInt32(bytePtr[i+3]) << 24)
-                crc = (crc >> 8) ^ (s32 &* 0xEDB88320)
+                crc = KroutonCRC32.update(crc, bytePtr[i])
+                crc = KroutonCRC32.update(crc, bytePtr[i + 1])
+                crc = KroutonCRC32.update(crc, bytePtr[i + 2])
+                crc = KroutonCRC32.update(crc, bytePtr[i + 3])
                 arSum &+= s32 &* sampleIndex
                 sampleIndex &+= 1
             }

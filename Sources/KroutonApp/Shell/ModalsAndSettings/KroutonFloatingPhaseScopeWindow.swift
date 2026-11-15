@@ -108,7 +108,7 @@ struct KroutonFloatingPhaseScopeView: View {
                     HStack {
                         Text("Inner Hub (r = 24.0 mm • LBA 0)").font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary)
                         Spacer()
-                        Text("Buffer Ribbon: \(Int(telemetry.bufferFillPercent))% Armed").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundStyle(useHarmony ? harmonyColor : primaryColor)
+                        Text(telemetry.bufferFillPercent > 0 ? "Buffer: \(Int(telemetry.bufferFillPercent))%" : "Buffer: not reported").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundStyle(useHarmony ? harmonyColor : primaryColor)
                         Spacer()
                         Text("Outer Rim (r = 58.0 mm • Lead-Out)").font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary)
                     }

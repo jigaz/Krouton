@@ -431,7 +431,6 @@ extension KroutonCopyAndRipWorkspaceView {
                     if isCancelledErr { cancelCount += 1 } else { errCount += 1 }
                     logLines.append("Track \(trk.trackNumber) \(isCancelledErr ? "CANCELLED" : "ERROR"): \(error.localizedDescription)")
                     DispatchQueue.main.async {
-                        if !isCancelledErr { rescueScratchMode = 2 }
                         if let rowIdx = audioRipTracks.firstIndex(where: { $0.num == trk.trackNumber }) {
                             audioRipTracks[rowIdx].arStatus = isCancelledErr ? "Cancelled" : "Read Error"
                         }
