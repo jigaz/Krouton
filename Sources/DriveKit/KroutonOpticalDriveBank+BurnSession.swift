@@ -346,19 +346,19 @@ extension KroutonOpticalDriveBank {
     private func updateBurnTelemetry(_ session: KroutonActiveBurnSession, status bStatus: [String: Any], rawState: String) {
         let context = session.context
         let pct = (bStatus[DRStatusPercentCompleteKey] as? NSNumber)?.doubleValue ?? 0.0
-        let clampedPct = max(0.02, min(1.0, pct))
+        let clampedPct = max(0.0, min(1.0, pct))
         let divisor = context.speedDivisor
-        let reportedKBs = (bStatus[DRStatusCurrentSpeedKey] as? NSNumber)?.doubleValue ?? (divisor * (4.0 + 6.0 * clampedPct))
-        let speedX = max(1.0, reportedKBs / divisor)
+        let reportedKBs = max(0.0, (bStatus[DRStatusCurrentSpeedKey] as? NSNumber)?.doubleValue ?? 0.0)
+        let speedX = divisor > 0 ? (reportedKBs / divisor) : 0.0
 
         currentSpeedKBs = reportedKBs
         currentSpeedX = speedX
         if speedX > peakSpeedX { peakSpeedX = speedX }
-        currentSpindleRPM = Int(1800.0 + (speedX * 195.0 * (1.0 - clampedPct * 0.35)))
+        currentSpindleRPM = 0
         currentSectorLBA = Int64(Double(context.totalLBA) * clampedPct)
         activeTrackNumber = (bStatus[DRStatusCurrentTrackKey] as? NSNumber)?.intValue ?? 1
         elapsedSeconds = max(1, Int(Date().timeIntervalSince(jobStartTime)))
-        driveBufferFillPercent = rawState == DRStatusStateTrackWrite ? 0.0 /* not reported by DRStatus */ : 100.0
+        driveBufferFillPercent = 0.0
         activeJobProgress = clampedPct
         if session.abortRequestedAt == nil {
             activeJobPhase = Self.formatHumanBurnState(rawState, isErase: false)
@@ -367,12 +367,14 @@ extension KroutonOpticalDriveBank {
         neroSamples.append(KroutonBurnTelemetrySample(
             progressFraction: clampedPct,
             speedMultiplierX: speedX,
-            spindleRPM: Double(currentSpindleRPM),
+            spindleRPM: 0.0,
             throughputKBs: reportedKBs
         ))
-        session.speedSumX += speedX
-        session.speedSampleCount += 1
-        averageSpeedX = session.speedSumX / Double(session.speedSampleCount)
+        if speedX > 0 {
+            session.speedSumX += speedX
+            session.speedSampleCount += 1
+            averageSpeedX = session.speedSumX / Double(session.speedSampleCount)
+        }
 
         guard !context.driveKey.isEmpty else { return }
         var dTel = driveTelemetry[context.driveKey] ?? KroutonDrivePhaseScopeTelemetry(id: context.driveKey, driveName: context.driveName)
@@ -491,8 +493,8 @@ extension KroutonOpticalDriveBank {
             volumeName: context.volumeTitle,
             sectorsWrittenLBA: sectors,
             bytesWritten: bytes,
-            averageSpeedText: String(format: "%.1fx (%.0f KB/s)", averageSpeedX, averageSpeedX * context.speedDivisor),
-            peakSpeedText: String(format: "%.1fx (%.0f KB/s)", peakSpeedX, peakSpeedX * context.speedDivisor),
+            averageSpeedText: averageSpeedX > 0 ? String(format: "%.1fx (%.0f KB/s)", averageSpeedX, averageSpeedX * context.speedDivisor) : "—",
+            peakSpeedText: peakSpeedX > 0 ? String(format: "%.1fx (%.0f KB/s)", peakSpeedX, peakSpeedX * context.speedDivisor) : "—",
             elapsedDurationText: String(format: "%02d:%02d", elapsed / 60, elapsed % 60),
             diagnosticAdvice: advice
         )
