@@ -269,6 +269,23 @@ extension KroutonOpticalDriveBank {
 
         guard let erase = DRErase(for: device) else {
             device.releaseMediaReservation()
+            let report = KroutonBurnSessionReport(
+                isSuccess: false,
+                title: "Could Not Start Erase",
+                summary: "DiscRecording could not create an erase session for \(driveName).",
+                driveModel: driveName,
+                firmwareRevision: fwRev,
+                mediaFormattedName: mType,
+                volumeName: "Erase Operation",
+                sectorsWrittenLBA: 0,
+                bytesWritten: 0,
+                averageSpeedText: "0.0x",
+                peakSpeedText: "0.0x",
+                elapsedDurationText: "00:00",
+                diagnosticAdvice: "Eject and reinsert the rewritable disc, then try again."
+            )
+            self.completionReport = report
+            onCompletion(report)
             return
         }
 
@@ -299,9 +316,10 @@ extension KroutonOpticalDriveBank {
 
         eraseMonitorTimer?.invalidate()
         eraseMonitorTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { [weak self] _ in
-            Task { @MainActor in
+            MainActor.assumeIsolated {
                 guard let self = self, let activeErase = self.activeDRErase else {
                     self?.eraseMonitorTimer?.invalidate()
+                    self?.eraseMonitorTimer = nil
                     return
                 }
                 let eStatus = activeErase.status() as? [String: Any] ?? [:]
@@ -346,7 +364,9 @@ extension KroutonOpticalDriveBank {
                 }
 
                 if rawState == DRStatusStateDone {
+                    self.activeDRErase = nil
                     self.eraseMonitorTimer?.invalidate()
+                    self.eraseMonitorTimer = nil
                     device.releaseMediaReservation()
                     self.isExecutingQueue = false
                     self.activeJobProgress = 1.0
@@ -373,7 +393,9 @@ extension KroutonOpticalDriveBank {
                     self.completionReport = report
                     onCompletion(report)
                 } else if rawState == DRStatusStateFailed {
+                    self.activeDRErase = nil
                     self.eraseMonitorTimer?.invalidate()
+                    self.eraseMonitorTimer = nil
                     device.releaseMediaReservation()
                     self.isExecutingQueue = false
                     let errInfo = eStatus[DRErrorStatusKey] as? [String: Any]
@@ -431,47 +453,45 @@ extension KroutonOpticalDriveBank {
         let totalLBA = stagedFiles.reduce(0) { $0 + $1.sectorsLBA }
 
         do {
-            try fm.createDirectory(at: tempRoot, withIntermediateDirectories: true)
-
-            for (index, item) in stagedFiles.enumerated() {
-                let destURL = tempRoot.appendingPathComponent(item.name)
-                try fm.copyItem(at: item.url, to: destURL)
-                let frac = 0.15 + (0.35 * Double(index + 1) / Double(max(1, stagedFiles.count)))
-                activeJobProgress = frac
-                neroSamples.append(KroutonBurnTelemetrySample(progressFraction: frac, speedMultiplierX: 0.0, spindleRPM: 0, throughputKBs: 48_000))
+            let stageItems = stagedFiles.map { KroutonBurnStageItem(source: $0.url, name: $0.name) }
+            if let stagingError = await KroutonBurnStager.stage(stageItems, into: tempRoot) {
+                throw NSError(domain: "KroutonImageStage", code: 1, userInfo: [NSLocalizedDescriptionKey: stagingError])
             }
+            activeJobProgress = 0.50
 
             if enableCustomLayout {
                 let autorunContent = "[Autorun]\r\nLabel=\(volumeTitle)\r\n"
                 try? autorunContent.write(to: tempRoot.appendingPathComponent("autorun.inf"), atomically: true, encoding: .utf8)
-
                 let layoutManifest = "Krouton Custom Finder View\nVolume: \(volumeTitle)\nIconSize: \(iconSizePx)px\n"
                 try? layoutManifest.write(to: tempRoot.appendingPathComponent(".krouton_view_layout"), atomically: true, encoding: .utf8)
             }
 
             let expandedPath = NSString(string: outputPathString).expandingTildeInPath
             let isISO = expandedPath.lowercased().hasSuffix(".iso") || expandedPath.lowercased().hasSuffix(".cdr")
-
-            if fm.fileExists(atPath: expandedPath) {
-                try? fm.removeItem(atPath: expandedPath)
+            for candidate in [expandedPath, expandedPath + ".iso", expandedPath + ".cdr"] where fm.fileExists(atPath: candidate) {
+                try? fm.removeItem(atPath: candidate)
             }
 
             activeJobPhase = isISO ? "Mastering Hybrid UDF / ISO9660 Image..." : "Mastering macOS Disk Image (.dmg)..."
             activeJobProgress = 0.65
             activeJobDetail = expandedPath
 
-            let args: [String]
-            if isISO {
-                args = ["makehybrid", "-o", expandedPath, "-hfs", "-joliet", "-iso", "-default-volume-name", volumeTitle, tempRoot.path]
-            } else {
-                let dmgFormat = compressImage ? "UDZO" : "UDRW"
-                args = ["create", "-srcfolder", tempRoot.path, "-volname", volumeTitle, "-fs", "HFS+", "-format", dmgFormat, expandedPath]
-            }
+            let args: [String] = isISO
+                ? ["makehybrid", "-o", expandedPath, "-iso", "-joliet", "-udf", "-udf-version", "1.02", "-hfs", "-default-volume-name", volumeTitle, tempRoot.path]
+                : ["create", "-srcfolder", tempRoot.path, "-volname", volumeTitle, "-fs", "HFS+", "-format", compressImage ? "UDZO" : "UDRW", expandedPath]
 
-            let status = try await Task.detached { () -> Int32 in
+            let status = try await Task.detached(priority: .userInitiated) { () -> Int32 in
+                let errURL = FileManager.default.temporaryDirectory.appendingPathComponent("krouton-img-\(UUID().uuidString).log")
+                FileManager.default.createFile(atPath: errURL.path, contents: nil)
+                defer { try? FileManager.default.removeItem(at: errURL) }
+                let errHandle = try FileHandle(forWritingTo: errURL)
+                defer { try? errHandle.close() }
                 let proc = Process()
                 proc.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
                 proc.arguments = args
+                proc.standardInput = FileHandle.nullDevice
+                proc.standardOutput = FileHandle.nullDevice
+                proc.standardError = errHandle
                 try proc.run()
                 proc.waitUntilExit()
                 return proc.terminationStatus

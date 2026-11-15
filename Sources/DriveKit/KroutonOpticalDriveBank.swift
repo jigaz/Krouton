@@ -269,7 +269,10 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
                     sessions = (mediaInfo[DRDeviceMediaSessionCountKey] as? NSNumber)?.intValue ?? (isBlank ? 0 : 1)
                     tracks = (mediaInfo["DRDeviceMediaTrackCountKey"] as? NSNumber)?.intValue ?? (isBlank ? 0 : max(1, sessions))
 
-                    if let blocks = mediaInfo[DRDeviceMediaFreeSpaceKey] as? NSNumber, blocks.int64Value > 0 {
+                    if let blocks = mediaInfo[DRDeviceMediaBlocksFreeKey] as? NSNumber, blocks.int64Value > 0 {
+                        freeBlocks = blocks.int64Value
+                        freeByteCount = freeBlocks * 2048
+                    } else if let blocks = mediaInfo[DRDeviceMediaFreeSpaceKey] as? NSNumber, blocks.int64Value > 0 {
                         freeBlocks = blocks.int64Value
                         freeByteCount = freeBlocks * 2048
                     } else if let totalBlocks = mediaInfo[DRDeviceMediaBlocksOverwritableKey] as? NSNumber, totalBlocks.int64Value > 0 {
