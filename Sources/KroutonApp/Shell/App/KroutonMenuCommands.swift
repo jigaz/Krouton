@@ -417,8 +417,7 @@ struct KroutonWorkspaceCommands: Commands {
                 let cert = KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(
                     driveModel: drv?.displayName ?? "Optical Drive",
                     mediaType: drv?.mediaType ?? "Optical Media",
-                    sectorsWrittenLBA: lba,
-                    c1Rate: 0.0, c2Count: 0, jitterPercent: 3.5
+                    sectorsWrittenLBA: lba
                 )
                 KroutonOSDesktopBridge.copyTextToClipboard(cert.certificateText)
             }

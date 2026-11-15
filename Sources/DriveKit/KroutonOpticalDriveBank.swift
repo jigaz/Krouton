@@ -427,8 +427,9 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
         let resolved = driveForID(driveID)
         let key = resolved?.id ?? driveID
         let name = resolved?.displayName ?? "Optical Drive"
-        driveBookTypeOverrides[key] = "DVD-ROM (0x00 Lead-In Bitset Armed)"
-        hardwareStatusLog = "[MMC Bitsetting] Stamped Lead-In Book Type -> DVD-ROM (0x00) on \(name) via \(vendorProfile)"
+        // No book-type command is sent to the drive yet, so the status must not claim one was.
+        driveBookTypeOverrides[key] = "Native Media Book Type (bitsetting not supported yet)"
+        hardwareStatusLog = "[MMC Bitsetting] Not applied on \(name): Krouton cannot change the book type yet (\(vendorProfile))."
     }
 
     public func bookTypeStatus(for drive: KroutonOpticalDriveInfo, forceDVDROM: Bool) -> String {
@@ -436,7 +437,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
             return explicit
         }
         if forceDVDROM {
-            return "Auto-Bitset: DVD+R/DL -> DVD-ROM (0x00)"
+            return "Native Media Book Type (bitsetting not supported yet)"
         }
         return "Native Media Book Type"
     }

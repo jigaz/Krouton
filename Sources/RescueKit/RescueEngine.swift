@@ -161,10 +161,28 @@ public enum KroutonRescueEngine {
         driveModel: String,
         mediaType: String,
         sectorsWrittenLBA: Int64,
-        c1Rate: Double = 3.4,
-        c2Count: Int = 0,
-        jitterPercent: Double = 4.9
+        c1Rate: Double? = nil,
+        c2Count: Int? = nil,
+        jitterPercent: Double? = nil
     ) -> KroutonArchivalQualityCertificate {
+        // A grade needs a real error scan. Without all three measurements there is nothing to grade.
+        guard let c1Rate, let c2Count, let jitterPercent else {
+            let summary = "NOT MEASURED • No C1/C2/jitter scan was run for this disc"
+            return KroutonArchivalQualityCertificate(
+                gradeBadge: "NOT MEASURED",
+                c1BlockErrorRate: 0,
+                c2UncorrectableCount: 0,
+                servoJitterPercent: 0,
+                radialStabilityScore: 0,
+                summaryLine: summary,
+                certificateText: """
+                === KROUTON DISC QUALITY ===
+                Grade: NOT MEASURED
+                Drive: \(driveModel) | Media: \(mediaType) | Written LBA: \(sectorsWrittenLBA)
+                No C1/C2/jitter error scan was run, so this disc has no quality grade.
+                """
+            )
+        }
         let clampedJitter = max(3.5, min(15.0, jitterPercent))
         let grade: String
         if c2Count == 0 && c1Rate < 15.0 && clampedJitter <= 6.2 {

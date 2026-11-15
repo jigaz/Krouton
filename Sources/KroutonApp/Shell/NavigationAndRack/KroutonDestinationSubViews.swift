@@ -208,21 +208,8 @@ struct NetworkSpoolDriveCardSectionView: View {
                                 driveManager.driveTelemetry[activeCardDriveID] = t
                             }
                         } else {
+                            // Opening the scope only shows it. It no longer starts a spool job.
                             driveManager.setManualInlinePin(for: activeCardDriveID, isPinned: true)
-                            Task {
-                                _ = await spoolClient.executeSpoolAndBurn(
-                                    endpoint: item.hardwareOrPath,
-                                    stagedFiles: store.stagedFiles,
-                                    audioTracks: store.redBookTracks,
-                                    volumeTitle: store.discVolumeTitle,
-                                    performer: store.discPerformer,
-                                    mcnBarcode: store.discMCNBarcode,
-                                    requestedSpeedLabel: item.speedOrCodec,
-                                    simulationMode: true,
-                                    driveManager: driveManager,
-                                    targetDriveKey: activeCardDriveID
-                                )
-                            }
                         }
                     }
                 } label: {

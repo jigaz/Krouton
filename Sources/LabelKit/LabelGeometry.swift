@@ -159,9 +159,9 @@ extension KroutonLabelGeometryEngine {
         driveModel: String,
         mediaType: String,
         sectorsWrittenLBA: Int64,
-        c1Rate: Double,
-        c2Count: Int,
-        jitterPercent: Double
+        c1Rate: Double? = nil,
+        c2Count: Int? = nil,
+        jitterPercent: Double? = nil
     ) -> KroutonArchivalQualityCertificate {
         KroutonRescueEngine.evaluateArchivalDiscGrade(
             driveModel: driveModel,

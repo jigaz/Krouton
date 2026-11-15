@@ -120,7 +120,7 @@ struct KroutonMasteringReportSheet: View {
             ("Sectors & Data Written", "\(report.sectorsWrittenLBA) LBA (\(ByteCountFormatter.string(fromByteCount: report.bytesWritten, countStyle: .file)))"),
             ("Transfer Rate (Avg / Peak)", "\(report.averageSpeedText) • Peak \(report.peakSpeedText)"),
             ("Elapsed Mastering Time", report.elapsedDurationText),
-            ("Archival Quality Grade", KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(driveModel: report.driveModel, mediaType: report.mediaFormattedName, sectorsWrittenLBA: report.sectorsWrittenLBA, c1Rate: report.isSuccess ? 0.0 : 45.0, c2Count: report.isSuccess ? 0 : 1, jitterPercent: report.isSuccess ? 3.5 : 7.5).summaryLine)
+            ("Archival Quality Grade", KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(driveModel: report.driveModel, mediaType: report.mediaFormattedName, sectorsWrittenLBA: report.sectorsWrittenLBA).summaryLine)
         ]
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 14) {
@@ -145,7 +145,7 @@ struct KroutonMasteringReportSheet: View {
             Spacer()
             HStack {
                 Button("Copy Archival Certificate") {
-                    let cert = KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(driveModel: report.driveModel, mediaType: report.mediaFormattedName, sectorsWrittenLBA: report.sectorsWrittenLBA, c1Rate: report.isSuccess ? 0.0 : 45.0, c2Count: report.isSuccess ? 0 : 1, jitterPercent: report.isSuccess ? 3.5 : 7.5)
+                    let cert = KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(driveModel: report.driveModel, mediaType: report.mediaFormattedName, sectorsWrittenLBA: report.sectorsWrittenLBA)
                     KroutonOSDesktopBridge.copyTextToClipboard(cert.certificateText)
                 }
                 Button("Copy Telemetry Log") {
