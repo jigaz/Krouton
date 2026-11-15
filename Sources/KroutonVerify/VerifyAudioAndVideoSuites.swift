@@ -1,15 +1,18 @@
+import AudioKit
+import BurnKit
 import CoreImage
 import CryptoKit
+import DriveKit
 import Foundation
-import OpticalCore
-import AudioKit
-import VideoKit
 import ImageKit
 import LabelKit
+import NetworkSpool
+import OpticalCore
+import Persistence
 import RescueKit
+import VideoKit
 
-@MainActor
-func runKroutonVerifySuites11To21(_ harness: inout KroutonTestHarness) {
+func runVerifyAudioAndVideoSuites(_ harness: inout KroutonTestHarness) {
     harness.runSuite("8. Hardware Acceleration Codec Matrix & Container Stream Probing") { h in
     let matrix = KroutonMediaPrepEngine.liveHardwareCodecMatrix
     h.check(matrix.count >= 6, "Expected at least 6 codec rows in hardware matrix")
@@ -274,6 +277,4 @@ func runKroutonVerifySuites11To21(_ harness: inout KroutonTestHarness) {
         h.check(goodProposal?.discCount == 2 && goodProposal?.order.count == 4,
                 "DiscRepacker.proposal must reduce 3-disc fragmented set to 2 discs while preserving all 4 items")
     }
-
-    runKroutonVerifySuites19To21(&harness)
 }

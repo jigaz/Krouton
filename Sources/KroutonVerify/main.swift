@@ -38,8 +38,11 @@ print("=== KROUTON ARCHITECTURE & CORE INVARIANT SUITE (krouton-verify) ===")
 var harness = KroutonTestHarness()
 
 
-runKroutonVerifySuites01To10(&harness)
-runKroutonVerifySuites11To21(&harness)
+runVerifyArchitectureAndShellSuites(&harness)
+runVerifyImageAndSectorSuites(&harness)
+runVerifyAudioAndVideoSuites(&harness)
+runVerifyMasteringDomainModelsSuite(&harness)
+runVerifyHardwareBurnLabelAndPersistenceSuites(&harness)
 
 print("\n🎯 SUMMARY: \(harness.passed) assertions passed, \(harness.failed) failed.")
 if harness.failed > 0 {
