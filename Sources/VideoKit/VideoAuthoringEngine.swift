@@ -245,6 +245,8 @@ extension KroutonVideoAuthoringEngine {
         )
     }
 
+    /// Not a relinker, and no longer called: offset `0x00C4` means different things in `VIDEO_TS.IFO` and
+    /// `VTS_xx_0.IFO`, and a real relink has to rewrite the cell, VOBU and title tables too.
     /// Performs in-place binary patching of a DVD-Video `VTS_xx_0.IFO` buffer:
     /// updates the 32-bit big-endian start sector pointer at `0x00C4` and clears cell layer-break flags (`0x08`).
     public static func patchVTSIFOBinarySectorPointers(
@@ -368,9 +370,29 @@ extension KroutonVideoAuthoringEngine {
 }
 
 
+public enum KroutonVideoShrinkError: Error, LocalizedError, Sendable, Equatable {
+    case requantizationUnavailable(sourceBytes: Int64, dvd5Bytes: Int64)
+
+    public var errorDescription: String? {
+        switch self {
+        case .requantizationUnavailable(let source, let limit):
+            let format = ByteCountFormatter()
+            format.countStyle = .file
+            return "This disc is \(format.string(fromByteCount: source)) and a DVD-5 holds \(format.string(fromByteCount: limit)). "
+                + "Fitting it needs MPEG-2 requantization, which Krouton does not do yet. "
+                + "Turn off Fit to DVD-5 to make a 1:1 image for a dual-layer blank."
+        }
+    }
+}
+
 extension KroutonVideoAuthoringEngine {
-    /// Executes an on-disk DVD-9 -> DVD-5 shrink of a `VIDEO_TS` folder, preserving menus when requested,
-    /// patching `.IFO`/`.BUP` sector pointers and layer-break flags, and aligning `.VOB` outputs to 2,048-byte DVD packs.
+    /// Copies a `VIDEO_TS` folder for a DVD-5 when it already fits, byte for byte.
+    ///
+    /// When it does not fit, this throws instead of producing output. Shrinking a title means
+    /// re-encoding its MPEG-2 video and rewriting every sector pointer in the .IFO/.BUP files;
+    /// the earlier implementation cut each .VOB short and wrote one pointer into every .IFO,
+    /// which produced discs that do not play. `planDVD9ToDVD5Shrink` and
+    /// `buildDVD9ToDVD5MenuShrinkBlueprint` remain as size estimates only.
     @discardableResult
     public static func executeDVD9ToDVD5ShrinkOnDisk(
         sourceVideoTSDirectory: URL,
@@ -378,8 +400,6 @@ extension KroutonVideoAuthoringEngine {
         preserveMenus: Bool
     ) throws -> KroutonDVD9ShrinkPlan {
         let fm = FileManager.default
-        try fm.createDirectory(at: outputVideoTSDirectory, withIntermediateDirectories: true)
-
         let entries = try fm.contentsOfDirectory(
             at: sourceVideoTSDirectory,
             includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey],
@@ -398,59 +418,26 @@ extension KroutonVideoAuthoringEngine {
             }
         }
 
+        // Menus are always kept: dropping menu VOBs without rewriting the .IFO files breaks navigation.
         let plan = planDVD9ToDVD5Shrink(
             mainFeatureBytes: mainBytes,
             menusAndExtrasBytes: menuBytes,
-            preserveMenusAndExtras: preserveMenus
+            preserveMenusAndExtras: true
         )
-
-        var relocatedLBA: UInt32 = 256
-        for url in entries.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
-            let name = url.lastPathComponent.uppercased()
-            let destURL = outputVideoTSDirectory.appendingPathComponent(url.lastPathComponent)
-            if fm.fileExists(atPath: destURL.path) {
-                try? fm.removeItem(at: destURL)
-            }
-
-            if name.hasSuffix(".IFO") || name.hasSuffix(".BUP") {
-                let raw = try Data(contentsOf: url)
-                let patched = patchVTSIFOBinarySectorPointers(
-                    ifoData: raw,
-                    relocatedStartSectorLBA: relocatedLBA,
-                    cellPlaybackFlagOffsets: []
-                )
-                try patched.write(to: destURL, options: .atomic)
-                relocatedLBA &+= UInt32(max(1, (patched.count + 2047) / 2048))
-            } else if name == "VIDEO_TS.VOB" || name.hasSuffix("_0.VOB") {
-                if preserveMenus {
-                    try fm.copyItem(at: url, to: destURL)
-                    let sz = Int64((try? destURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
-                    relocatedLBA &+= UInt32(max(1, (sz + 2047) / 2048))
-                }
-            } else if name.hasSuffix(".VOB") {
-                let srcSize = Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
-                let scaledBytes = Int64(Double(srcSize) * min(1.0, max(0.50, plan.requantizationRatio)))
-                let alignedBytes = max(2048, (scaledBytes / 2048) * 2048)
-                let inHandle = try FileHandle(forReadingFrom: url)
-                defer { try? inHandle.close() }
-                fm.createFile(atPath: destURL.path, contents: nil)
-                let outHandle = try FileHandle(forWritingTo: destURL)
-                defer { try? outHandle.close() }
-
-                var remaining = min(srcSize, alignedBytes)
-                let chunkCap = 1024 * 1024
-                while remaining > 0 {
-                    let toRead = Int(min(Int64(chunkCap), remaining))
-                    guard let chunk = try inHandle.read(upToCount: toRead), !chunk.isEmpty else { break }
-                    try outHandle.write(contentsOf: chunk)
-                    remaining -= Int64(chunk.count)
-                }
-                relocatedLBA &+= UInt32(max(1, alignedBytes / 2048))
-            } else {
-                try fm.copyItem(at: url, to: destURL)
-            }
+        guard !plan.requiresRequantization else {
+            throw KroutonVideoShrinkError.requantizationUnavailable(
+                sourceBytes: mainBytes + menuBytes, dvd5Bytes: plan.targetUsableDVD5Bytes
+            )
         }
 
+        try fm.createDirectory(at: outputVideoTSDirectory, withIntermediateDirectories: true)
+        for url in entries {
+            let destURL = outputVideoTSDirectory.appendingPathComponent(url.lastPathComponent)
+            if fm.fileExists(atPath: destURL.path) {
+                try fm.removeItem(at: destURL)
+            }
+            try fm.copyItem(at: url, to: destURL)
+        }
         return plan
     }
 }
