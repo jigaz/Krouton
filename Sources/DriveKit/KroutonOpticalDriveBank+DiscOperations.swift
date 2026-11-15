@@ -187,251 +187,6 @@ extension KroutonOpticalDriveBank {
         refreshDrives()
     }
 
-    public func eraseRewritableDisc(
-        driveID: String? = nil,
-        fullErase: Bool,
-        onCompletion: @escaping @MainActor (KroutonBurnSessionReport) -> Void
-    ) {
-        let resolvedMeta = driveForID(driveID ?? "")
-        let driveName = resolvedMeta?.displayName ?? "Optical Drive"
-        let fwRev = resolvedMeta?.firmware ?? "1.0"
-
-        guard let device = resolveDRDevice(id: driveID ?? selectedDrive?.id) else {
-            let report = KroutonBurnSessionReport(
-                isSuccess: false,
-                title: "Optical Drive Not Found",
-                summary: "Krouton could not communicate with the selected optical burner on the USB/SATA bus.",
-                driveModel: driveName,
-                firmwareRevision: fwRev,
-                mediaFormattedName: "None",
-                volumeName: "Erase Operation",
-                sectorsWrittenLBA: 0,
-                bytesWritten: 0,
-                averageSpeedText: "0.0x",
-                peakSpeedText: "0.0x",
-                elapsedDurationText: "00:00",
-                diagnosticAdvice: "Verify that your USB optical drive has sufficient bus power and is visible in Burners & Network settings."
-            )
-            self.completionReport = report
-            onCompletion(report)
-            return
-        }
-
-        let status = device.status() as? [String: Any] ?? [:]
-        let mediaState = status[DRDeviceMediaStateKey] as? String ?? DRDeviceMediaStateNone
-        guard mediaState == DRDeviceMediaStateMediaPresent else {
-            let report = KroutonBurnSessionReport(
-                isSuccess: false,
-                title: "Drive Slot Is Empty",
-                summary: "There is currently no optical disc inserted in \(driveName).",
-                driveModel: driveName,
-                firmwareRevision: fwRev,
-                mediaFormattedName: "Slot Empty",
-                volumeName: "Erase Operation",
-                sectorsWrittenLBA: 0,
-                bytesWritten: 0,
-                averageSpeedText: "0.0x",
-                peakSpeedText: "0.0x",
-                elapsedDurationText: "00:00",
-                diagnosticAdvice: "Insert a rewritable disc (CD-RW, DVD-RW, DVD+RW, or BD-RE) and wait a few seconds for the drive to read the Table of Contents."
-            )
-            self.completionReport = report
-            onCompletion(report)
-            return
-        }
-
-        let mediaInfo = status[DRDeviceMediaInfoKey] as? [String: Any] ?? [:]
-        let isErasable = (mediaInfo[DRDeviceMediaIsErasableKey] as? Bool) ?? false
-        let mType = Self.formatHumanMediaType(mediaInfo[DRDeviceMediaTypeKey] as? String ?? "Disc")
-
-        guard isErasable else {
-            let report = KroutonBurnSessionReport(
-                isSuccess: false,
-                title: "Disc Is Not Rewritable",
-                summary: "The inserted \(mType) media is write-once and cannot be erased.",
-                driveModel: driveName,
-                firmwareRevision: fwRev,
-                mediaFormattedName: mType,
-                volumeName: "Erase Operation",
-                sectorsWrittenLBA: 0,
-                bytesWritten: 0,
-                averageSpeedText: "0.0x",
-                peakSpeedText: "0.0x",
-                elapsedDurationText: "00:00",
-                diagnosticAdvice: "Only phase-change rewritable media (CD-RW, DVD-RW, DVD+RW, DVD-RAM, and BD-RE) support optical erasure."
-            )
-            self.completionReport = report
-            onCompletion(report)
-            return
-        }
-
-        device.acquireMediaReservation()
-
-        guard let erase = DRErase(for: device) else {
-            device.releaseMediaReservation()
-            let report = KroutonBurnSessionReport(
-                isSuccess: false,
-                title: "Could Not Start Erase",
-                summary: "DiscRecording could not create an erase session for \(driveName).",
-                driveModel: driveName,
-                firmwareRevision: fwRev,
-                mediaFormattedName: mType,
-                volumeName: "Erase Operation",
-                sectorsWrittenLBA: 0,
-                bytesWritten: 0,
-                averageSpeedText: "0.0x",
-                peakSpeedText: "0.0x",
-                elapsedDurationText: "00:00",
-                diagnosticAdvice: "Eject and reinsert the rewritable disc, then try again."
-            )
-            self.completionReport = report
-            onCompletion(report)
-            return
-        }
-
-        erase.setEraseType(fullErase ? DREraseTypeComplete : DREraseTypeQuick)
-
-        self.activeDRErase = erase
-        self.isExecutingQueue = true
-        self.jobStartTime = Date()
-        self.neroSamples = []
-        let eraseTargetKey = resolvedMeta?.id ?? (driveID ?? "")
-        self.beginNewPhaseScopeEvent(
-            for: eraseTargetKey,
-            driveName: driveName,
-            eventTitle: fullErase ? "Event: Full Sector Erase" : "Event: Quick TOC Erase",
-            totalSectorsLBA: resolvedMeta?.freeSectorsLBA ?? 359_847,
-            laserText: mType.contains("DVD") ? "650 nm Red (DVD-RW)" : "780 nm IR (CD-RW)",
-            strategyText: fullErase ? "Full Zero CLV" : "Quick PMA/TOC Blank"
-        )
-        self.peakSpeedX = 10.0
-        self.averageSpeedX = 8.4
-        self.laserWavelengthText = mType.contains("DVD") ? "650 nm Red (DVD-RW)" : "780 nm IR (CD-RW)"
-        self.writeStrategyText = fullErase ? "Full Zero CLV" : "Quick PMA/TOC Blank"
-        self.activeJobPhase = fullErase ? "Erasing All Sectors on \(mType)..." : "Quick Erasing \(mType) Table of Contents..."
-        self.activeJobProgress = 0.04
-        self.activeJobDetail = "\(driveName) • \(fullErase ? "Full Sector Erase" : "Quick TOC Erase")"
-
-        erase.start()
-
-        eraseMonitorTimer?.invalidate()
-        eraseMonitorTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self = self, let activeErase = self.activeDRErase else {
-                    self?.eraseMonitorTimer?.invalidate()
-                    self?.eraseMonitorTimer = nil
-                    return
-                }
-                let eStatus = activeErase.status() as? [String: Any] ?? [:]
-                let rawState = eStatus[DRStatusStateKey] as? String ?? ""
-                let pct = (eStatus[DRStatusPercentCompleteKey] as? NSNumber)?.doubleValue ?? 0.0
-
-                let clampedPct = max(0.04, min(1.0, pct))
-                self.activeJobProgress = clampedPct
-                self.activeJobPhase = Self.formatHumanBurnState(rawState, isErase: true)
-                self.elapsedSeconds = max(1, Int(Date().timeIntervalSince(self.jobStartTime)))
-
-                let simulatedX = 4.0 + (6.0 * clampedPct)
-                let divisor = mType.contains("DVD") ? 1385.0 : 176.4
-                self.currentSpeedX = simulatedX
-                self.currentSpeedKBs = simulatedX * divisor
-                self.currentSpindleRPM = Int(2200.0 + (800.0 * (1.0 - clampedPct * 0.3)))
-                self.currentSectorLBA = Int64(Double(self.totalTargetSectorsLBA) * clampedPct)
-                let sample = KroutonBurnTelemetrySample(
-                    progressFraction: clampedPct,
-                    speedMultiplierX: simulatedX,
-                    spindleRPM: Double(self.currentSpindleRPM),
-                    throughputKBs: self.currentSpeedKBs
-                )
-                self.neroSamples.append(sample)
-                let targetKey = resolvedMeta?.id ?? (driveID ?? "")
-                if !targetKey.isEmpty {
-                    var dTel = self.driveTelemetry[targetKey] ?? KroutonDrivePhaseScopeTelemetry(id: targetKey, driveName: driveName)
-                    dTel.isActive = (rawState != DRStatusStateDone && rawState != DRStatusStateFailed)
-                    dTel.phaseTitle = self.activeJobPhase
-                    dTel.progressFraction = clampedPct
-                    dTel.currentSpeedX = simulatedX
-                    dTel.currentSpeedKBs = self.currentSpeedKBs
-                    if simulatedX > dTel.peakSpeedX { dTel.peakSpeedX = simulatedX }
-                    dTel.currentSpindleRPM = self.currentSpindleRPM
-                    dTel.currentSectorLBA = self.currentSectorLBA
-                    dTel.totalSectorsLBA = self.totalTargetSectorsLBA
-                    dTel.laserWavelengthText = self.laserWavelengthText
-                    dTel.writeStrategyText = self.writeStrategyText
-                    dTel.elapsedSeconds = self.elapsedSeconds
-                    dTel.appendMonotonicSample(rawFraction: clampedPct, speedX: simulatedX, rpm: self.currentSpindleRPM, kbs: self.currentSpeedKBs)
-                    self.driveTelemetry[targetKey] = dTel
-                }
-
-                if rawState == DRStatusStateDone {
-                    self.activeDRErase = nil
-                    self.eraseMonitorTimer?.invalidate()
-                    self.eraseMonitorTimer = nil
-                    device.releaseMediaReservation()
-                    self.isExecutingQueue = false
-                    self.activeJobProgress = 1.0
-                    self.activeJobPhase = "Rewritable Disc Erased & Ready"
-                    /* Acoustic cue handled by KroutonApp UI layer */
-                    self.refreshDrives()
-                    let mins = self.elapsedSeconds / 60
-                    let secs = self.elapsedSeconds % 60
-                    let report = KroutonBurnSessionReport(
-                        isSuccess: true,
-                        title: "Rewritable Disc Erased Successfully",
-                        summary: "The \(mType) in \(driveName) has been blanked and is ready for a new mastering session.",
-                        driveModel: driveName,
-                        firmwareRevision: fwRev,
-                        mediaFormattedName: "Blank \(mType)",
-                        volumeName: fullErase ? "Full Sector Erase" : "Quick PMA/TOC Erase",
-                        sectorsWrittenLBA: resolvedMeta?.freeSectorsLBA ?? 359_847,
-                        bytesWritten: resolvedMeta?.freeBytes ?? 736_966_656,
-                        averageSpeedText: "8.4x (1,482 KB/s)",
-                        peakSpeedText: "10.0x (1,764 KB/s)",
-                        elapsedDurationText: String(format: "%02d:%02d", mins, secs),
-                        diagnosticAdvice: "All previous session pointers have been cleared. You can now burn a new Data, Audio, or Video layout."
-                    )
-                    self.completionReport = report
-                    onCompletion(report)
-                } else if rawState == DRStatusStateFailed {
-                    self.activeDRErase = nil
-                    self.eraseMonitorTimer?.invalidate()
-                    self.eraseMonitorTimer = nil
-                    device.releaseMediaReservation()
-                    self.isExecutingQueue = false
-                    let errInfo = eStatus[DRErrorStatusKey] as? [String: Any]
-                    let errStr = errInfo?[DRErrorStatusErrorStringKey] as? String ?? "Hardware erase failed."
-                    let senseStr = errInfo?[DRErrorStatusAdditionalSenseStringKey] as? String ?? ""
-                    self.activeJobPhase = "Erase Failed on \(driveName)"
-
-                    let matshitaAdvice: String
-                    if driveName.uppercased().contains("UJ-898") || driveName.uppercased().contains("MATSHITA") {
-                        matshitaAdvice = "Hardware Note: Vintage slot-load Matshita UJ-898 SuperDrives often reject older Low-Speed (1x–4x) or Ultra-Speed (16x–24x) CD-RW phase-change dye calibration, whereas Pioneer DVRTD08 and newer Matshita UJ265 drives support wider OPC tables. Use your Pioneer DVRTD08 or Matshita UJ265 for this CD-RW disc."
-                    } else {
-                        matshitaAdvice = "Try running a Full Erase instead of Quick Erase, or test the disc in another optical drive."
-                    }
-
-                    let report = KroutonBurnSessionReport(
-                        isSuccess: false,
-                        title: "Unable to Erase Rewritable Disc",
-                        summary: "\(errStr)\(senseStr.isEmpty ? "" : " (\(senseStr))")",
-                        driveModel: driveName,
-                        firmwareRevision: fwRev,
-                        mediaFormattedName: mType,
-                        volumeName: fullErase ? "Full Sector Erase" : "Quick TOC Erase",
-                        sectorsWrittenLBA: self.currentSectorLBA,
-                        bytesWritten: 0,
-                        averageSpeedText: "0.0x",
-                        peakSpeedText: "0.0x",
-                        elapsedDurationText: "00:0\(min(9, self.elapsedSeconds))",
-                        diagnosticAdvice: matshitaAdvice
-                    )
-                    self.completionReport = report
-                    onCompletion(report)
-                }
-            }
-        }
-    }
-
     public func createDiscImageFile(
         stagedFiles: [KroutonStagedFileEntry],
         volumeTitle: String,
@@ -453,51 +208,48 @@ extension KroutonOpticalDriveBank {
         let totalLBA = stagedFiles.reduce(0) { $0 + $1.sectorsLBA }
 
         do {
-            let stageItems = stagedFiles.map { KroutonBurnStageItem(source: $0.url, name: $0.name) }
-            if let stagingError = await KroutonBurnStager.stage(stageItems, into: tempRoot) {
-                throw NSError(domain: "KroutonImageStage", code: 1, userInfo: [NSLocalizedDescriptionKey: stagingError])
+            // Copy off the main actor; duplicate names and missing files come back as a message.
+            let items = stagedFiles.map { KroutonBurnStageItem(source: $0.url, name: $0.name) }
+            if let stagingError = await KroutonBurnStager.stage(items, into: tempRoot) {
+                throw KroutonDiscImageError.staging(stagingError)
             }
-            activeJobProgress = 0.50
+            activeJobProgress = 0.5
 
             if enableCustomLayout {
                 let autorunContent = "[Autorun]\r\nLabel=\(volumeTitle)\r\n"
                 try? autorunContent.write(to: tempRoot.appendingPathComponent("autorun.inf"), atomically: true, encoding: .utf8)
+
                 let layoutManifest = "Krouton Custom Finder View\nVolume: \(volumeTitle)\nIconSize: \(iconSizePx)px\n"
                 try? layoutManifest.write(to: tempRoot.appendingPathComponent(".krouton_view_layout"), atomically: true, encoding: .utf8)
             }
 
             let expandedPath = NSString(string: outputPathString).expandingTildeInPath
             let isISO = expandedPath.lowercased().hasSuffix(".iso") || expandedPath.lowercased().hasSuffix(".cdr")
-            for candidate in [expandedPath, expandedPath + ".iso", expandedPath + ".cdr"] where fm.fileExists(atPath: candidate) {
-                try? fm.removeItem(atPath: candidate)
+
+            if fm.fileExists(atPath: expandedPath) {
+                try? fm.removeItem(atPath: expandedPath)
             }
 
             activeJobPhase = isISO ? "Mastering Hybrid UDF / ISO9660 Image..." : "Mastering macOS Disk Image (.dmg)..."
             activeJobProgress = 0.65
             activeJobDetail = expandedPath
 
-            let args: [String] = isISO
-                ? ["makehybrid", "-o", expandedPath, "-iso", "-joliet", "-udf", "-udf-version", "1.02", "-hfs", "-default-volume-name", volumeTitle, tempRoot.path]
-                : ["create", "-srcfolder", tempRoot.path, "-volname", volumeTitle, "-fs", "HFS+", "-format", compressImage ? "UDZO" : "UDRW", expandedPath]
+            let args = KroutonDiscImageArguments.make(
+                outputPath: expandedPath, sourcePath: tempRoot.path, volumeTitle: volumeTitle, compress: compressImage
+            )
 
-            let status = try await Task.detached(priority: .userInitiated) { () -> Int32 in
-                let errURL = FileManager.default.temporaryDirectory.appendingPathComponent("krouton-img-\(UUID().uuidString).log")
-                FileManager.default.createFile(atPath: errURL.path, contents: nil)
-                defer { try? FileManager.default.removeItem(at: errURL) }
-                let errHandle = try FileHandle(forWritingTo: errURL)
-                defer { try? errHandle.close() }
+            let status = try await Task.detached { () -> Int32 in
                 let proc = Process()
                 proc.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
                 proc.arguments = args
                 proc.standardInput = FileHandle.nullDevice
                 proc.standardOutput = FileHandle.nullDevice
-                proc.standardError = errHandle
                 try proc.run()
                 proc.waitUntilExit()
                 return proc.terminationStatus
             }.value
 
-            try? fm.removeItem(at: tempRoot)
+            Task.detached(priority: .utility) { try? FileManager.default.removeItem(at: tempRoot) }
             let secs = max(1, Int(Date().timeIntervalSince(jobStartTime)))
 
             if status == 0 {
@@ -512,7 +264,7 @@ extension KroutonOpticalDriveBank {
                     summary: "Created a mountable hybrid disc image containing \(stagedFiles.count) items at \(expandedPath).",
                     driveModel: "Apple DiskImages Virtual Mastering Engine",
                     firmwareRevision: "macOS 26",
-                    mediaFormattedName: isISO ? "ISO9660 / Joliet / HFS+ Hybrid" : (compressImage ? "Compressed UDZO .dmg" : "Read/Write UDRW .dmg"),
+                    mediaFormattedName: isISO ? "ISO9660 / Joliet / UDF / HFS+ Hybrid" : (compressImage ? "Compressed UDZO .dmg" : "Read/Write UDRW .dmg"),
                     volumeName: volumeTitle,
                     sectorsWrittenLBA: totalLBA,
                     bytesWritten: totalBytes,
@@ -545,7 +297,7 @@ extension KroutonOpticalDriveBank {
                 return report
             }
         } catch {
-            try? fm.removeItem(at: tempRoot)
+            Task.detached(priority: .utility) { try? FileManager.default.removeItem(at: tempRoot) }
             isExecutingQueue = false
             activeJobPhase = "Error: \(error.localizedDescription)"
             let report = KroutonBurnSessionReport(

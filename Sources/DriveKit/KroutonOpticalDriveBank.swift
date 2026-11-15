@@ -45,7 +45,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
 
     var pollTimer: Timer?
     var activeBurnSession: KroutonActiveBurnSession?
-    var activeDRErase: DRErase?
+    var activeEraseSession: KroutonActiveEraseSession?
     public var burnMonitorTimer: Timer?
     public var eraseMonitorTimer: Timer?
     var jobStartTime: Date = Date()
@@ -270,9 +270,6 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
                     tracks = (mediaInfo["DRDeviceMediaTrackCountKey"] as? NSNumber)?.intValue ?? (isBlank ? 0 : max(1, sessions))
 
                     if let blocks = mediaInfo[DRDeviceMediaBlocksFreeKey] as? NSNumber, blocks.int64Value > 0 {
-                        freeBlocks = blocks.int64Value
-                        freeByteCount = freeBlocks * 2048
-                    } else if let blocks = mediaInfo[DRDeviceMediaFreeSpaceKey] as? NSNumber, blocks.int64Value > 0 {
                         freeBlocks = blocks.int64Value
                         freeByteCount = freeBlocks * 2048
                     } else if let totalBlocks = mediaInfo[DRDeviceMediaBlocksOverwritableKey] as? NSNumber, totalBlocks.int64Value > 0 {

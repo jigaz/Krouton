@@ -70,6 +70,34 @@ public enum KroutonBurnMediaPolicy {
     }
 }
 
+public enum KroutonDiscImageError: Error, LocalizedError, Sendable, Equatable {
+    case staging(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .staging(let message): return message
+        }
+    }
+}
+
+/// Argument arrays for the "save as disc image" destination. No shell is involved.
+public enum KroutonDiscImageArguments {
+    /// ".iso" and ".cdr" outputs are hybrid optical images; anything else is a .dmg.
+    public static func isOpticalImage(outputPath: String) -> Bool {
+        let lower = outputPath.lowercased()
+        return lower.hasSuffix(".iso") || lower.hasSuffix(".cdr")
+    }
+
+    public static func make(outputPath: String, sourcePath: String, volumeTitle: String, compress: Bool) -> [String] {
+        if isOpticalImage(outputPath: outputPath) {
+            return ["makehybrid", "-o", outputPath, "-hfs", "-iso", "-joliet", "-udf",
+                    "-default-volume-name", volumeTitle, sourcePath]
+        }
+        return ["create", "-srcfolder", sourcePath, "-volname", volumeTitle, "-fs", "HFS+",
+                "-format", compress ? "UDZO" : "UDRW", outputPath]
+    }
+}
+
 /// One file or folder to copy into the temporary burn stage.
 public struct KroutonBurnStageItem: Sendable, Equatable {
     public let source: URL

@@ -426,9 +426,12 @@ extension KroutonOpticalDriveBank {
     /// from under a drive that is still writing.
     public func abortActiveBurn() {
         guard let session = activeBurnSession else {
-            // No data burn in flight: keep the previous behaviour for erase and conversion jobs.
+            if let eraseSession = activeEraseSession {
+                // DiscRecording cannot stop an erase. Keep tracking it so the drive is not shown as idle.
+                activeJobDetail = "An erase cannot be interrupted. Waiting for \(eraseSession.driveName) to finish."
+                return
+            }
             burnMonitorTimer?.invalidate()
-            eraseMonitorTimer?.invalidate()
             isExecutingQueue = false
             activeJobPhase = "Operation Aborted by User"
             return
