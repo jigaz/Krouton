@@ -20,7 +20,6 @@ extension SpoolRemoteNodeClient {
         targetDriveKey: String = "network-spool-drive"
     ) async -> Bool {
         let batchID = UUID()
-        var spoolJobID = UUID()
         self.lastBatchID = batchID
 
         let parsedHeatX: UInt8 = {
@@ -29,7 +28,6 @@ extension SpoolRemoteNodeClient {
             return lastCalibration?.maxSafeDvdHeatX ?? 16
         }()
 
-        // STEP 1: Allocate Spool Cache Slot (`POST /api/v1/spool/slot`) & Enforce >= 1 GiB Free Space Rule
         isSpoolingImage = true
         spoolProgressFraction = 0.0
         let hostPort = normalizedHostPort(from: endpoint)
@@ -43,80 +41,106 @@ extension SpoolRemoteNodeClient {
         tel.isActive = true
         tel.samples.removeAll()
         tel.elapsedSeconds = 0
-        tel.phaseTitle = "Spooling Disc Image to Remote Cache (Zero-Underrun Guard)..."
+        tel.phaseTitle = "Connecting to Spool Daemon on \(hostPort)..."
         driveManager.driveTelemetry[targetDriveKey] = tel
 
-        var liveSlotAllocated = false
-        if let base = normalizedBaseURL(from: endpoint),
-           let slotURL = URL(string: "/api/v1/spool/slot", relativeTo: base) {
-            var slotReq = URLRequest(url: slotURL)
-            slotReq.httpMethod = "POST"
-            slotReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            let totalStagedBytes: UInt64 = UInt64(max(1, stagedFiles.count + audioTracks.count)) * 33_554_432
-            slotReq.httpBody = try? JSONEncoder().encode(["volume_title": volumeTitle, "requested_bytes": String(totalStagedBytes)])
-
-            if let (data, resp) = try? await session.data(for: slotReq),
-               let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode),
-               let slotInfo = try? JSONDecoder().decode(SpoolDriveSlotResponse.self, from: data) {
-                spoolJobID = slotInfo.spoolJobId
-                liveSlotAllocated = true
-                if slotInfo.freeBytes < SpoolNetworkConstants.minimumSpoolFreeBytes {
-                    isSpoolingImage = false
-                    let freeMB = Double(slotInfo.freeBytes) / 1_048_576.0
-                    let msg = String(format: "Spool Cache Low Space (%.0f MB < 1024 MB minimum)", freeMB)
-                    applySpoolEventToTelemetry(
-                        SpoolNodeEventMessage(
-                            event: "BURN_FAILED",
-                            batchId: batchID,
-                            driveId: remoteDrives.first?.id,
-                            currentCube: nil,
-                            crispnessPct: 0.0,
-                            butterBufferPct: 0.0,
-                            heatX: 0.0,
-                            reason: msg
-                        ),
-                        driveManager: driveManager,
-                        targetDriveKey: targetDriveKey
-                    )
-                    return false
-                }
-                appendEventLog("Spool Cache Slot \(spoolJobID.uuidString.prefix(8)) Allocated (\(slotInfo.freeBytes / 1_073_741_824) GiB Free)")
-            }
+        func failSpool(_ reason: String) -> Bool {
+            isSpoolingImage = false
+            isDaemonReachable = false
+            applySpoolEventToTelemetry(
+                SpoolNodeEventMessage(
+                    event: "BURN_FAILED",
+                    batchId: batchID,
+                    driveId: remoteDrives.first?.id,
+                    currentCube: nil,
+                    crispnessPct: 0.0,
+                    butterBufferPct: 0.0,
+                    heatX: 0.0,
+                    reason: reason
+                ),
+                driveManager: driveManager,
+                targetDriveKey: targetDriveKey
+            )
+            return false
         }
 
-        // STEP 2: Stream Staged Loaf / WAV Cubes to Pantry Before Laser Ignition
-        for step in 1...10 {
-            if liveSlotAllocated,
-               let base = normalizedBaseURL(from: endpoint),
-               let chunkURL = URL(string: "/api/v1/spool/slot/\(spoolJobID.uuidString)/chunk", relativeTo: base) {
+        guard let base = normalizedBaseURL(from: endpoint),
+              let slotURL = URL(string: "/api/v1/spool/slot", relativeTo: base) else {
+            return failSpool("Invalid spool endpoint: \(hostPort)")
+        }
+
+        let stagedDataBytes = stagedFiles.reduce(Int64(0)) { $0 + max(0, $1.byteSize) }
+        let audioDataBytes = audioTracks.reduce(Int64(0)) { $0 + max(0, $1.redBookByteSize) }
+        let totalStagedBytes = UInt64(max(0, stagedDataBytes + audioDataBytes))
+
+        var slotReq = URLRequest(url: slotURL)
+        slotReq.httpMethod = "POST"
+        slotReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        slotReq.httpBody = try? JSONEncoder().encode(["volume_title": volumeTitle, "requested_bytes": String(totalStagedBytes)])
+
+        guard let (slotData, slotResp) = try? await session.data(for: slotReq),
+              let slotHTTP = slotResp as? HTTPURLResponse,
+              (200..<300).contains(slotHTTP.statusCode),
+              let slotInfo = try? JSONDecoder().decode(SpoolDriveSlotResponse.self, from: slotData) else {
+            return failSpool("Spool daemon unreachable on \(hostPort).")
+        }
+
+        let spoolJobID = slotInfo.spoolJobId
+        if slotInfo.freeBytes < SpoolNetworkConstants.minimumSpoolFreeBytes {
+            let freeMB = Double(slotInfo.freeBytes) / 1_048_576.0
+            return failSpool(String(format: "Spool Cache Low Space (%.0f MB < 1024 MB minimum)", freeMB))
+        }
+        appendEventLog("Spool Cache Slot \(spoolJobID.uuidString.prefix(8)) Allocated (\(slotInfo.freeBytes / 1_073_741_824) GiB Free)")
+
+        guard let chunkURL = URL(string: "/api/v1/spool/slot/\(spoolJobID.uuidString)/chunk", relativeTo: base) else {
+            return failSpool("Could not construct spool chunk URL.")
+        }
+
+        let sourceURLs: [URL] = stagedFiles.map(\.url) + audioTracks.map(\.url)
+        let chunkSize = 65_536
+        var bytesSent: UInt64 = 0
+        for fileURL in sourceURLs {
+            guard let handle = try? FileHandle(forReadingFrom: fileURL) else {
+                return failSpool("Could not read staged file: \(fileURL.lastPathComponent)")
+            }
+            defer { try? handle.close() }
+            while let chunk = try? handle.read(upToCount: chunkSize), !chunk.isEmpty {
                 var chunkReq = URLRequest(url: chunkURL)
                 chunkReq.httpMethod = "POST"
-                chunkReq.httpBody = kroutonReadSpoolChunkBytes(chunkIndex: step, chunkSize: 4096)
-                _ = try? await session.data(for: chunkReq)
-            } else {
-                try? await Task.sleep(nanoseconds: 65_000_000)
+                chunkReq.httpBody = chunk
+                guard let (_, cResp) = try? await session.data(for: chunkReq),
+                      let cHTTP = cResp as? HTTPURLResponse,
+                      (200..<300).contains(cHTTP.statusCode) else {
+                    return failSpool("Chunk upload failed on \(hostPort) while sending \(fileURL.lastPathComponent).")
+                }
+                bytesSent += UInt64(chunk.count)
+                if totalStagedBytes > 0 {
+                    spoolProgressFraction = min(1.0, Double(bytesSent) / Double(totalStagedBytes))
+                }
+                statusBannerText = String(format: "Spooling Image to Cache: %.0f%%", spoolProgressFraction * 100.0)
             }
-            spoolProgressFraction = Double(step) / 10.0
-            statusBannerText = String(format: "Spooling Image to Cache: %.0f%% (100%% Spool Before Burn)", spoolProgressFraction * 100.0)
         }
+        spoolProgressFraction = 1.0
         isSpoolingImage = false
-        appendEventLog("Spool Cache 100% Complete -> Dispatching POST /api/v1/burn")
+        appendEventLog("Spool Cache Upload Complete -> Dispatching POST /api/v1/bake")
 
-        // STEP 3: Build & Dispatch `SpoolBurnRequest` (`POST /api/v1/bake`)
         let cubePayloads: [SpoolTrackPayload] = audioTracks.enumerated().map { idx, c in
             SpoolTrackPayload(
                 trackNumber: UInt8(idx + 1),
                 filename: c.url.lastPathComponent,
                 title: c.title,
                 performer: c.performer,
-                isrc: c.isrcCode,
+                isrc: c.isrcCode.isEmpty ? nil : c.isrcCode,
                 pregapMs: UInt32(c.preGapSeconds * 1000.0)
             )
+        }
+        guard let targetRemoteDriveID = remoteDrives.first?.id else {
+            return failSpool("No remote optical drives reported by \(hostPort).")
         }
         let bakeReq = SpoolBurnRequest(
             batchId: batchID,
             spoolJobId: spoolJobID,
-            driveIds: [remoteDrives.first?.id ?? "usb-pioneer-slot-0"],
+            driveIds: [targetRemoteDriveID],
             heatX: parsedHeatX,
             mode: simulationMode ? .proofOnly : .burnMedia,
             retentionPolicy: retentionPolicy,
@@ -124,146 +148,72 @@ extension SpoolRemoteNodeClient {
             cubes: cubePayloads
         )
 
-        if let base = normalizedBaseURL(from: endpoint),
-           let bakeURL = URL(string: "/api/v1/bake", relativeTo: base) {
-            var req = URLRequest(url: bakeURL)
-            req.httpMethod = "POST"
-            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            req.httpBody = try? JSONEncoder().encode(bakeReq)
-            if let (_, resp) = try? await session.data(for: req),
-               let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) {
-                isDaemonReachable = true
-                appendEventLog("Remote Spool Daemon Accepted Batch \(batchID.uuidString.prefix(8)) -> Streaming WS /api/v1/spool/events")
-                connectKitchenWebSocket(endpoint: endpoint, driveManager: driveManager, targetDriveKey: targetDriveKey)
-                // Do NOT run local simulation loop when live daemon WebSocket is driving telemetry!
-                return true
-            }
+        guard let bakeURL = URL(string: "/api/v1/bake", relativeTo: base) else {
+            return failSpool("Could not construct /api/v1/bake URL.")
+        }
+        var req = URLRequest(url: bakeURL)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONEncoder().encode(bakeReq)
+        guard let (_, resp) = try? await session.data(for: req),
+              let http = resp as? HTTPURLResponse,
+              (200..<300).contains(http.statusCode) else {
+            return failSpool("Remote daemon rejected /api/v1/bake request on \(hostPort).")
         }
 
-        // STEP 4: Offline EasyBake WebSocket Synthesizer (Only runs when no live daemon is on Port 7420)
-        appendEventLog("Virtual Drive Synthesizer Active -> Streaming simulated WS /api/v1/spool/events frames")
-        applySpoolEventToTelemetry(
-            SpoolNodeEventMessage(
-                event: "PREHEATING",
-                batchId: batchID,
-                driveId: bakeReq.driveIds.first,
-                currentCube: 1,
-                crispnessPct: 0.0,
-                butterBufferPct: 98.0,
-                heatX: 4.0,
-                reason: nil
-            ),
-            driveManager: driveManager,
-            targetDriveKey: targetDriveKey
-        )
-        try? await Task.sleep(nanoseconds: 220_000_000)
-
-        let totalSteps = 36
-        for s in 1...totalSteps {
-            try? await Task.sleep(nanoseconds: 55_000_000)
-            let frac = Double(s) / Double(totalSteps)
-            let curHeat = min(Double(parsedHeatX), 4.2 + (Double(max(4, parsedHeatX)) - 4.2) * pow(frac, 0.78))
-            let buf = 96.0 + 3.0 * sin(frac * 24.0)
-            let cubeNum = UInt8(min(max(1, audioTracks.count), Int(frac * Double(max(1, audioTracks.count))) + 1))
-
-            if var t = driveManager.driveTelemetry[targetDriveKey] {
-                t.elapsedSeconds = Int(frac * 145.0)
-                driveManager.driveTelemetry[targetDriveKey] = t
-            }
-
-            applySpoolEventToTelemetry(
-                SpoolNodeEventMessage(
-                    event: "BURNING_PROGRESS",
-                    batchId: batchID,
-                    driveId: bakeReq.driveIds.first,
-                    currentCube: cubeNum,
-                    crispnessPct: frac * 100.0,
-                    butterBufferPct: buf,
-                    heatX: curHeat,
-                    reason: nil
-                ),
-                driveManager: driveManager,
-                targetDriveKey: targetDriveKey
-            )
-        }
-
-        applySpoolEventToTelemetry(
-            SpoolNodeEventMessage(
-                event: "DING_BATCH_READY",
-                batchId: batchID,
-                driveId: bakeReq.driveIds.first,
-                currentCube: UInt8(max(1, audioTracks.count)),
-                crispnessPct: 100.0,
-                butterBufferPct: 100.0,
-                heatX: Double(parsedHeatX),
-                reason: nil
-            ),
-            driveManager: driveManager,
-            targetDriveKey: targetDriveKey
-        )
+        isDaemonReachable = true
+        appendEventLog("Remote Spool Daemon Accepted Batch \(batchID.uuidString.prefix(8)) -> Streaming WS /api/v1/spool/events")
+        connectKitchenWebSocket(endpoint: endpoint, driveManager: driveManager, targetDriveKey: targetDriveKey)
         return true
     }
 
     public func preparePhaseScopeTelemetryArtifact(endpoint: String? = nil) async -> SpoolExportedArtifact {
         let target = endpoint ?? activeEndpointHost
-        var reportBody = """
-        ===================================================================
-        OPTICAL SPOOL TELEMETRY — IN-MEMORY FLIGHT RECORDER (PORT 7420)
-        Endpoint : \(normalizedHostPort(from: target))
-        Batch ID : \(lastBatchID.uuidString)
-        Retention Policy : \(retentionPolicy.rawValue)
-        ===================================================================
-
-        --- RECENT KITCHEN EVENTS ---
-        \(recentKitchenEvents.joined(separator: "\n"))
-
-        --- LAST GENERATED CDRDAO .TOC SNAPSHOT (AudioKit CD-Text / TOC) ---
-        CD_DA
-        CD_TEXT {
-          LANGUAGE_MAP { 0 : EN }
-          LANGUAGE 0 {
-            TITLE "KROUTON_DISC"
-            PERFORMER "Krouton"
-            UPC_EAN "0123456789012"
-          }
-        }
-        TRACK AUDIO
-        ISRC "USKRU2600001"
-        FILE "cube_01.wav" 0
-        """
-
         if let base = normalizedBaseURL(from: target),
            let url = URL(string: "/api/v1/spool/telemetry", relativeTo: base),
            let (data, resp) = try? await session.data(from: url),
            let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode),
            let liveText = String(data: data, encoding: .utf8), !liveText.isEmpty {
-            reportBody = liveText
+            let filename = "Spool_Telemetry_\(lastBatchID.uuidString.prefix(8)).log"
+            appendEventLog("Exported live telemetry artifact (\(filename))")
+            return SpoolExportedArtifact(defaultFilename: filename, contentText: liveText)
         }
 
+        let reportBody = """
+        ===================================================================
+        OPTICAL SPOOL TELEMETRY — CLIENT EVENT LOG (PORT 7420)
+        Endpoint : \(normalizedHostPort(from: target)) (Daemon Unreachable)
+        Batch ID : \(lastBatchID.uuidString)
+        Retention Policy : \(retentionPolicy.rawValue)
+        ===================================================================
+
+        --- RECENT CLIENT EVENTS ---
+        \(recentKitchenEvents.joined(separator: "\n"))
+        """
         let filename = "Spool_Telemetry_\(lastBatchID.uuidString.prefix(8)).log"
-        appendEventLog("Prepared PhaseScopeTelemetry artifact (\(filename))")
+        appendEventLog("Prepared client event log artifact (\(filename))")
         return SpoolExportedArtifact(defaultFilename: filename, contentText: reportBody)
     }
 
     public func prepareDiagnosticBundleArtifact(endpoint: String? = nil) async -> SpoolExportedArtifact {
         let target = endpoint ?? activeEndpointHost
-        var bagText: String? = nil
         if let base = normalizedBaseURL(from: target),
            let url = URL(string: "/api/v1/spool/diagnostics/\(lastBatchID.uuidString)", relativeTo: base),
            let (data, resp) = try? await session.data(from: url),
            let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode),
            let str = String(data: data, encoding: .utf8), !str.isEmpty {
-            bagText = str
+            let filename = "Spool_Diagnostics_\(lastBatchID.uuidString.prefix(8)).txt"
+            appendEventLog("Exported live diagnostic bundle for Batch \(lastBatchID.uuidString.prefix(8))")
+            return SpoolExportedArtifact(defaultFilename: filename, contentText: str)
         }
-        let finalBody = bagText ?? """
+        let finalBody = """
         # Optical Spool Diagnostic Bundle (Policy: \(retentionPolicy.rawValue))
         Batch ID: \(lastBatchID.uuidString)
         Host: \(normalizedHostPort(from: target))
-        Included Artifacts: batch.toc, cdrdao.log, SpoolCalibration snapshot
-        Status: No BurnFailed errors recorded in last batch.
+        Status: Spool daemon unreachable on \(normalizedHostPort(from: target)); no remote diagnostic bundle available.
         """
         let filename = "Spool_Diagnostics_\(lastBatchID.uuidString.prefix(8)).txt"
-        appendEventLog("Prepared Diagnostic bundle for Batch \(lastBatchID.uuidString.prefix(8))")
+        appendEventLog("Prepared offline diagnostic note for Batch \(lastBatchID.uuidString.prefix(8))")
         return SpoolExportedArtifact(defaultFilename: filename, contentText: finalBody)
     }
 }

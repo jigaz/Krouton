@@ -274,21 +274,11 @@ public final class SpoolRemoteNodeClient: ObservableObject {
     @Published public var activeEndpointHost: String = "localhost:7420"
     @Published public var retentionPolicy: SpoolArtifactRetentionPolicy = .notesOnlyOnFailure
     @Published public var discoveredNodes: [SpoolDiscoveredNode] = [
-        SpoolDiscoveredNode(id: "local-simulator", name: "Local Burn Server", hostPort: "localhost:7420", isSimulatedFallback: true),
-        SpoolDiscoveredNode(id: "lan-pi3b", name: "LAN Optical Server (pi3b)", hostPort: "spool-pi3b.local:7420", isSimulatedFallback: true)
+        SpoolDiscoveredNode(id: "localhost", name: "Localhost (Port 7420)", hostPort: "localhost:7420", isSimulatedFallback: false)
     ]
-    @Published public var remoteDrives: [SpoolRemoteDriveInfo] = [
-        SpoolRemoteDriveInfo(id: "usb-pioneer-slot-0", name: "Remote Drive #1 (PIONEER BD-RW)", rackState: .closed, sliceMedia: .blankCdR, isSimulatedDrive: true),
-        SpoolRemoteDriveInfo(id: "usb-plextor-slot-1", name: "Remote Drive #2 (PLEXTOR PX-716A)", rackState: .closed, sliceMedia: .blankDvdR, isSimulatedDrive: true)
-    ]
-    @Published public var lastCalibration: SpoolDriveCalibrationResult? = SpoolDriveCalibrationResult(
-        freeBytes: 48_318_382_080,
-        maxSafeCdHeatX: 24,
-        maxSafeDvdHeatX: 16,
-        maxSafeBdHeatX: 6,
-        canSustain16xDvd: true
-    )
-    @Published public var statusBannerText: String = "Burn Server Online • 2 Remote Drives Ready"
+    @Published public var remoteDrives: [SpoolRemoteDriveInfo] = []
+    @Published public var lastCalibration: SpoolDriveCalibrationResult? = nil
+    @Published public var statusBannerText: String = "Spool Daemon Offline (Port 7420)"
     @Published public var isDaemonReachable: Bool = false
     @Published public var isWebSocketConnected: Bool = false
     @Published public var isSpoolingImage: Bool = false
@@ -330,16 +320,13 @@ public final class SpoolRemoteNodeClient: ObservableObject {
             Task { @MainActor in
                 guard let self else { return }
                 var found: [SpoolDiscoveredNode] = [
-                    SpoolDiscoveredNode(id: "local-simulator", name: "Local Burn Server", hostPort: "localhost:7420", isSimulatedFallback: true)
+                    SpoolDiscoveredNode(id: "localhost", name: "Localhost (Port 7420)", hostPort: "localhost:7420", isSimulatedFallback: false)
                 ]
                 for res in results {
                     if case let .service(name, _, _, _) = res.endpoint {
                         let safeHost = Self.sanitizeMdnsHostname(name)
                         found.append(SpoolDiscoveredNode(id: name, name: "\(name) (_krouton-spool._tcp)", hostPort: "\(safeHost).local:\(SpoolNetworkConstants.defaultPort)", isSimulatedFallback: false))
                     }
-                }
-                if found.count == 1 {
-                    found.append(SpoolDiscoveredNode(id: "lan-pi3b", name: "LAN Optical Server (Standby)", hostPort: "spool-pi3b.local:7420", isSimulatedFallback: true))
                 }
                 self.discoveredNodes = found
             }
@@ -394,9 +381,10 @@ public final class SpoolRemoteNodeClient: ObservableObject {
                 return
             }
         } catch {}
+        self.remoteDrives = []
         self.isDaemonReachable = false
-        self.statusBannerText = "Virtual Drive Standby • \(remoteDrives.count) Virtual Optical Drives (Port 7420)"
-        appendEventLog("Probe \(normalizedHostPort(from: target)) -> Using 2-Slot virtual OpticalDriveBank")
+        self.statusBannerText = "Spool Daemon Unreachable on \(normalizedHostPort(from: target))"
+        appendEventLog("GET /api/v1/drives failed on \(normalizedHostPort(from: target)) (Daemon Offline)")
     }
 
     public func toggleDriveTray(driveID: String, endpoint: String? = nil) async {
@@ -442,17 +430,10 @@ public final class SpoolRemoteNodeClient: ObservableObject {
                 return
             }
         }
-        let simulated = SpoolDriveCalibrationResult(
-            freeBytes: 48_318_382_080,
-            maxSafeCdHeatX: 24,
-            maxSafeDvdHeatX: 16,
-            maxSafeBdHeatX: 6,
-            canSustain16xDvd: true
-        )
-        self.lastCalibration = simulated
-        let gb = Double(simulated.freeBytes) / 1_073_741_824.0
-        self.statusBannerText = String(format: "Remote Spool Cache Unverified (Daemon Offline — Local Hardware Only)", gb, simulated.maxSafeCdHeatX, simulated.maxSafeDvdHeatX)
-        appendEventLog("POST /api/v1/spool/calibrate -> \(statusBannerText)")
+        self.lastCalibration = nil
+        self.isDaemonReachable = false
+        self.statusBannerText = "Spool Cache Calibration Failed (Daemon Unreachable on \(normalizedHostPort(from: target)))"
+        appendEventLog("POST /api/v1/spool/calibrate failed on \(normalizedHostPort(from: target))")
     }
 
     public func connectKitchenWebSocket(endpoint: String? = nil, driveManager: (any KroutonDriveTelemetryStore)? = nil, targetDriveKey: String = "network-spool-drive") {
@@ -517,9 +498,8 @@ public final class SpoolRemoteNodeClient: ObservableObject {
 
         case "BURNING_PROGRESS":
             let frac = min(1.0, max(0.0, (evt.crispnessPct ?? 0.0) / 100.0))
-            let heatX = evt.heatX ?? (4.2 + 11.8 * pow(frac, 0.78))
-            let bufPct = evt.butterBufferPct ?? 96.0
-            let rpm = 1850.0 + (heatX * 195.0)
+            let heatX = max(0.0, evt.heatX ?? 0.0)
+            let bufPct = max(0.0, evt.butterBufferPct ?? 0.0)
             let kbs = heatX * 176.4
 
             tel.isActive = true
@@ -527,16 +507,18 @@ public final class SpoolRemoteNodeClient: ObservableObject {
             tel.progressFraction = frac
             tel.currentSpeedX = heatX
             tel.currentSpeedKBs = kbs
-            tel.peakSpeedX = max(tel.peakSpeedX, heatX)
-            tel.averageSpeedX = (tel.averageSpeedX == 0) ? heatX : ((tel.averageSpeedX * 0.85) + (heatX * 0.15))
-            tel.currentSpindleRPM = Int(rpm)
+            if heatX > tel.peakSpeedX { tel.peakSpeedX = heatX }
+            if heatX > 0 {
+                tel.averageSpeedX = (tel.averageSpeedX == 0) ? heatX : ((tel.averageSpeedX * 0.85) + (heatX * 0.15))
+            }
+            tel.currentSpindleRPM = 0
             tel.bufferFillPercent = bufPct
             tel.currentSectorLBA = Int64(Double(tel.totalSectorsLBA) * frac)
             tel.samples.append(
                 KroutonBurnTelemetrySample(
                     progressFraction: frac,
                     speedMultiplierX: heatX,
-                    spindleRPM: rpm,
+                    spindleRPM: 0.0,
                     throughputKBs: kbs
                 )
             )
