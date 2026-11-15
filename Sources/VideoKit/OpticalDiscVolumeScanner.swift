@@ -353,7 +353,7 @@ public enum OpticalDiscVolumeScanner {
             sourceDirectory.path
         ]
         let errPipe = Pipe()
-        proc.standardOutput = Pipe()
+        proc.standardOutput = FileHandle.nullDevice // never read; a pipe here can fill and stall hdiutil
         proc.standardError = errPipe
         try proc.run()
         proc.waitUntilExit()

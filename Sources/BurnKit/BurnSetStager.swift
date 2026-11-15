@@ -1,4 +1,5 @@
 import OpticalCore
+import ImageKit
 import CryptoKit
 import Foundation
 // MARK: - Append-Only JSONL BurnEventJournal (with readAll() for BurnSetProgress.replay)
@@ -93,7 +94,8 @@ public enum BurnSetStager {
     /// Stages all discs of a spanned set in two phases:
     /// 1. Copies each source file ONCE into its disc staging directory while hashing its exact bytes.
     /// 2. Writes the cross-disc `SpanManifest` (`krouton-set-index.json` + `manifest-sha256.txt` or `SHA256SUMS`)
-    ///    into every disc directory and packages each disc into a deterministic image with its own SHA-256.
+    ///    into every disc directory and masters each disc into a mountable hybrid image with its own SHA-256.
+    /// This runs `hdiutil` and blocks until it exits, so call it off the main actor.
     public static func freezeAndStageSet(
         setID: BurnSetID = BurnSetID(),
         title: String,
@@ -158,7 +160,7 @@ public enum BurnSetStager {
             }
 
             let imageURL = setDir.appendingPathComponent(String(format: "%@.iso", discEntry.volumeLabel))
-            let (imageBytes, imageSHA256) = try buildDeterministicISOImage(fromDirectory: discDir, volumeLabel: discEntry.volumeLabel, outputURL: imageURL)
+            let (imageBytes, imageSHA256) = try buildFrozenDiscImage(fromDirectory: discDir, volumeLabel: discEntry.volumeLabel, outputURL: imageURL)
             frozenDiscs.append(FrozenDisc(
                 index: discEntry.index,
                 volumeLabel: discEntry.volumeLabel,
@@ -172,29 +174,14 @@ public enum BurnSetStager {
         return (burnSet, spanSetIndex)
     }
 
-    private static func buildDeterministicISOImage(fromDirectory dir: URL, volumeLabel: String, outputURL: URL) throws -> (Int64, String) {
-        let fm = FileManager.default
-        var composite = Data()
-        // 16-sector System Area + Primary Volume Descriptor header at LBA 16
-        composite.append(Data(count: 16 * 2048))
-        var pvd = Data(count: 2048)
-        let headerBytes = Array("\u{01}CD001\u{01}\u{00}\(volumeLabel.padding(toLength: 32, withPad: " ", startingAt: 0))".utf8)
-        pvd.replaceSubrange(0..<min(2048, headerBytes.count), with: headerBytes)
-        composite.append(pvd)
-
-        if let enumerator = fm.enumerator(at: dir, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles]) {
-            let allURLs = (enumerator.allObjects as? [URL] ?? []).sorted { $0.path < $1.path }
-            for fileURL in allURLs {
-                if (try? fileURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true,
-                   let data = try? Data(contentsOf: fileURL) {
-                    composite.append(data)
-                    let rem = composite.count % 2048
-                    if rem != 0 { composite.append(Data(count: 2048 - rem)) }
-                }
-            }
-        }
-        try composite.write(to: outputURL, options: .atomic)
-        let digest = SHA256.hash(data: composite).map { String(format: "%02x", $0) }.joined()
-        return (Int64(composite.count), digest)
+    /// Masters `dir` into a mountable ISO-9660 + Joliet + UDF image with `hdiutil makehybrid` and
+    /// hashes the finished file. The image is built once and frozen; every attempt burns these bytes.
+    private static func buildFrozenDiscImage(fromDirectory dir: URL, volumeLabel: String, outputURL: URL) throws -> (Int64, String) {
+        let built = try KroutonHybridImageBuilder.buildBlocking(
+            sourceDirectory: dir,
+            outputURL: outputURL,
+            options: KroutonHybridImageOptions(volumeName: volumeLabel)
+        )
+        return (built.byteCount, built.sha256Hex)
     }
 }

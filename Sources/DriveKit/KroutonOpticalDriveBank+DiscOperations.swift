@@ -143,7 +143,7 @@ extension KroutonOpticalDriveBank {
     }
 
     /// Every connected drive paired with its identifier. Two identical drives get distinct identifiers.
-    func identifiedDevices() -> [(device: DRDevice, id: String)] {
+    static func identifiedDevices() -> [(device: DRDevice, id: String)] {
         guard let devices = DRDevice.devices() as? [DRDevice], !devices.isEmpty else { return [] }
         var baseIDs: [String] = []
         var registryPaths: [String] = []
@@ -163,7 +163,7 @@ extension KroutonOpticalDriveBank {
     /// With no identifier: the selected drive, else the first one. With an identifier: that
     /// drive or nil. It never substitutes a different drive for one that has gone away.
     func resolveDRDevice(id: String? = nil) -> DRDevice? {
-        let identified = identifiedDevices()
+        let identified = Self.identifiedDevices()
         guard let targetID = id, !targetID.isEmpty else {
             if let selectedID = selectedDrive?.id, let match = identified.first(where: { $0.id == selectedID }) {
                 return match.device

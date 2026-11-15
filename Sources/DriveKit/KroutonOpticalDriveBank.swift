@@ -203,7 +203,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
         var found: [KroutonOpticalDriveInfo] = []
 
         do {
-            for (dev, deviceID) in identifiedDevices() {
+            for (dev, deviceID) in Self.identifiedDevices() {
                 let info = dev.info() as? [String: Any] ?? [:]
                 let status = dev.status() as? [String: Any] ?? [:]
 

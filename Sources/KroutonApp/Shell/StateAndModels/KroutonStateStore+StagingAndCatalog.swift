@@ -428,36 +428,41 @@ public struct KroutonStyledIconBadge: View {
     }
 }
 
-/// Generates a real, byte-aligned 36,864-byte (18-sector x 2,048B) ISO-9660 + El Torito image on disk,
-/// verifies its boot signature via `Galette`, and returns its live `CryptoKit.SHA256` hex digest.
-public func kroutonSynthesizeVerifiedISO9660ImageOnDisk(
-    title: String,
-    fileName: String,
-    additionalFiles: [HybridISOFileInput] = []
-) -> (url: URL, sha256: String, sizeBytes: Int64) {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("KroutonDepotStaging", isDirectory: true)
-    let outURL = dir.appendingPathComponent(fileName)
-    let payloadFiles: [HybridISOFileInput] = additionalFiles.isEmpty
-        ? [
-            HybridISOFileInput(
-                fileName: "KROUTON_MANIFEST.TXT",
-                data: Data("VOLUME=\(title)\nENGINE=KROUTON_ECMA119_ISO9660\n".utf8)
-            )
-        ]
-        : additionalFiles
+// MARK: - Staged files -> hybrid disc image
 
-    do {
-        let result = try KroutonHybridISO9660Writer.writeMountableISO9660Image(
-            volumeTitle: title,
-            files: payloadFiles,
-            outputURL: outURL
-        )
-        if let rawData = try? Data(contentsOf: result.url) {
-            _ = KroutonDiscImageDepot.classifyBootableImage(headerBytes: rawData)
+@MainActor
+extension KroutonStateStore {
+    /// Masters the staged files into a mountable ISO-9660 + Joliet + UDF image with `hdiutil makehybrid`
+    /// and records its location and SHA-256. On failure both are cleared, so nothing downstream
+    /// (the LAN spool client, the Depot) can pick up a stale or partial image.
+    func masterStagedFilesToHybridISO() async {
+        burnQueueSubStore.lastMasteredISOURL = nil
+        burnQueueSubStore.lastMasteredSHA256 = ""
+        guard !stagedFiles.isEmpty else { return }
+
+        let fm = FileManager.default
+        let stagingRoot = fm.temporaryDirectory.appendingPathComponent("KroutonDepotStaging", isDirectory: true)
+        let treeURL = stagingRoot.appendingPathComponent("Tree_\(UUID().uuidString)", isDirectory: true)
+        let outputURL = stagingRoot.appendingPathComponent("Krouton_Master_Output.iso")
+        defer {
+            Task.detached(priority: .utility) { try? FileManager.default.removeItem(at: treeURL) }
         }
-        return (result.url, result.sha256Hex, result.totalBytes)
-    } catch {
-        KroutonDiagnostics.masteringLogger.error("ISO-9660 writer error: \(error.localizedDescription, privacy: .public)")
-        return (outURL, "sha256:" + String(repeating: "0", count: 64), 0)
+
+        let items = stagedFiles.map { KroutonBurnStageItem(source: $0.url, name: $0.name) }
+        if let stagingError = await KroutonBurnStager.stage(items, into: treeURL) {
+            KroutonDiagnostics.masteringLogger.error("Image staging failed: \(stagingError, privacy: .public)")
+            return
+        }
+        do {
+            let image = try await KroutonHybridImageBuilder.build(
+                sourceDirectory: treeURL,
+                outputURL: outputURL,
+                options: KroutonHybridImageOptions(volumeName: discVolumeTitle)
+            )
+            burnQueueSubStore.lastMasteredISOURL = image.url
+            burnQueueSubStore.lastMasteredSHA256 = "sha256:" + image.sha256Hex
+        } catch {
+            KroutonDiagnostics.masteringLogger.error("Image mastering failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 }

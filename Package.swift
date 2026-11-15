@@ -24,7 +24,7 @@ let package = Package(
     targets: [
         .target(name: "OpticalCore"),
         .target(name: "DriveKit", dependencies: ["OpticalCore"]),
-        .target(name: "BurnKit", dependencies: ["OpticalCore", "DriveKit"]),
+        .target(name: "BurnKit", dependencies: ["OpticalCore", "DriveKit", "ImageKit"]),
         .target(name: "AudioKit", dependencies: ["OpticalCore"]),
         .target(name: "ImageKit", dependencies: ["OpticalCore"]),
         .target(name: "RescueKit", dependencies: ["OpticalCore"]),

@@ -577,17 +577,7 @@ extension KroutonStateStore {
                 KroutonOSDesktopBridge.revealInFinder(url: outDir)
                 return
             }
-            let isoInputs: [HybridISOFileInput] = stagedFiles.compactMap { entry in
-                let fileData = (try? Data(contentsOf: entry.url)) ?? Data("STAGED_ENTRY=\(entry.name)\nBYTES=\(entry.byteSize)\n".utf8)
-                return HybridISOFileInput(fileName: entry.name, data: fileData)
-            }
-            let synth = kroutonSynthesizeVerifiedISO9660ImageOnDisk(
-                title: discVolumeTitle,
-                fileName: "Krouton_Master_Output.iso",
-                additionalFiles: isoInputs
-            )
-            burnQueueSubStore.lastMasteredISOURL = synth.url
-            burnQueueSubStore.lastMasteredSHA256 = synth.sha256
+            await masterStagedFilesToHybridISO()
         }
     }
 }
