@@ -311,10 +311,11 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                                                 .lineLimit(1)
                                         }
                                         .contextMenu {
-                                            Button(KroutonL10n.tr("Reveal in Finder")) { KroutonOSDesktopBridge.revealURLsInFinder([item.url]) }
+                                            Button(KroutonL10n.tr("Reveal in Finder")) { KroutonOSDesktopBridge.revealURLsInFinder([item.url]) }.keyboardShortcut("f", modifiers: [.command, .shift])
+                                            Button(KroutonL10n.tr("Inspect Hybrid ISO/UDF LBA Layout")) { showHybridLBAMapPopover = true }.keyboardShortcut("l", modifiers: [.command, .control])
                                             Button(KroutonL10n.tr("Copy Path & Byte Size")) { KroutonOSDesktopBridge.copyTextToClipboard("\(item.url.path) (\(item.byteSize) bytes)") }
                                             Divider()
-                                            Button(role: .destructive) { store.removeStagedFile(id: item.id) } label: { Text(KroutonL10n.tr("Remove from Stage")) }
+                                            Button(role: .destructive) { store.removeStagedFile(id: item.id) } label: { Text(KroutonL10n.tr("Remove from Stage")) }.keyboardShortcut(.delete, modifiers: .command)
                                         }
                                     }
                                 }
@@ -476,7 +477,8 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 8)
                                         .contextMenu {
-                                            Button(KroutonL10n.tr("Reveal in Finder")) { KroutonOSDesktopBridge.revealURLsInFinder([entry.url]) }
+                                            Button(KroutonL10n.tr("Reveal in Finder")) { KroutonOSDesktopBridge.revealURLsInFinder([entry.url]) }.keyboardShortcut("f", modifiers: [.command, .shift])
+                                            Button(KroutonL10n.tr("Inspect Hybrid ISO/UDF LBA Layout")) { showHybridLBAMapPopover = true }.keyboardShortcut("l", modifiers: [.command, .control])
                                             if isUniversalHybrid {
                                                 Button(KroutonL10n.tr(entry.showOnMac ? "Hide from macOS (HFS+)" : "Show on macOS (HFS+)")) { store.toggleMacVisibility(id: entry.id) }
                                                 Button(KroutonL10n.tr(entry.showOnPC ? "Hide from Windows (Joliet/UDF)" : "Show on Windows (Joliet/UDF)")) { store.togglePCVisibility(id: entry.id) }
@@ -485,7 +487,7 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                                                 KroutonOSDesktopBridge.copyTextToClipboard("\(entry.url.path) • \(entry.sectorsLBA) LBA (\(entry.byteSize) B)")
                                             }
                                             Divider()
-                                            Button(role: .destructive) { store.removeStagedFile(id: entry.id) } label: { Text(KroutonL10n.tr("Remove from Stage")) }
+                                            Button(role: .destructive) { store.removeStagedFile(id: entry.id) } label: { Text(KroutonL10n.tr("Remove from Stage")) }.keyboardShortcut(.delete, modifiers: .command)
                                         }
                                         Divider()
     }

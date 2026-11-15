@@ -203,7 +203,7 @@ extension KroutonCopyAndRipWorkspaceView {
         .contextMenu {
             Button("Start / Convert Track \(String(format: "%02d", item.num))") {
                 startHardwareAudioCDExtraction(onlyTrackNumber: item.num)
-            }
+            }.keyboardShortcut("r", modifiers: [.command, .shift])
             Button("Play Track in Default Player") {
                 if let src = mountedCDSnapshot?.tracks.first(where: { $0.trackNumber == item.num })?.sourceAIFFURL {
                     KroutonOSDesktopBridge.revealInFinder(url: src)
@@ -212,12 +212,12 @@ extension KroutonCopyAndRipWorkspaceView {
             Divider()
             Button("Get Info (CD Info...)") {
                 showCDInfoPopover = true
-            }
+            }.keyboardShortcut("i", modifiers: .command)
             Button("Locate Source File in Finder") {
                 if let src = mountedCDSnapshot?.tracks.first(where: { $0.trackNumber == item.num })?.sourceAIFFURL {
                     KroutonOSDesktopBridge.revealInFinder(url: src)
                 }
-            }
+            }.keyboardShortcut("f", modifiers: [.command, .shift])
             Divider()
             Button(audioRipSelectedTracks.contains(item.num) ? "Uncheck Selection" : "Check Selection") {
                 if audioRipSelectedTracks.contains(item.num) { audioRipSelectedTracks.remove(item.num) }

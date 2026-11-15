@@ -88,6 +88,12 @@ struct KroutonWorkspaceCommands: Commands {
 
             Divider()
 
+            Button(KroutonL10n.tr("Reveal Staged Files in Finder")) {
+                KroutonOSDesktopBridge.revealURLsInFinder(wm.store.stagedFiles.map(\.url))
+            }
+            .keyboardShortcut("f", modifiers: [.command, .shift])
+            .disabled(wm.store.stagedFiles.isEmpty)
+
             Button(KroutonL10n.tr("Reveal Krouton Rips Folder in Finder")) {
                 let path = ("~/Music/Krouton Rips" as NSString).expandingTildeInPath
                 try? FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true)

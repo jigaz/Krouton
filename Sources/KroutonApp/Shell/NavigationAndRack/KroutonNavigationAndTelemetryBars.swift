@@ -78,7 +78,7 @@ struct KroutonLeftFormatChooserColumnView: View {
             }
             Button(KroutonL10n.tr("Add Destination Output Card")) {
                 store.appendContextAwareDestination(driveManager: driveManager)
-            }
+            }.keyboardShortcut("d", modifiers: [.command, .shift])
             Button(KroutonL10n.tr("Copy Format Specification")) {
                 KroutonOSDesktopBridge.copyTextToClipboard("\(title) — \(colloquial) \(badge)")
             }

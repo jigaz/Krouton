@@ -467,13 +467,12 @@ struct KroutonRedBookAudioWorkspaceView: View {
             Button(isSelected ? "Uncheck Track" : "Check Track") {
                 if isSelected { selectedTrackIDs.remove(track.id) } else { selectedTrackIDs.insert(track.id) }
             }
+            Button("Inspect Compiled Red Book CUE Sheet") { NotificationCenter.default.post(name: .kroutonMenuInspectAudioCue, object: nil) }.keyboardShortcut("u", modifiers: [.command, .control])
             Button(role: .destructive) {
                 selectedTrackIDs.remove(track.id)
                 controller.remove(track.id)
                 store.removeStagedFile(id: track.id)
-            } label: {
-                Text("Remove Track")
-            }
+            } label: { Text("Remove Track") }.keyboardShortcut(.delete, modifiers: .command)
         }
     }
 

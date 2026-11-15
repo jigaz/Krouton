@@ -137,17 +137,18 @@ struct KroutonDestinationCardView: View {
             Button(KroutonL10n.tr("Execute Only This Destination")) {
                 store.executeSingleDestination(item, driveManager: driveManager, primarySelectedDrive: primarySelectedDrive, enableCustomFinderLayoutTab: enableCustomFinderLayoutTab, finderIconSize: finderIconSize)
             }
+            .keyboardShortcut("b", modifiers: .command)
             .disabled(driveManager.isExecutingQueue)
             if item.kind == .physicalBurner || item.kind == .networkBurner {
                 Button(KroutonL10n.tr("Open Floating Phase Scope Telemetry")) {
                     KroutonWindowManager.shared.openFloatingPhaseScopeWindow(driveID: activeCardDriveID)
-                }
+                }.keyboardShortcut("p", modifiers: [.command, .option])
                 Button(KroutonL10n.tr("Run Phase Scope Diagnostic Sweep")) {
                     driveManager.runPhaseScopeTestSweep(for: activeCardDriveID, keepPinnedAfterSweep: true)
-                }
+                }.keyboardShortcut("p", modifiers: [.command, .shift])
                 Button(KroutonL10n.tr("Eject Optical Disc")) {
                     driveManager.ejectDrive(id: activeCardDriveID)
-                }
+                }.keyboardShortcut("e", modifiers: .command)
             }
             Divider()
             Button(KroutonL10n.tr("Copy Target Hardware / Path")) {
