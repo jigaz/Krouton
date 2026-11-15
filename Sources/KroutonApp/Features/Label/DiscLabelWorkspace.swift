@@ -192,6 +192,13 @@ public struct KroutonDiscLabelWorkspaceView: View {
                                     showTransientBanner("Added \(recognized.name)")
                                 } : nil
                             )
+                            .contextMenu {
+                                Button("Add Curved Text Layer") { addDefaultCurvedTextLayer() }.keyboardShortcut("t", modifiers: .command)
+                                Button(store.labelShowAlignmentGrid ? "Hide 10mm Alignment Grid" : "Show 10mm Alignment Grid") { store.labelShowAlignmentGrid.toggle() }.keyboardShortcut("g", modifiers: .command)
+                                Button("Actual Size (100%)") { store.labelCanvasZoom = 1.0 }.keyboardShortcut("0", modifiers: [.command, .option])
+                                Divider()
+                                Button("Delete Selected Text Layer", role: .destructive) { deleteSelectedLabelTextLayer() }.keyboardShortcut(.delete, modifiers: .command).disabled(store.labelSelectedTextID == nil)
+                            }
                             .shadow(color: .black.opacity(0.45), radius: 16, y: 6)
                         }
                     }
@@ -554,5 +561,15 @@ public struct KroutonDiscLabelWorkspaceView: View {
                 .controlSize(.small)
             }
         }
+    }
+    private func addDefaultCurvedTextLayer() {
+        store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
+        let item = KroutonLabelTextElement(text: store.discVolumeTitle.isEmpty ? "DISC TITLE" : store.discVolumeTitle, isCurvedArc: true, radiusMM: 44.0, angleDegrees: 0.0, fontSizePoints: 16.0)
+        store.labelTextElements.append(item); store.labelSelectedTextID = item.id
+    }
+    private func deleteSelectedLabelTextLayer() {
+        guard let id = store.labelSelectedTextID, let idx = store.labelTextElements.firstIndex(where: { $0.id == id }) else { return }
+        store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
+        store.labelTextElements.remove(at: idx); store.labelSelectedTextID = store.labelTextElements.last?.id
     }
 }

@@ -413,5 +413,25 @@ struct KroutonDepotAppStoreCardView: View {
         .onTapGesture {
             store.selectedDepotHeroItemID = item.id
         }
+        .contextMenu {
+            Button(KroutonL10n.tr("Inspect in Disc Image Depot")) {
+                store.selectedDepotHeroItemID = item.id
+            }
+            .keyboardShortcut("2", modifiers: .command)
+
+            Button(KroutonL10n.tr("Stage Image & Open Sector Hex Inspector")) {
+                store.selectedDepotHeroItemID = item.id
+                store.downloadAndStageDepotItem(id: item.id, jumpToInspector: true)
+            }
+            .keyboardShortcut("6", modifiers: [.command, .control])
+
+            Divider()
+
+            Button(KroutonL10n.tr("Copy Selected Disc or Image Metadata")) {
+                let meta = "\(item.title) (\(item.version)) • \(item.sizeDisplay) • \(item.bootStandard) • SHA-256: \(item.sha256Short)"
+                KroutonOSDesktopBridge.copyTextToClipboard(meta)
+            }
+            .keyboardShortcut("c", modifiers: [.command, .option, .shift])
+        }
     }
 }

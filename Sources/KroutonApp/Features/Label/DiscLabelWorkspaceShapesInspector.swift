@@ -358,6 +358,20 @@ extension KroutonDiscLabelWorkspaceView {
                         .clipShape(RoundedRectangle(cornerRadius: 7))
                     }
                     .buttonStyle(.plain)
+                    .contextMenu {
+                        Button("Select Text Layer") { store.labelSelectedTextID = item.id }
+                        Button("Duplicate Text Layer (180° Mirror)") {
+                            store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
+                            var copy = item; copy.id = UUID(); copy.angleDegrees = fmod(item.angleDegrees + 180.0, 360.0)
+                            copy.isBottomUpright = (copy.angleDegrees >= 110.0 && copy.angleDegrees <= 250.0)
+                            store.labelTextElements.append(copy); store.labelSelectedTextID = copy.id
+                        }.keyboardShortcut("d", modifiers: .command)
+                        Divider()
+                        Button("Delete Text Layer", role: .destructive) {
+                            store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
+                            store.labelTextElements.removeAll { $0.id == item.id }; store.labelSelectedTextID = store.labelTextElements.last?.id
+                        }.keyboardShortcut(.delete, modifiers: .command)
+                    }
                 }
             }
         }

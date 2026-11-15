@@ -120,6 +120,12 @@ struct KroutonWorkspaceCommands: Commands {
         }
 
         CommandGroup(after: .pasteboard) {
+            Button(KroutonL10n.tr("Copy Selected Disc or Image Metadata")) {
+                let summary = "Volume: \(wm.store.discVolumeTitle) • Task: \(wm.store.selectedTaskID) • Staged: \(wm.store.stagedFiles.count) items (\(wm.store.totalStagedBytes) bytes)"
+                KroutonOSDesktopBridge.copyTextToClipboard(summary)
+            }
+            .keyboardShortcut("c", modifiers: [.command, .option, .shift])
+
             Divider()
 
             Button(KroutonL10n.tr("Add Curved Text Layer")) {
