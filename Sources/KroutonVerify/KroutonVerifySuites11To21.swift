@@ -1,14 +1,55 @@
+import CoreImage
+import CryptoKit
 import Foundation
-import OpticalDough
-import Marmalade
-import VideoOven
-import Tartine
-import Galette
-import Crustini
+import OpticalCore
+import AudioKit
+import VideoKit
+import ImageKit
+import LabelKit
+import RescueKit
 
 @MainActor
 func runKroutonVerifySuites11To21(_ harness: inout KroutonTestHarness) {
-harness.runSuite("11. Marmalade Red Book CUE Sheet Compiler, 18B CD-Text CRC-16 & Equal-Power Crossfade") { h in
+    harness.runSuite("8. Hardware Acceleration Codec Matrix & Container Stream Probing") { h in
+    let matrix = KroutonPantryPrepEngine.liveHardwareCodecMatrix
+    h.check(matrix.count >= 6, "Expected at least 6 codec rows in hardware matrix")
+
+    let mkvProbe = KroutonPantryPrepEngine.probeFile(URL(fileURLWithPath: "/tmp/concert.mkv"))
+    h.check(mkvProbe.fileExtension == "MKV" && mkvProbe.isHardwareAccelerated, "MKV hardware probe")
+
+    let flacProbe = KroutonPantryPrepEngine.probeFile(URL(fileURLWithPath: "/tmp/master.flac"))
+    h.check(flacProbe.accelerationTier == .accelerateSIMD, "FLAC Accelerate SIMD tier")
+    }
+
+    harness.runSuite("9. Red Book CD-Text, ISRC (ISO 3901) & MCN Sanitizer Constraints") { h in
+    let sanitizedText = KroutonSeasoningSanitizer.sanitize("Café   Krouton — Live!\n\t")
+    h.check(!sanitizedText.isEmpty && sanitizedText.allSatisfy { $0.isASCII }, "CD-Text ASCII sanitization")
+
+    let isrc = KroutonSeasoningSanitizer.sanitizeISRC("us-kro-26-00001-extra")
+    h.check(isrc == "USKRO2600001" && isrc.count == 12, "ISRC 12-char normalization")
+
+    let mcn = KroutonSeasoningSanitizer.sanitizeMCN("0123-4567-89012-abc")
+    h.check(mcn == "0123456789012" && mcn.count == 13, "MCN 13-digit EAN-13 normalization")
+    }
+
+    harness.runSuite("10. Red Book Audio Cube Frame (75 fps) & PCM Byte (2352 B/frame) Math") { h in
+    let cube = KroutonAudioCube(
+        url: URL(fileURLWithPath: "/tmp/test.wav"),
+        title: "Track 01",
+        performer: "Krouton Trio",
+        songWriter: "Greybeard",
+        isrcCode: "USKRO2600001",
+        durationSeconds: 10.0,
+        preGapSeconds: 2.0,
+        crossfadeSeconds: 0.0,
+        transitionStyle: .standard2s
+    )
+    h.check(cube.totalRedBookFrames == 900, "Expected 900 Red Book frames for 10s + 2s pregap")
+    h.check(cube.redBookByteSize == 900 * 2352, "Expected 2,116,800 Red Book bytes")
+    h.check(cube.formattedDurationMMSSFF == "00:10:00", "Expected 00:10:00 MM:SS:FF formatting")
+    }
+
+    harness.runSuite("11. AudioKit Red Book CUE Sheet Compiler, 18B CD-Text CRC-16 & Equal-Power Crossfade") { h in
     // 11a. Equal-power crossfade energy conservation (fadeOut^2 + fadeIn^2 == 1.0)
     for step in 0...10 {
         let t = Double(step) / 10.0
@@ -69,62 +110,9 @@ harness.runSuite("11. Marmalade Red Book CUE Sheet Compiler, 18B CD-Text CRC-16 
     h.check(cue.contains("FLAGS DCP PRE"), "Track 1 SCMS + Pre-emphasis flags")
     // Track 1 ends at 00:02:00 + 00:10:00 = 00:12:00, and Track 2 has 0s pregap -> INDEX 01 00:12:00
     h.check(cue.contains("INDEX 01 00:12:00"), "Track 2 gapless start at exact cumulative frame 00:12:00")
-}
+    }
 
-
-// 12. Tartine Hybrid Data Loaf LBA Planner (ISO-9660, Joliet, UDF 2.60, El Torito & Dual-Tree Deduplication)
-harness.runSuite("12. Tartine Hybrid Data LBA Planner (PVD LBA 16, El Torito LBA 17, UDF LBA 256 & Deduplication)") { h in
-    let vol = KroutonTartineModule.sanitizeVolumeIdentifier("Krouton Master 2026! (v1.0)")
-    h.check(vol == "KROUTON_MASTER_2026___V1_0", "ECMA-119 d-character volume label sanitization")
-
-    let isoFile = KroutonTartineModule.sanitizeISO9660FileIdentifier("my-super-archive-2026.tar.gz")
-    h.check(isoFile.hasSuffix(".GZ;1") && isoFile.count <= 31, "ISO-9660 Level 2 filename + ;1 version")
-
-    let fiveGiB: Int64 = 5 * 1024 * 1024 * 1024
-    let entries = [
-        KroutonLoafFileEntry(
-            url: URL(fileURLWithPath: "/tmp/SharedInstaller.pkg"),
-            name: "SharedInstaller.pkg",
-            isDirectory: false,
-            byteSize: 4096, // 2 sectors
-            itemCount: 1,
-            posixPermissions: "rwxr-xr-x",
-            modifiedDate: Date(),
-            showOnMac: true,
-            showOnPC: true
-        ),
-        KroutonLoafFileEntry(
-            url: URL(fileURLWithPath: "/tmp/Giant4KMaster.mov"),
-            name: "Giant4KMaster.mov",
-            isDirectory: false,
-            byteSize: fiveGiB,
-            itemCount: 1,
-            posixPermissions: "rw-r--r--",
-            modifiedDate: Date(),
-            showOnMac: true,
-            showOnPC: true
-        )
-    ]
-
-    let plan = KroutonTartineModule.planHybridDataLayout(
-        volumeLabel: "Krouton Boot Hybrid",
-        entries: entries,
-        isElToritoBootable: true
-    )
-
-    h.check(plan.pvdSectorLBA == 16, "ISO-9660 PVD must sit at LBA 16")
-    h.check(plan.elToritoBootRecordLBA == 17, "El Torito Boot Record must sit at LBA 17")
-    h.check(plan.jolietSVDSectorLBA == 18, "Joliet SVD must shift to LBA 18 when El Torito is at LBA 17")
-    h.check(plan.udfAnchorAVDPLBA == 256, "ECMA-167 UDF Anchor Volume Descriptor Pointer must sit at LBA 256")
-    h.check(plan.sharedHybridExtents.count == 2, "Shared Mac+PC files must deduplicate into single physical LBA extents")
-    h.check(plan.sharedHybridExtents[0].startLBA == 288 && plan.sharedHybridExtents[0].sectorCountLBA == 2, "First file starts at LBA 288 (2 sectors)")
-    h.check(plan.sharedHybridExtents[1].startLBA == 290 && plan.sharedHybridExtents[1].requiresUDFMultiExtent, "Second file (>4GiB) starts monotonically at LBA 290 and flags UDF multi-extent")
-    h.check(!plan.warnings.isEmpty, ">4GiB file must emit UDF multi-extent advisory")
-}
-
-
-// 13. VideoOven Bitrate Budget Calculator & DVD-9 -> DVD-5 Requiem Requantization Planner
-harness.runSuite("13. VideoOven Optical Bitrate Budget (DVD-5/DVD-9/BD-25/BD-50) & DVD-9 Shrink Math") { h in
+    harness.runSuite("12. VideoKit Optical Bitrate Budget (DVD-5/DVD-9/BD-25/BD-50) & DVD-9 Shrink Math") { h in
     h.check(KroutonVideoTargetMedium.dvd5SingleLayer.capacityBytes == 4_700_372_992, "Exact DVD-5 byte capacity (2,295,104 sectors)")
     h.check(KroutonVideoTargetMedium.dvd9DualLayer.capacityBytes == 8_547_991_552, "Exact DVD-9 byte capacity (4,173,824 sectors)")
     h.check(KroutonVideoTargetMedium.bd25SingleLayer.capacityBytes == 25_025_314_816, "Exact BD-25 byte capacity")
@@ -156,238 +144,9 @@ harness.runSuite("13. VideoOven Optical Bitrate Budget (DVD-5/DVD-9/BD-25/BD-50)
             "DVD-9 -> DVD-5 shrink must fit strictly inside DVD-5 capacity")
     h.check(shrinkMainOnly.requantizationRatio > shrinkWithExtras.requantizationRatio,
             "Stripping extras must yield higher video quality retention ratio for the main feature")
-}
-
-
-// 14. Galette Disc Image Depot (.cue Parser, 2352B Mode 1 / Mode 2 -> 2048B ISO Extractor & Boot Classifier)
-harness.runSuite("14. Galette Disc Image Depot (.cue Parser, 2352B->2048B BIN Extractor & Boot Classifier)") { h in
-    // 14a. Multi-track Mixed-Mode .cue sheet parsing
-    let sampleCue = """
-    FILE "KROUTON_MIXED_MASTER.BIN" BINARY
-      TRACK 01 MODE1/2352
-        TITLE "Data Track"
-        INDEX 01 00:00:00
-      TRACK 02 AUDIO
-        TITLE "Red Book Theme"
-        INDEX 00 02:00:00
-        INDEX 01 02:02:00
-    """
-    let parsedTracks = KroutonGaletteModule.parseCueSheet(sampleCue)
-    h.check(parsedTracks.count == 2, "Mixed-mode CUE sheet must parse 2 tracks")
-    h.check(parsedTracks[0].mode == .mode1_2352 && parsedTracks[0].index01LBA == 0, "Track 1 Mode1/2352 @ LBA 0")
-    h.check(parsedTracks[1].mode == .audio2352 && parsedTracks[1].index00LBA == 9000 && parsedTracks[1].index01LBA == 9150,
-            "Track 2 Audio INDEX 00 @ 02:00:00 (9000 LBA) and INDEX 01 @ 02:02:00 (9150 LBA)")
-
-    // 14b. Raw 2352-byte Mode 1 & Mode 2 Form 1 -> 2048-byte ISO payload extraction
-    var mode1Raw = Data(KroutonGaletteModule.cdRomSyncPattern) // 12 bytes
-    mode1Raw.append(contentsOf: [0x00, 0x02, 0x00, 0x01])      // 4B header (00:02:00, Mode 1 = 0x01)
-    let expectedPayload = Data(repeating: 0x5A, count: 2048)
-    mode1Raw.append(expectedPayload)                           // 2048B user payload
-    mode1Raw.append(Data(repeating: 0xEE, count: 288))         // 288B EDC/ECC parity
-    h.check(mode1Raw.count == 2352, "Synthetic Mode 1 raw sector must be 2352 bytes")
-
-    let extractedISO = KroutonGaletteModule.extractISO2048SectorFromRaw2352(mode1Raw)
-    h.check(extractedISO == expectedPayload && extractedISO?.count == 2048,
-            "Mode 1 2352B sector extractor must strip 16B header and 288B ECC to yield exact 2048B ISO payload")
-
-    // 14c. Depot Boot & Media Badge classification
-    let depotClass = KroutonGaletteModule.classifyDepotImage(
-        byteSize: 4_100_000_000,
-        signatureSampleASCII: "CD001 EL TORITO SPECIFICATION UDF NSR03"
-    )
-    h.check(depotClass.isBootable && depotClass.bootStandard == "El Torito x86/EFI", "El Torito boot detection")
-    h.check(depotClass.detectedFilesystems.contains("ISO-9660") && depotClass.detectedFilesystems.contains("UDF"), "ISO+UDF bridge detection")
-    h.check(depotClass.recommendedMediaBadge == "DVD-5 (4.7 GB SL)", "4.1 GB image must recommend DVD-5")
-}
-
-
-// 15. Crustini Optical Rescue Copy State Machine & Polar 300-DPI Disc Label Geometry Engine
-harness.runSuite("15. Crustini Optical Rescue Copy Engine & Polar 300-DPI Label Geometry") { h in
-    // 15a. Optical Rescue 3-stage state machine (Clean -> 2x CLV Downshift -> Zero-Pad Substitute)
-    let clean = KroutonKrustiniModule.evaluateSectorRescue(lba: 1000, c2ErrorCount: 0, retryAttempt: 0)
-    h.check(clean.action == .readCleanFullSpeed && clean.nextCursorLBA == 1001, "Clean sector advances LBA by 1 at full speed")
-
-    let retry = KroutonKrustiniModule.evaluateSectorRescue(lba: 1000, c2ErrorCount: 4, retryAttempt: 2, maxRetries: 5)
-    h.check(retry.action == .downshiftRetry2xCLV && retry.recommendedSpindleSpeedX == 2 && retry.nextCursorLBA == 1000,
-            "Damaged sector under retry threshold downshifts to 2x CLV and re-reads same LBA")
-
-    let exhausted = KroutonKrustiniModule.evaluateSectorRescue(
-        lba: 1000,
-        c2ErrorCount: 12,
-        retryAttempt: 5,
-        maxRetries: 5,
-        sectorSizeBytes: 2048,
-        fastSkipStepLBA: 16
-    )
-    h.check(exhausted.action == .substituteZeroSector && exhausted.replacementSectorBytes == 2048 && exhausted.nextCursorLBA == 1016,
-            "Exhausted sector substitutes 2048B zero-pad and fast-skips 16 LBA sectors")
-
-    // 15b. 300-DPI Disc Label Canvas (120mm @ 300 DPI = 1417 px) & Hub Annulus Hit-Testing
-    let fullFace = KroutonDiscHubGeometry.fullFace120mmHub22mm
-    h.check(fullFace.canvasPixelDimension(dpi: 300.0) == 1417, "120mm disc at 300 DPI must equal 1417 x 1417 pixels")
-
-    // Center spindle hole (0, 0) must be rejected; mid-disc ring (r = 35mm) must be accepted; outside disc (r = 65mm) rejected
-    h.check(!KroutonKrustiniModule.isPointInsidePrintableAnnulus(dxMM: 0.0, dyMM: 0.0, geometry: fullFace),
-            "Spindle center (0,0) must be excluded from printable ink annulus")
-    h.check(KroutonKrustiniModule.isPointInsidePrintableAnnulus(dxMM: 35.0, dyMM: 0.0, geometry: fullFace),
-            "35mm radius must lie inside printable ink annulus")
-    h.check(!KroutonKrustiniModule.isPointInsidePrintableAnnulus(dxMM: 65.0, dyMM: 0.0, geometry: fullFace),
-            "65mm radius (outside 118mm diameter) must be excluded from printable ink annulus")
-
-    // 15c. Polar-to-Cartesian curved text glyph placement invariant (every glyph sits exactly at radius R)
-    let glyphs = KroutonKrustiniModule.computePolarArcGlyphLayout(
-        text: "KROUTON MASTER ARCHIVE",
-        centerX: 708.5,
-        centerY: 708.5,
-        radiusPoints: 500.0
-    )
-    h.check(glyphs.count == 22, "22-char title must produce 22 polar glyph placements")
-    for g in glyphs {
-        let dist = hypot(g.xPoints - 708.5, g.yPoints - 708.5)
-        h.check(abs(dist - 500.0) < 1e-6, "Glyph '\(g.character)' must sit at exact polar radius 500.0 pt (got \(dist))")
-    }
-}
-
-
-// 16. Deep Process Security Gate (Zero Shell Injection) & Telemetry State Machine Fuzzing
-harness.runSuite("16. Zero Shell-Injection Process Gate & 500-Frame Telemetry State Machine Fuzzing") { h in
-    // 16a. Scan all 21 production files to ensure Process never invokes a shell (/bin/sh, /bin/zsh, /bin/bash, -c)
-    let forbiddenShellPatterns = ["/bin/sh", "/bin/bash", "/bin/zsh", "/usr/bin/env sh", "Darwin.system(", "popen("]
-    let fm = FileManager.default
-    if let enumerator = fm.enumerator(atPath: "Sources") {
-        while let rel = enumerator.nextObject() as? String {
-            guard rel.hasSuffix(".swift"), !rel.contains("KroutonVerify/") else { continue }
-            let content = (try? String(contentsOfFile: "Sources/" + rel, encoding: .utf8)) ?? ""
-            for pat in forbiddenShellPatterns {
-                h.check(!content.contains(pat), "Forbidden shell pattern '\(pat)' found in \(rel)")
-            }
-        }
     }
 
-    // 16b. Fuzz KrumbTelemetrySanitizer with out-of-order packets, NaN, Infinity, and terminal-state regressions
-    var state: KrumbTelemetryPhase = .preheating
-    var frac: Double = 0.0
-    let batchID = UUID()
-
-    for step in 1...250 {
-        let progress = Double(step) / 250.0
-        let normalFrame = KrumbTelemetryPacket(
-            batchId: batchID,
-            toasterId: "pioneer-01",
-            state: .toastingProgress,
-            fraction: progress,
-            currentLba: Int64(step * 100),
-            totalLba: 25000,
-            effectiveSpeedX: 16.0,
-            fifoFill: 0.95,
-            driveBufferFill: 0.92,
-            c2Errors: 0,
-            etaSeconds: 45
-        )
-        let res = KrumbTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: normalFrame)
-        h.check(res.fraction >= frac, "Progress must never regress during active burn")
-        state = res.state
-        frac = res.fraction
-
-        // Inject a stale out-of-order frame with lower fraction + NaN buffer values
-        let staleFuzzFrame = KrumbTelemetryPacket(
-            batchId: batchID,
-            toasterId: "pioneer-01",
-            state: .toastingProgress,
-            fraction: max(0.0, progress - 0.15),
-            currentLba: 10,
-            totalLba: 25000,
-            effectiveSpeedX: .nan,
-            fifoFill: .nan,
-            driveBufferFill: .infinity,
-            c2Errors: 0,
-            etaSeconds: 99
-        )
-        let fuzzRes = KrumbTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: staleFuzzFrame)
-        h.check(fuzzRes.fraction == frac, "Stale out-of-order telemetry frame must be ignored")
-        h.check(fuzzRes.fifoClamp == 0.0 && fuzzRes.driveClamp == 0.0, "NaN/Infinity buffer fills must clamp safely to 0.0")
-    }
-
-    // Transition to terminal BURNT_TOAST and verify late TOASTING_PROGRESS cannot resurrect the job
-    let failFrame = KrumbTelemetryPacket(
-        batchId: batchID,
-        toasterId: "pioneer-01",
-        state: .burntToast,
-        fraction: frac,
-        currentLba: 12000,
-        totalLba: 25000,
-        effectiveSpeedX: 0.0,
-        fifoFill: 0.0,
-        driveBufferFill: 0.0,
-        c2Errors: 99,
-        etaSeconds: 0
-    )
-    let termRes = KrumbTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: failFrame)
-    state = termRes.state
-    h.check(state == .burntToast, "Must transition to terminal .burntToast state")
-
-    let zombieFrame = KrumbTelemetryPacket(
-        batchId: batchID,
-        toasterId: "pioneer-01",
-        state: .toastingProgress,
-        fraction: 0.99,
-        currentLba: 24900,
-        totalLba: 25000,
-        effectiveSpeedX: 16.0,
-        fifoFill: 1.0,
-        driveBufferFill: 1.0,
-        c2Errors: 0,
-        etaSeconds: 1
-    )
-    let afterZombie = KrumbTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: zombieFrame)
-    h.check(afterZombie.state == .burntToast, "Terminal state must reject late out-of-order progress frames")
-}
-
-
-// 17. End-to-End 5-Module Mastering Pipeline Integration (OpticalDough + Marmalade + Tartine + VideoOven + Galette + Crustini)
-harness.runSuite("17. End-to-End 5-Module Mastering & LAN Signed Dispatch Integration Pipeline") { h in
-    // Step 1: Plan a Hybrid Data Loaf via Tartine
-    let entries = [
-        KroutonLoafFileEntry(
-            url: URL(fileURLWithPath: "/tmp/KroutonBoot.efi"),
-            name: "KroutonBoot.efi",
-            isDirectory: false,
-            byteSize: 65_536,
-            itemCount: 1,
-            posixPermissions: "rwxr-xr-x",
-            modifiedDate: Date(),
-            showOnMac: true,
-            showOnPC: true
-        )
-    ]
-    let layout = KroutonTartineModule.planHybridDataLayout(
-        volumeLabel: "KROUTON_E2E_MASTER",
-        entries: entries,
-        isElToritoBootable: true
-    )
-    h.check(layout.totalSectorsLBA > 288, "Tartine E2E layout must allocate descriptors + payload + lead-out")
-
-    // Step 2: Classify the resulting image via Galette
-    let depotInfo = KroutonGaletteModule.classifyDepotImage(
-        byteSize: layout.totalBytes,
-        signatureSampleASCII: "CD001 EL TORITO SPECIFICATION UDF NSR03"
-    )
-    h.check(depotInfo.isBootable && depotInfo.recommendedMediaBadge == "CD-R (700 MB)", "Galette E2E image classification")
-
-    // Step 3: Sign the network dispatch payload via KrumbLANSecurityEngine for a private LAN toaster
-    let targetEndpoint = "http://192.168.1.77:7420/api/v1/bake"
-    h.check(KrumbLANSecurityEngine.isAllowedLANEndpoint(targetEndpoint), "Private LAN toaster endpoint must pass subnet guard")
-
-    let dispatchJSON = Data("{\"volume\":\"\(layout.volumeIdentifier)\",\"sectors\":\(layout.totalSectorsLBA)}".utf8)
-    var replaySet: Set<String> = []
-    let signed = KrumbLANSecurityEngine.signPayload(dispatchJSON, sharedSecret: "e2e-kitchen-secret", timestampEpochSeconds: 1_775_100_000, nonce: "e2e-001")
-    let verified = KrumbLANSecurityEngine.verifyEnvelope(signed, sharedSecret: "e2e-kitchen-secret", nowEpochSeconds: 1_775_100_002, seenNonces: &replaySet)
-    h.check(verified == dispatchJSON, "End-to-end signed Krumb dispatch must verify cleanly")
-}
-
-
-// 18. VideoOven DVD-9 -> DVD-5 Menu-Preserving Shrink, IFO Sector Pointer Relinking & Layer-Break Pause Removal
-harness.runSuite("18. VideoOven DVD-9 -> DVD-5 Menu-Preserving Shrink, .IFO Relinking & Layer-Break Removal") { h in
+    harness.runSuite("13. VideoKit DVD-9 -> DVD-5 Menu-Preserving Shrink, .IFO Relinking & Layer-Break Removal") { h in
     // Simulate a 7.85 GB Dual-Layer DVD-9 (450 MB interactive motion menus + 3 main feature cells across Layer 0 & Layer 1)
     let dvd9Cells = [
         KroutonDVD9CellDescriptor(cellID: 1, originalStartSectorLBA: 0,         originalSectorCountLBA: 1_200_000, hadDualLayerBreakPause: false),
@@ -419,7 +178,102 @@ harness.runSuite("18. VideoOven DVD-9 -> DVD-5 Menu-Preserving Shrink, .IFO Reli
             "Cell 3 relinked start LBA must immediately follow Cell 2 shrunk end LBA")
     h.check(blueprint.relinkedCells.allSatisfy { $0.seamlessPlaybackFlagSet },
             "All relinked cells on DVD-5 must have seamlessPlaybackFlagSet = true")
-}
+    }
+
+    harness.runSuite("14. Multi-Disc Spanning (DiscPlanner, AudioDiscPlan, DiscRepacker & SpanManifest)") { h in
+        var spanProj = AudioProject(albumTitle: "LIVE AT THE FILLMORE", albumPerformer: "THE KROUTONS")
+        spanProj.targetDiscMedium = .cd80Min700MB // 359,775 frames (79:57:00)
+        let _ = spanProj.append((1...16).map { URL(fileURLWithPath: String(format: "/tmp/trk_%02d.wav", $0)) })
+
+        for i in 0..<16 {
+            let tid = spanProj.tracks[i].id
+            spanProj.update(tid) {
+                $0.title = String(format: "Song %02d", i + 1)
+                $0.frameCount = (i == 15) ? 30_000 : 22_500
+                $0.transitionToNext = (i == 14)
+                    ? KroutonTrackTransitionSpec(overlapSeconds: 4.0, preGapSeconds: 0.0)
+                    : KroutonTrackTransitionSpec(overlapSeconds: 0.0, preGapSeconds: 0.0)
+            }
+        }
+
+        let twoDiscs = spanProj.discPlan()
+        h.check(twoDiscs.discs.count == 2, "15x5min + 1x6m40s tracks on 80-min CD-R must span into 2 discs")
+        if twoDiscs.discs.count == 2 {
+            h.check(twoDiscs.discs[0].tracks.count == 15 && twoDiscs.discs[1].tracks.count == 1,
+                    "Disc 1 must hold Tracks 01..15 and Disc 2 must hold spilled Track 16")
+            h.check(twoDiscs.discs[1].layout?.first?.number == 1 && twoDiscs.discs[1].layout?.first?.audioStart == 0,
+                    "Spilled Track 16 must restart at Track 01 (frame 0) on Disc 2")
+        }
+
+        let hasSplitWarning = twoDiscs.warnings.contains {
+            if case .breakSplitsContinuousRun(discNumber: 1, _, _) = $0 { return true }
+            return false
+        }
+        h.check(hasSplitWarning, "Automatic disc break across a crossfaded boundary must emit .breakSplitsContinuousRun warning")
+
+        spanProj.setMetadata(
+            KroutonDiscVolumeMetadata(discNumber: 2, title: "FILLMORE ENCORE (DISC II)", performer: "THE KROUTONS LIVE", upc: "0123456789012"),
+            forDisc: 2
+        )
+        h.check(spanProj.metadata(forDisc: 2).title == "FILLMORE ENCORE (DISC II)", "Disc 2 custom title must be stored")
+
+        let id04 = spanProj.tracks[3].id
+        let id05 = spanProj.tracks[4].id
+        spanProj.remove(id04)
+        spanProj.remove(id05)
+        let oneDisc = spanProj.discPlan()
+        h.check(oneDisc.discs.count == 1 && oneDisc.discs[0].tracks.count == 14,
+                "Removing Tracks 04 and 05 must collapse project back to 1 disc with 14 tracks")
+        h.check(oneDisc.discs[0].layout?.last?.overlapWithPrevious == 300,
+                "Suppressed 4.0s (300-frame) crossfade between Track 15 and Track 16 must restore when Track 16 pulls back onto Disc 1")
+
+        let newAdded = spanProj.append([URL(fileURLWithPath: "/tmp/trk_17.wav"), URL(fileURLWithPath: "/tmp/trk_18.wav")])
+        for trk in newAdded {
+            spanProj.update(trk.id) { $0.frameCount = 25_000 }
+        }
+        let reSpanned = spanProj.discPlan()
+        h.check(reSpanned.discs.count == 2 && reSpanned.discs[1].metadata.title == "FILLMORE ENCORE (DISC II)" && reSpanned.discs[1].metadata.performer == "THE KROUTONS LIVE",
+                "When Disc 2 is needed again, it must restore its remembered Album Title and Artist from discMetadata[2]")
+
+        let longTitle = "THE_COMPLETE_LIVE_RECORDINGS_AT_OAKLAND_AUDITORIUM_1976"
+        let lblD1 = SpanManifest.volumeLabel(base: longTitle, discIndex: 1, discCount: 3, limit: 32)
+        let lblD2 = SpanManifest.volumeLabel(base: longTitle, discIndex: 2, discCount: 3, limit: 32)
+        let lblD3 = SpanManifest.volumeLabel(base: longTitle, discIndex: 3, discCount: 3, limit: 32)
+        h.check(lblD1.count == 32 && lblD2.count == 32 && lblD3.count == 32, "Formatted disc volume labels must respect 32-char ISO limit")
+        h.check(lblD1.hasSuffix("_D01") && lblD2.hasSuffix("_D02") && lblD3.hasSuffix("_D03") && lblD1 != lblD2 && lblD2 != lblD3,
+                "Long volume titles must reserve room for _D01/_D02/_D03 suffixes so discs never get identical labels")
+
+        var manualProj = AudioProject(albumTitle: "ACT I", albumPerformer: "ENSEMBLE")
+        let _ = manualProj.append((1...6).map { URL(fileURLWithPath: "/tmp/m\($0).wav") })
+        for trk in manualProj.tracks { manualProj.update(trk.id) { $0.frameCount = 9_000 } }
+        let actTwoStartID = manualProj.tracks[4].id
+        manualProj.update(actTwoStartID) { $0.startsNewDisc = true }
+        manualProj.anchoredDiscMetadata[actTwoStartID] = KroutonDiscVolumeMetadata(discNumber: 2, title: "ACT II: FINALE", performer: "ENSEMBLE")
+        let intermissionID = manualProj.tracks[2].id
+        manualProj.update(intermissionID) { $0.startsNewDisc = true }
+        manualProj.anchoredDiscMetadata[intermissionID] = KroutonDiscVolumeMetadata(discNumber: 2, title: "INTERMISSION", performer: "ENSEMBLE")
+
+        let manualPlan = manualProj.discPlan()
+        h.check(manualPlan.discs.count == 3 && manualPlan.discs[1].metadata.title == "INTERMISSION" && manualPlan.discs[2].metadata.title == "ACT II: FINALE",
+                "Manual break metadata must stay anchored to its first track when an earlier manual break is inserted")
+        h.check(manualPlan.discs.flatMap(\.tracks).map(\.id) == manualProj.tracks.map(\.id),
+                "Concatenating AudioDiscPlan.discs tracks must give back project.tracks in exact order")
+
+        struct MockDataItem: Identifiable, Sendable { let id: String; let bytes: Int64 }
+        let gb: Int64 = 1_000_000_000
+        let alreadyOptimal = [MockDataItem(id: "1", bytes: 2 * gb), MockDataItem(id: "2", bytes: 2 * gb)]
+        let noOpProposal = DiscRepacker.proposal(for: alreadyOptimal, capacityUnits: 5 * gb, currentDiscCount: 1, size: \.bytes)
+        h.check(noOpProposal == nil, "DiscRepacker.proposal must return nil when repacking cannot reduce currentDiscCount")
+        let fragItems = [
+            MockDataItem(id: "A", bytes: 3 * gb),
+            MockDataItem(id: "B", bytes: 3 * gb),
+            MockDataItem(id: "C", bytes: Int64(1.4 * Double(gb))),
+            MockDataItem(id: "D", bytes: Int64(1.4 * Double(gb)))
+        ]
+        let goodProposal = DiscRepacker.proposal(for: fragItems, capacityUnits: Int64(4.6 * Double(gb)), currentDiscCount: 3, size: \.bytes)
+        h.check(goodProposal?.discCount == 2 && goodProposal?.order.count == 4,
+                "DiscRepacker.proposal must reduce 3-disc fragmented set to 2 discs while preserving all 4 items")
+    }
 
     runKroutonVerifySuites19To21(&harness)
 }

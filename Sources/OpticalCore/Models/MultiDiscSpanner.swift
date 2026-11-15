@@ -1,0 +1,93 @@
+import Foundation
+
+// MARK: - Selectable Physical Media Capacities & Per-Disc Volume Metadata
+
+public enum KroutonSpanningDiscMedium: String, CaseIterable, Identifiable, Codable, Sendable {
+    case cd74Min650MB   = "CD-R 74 min / 650 MB"
+    case cd80Min700MB   = "CD-R 80 min / 700 MB"
+    case cd90Min800MB   = "CD-R 90 min / 800 MB (Overburn)"
+    case miniDVD80mm    = "Mini-DVD 80mm (1.46 GB)"
+    case dvd5Single     = "DVD-5 Single-Layer (4.7 GB)"
+    case dvd9Dual       = "DVD-9 Dual-Layer (8.54 GB)"
+    case bd25Single     = "BD-R 25 GB Single-Layer"
+    case bd50Dual       = "BD-R 50 GB Dual-Layer"
+    case bdxl100Triple  = "BDXL 100 GB Triple-Layer"
+    case bdxl128Quad    = "BDXL 128 GB Quad-Layer"
+
+    public var id: String { rawValue }
+
+    public var maxRedBookFrames: Int64 {
+        switch self {
+        case .cd74Min650MB:  return 74 * 60 * 75          // 333,000 frames (74:00:00)
+        case .cd80Min700MB:  return (79 * 60 + 57) * 75   // 359,775 frames (79:57:00)
+        case .cd90Min800MB:  return 89 * 60 * 75          // 400,500 frames (89:00:00)
+        case .miniDVD80mm:   return 150_000
+        default:             return (79 * 60 + 57) * 75
+        }
+    }
+
+    public var maxDataSectors2048: Int64 {
+        switch self {
+        case .cd74Min650MB:  return 332_000
+        case .cd80Min700MB:  return 358_800
+        case .cd90Min800MB:  return 399_000
+        case .miniDVD80mm:   return 712_000
+        case .dvd5Single:    return 2_292_000
+        case .dvd9Dual:      return 4_168_000
+        case .bd25Single:    return 12_210_000
+        case .bd50Dual:      return 24_420_000
+        case .bdxl100Triple: return 48_800_000
+        case .bdxl128Quad:   return 62_450_000
+        }
+    }
+
+    public var maxPayloadBytes: Int64 {
+        maxDataSectors2048 * 2048
+    }
+
+    public static func allowedMedia(forFormatID formatID: String) -> [KroutonSpanningDiscMedium] {
+        switch formatID {
+        case "cd-da", "cd-extra", "dts-cd", "cd-g", "vcd-svcd", "video-svcd", "macos9-hfs", "photo-cd", "data-retro-iso":
+            return [.cd80Min700MB, .cd74Min650MB, .cd90Min800MB]
+        case "mp3-cd":
+            return [.cd80Min700MB, .cd74Min650MB, .dvd5Single, .dvd9Dual]
+        case "dvd-video", "dvd-audio", "sacd-r", "bd-on-dvd", "dvd-ram":
+            return [.dvd5Single, .dvd9Dual, .miniDVD80mm]
+        case "bd-25":
+            return [.bd25Single, .bd50Dual]
+        case "bd-50":
+            return [.bd50Dual, .bd25Single, .bdxl100Triple]
+        case "bd-uhd":
+            return [.bdxl100Triple, .bdxl128Quad, .bd50Dual]
+        case "mdisc-vault":
+            return [.bd25Single, .bd50Dual, .bdxl100Triple, .dvd5Single]
+        default:
+            return [.dvd5Single, .dvd9Dual, .cd80Min700MB, .bd25Single, .bd50Dual, .bdxl100Triple, .bdxl128Quad]
+        }
+    }
+}
+
+public struct KroutonDiscVolumeMetadata: Equatable, Codable, Sendable {
+    public var discNumber: Int
+    public var title: String
+    public var performer: String
+    public var upc: String
+    public var volumeLabel: String
+    public var writeCDText: Bool
+
+    public init(
+        discNumber: Int,
+        title: String = "",
+        performer: String = "",
+        upc: String = "",
+        volumeLabel: String = "",
+        writeCDText: Bool = true
+    ) {
+        self.discNumber = max(1, discNumber)
+        self.title = title
+        self.performer = performer
+        self.upc = upc
+        self.volumeLabel = volumeLabel
+        self.writeCDText = writeCDText
+    }
+}

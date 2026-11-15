@@ -1,11 +1,11 @@
 import SwiftUI
 import Foundation
-import OpticalDough
-import Marmalade
-import VideoOven
-import Tartine
-import Galette
-import Crustini
+import OpticalCore
+import AudioKit
+import VideoKit
+import ImageKit
+import LabelKit
+import RescueKit
 
 struct KroutonTestHarness {
     var passed = 0

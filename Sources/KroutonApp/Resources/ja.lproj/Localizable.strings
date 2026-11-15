@@ -1,6 +1,6 @@
 /* Synchronized Krouton Localization Table (100% Key Parity) */
 "+ Add Output" = "+ 出力先を追加";
-"120mm / 18mm Canvas Studio" = "120mm / 18mm Canvas Studio";
+"120mm / 18mm Canvas Workspace" = "120mm / 18mm Canvas Workspace";
 "2.5s Equal-Power Crossfade" = "2.5s Equal-Power Crossfade";
 "24.0x MAX SPEED" = "24.0x MAX SPEED";
 "4x–8x CLV Guard Active • High-Reflectivity 700 MB CD-R Only (Preserves 2s Pre-Gaps & Red Book CD-DA)" = "4x–8x CLV Guard Active • High-Reflectivity 700 MB CD-R Only (Preserves 2s Pre-Gaps & Red Book CD-DA)";
@@ -107,7 +107,7 @@
 "DVD-ROM Bitset + 32 KB ECC Alignment" = "DVD-ROM Bitset + 32 KB ECC Alignment";
 "DVD-ROM Book Type + 32 KB ECC Boundary Alignment" = "DVD-ROM Book Type + 32 KB ECC Boundary Alignment";
 "Dark" = "ダーク";
-"Dark Studio Chapter Grid" = "Dark Studio Chapter Grid";
+"Dark Workspace Chapter Grid" = "Dark Workspace Chapter Grid";
 "Data & Archival" = "データ & 長期保存";
 "Default" = "デフォルト";
 "Default Track Splice" = "Default Track Splice";
@@ -187,7 +187,7 @@
 "Inner:" = "Inner:";
 "Internationalization & Foreign Languages" = "多言語サポート (10言語内蔵)";
 "KROUTON" = "KROUTON";
-"Krouton Pro Studio Accent Swatch" = "Krouton スタジオ・アクセントカラー";
+"Krouton Pro Workspace Accent Swatch" = "Krouton スタジオ・アクセントカラー";
 "Krouton authors UDF 2.50 PlayStation 3 BD-ROM volumes with PS3_GAME / PS3_DISC.SFB headers and 32-sector Blu-ray ECC alignment." = "Krouton authors UDF 2.50 PlayStation 3 BD-ROM volumes with PS3_GAME / PS3_DISC.SFB headers and 32-sector Blu-ray ECC alignment.";
 "Krouton auto-detects PS2 CD-ROM (<700 MB Mode 2 XA) vs PS2 DVD-ROM (UDF 1.02 + ISO9660 Bridge), SYSTEM.CNF boot ID, and ESR patching." = "Krouton auto-detects PS2 CD-ROM (<700 MB Mode 2 XA) vs PS2 DVD-ROM (UDF 1.02 + ISO9660 Bridge), SYSTEM.CNF boot ID, and ESR patching.";
 "Krouton masters 2-Session MIL-CD self-boot layout (Session 1 Audio/Dummy + Session 2 LBA 11702/45000 IP.BIN Bootstrap) at 4x–8x CLV." = "Krouton masters 2-Session MIL-CD self-boot layout (Session 1 Audio/Dummy + Session 2 LBA 11702/45000 IP.BIN Bootstrap) at 4x–8x CLV.";
@@ -221,7 +221,7 @@
 "Medium" = "中";
 "Menu Style:" = "Menu Style:";
 "Menu:" = "Menu:";
-"Minimalist Studio Track List" = "Minimalist Studio Track List";
+"Minimalist Workspace Track List" = "Minimalist Workspace Track List";
 "Mode:" = "Mode:";
 "Multi-disc queue waiting for operator" = "Multi-disc queue waiting for operator";
 "Multicolor (Adapts per workspace)" = "マルチカラー (フォーマット別に自動変化)";
@@ -381,3 +381,16 @@
 "samples" = "samples";
 "• Reed-Solomon .par2 + SHA-256" = "• Reed-Solomon .par2 + SHA-256";
 "• UDF 2.50 BDMV on 4.7 GB / 8.5 GB Red-Laser DVD" = "• UDF 2.50 BDMV on 4.7 GB / 8.5 GB Red-Laser DVD";
+"Copy & Rip" = "コピー＆リッピング";
+"CD Info" = "CD情報";
+"CD Info & Metadata Tags" = "CD情報とメタデータタグ";
+"Get Track Names" = "トラック名を取得";
+"Error Correction" = "エラー訂正";
+"Rip Selected" = "選択トラックを取り込む";
+"Import CD" = "CDを読み込む";
+"Stop Ripping" = "取り込みを停止";
+"Eject Optical Disc" = "ディスクを取り出す";
+"Reveal in Finder" = "Finderで表示";
+"Remove from Stage" = "ステージから削除";
+"Execute Only This Destination" = "この出力先のみ実行";
+"Optical Bad-Sector Rescue Map" = "光学不良セクター救出マップ";

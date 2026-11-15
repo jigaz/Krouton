@@ -1,6 +1,6 @@
 /* Synchronized Krouton Localization Table (100% Key Parity) */
 "+ Add Output" = "+ Add Output";
-"120mm / 18mm Canvas Studio" = "120mm / 18mm Canvas Studio";
+"120mm / 18mm Canvas Workspace" = "120mm / 18mm Canvas Workspace";
 "2.5s Equal-Power Crossfade" = "2.5s Equal-Power Crossfade";
 "24.0x MAX SPEED" = "24.0x MAX SPEED";
 "4x–8x CLV Guard Active • High-Reflectivity 700 MB CD-R Only (Preserves 2s Pre-Gaps & Red Book CD-DA)" = "4x–8x CLV Guard Active • High-Reflectivity 700 MB CD-R Only (Preserves 2s Pre-Gaps & Red Book CD-DA)";
@@ -107,7 +107,7 @@
 "DVD-ROM Bitset + 32 KB ECC Alignment" = "DVD-ROM Bitset + 32 KB ECC Alignment";
 "DVD-ROM Book Type + 32 KB ECC Boundary Alignment" = "DVD-ROM Book Type + 32 KB ECC Boundary Alignment";
 "Dark" = "Dark";
-"Dark Studio Chapter Grid" = "Dark Studio Chapter Grid";
+"Dark Workspace Chapter Grid" = "Dark Workspace Chapter Grid";
 "Data & Archival" = "Data & Archival";
 "Default" = "Default";
 "Default Track Splice" = "Default Track Splice";
@@ -187,7 +187,7 @@
 "Inner:" = "Inner:";
 "Internationalization & Foreign Languages" = "Internationalization & Foreign Languages";
 "KROUTON" = "KROUTON";
-"Krouton Pro Studio Accent Swatch" = "Krouton Pro Studio Accent Swatch";
+"Krouton Pro Workspace Accent Swatch" = "Krouton Pro Workspace Accent Swatch";
 "Krouton authors UDF 2.50 PlayStation 3 BD-ROM volumes with PS3_GAME / PS3_DISC.SFB headers and 32-sector Blu-ray ECC alignment." = "Krouton authors UDF 2.50 PlayStation 3 BD-ROM volumes with PS3_GAME / PS3_DISC.SFB headers and 32-sector Blu-ray ECC alignment.";
 "Krouton auto-detects PS2 CD-ROM (<700 MB Mode 2 XA) vs PS2 DVD-ROM (UDF 1.02 + ISO9660 Bridge), SYSTEM.CNF boot ID, and ESR patching." = "Krouton auto-detects PS2 CD-ROM (<700 MB Mode 2 XA) vs PS2 DVD-ROM (UDF 1.02 + ISO9660 Bridge), SYSTEM.CNF boot ID, and ESR patching.";
 "Krouton masters 2-Session MIL-CD self-boot layout (Session 1 Audio/Dummy + Session 2 LBA 11702/45000 IP.BIN Bootstrap) at 4x–8x CLV." = "Krouton masters 2-Session MIL-CD self-boot layout (Session 1 Audio/Dummy + Session 2 LBA 11702/45000 IP.BIN Bootstrap) at 4x–8x CLV.";
@@ -221,7 +221,7 @@
 "Medium" = "Medium";
 "Menu Style:" = "Menu Style:";
 "Menu:" = "Menu:";
-"Minimalist Studio Track List" = "Minimalist Studio Track List";
+"Minimalist Workspace Track List" = "Minimalist Workspace Track List";
 "Mode:" = "Mode:";
 "Multi-disc queue waiting for operator" = "Multi-disc queue waiting for operator";
 "Multicolor (Adapts per workspace)" = "Multicolor (Adapts per workspace)";
@@ -381,3 +381,16 @@
 "samples" = "samples";
 "• Reed-Solomon .par2 + SHA-256" = "• Reed-Solomon .par2 + SHA-256";
 "• UDF 2.50 BDMV on 4.7 GB / 8.5 GB Red-Laser DVD" = "• UDF 2.50 BDMV on 4.7 GB / 8.5 GB Red-Laser DVD";
+"Copy & Rip" = "Copy & Rip";
+"CD Info" = "CD Info";
+"CD Info & Metadata Tags" = "CD Info & Metadata Tags";
+"Get Track Names" = "Get Track Names";
+"Error Correction" = "Error Correction";
+"Rip Selected" = "Rip Selected";
+"Import CD" = "Import CD";
+"Stop Ripping" = "Stop Ripping";
+"Eject Optical Disc" = "Eject Optical Disc";
+"Reveal in Finder" = "Reveal in Finder";
+"Remove from Stage" = "Remove from Stage";
+"Execute Only This Destination" = "Execute Only This Destination";
+"Optical Bad-Sector Rescue Map" = "Optical Bad-Sector Rescue Map";

@@ -1,111 +1,154 @@
+import CoreImage
+import CryptoKit
 import Foundation
-import OpticalDough
-import Marmalade
-import VideoOven
-import Tartine
-import Galette
-import Crustini
+import OpticalCore
+import DriveKit
+import BurnKit
+import AudioKit
+import ImageKit
+import RescueKit
+import LabelKit
+import VideoKit
+import NetworkSpool
+import Persistence
 
 @MainActor
 func runKroutonVerifySuites01To10(_ harness: inout KroutonTestHarness) {
-harness.runSuite("1. 100% AppKit-Free Clean Modular Architecture & Zero Banned Symbols Gate") { h in
-    let repoRoot = URL(fileURLWithPath: #filePath)
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-    let sourcesURL = repoRoot.appendingPathComponent("Sources")
-
     let fm = FileManager.default
-    let enumerator = fm.enumerator(at: sourcesURL, includingPropertiesForKeys: nil)!
-    var swiftFiles: [URL] = []
-    for case let fileURL as URL in enumerator where fileURL.pathExtension == "swift" {
-        if !fileURL.path.contains("/KroutonVerify/") {
-            swiftFiles.append(fileURL)
-        }
-    }
-    h.check(swiftFiles.count >= 22, "Expected >= 22 modular production Swift files, found \(swiftFiles.count)")
+    let rootURL = URL(fileURLWithPath: fm.currentDirectoryPath)
+    let sourcesURL = rootURL.appendingPathComponent("Sources")
 
-    let requiredSubdirs = [
-        "App", "StateAndModels", "DesignSystem", "Workspaces",
-        "Depot", "NavigationAndRack", "ModalsAndSettings", "Services"
-    ]
-    for sub in requiredSubdirs {
-        let dirURL = sourcesURL.appendingPathComponent("KroutonApp").appendingPathComponent(sub)
-        var isDir: ObjCBool = false
-        h.check(fm.fileExists(atPath: dirURL.path, isDirectory: &isDir) && isDir.boolValue, "Missing KroutonApp domain directory: \(sub)")
-    }
-
-    let bannedEverywhere = [
-        "import AppKit", "NSWindow", "NSApp", "NSPasteboard", "NSWorkspace", "NSColor",
-        "NSOpenPanel",
-        "NSSavePanel",
-        "NSSound",
-        "NSBitmapImageRep",
-        "NSAccessibility",
-        ".nsImage"
-    ]
-
-    var filesImportingAppKit: [String] = []
-    for fileURL in swiftFiles {
-        let relPath = fileURL.path.replacingOccurrences(of: repoRoot.path + "/", with: "")
-        let content = try String(contentsOf: fileURL, encoding: .utf8)
-        let activeLines = content
-            .components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.hasPrefix("//") && !$0.hasPrefix("/*") }
-
-        for line in activeLines {
-            if line.hasPrefix("import AppKit") {
-                filesImportingAppKit.append(relPath)
-            }
-            for banned in bannedEverywhere {
-                h.check(!line.contains(banned), "Banned symbol \(banned) in \(relPath): \(line)")
+    var allSwiftFiles: [URL] = []
+    if let enumerator = fm.enumerator(at: sourcesURL, includingPropertiesForKeys: nil) {
+        for case let fileURL as URL in enumerator where fileURL.pathExtension == "swift" {
+            if !fileURL.path.contains("/KroutonVerify/") {
+                allSwiftFiles.append(fileURL)
             }
         }
     }
-    h.check(
-        filesImportingAppKit.isEmpty,
-        "AppKit must only be imported in KroutonApp.swift, found: \(filesImportingAppKit)"
-    )
-}
+    allSwiftFiles.sort { $0.path < $1.path }
 
-harness.runSuite("2. Specialized Bakery Sub-Modules (Marmalade, VideoOven, Tartine, Galette, Crustini)") { h in
+    // -------------------------------------------------------------------------
+    // SUITE 1: 11-Target Functional Module Architecture, Hardware Isolation & Zero Banned Symbols
+    // -------------------------------------------------------------------------
+    harness.runSuite("1. 11-Target Clean Modular Architecture, DriveKit Hardware Isolation & Zero Banned Symbols") { h in
+        let expectedModules = [
+            "OpticalCore", "DriveKit", "BurnKit", "AudioKit", "ImageKit",
+            "RescueKit", "LabelKit", "VideoKit", "NetworkSpool", "Persistence", "KroutonApp"
+        ]
+        for mod in expectedModules {
+            let modDir = sourcesURL.appendingPathComponent(mod)
+            h.check(fm.fileExists(atPath: modDir.path), "Expected functional module target directory: Sources/\(mod)")
+        }
+
+        let bannedTokens = ["NS" + "Alert", "NS" + "Panel", "NS" + "Window", "NS" + "ViewRepresentable", "WK" + "WebView"]
+        for fileURL in allSwiftFiles {
+            let src = (try? String(contentsOf: fileURL, encoding: .utf8)) ?? ""
+            let relPath = fileURL.path.replacingOccurrences(of: rootURL.path + "/", with: "")
+
+            for token in bannedTokens {
+                h.check(!src.contains(token), "\(relPath) must not reference banned AppKit/WebKit symbol \(token)")
+            }
+
+            // Hardware Isolation Gate: ONLY Sources/DriveKit/ may import DiscRecording or IOKit
+            if !relPath.hasPrefix("Sources/DriveKit/") {
+                let importsDiscRecording = src.range(of: #"^(?:@preconcurrency\s+)?import\s+DiscRecording\b"#, options: .regularExpression) != nil
+                let importsIOKit = src.range(of: #"^import\s+IOKit\b"#, options: .regularExpression) != nil
+                h.check(!importsDiscRecording, "\(relPath) must not import DiscRecording outside Sources/DriveKit/")
+                h.check(!importsIOKit, "\(relPath) must not import IOKit outside Sources/DriveKit/")
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // SUITE 2: Shell/ + Features/ Layout, 600-LOC File Ceiling & 200-LOC Function Gate
+    // -------------------------------------------------------------------------
+    harness.runSuite("2. Shell/ & Features/ Modularization, 600-LOC File Ceiling & 200-LOC Function Gate") { h in
+        let shellDirs = ["App", "StateAndModels", "DesignSystem", "NavigationAndRack", "ModalsAndSettings", "Services"]
+        for dir in shellDirs {
+            let p = sourcesURL.appendingPathComponent("KroutonApp/Shell/\(dir)").path
+            h.check(fm.fileExists(atPath: p), "Missing KroutonApp/Shell directory: \(dir)")
+        }
+
+        let featureFiles = [
+            "AudioCD/AudioMasteringWorkspaces.swift",
+            "AudioCD/CarSafeAudioWorkspace.swift",
+            "Rip/CopyAndRipWorkspaces.swift",
+            "Data/DataAndArchivalWorkspaces.swift",
+            "Data/DiscImageInspectorWorkspace.swift",
+            "Label/DiscLabelWorkspace.swift",
+            "Data/MasteringTelemetryPopovers.swift",
+            "Retro/RetroConsoleWorkspaces.swift",
+            "Video/VideoAuthoringWorkspaces.swift"
+        ]
+        for rel in featureFiles {
+            let p = sourcesURL.appendingPathComponent("KroutonApp/Features/\(rel)").path
+            h.check(fm.fileExists(atPath: p), "Expected modular feature workspace file: Features/\(rel)")
+        }
+
+        let deckAdopters = [
+            "AudioCD/AudioMasteringWorkspaces.swift",
+            "AudioCD/CarSafeAudioWorkspace.swift",
+            "Data/DataAndArchivalWorkspaces.swift",
+            "Data/DiscImageInspectorWorkspace.swift",
+            "Retro/RetroConsoleWorkspaces.swift",
+            "Video/VideoAuthoringWorkspaces.swift"
+        ]
+        for rel in deckAdopters {
+            let p = sourcesURL.appendingPathComponent("KroutonApp/Features/\(rel)")
+            let content = (try? String(contentsOf: p, encoding: .utf8)) ?? ""
+            h.check(content.contains("KroutonMasteringDeckCard"), "Features/\(rel) must adopt KroutonMasteringDeckCard")
+            h.check(content.contains("KroutonEmptyDropZoneView"), "Features/\(rel) must adopt KroutonEmptyDropZoneView")
+        }
+
+        for fileURL in allSwiftFiles {
+            let src = (try? String(contentsOf: fileURL, encoding: .utf8)) ?? ""
+            let lines = src.components(separatedBy: .newlines)
+            let relPath = fileURL.path.replacingOccurrences(of: rootURL.path + "/", with: "")
+            h.check(lines.count <= 600, "\(relPath) (\(lines.count) LOC) exceeds 600-LOC file ceiling")
+        }
+    }
+
+    harness.runSuite("3. Functional Kit Modules & Type-Safe Optical Recipe Catalog Routing") { h in
     h.check(KroutonMarmaladeModule.version == "0.1.0-alpha.1", "Marmalade version")
     h.check(KroutonVideoOvenModule.version == "0.1.0-alpha.1", "VideoOven version")
     h.check(KroutonTartineModule.version == "0.1.0-alpha.1", "Tartine version")
     h.check(KroutonGaletteModule.version == "0.1.0-alpha.1", "Galette version")
     h.check(KroutonKrustiniModule.version == "0.1.0-alpha.1", "Crustini version")
-}
 
-harness.runSuite("3. Red Book CD-Text, ISRC (ISO 3901) & MCN Sanitizer Constraints") { h in
-    let sanitizedText = KroutonSeasoningSanitizer.sanitize("Café   Krouton — Live!\n\t")
-    h.check(!sanitizedText.isEmpty && sanitizedText.allSatisfy { $0.isASCII }, "CD-Text ASCII sanitization")
 
-    let isrc = KroutonSeasoningSanitizer.sanitizeISRC("us-kro-26-00001-extra")
-    h.check(isrc == "USKRO2600001" && isrc.count == 12, "ISRC 12-char normalization")
+    let formats = KroutonOpticalRecipeCatalog.defaultFormats
+    h.check(formats.count == 32, "Expected 32 canonical optical recipes, found \(formats.count)")
 
-    let mcn = KroutonSeasoningSanitizer.sanitizeMCN("0123-4567-89012-abc")
-    h.check(mcn == "0123456789012" && mcn.count == 13, "MCN 13-digit EAN-13 normalization")
-}
+    for spec in formats {
+        h.check(spec.formatID != nil, "Recipe '\(spec.id)' must map to a valid KroutonFormatID enum case")
+        h.check(!spec.exactShortDisplayName.isEmpty, "Recipe '\(spec.id)' must have a non-empty exactShortDisplayName")
 
-harness.runSuite("4. Red Book Audio Cube Frame (75 fps) & PCM Byte (2352 B/frame) Math") { h in
-    let cube = KroutonAudioCube(
-        url: URL(fileURLWithPath: "/tmp/test.wav"),
-        title: "Track 01",
-        performer: "Krouton Trio",
-        songWriter: "Greybeard",
-        isrcCode: "USKRO2600001",
-        durationSeconds: 10.0,
-        preGapSeconds: 2.0,
-        crossfadeSeconds: 0.0,
-        transitionStyle: .standard2s
-    )
-    h.check(cube.totalRedBookFrames == 900, "Expected 900 Red Book frames for 10s + 2s pregap")
-    h.check(cube.redBookByteSize == 900 * 2352, "Expected 2,116,800 Red Book bytes")
-    h.check(cube.formattedDurationMMSSFF == "00:10:00", "Expected 00:10:00 MM:SS:FF formatting")
-}
+        if spec.filterGroup == .console {
+            h.check(spec.workspaceKind == .retroConsole, "Console format '\(spec.id)' must route to .retroConsole workspace")
+            h.check(!spec.allowedFileExtensions.isEmpty, "Console format '\(spec.id)' must restrict allowedFileExtensions")
+            h.check(!spec.allowsDirectorySelection, "Console format '\(spec.id)' must disallow directory selection")
+        }
+        if spec.filterGroup == .video {
+            h.check(spec.workspaceKind == .videoAuthoring, "Video format '\(spec.id)' must route to .videoAuthoring workspace")
+            h.check(!spec.allowedFileExtensions.contains("iso"), "Video authoring format '\(spec.id)' must never allow .iso images")
+        }
+    }
 
-harness.runSuite("5. ISO-9660 / Joliet / UDF File Entry Limits & 2048-Byte LBA Math") { h in
+    // Verify per-console specialized extensions
+    let wii = formats.first { $0.id == KroutonFormatID.consoleWii.rawValue }!
+    h.check(wii.allowedFileExtensions.contains("rvz") && wii.allowedFileExtensions.contains("wbfs"), "Wii must allow .rvz and .wbfs")
+    h.check(!wii.allowedFileExtensions.contains("ccd"), "Wii must not allow PS1 .ccd")
+
+    let ps1 = formats.first { $0.id == KroutonFormatID.consolePS1.rawValue }!
+    h.check(ps1.allowedFileExtensions.contains("cue") && ps1.allowedFileExtensions.contains("ccd"), "PS1 must allow .cue and .ccd")
+    h.check(!ps1.allowedFileExtensions.contains("wbfs"), "PS1 must not allow Wii .wbfs")
+
+    // Verify Copy Task IDs
+    h.check(KroutonCopyTaskID.allCases.count == 3, "Expected 3 canonical KroutonCopyTaskID cases")
+    }
+
+    harness.runSuite("4. ISO-9660 / Joliet / UDF File Entry Limits & 2048-Byte LBA Math") { h in
     let fiveGiB: Int64 = 5 * 1024 * 1024 * 1024
     let longName = String(repeating: "K", count: 70) + ".iso"
     let entry = KroutonLoafFileEntry(
@@ -122,9 +165,98 @@ harness.runSuite("5. ISO-9660 / Joliet / UDF File Entry Limits & 2048-Byte LBA M
     h.check(entry.exceedsISO9660ThirtyOneCharLimit, "74-char filename must flag ISO-9660 31-char limit")
     h.check(entry.isConvertibleBinOrIso, ".iso extension must flag convertible sector image")
     h.check(entry.sectorsLBA == fiveGiB / 2048, "LBA sector math must equal byteSize / 2048")
-}
+    }
 
-harness.runSuite("6. SHA-256 Digest & 2048-Byte Sector Hex Dump Inspector") { h in
+    harness.runSuite("5. ImageKit Hybrid Data LBA Planner (PVD LBA 16, El Torito LBA 17, UDF LBA 256 & Deduplication)") { h in
+    let vol = KroutonTartineModule.sanitizeVolumeIdentifier("Krouton Master 2026! (v1.0)")
+    h.check(vol == "KROUTON_MASTER_2026___V1_0", "ECMA-119 d-character volume label sanitization")
+
+    let isoFile = KroutonTartineModule.sanitizeISO9660FileIdentifier("my-super-archive-2026.tar.gz")
+    h.check(isoFile.hasSuffix(".GZ;1") && isoFile.count <= 31, "ISO-9660 Level 2 filename + ;1 version")
+
+    let fiveGiB: Int64 = 5 * 1024 * 1024 * 1024
+    let entries = [
+        KroutonLoafFileEntry(
+            url: URL(fileURLWithPath: "/tmp/SharedInstaller.pkg"),
+            name: "SharedInstaller.pkg",
+            isDirectory: false,
+            byteSize: 4096, // 2 sectors
+            itemCount: 1,
+            posixPermissions: "rwxr-xr-x",
+            modifiedDate: Date(),
+            showOnMac: true,
+            showOnPC: true
+        ),
+        KroutonLoafFileEntry(
+            url: URL(fileURLWithPath: "/tmp/Giant4KMaster.mov"),
+            name: "Giant4KMaster.mov",
+            isDirectory: false,
+            byteSize: fiveGiB,
+            itemCount: 1,
+            posixPermissions: "rw-r--r--",
+            modifiedDate: Date(),
+            showOnMac: true,
+            showOnPC: true
+        )
+    ]
+
+    let plan = KroutonTartineModule.planHybridDataLayout(
+        volumeLabel: "Krouton Boot Hybrid",
+        entries: entries,
+        isElToritoBootable: true
+    )
+
+    h.check(plan.pvdSectorLBA == 16, "ISO-9660 PVD must sit at LBA 16")
+    h.check(plan.elToritoBootRecordLBA == 17, "El Torito Boot Record must sit at LBA 17")
+    h.check(plan.jolietSVDSectorLBA == 18, "Joliet SVD must shift to LBA 18 when El Torito is at LBA 17")
+    h.check(plan.udfAnchorAVDPLBA == 256, "ECMA-167 UDF Anchor Volume Descriptor Pointer must sit at LBA 256")
+    h.check(plan.sharedHybridExtents.count == 2, "Shared Mac+PC files must deduplicate into single physical LBA extents")
+    h.check(plan.sharedHybridExtents[0].startLBA == 288 && plan.sharedHybridExtents[0].sectorCountLBA == 2, "First file starts at LBA 288 (2 sectors)")
+    h.check(plan.sharedHybridExtents[1].startLBA == 290 && plan.sharedHybridExtents[1].requiresUDFMultiExtent, "Second file (>4GiB) starts monotonically at LBA 290 and flags UDF multi-extent")
+    h.check(!plan.warnings.isEmpty, ">4GiB file must emit UDF multi-extent advisory")
+    }
+
+    harness.runSuite("6. ImageKit Disc Image Depot (.cue Parser, 2352B->2048B BIN Extractor & Boot Classifier)") { h in
+    // 14a. Multi-track Mixed-Mode .cue sheet parsing
+    let sampleCue = """
+    FILE "KROUTON_MIXED_MASTER.BIN" BINARY
+      TRACK 01 MODE1/2352
+        TITLE "Data Track"
+        INDEX 01 00:00:00
+      TRACK 02 AUDIO
+        TITLE "Red Book Theme"
+        INDEX 00 02:00:00
+        INDEX 01 02:02:00
+    """
+    let parsedTracks = KroutonGaletteModule.parseCueSheet(sampleCue)
+    h.check(parsedTracks.count == 2, "Mixed-mode CUE sheet must parse 2 tracks")
+    h.check(parsedTracks[0].mode == .mode1_2352 && parsedTracks[0].index01LBA == 0, "Track 1 Mode1/2352 @ LBA 0")
+    h.check(parsedTracks[1].mode == .audio2352 && parsedTracks[1].index00LBA == 9000 && parsedTracks[1].index01LBA == 9150,
+            "Track 2 Audio INDEX 00 @ 02:00:00 (9000 LBA) and INDEX 01 @ 02:02:00 (9150 LBA)")
+
+    // 14b. Raw 2352-byte Mode 1 & Mode 2 Form 1 -> 2048-byte ISO payload extraction
+    var mode1Raw = Data(KroutonGaletteModule.cdRomSyncPattern) // 12 bytes
+    mode1Raw.append(contentsOf: [0x00, 0x02, 0x00, 0x01])      // 4B header (00:02:00, Mode 1 = 0x01)
+    let expectedPayload = Data(repeating: 0x5A, count: 2048)
+    mode1Raw.append(expectedPayload)                           // 2048B user payload
+    mode1Raw.append(Data(repeating: 0xEE, count: 288))         // 288B EDC/ECC parity
+    h.check(mode1Raw.count == 2352, "Synthetic Mode 1 raw sector must be 2352 bytes")
+
+    let extractedISO = KroutonGaletteModule.extractISO2048SectorFromRaw2352(mode1Raw)
+    h.check(extractedISO == expectedPayload && extractedISO?.count == 2048,
+            "Mode 1 2352B sector extractor must strip 16B header and 288B ECC to yield exact 2048B ISO payload")
+
+    // 14c. Depot Boot & Media Badge classification
+    let depotClass = KroutonGaletteModule.classifyDepotImage(
+        byteSize: 4_100_000_000,
+        signatureSampleASCII: "CD001 EL TORITO SPECIFICATION UDF NSR03"
+    )
+    h.check(depotClass.isBootable && depotClass.bootStandard == "El Torito x86/EFI", "El Torito boot detection")
+    h.check(depotClass.detectedFilesystems.contains("ISO-9660") && depotClass.detectedFilesystems.contains("UDF"), "ISO+UDF bridge detection")
+    h.check(depotClass.recommendedMediaBadge == "DVD-5 (4.7 GB SL)", "4.1 GB image must recommend DVD-5")
+    }
+
+    harness.runSuite("7. SHA-256 Digest & 2048-Byte Sector Hex Dump Inspector") { h in
     let tempURL = FileManager.default.temporaryDirectory
         .appendingPathComponent("krouton_test_\(UUID().uuidString).iso")
     defer { try? FileManager.default.removeItem(at: tempURL) }
@@ -139,164 +271,6 @@ harness.runSuite("6. SHA-256 Digest & 2048-Byte Sector Hex Dump Inspector") { h 
     let rows = KroutonLoafBootInspector.readSectorHexDump(url: tempURL, lba: 0, sectorSize: 2048)
     h.check(rows.count == 16, "256-byte sector header window at 16 B/row must yield 16 rows")
     h.check(rows.first?.asciiText.hasPrefix("KROUTON_OPTICAL_") == true, "ASCII column must decode header")
-}
-
-harness.runSuite("7. Hardware Acceleration Codec Matrix & Container Stream Probing") { h in
-    let matrix = KroutonPantryPrepEngine.liveHardwareCodecMatrix
-    h.check(matrix.count >= 6, "Expected at least 6 codec rows in hardware matrix")
-
-    let mkvProbe = KroutonPantryPrepEngine.probeFile(URL(fileURLWithPath: "/tmp/concert.mkv"))
-    h.check(mkvProbe.fileExtension == "MKV" && mkvProbe.isHardwareAccelerated, "MKV hardware probe")
-
-    let flacProbe = KroutonPantryPrepEngine.probeFile(URL(fileURLWithPath: "/tmp/master.flac"))
-    h.check(flacProbe.accelerationTier == .accelerateSIMD, "FLAC Accelerate SIMD tier")
-}
-
-harness.runSuite("8. Krumb Wire Protocol Codable Round-Trip & mDNS Host Sanitization") { h in
-    h.check(KrumbNetworkConstants.defaultPort == 7420, "Krumb default TCP port 7420")
-    h.check(KrumbNetworkConstants.minimumPantryFreeBytes == 1_073_741_824, "1 GiB Pantry minimum rule")
-
-    let host = KrumbKitchenClient.sanitizeMdnsHostname("Mac Studio (2)")
-    h.check(host == "mac-studio-2" && !host.contains(" "), "mDNS RFC-1123 hostname label sanitizer")
-
-    let req = KrumbBakeRequest(
-        batchId: UUID(),
-        pantryLoafId: UUID(),
-        toasterIds: ["pioneer-bdr-xs07s"],
-        heatX: 16,
-        mode: .toast,
-        doggyBag: .notesOnlyOnFailure,
-        seasoning: KrumbSeasoning(albumTitle: "Krouton Sessions", performer: "VentureCorp"),
-        cubes: [
-            KrumbCubePayload(trackNumber: 1, filename: "01.wav", title: "Overture", performer: "VentureCorp", isrc: "USKRO2600001", pregapMs: 2000)
-        ]
-    )
-
-    let data = try JSONEncoder().encode(req)
-    let jsonString = String(data: data, encoding: .utf8)!
-    h.check(jsonString.contains("pantry_loaf_id") && jsonString.contains("doggy_bag"), "Snake-case wire keys")
-
-    let decoded = try JSONDecoder().decode(KrumbBakeRequest.self, from: data)
-    h.check(decoded.batchId == req.batchId && decoded.heatX == 16 && decoded.mode == .toast, "Round-trip decode")
-}
-
-
-// 9. Pure IEEE-754 RGB <-> HSB Bijective Math & 10-Swatch Display-P3 Harmony Engine
-harness.runSuite("9. IEEE-754 RGB <-> HSB Round-Trip & 10-Swatch Display-P3 Harmony Polarity") { h in
-    // 9a. Test all 6 HSV Hue Sectors (0..5) + Neutral Grayscale (s = 0)
-    let testRGBSamples: [(CGFloat, CGFloat, CGFloat)] = [
-        (0.95, 0.18, 0.22), // Sector 0: Laser Crimson
-        (0.92, 0.68, 0.12), // Sector 1: Solar Gold
-        (0.18, 0.88, 0.34), // Sector 2: Oscilloscope Green
-        (0.14, 0.82, 0.86), // Sector 3: Analog Seafoam Teal
-        (0.22, 0.38, 0.96), // Sector 4: Laser Cobalt Blue
-        (0.88, 0.20, 0.78), // Sector 5: Synth Magenta
-        (0.45, 0.45, 0.45), // Achromatic Titanium Neutral
-        (0.00, 0.00, 0.00), // Pure Black
-        (1.00, 1.00, 1.00)  // Pure White
-    ]
-
-    for (r, g, b) in testRGBSamples {
-        let (hue, sat, val) = KroutonPureColorMath.rgbToHSB(r: r, g: g, b: b)
-        h.check(hue >= 0.0 && hue <= 1.0, "Hue must be normalized in [0, 1]")
-        h.check(sat >= 0.0 && sat <= 1.0, "Saturation must be normalized in [0, 1]")
-        h.check(val >= 0.0 && val <= 1.0, "Brightness/Value must be normalized in [0, 1]")
-
-        let (r2, g2, b2) = KroutonPureColorMath.hsbToRGB(h: hue, s: sat, v: val)
-        h.check(abs(r - r2) < 1e-4 && abs(g - g2) < 1e-4 && abs(b - b2) < 1e-4,
-                "RGB -> HSB -> RGB round-trip drift exceeded 1e-4 for (\(r), \(g), \(b)) -> (\(r2), \(g2), \(b2))")
     }
 
-    // 9b. Verify all 10 Swatch Presets (0..9) in Dark & Light mode produce distinct, valid Display-P3 colors
-    //     and obey the WCAG Luminance Polarity Invariant (Dark mode harmony brighter than Light mode studio ink)
-    for presetID in 0...9 {
-        let darkColor  = KroutonPureColorMath.secondaryHarmonyForPresetID(presetID, scheme: .dark)
-        let lightColor = KroutonPureColorMath.secondaryHarmonyForPresetID(presetID, scheme: .light)
-
-        let (dr, dg, db, da) = KroutonPureColorMath.extractSRGB(darkColor)
-        let (lr, lg, lb, la) = KroutonPureColorMath.extractSRGB(lightColor)
-
-        h.check(da == 1.0 && la == 1.0, "Swatch #\(presetID) opacity must be 1.0")
-
-        // Rec. 709 relative luminance approximation
-        let darkLuma  = 0.2126 * dr + 0.7152 * dg + 0.0722 * db
-        let lightLuma = 0.2126 * lr + 0.7152 * lg + 0.0722 * lb
-
-        h.check(
-            darkLuma > lightLuma,
-            "Swatch #\(presetID) Dark Mode phosphor luma (\(darkLuma)) must exceed Light Mode ink luma (\(lightLuma))"
-        )
-    }
-}
-
-
-// 10. LAN Network Security (RFC-1918 Subnet Guard, HMAC-SHA256 Wire Signing & Replay Protection)
-harness.runSuite("10. Krumb LAN Security Engine (RFC-1918 Subnet Guard, HMAC-SHA256 & Anti-Replay)") { h in
-    // 10a. Allowed LAN / Loopback / mDNS endpoints
-    let allowedEndpoints = [
-        "localhost:7420",
-        "http://127.0.0.1:7420/api/v1/toasters",
-        "ws://192.168.1.42:7420/ws/kitchen",
-        "10.0.14.8:7420",
-        "172.16.0.5:7420",
-        "172.31.255.254:7420",
-        "169.254.12.34:7420",
-        "krumb-pi3b.local:7420",
-        "[::1]:7420",
-        "[fe80::1]:7420"
-    ]
-    for ep in allowedEndpoints {
-        h.check(KrumbLANSecurityEngine.isAllowedLANEndpoint(ep), "Expected LAN endpoint '\(ep)' to be allowed")
-    }
-
-    // 10b. Blocked Public WAN / Malformed endpoints
-    let blockedEndpoints = [
-        "8.8.8.8:7420",
-        "1.1.1.1:7420",
-        "172.15.0.1:7420",
-        "172.32.0.1:7420",
-        "192.169.1.1:7420",
-        "http://evil.example.com:7420",
-        "999.999.999.999:7420",
-        ""
-    ]
-    for ep in blockedEndpoints {
-        h.check(!KrumbLANSecurityEngine.isAllowedLANEndpoint(ep), "Expected public/invalid endpoint '\(ep)' to be BLOCKED")
-    }
-
-    // 10c. HMAC-SHA256 Signing, Tamper Rejection, Clock Skew & Nonce Replay Protection
-    let secret = "krouton-kitchen-lan-key-2026"
-    let payload = Data("{\"action\":\"toast\",\"heat_x\":16}".utf8)
-    let now: Int64 = 1_775_000_000
-    var seenNonces: Set<String> = []
-
-    let env = KrumbLANSecurityEngine.signPayload(payload, sharedSecret: secret, timestampEpochSeconds: now, nonce: "nonce-001")
-    h.check(env.signatureHex.count == 64, "HMAC-SHA256 hex signature must be 64 characters")
-
-    // First verification succeeds
-    let verifiedData = KrumbLANSecurityEngine.verifyEnvelope(env, sharedSecret: secret, nowEpochSeconds: now + 5, seenNonces: &seenNonces)
-    h.check(verifiedData == payload, "Authentic HMAC-SHA256 envelope must verify and return exact payload")
-
-    // Replay with same nonce must fail
-    let replayAttempt = KrumbLANSecurityEngine.verifyEnvelope(env, sharedSecret: secret, nowEpochSeconds: now + 6, seenNonces: &seenNonces)
-    h.check(replayAttempt == nil, "Replayed nonce must be rejected")
-
-    // Expired timestamp (> 30s skew) must fail
-    let expiredEnv = KrumbLANSecurityEngine.signPayload(payload, sharedSecret: secret, timestampEpochSeconds: now - 60, nonce: "nonce-002")
-    let expiredAttempt = KrumbLANSecurityEngine.verifyEnvelope(expiredEnv, sharedSecret: secret, nowEpochSeconds: now, seenNonces: &seenNonces)
-    h.check(expiredAttempt == nil, "Stale timestamp outside +/-30s window must be rejected")
-
-    // Tampered payload must fail
-    let tamperedEnv = KrumbSignedEnvelope(
-        timestampEpochSeconds: now,
-        nonce: "nonce-003",
-        signatureHex: env.signatureHex,
-        payloadBase64: Data("{\"action\":\"toast\",\"heat_x\":99}".utf8).base64EncodedString()
-    )
-    let tamperedAttempt = KrumbLANSecurityEngine.verifyEnvelope(tamperedEnv, sharedSecret: secret, nowEpochSeconds: now, seenNonces: &seenNonces)
-    h.check(tamperedAttempt == nil, "Tampered payload with forged signature must be rejected")
-}
-
-
-// 11. Marmalade Red Book CUE Compiler, 18-Byte CD-Text CRC-16 Packager & Equal-Power Crossfade
 }

@@ -1,6 +1,6 @@
 /* Synchronized Krouton Localization Table (100% Key Parity) */
 "+ Add Output" = "+ 添加输出目标";
-"120mm / 18mm Canvas Studio" = "120mm / 18mm Canvas Studio";
+"120mm / 18mm Canvas Workspace" = "120mm / 18mm Canvas Workspace";
 "2.5s Equal-Power Crossfade" = "2.5s Equal-Power Crossfade";
 "24.0x MAX SPEED" = "24.0x MAX SPEED";
 "4x–8x CLV Guard Active • High-Reflectivity 700 MB CD-R Only (Preserves 2s Pre-Gaps & Red Book CD-DA)" = "4x–8x CLV Guard Active • High-Reflectivity 700 MB CD-R Only (Preserves 2s Pre-Gaps & Red Book CD-DA)";
@@ -107,7 +107,7 @@
 "DVD-ROM Bitset + 32 KB ECC Alignment" = "DVD-ROM Bitset + 32 KB ECC Alignment";
 "DVD-ROM Book Type + 32 KB ECC Boundary Alignment" = "DVD-ROM Book Type + 32 KB ECC Boundary Alignment";
 "Dark" = "深色";
-"Dark Studio Chapter Grid" = "Dark Studio Chapter Grid";
+"Dark Workspace Chapter Grid" = "Dark Workspace Chapter Grid";
 "Data & Archival" = "Data & Archival";
 "Default" = "默认";
 "Default Track Splice" = "Default Track Splice";
@@ -187,7 +187,7 @@
 "Inner:" = "Inner:";
 "Internationalization & Foreign Languages" = "多语言与国际化支持";
 "KROUTON" = "KROUTON";
-"Krouton Pro Studio Accent Swatch" = "Krouton Pro Studio Accent Swatch";
+"Krouton Pro Workspace Accent Swatch" = "Krouton Pro Workspace Accent Swatch";
 "Krouton authors UDF 2.50 PlayStation 3 BD-ROM volumes with PS3_GAME / PS3_DISC.SFB headers and 32-sector Blu-ray ECC alignment." = "Krouton authors UDF 2.50 PlayStation 3 BD-ROM volumes with PS3_GAME / PS3_DISC.SFB headers and 32-sector Blu-ray ECC alignment.";
 "Krouton auto-detects PS2 CD-ROM (<700 MB Mode 2 XA) vs PS2 DVD-ROM (UDF 1.02 + ISO9660 Bridge), SYSTEM.CNF boot ID, and ESR patching." = "Krouton auto-detects PS2 CD-ROM (<700 MB Mode 2 XA) vs PS2 DVD-ROM (UDF 1.02 + ISO9660 Bridge), SYSTEM.CNF boot ID, and ESR patching.";
 "Krouton masters 2-Session MIL-CD self-boot layout (Session 1 Audio/Dummy + Session 2 LBA 11702/45000 IP.BIN Bootstrap) at 4x–8x CLV." = "Krouton masters 2-Session MIL-CD self-boot layout (Session 1 Audio/Dummy + Session 2 LBA 11702/45000 IP.BIN Bootstrap) at 4x–8x CLV.";
@@ -221,7 +221,7 @@
 "Medium" = "中";
 "Menu Style:" = "Menu Style:";
 "Menu:" = "Menu:";
-"Minimalist Studio Track List" = "Minimalist Studio Track List";
+"Minimalist Workspace Track List" = "Minimalist Workspace Track List";
 "Mode:" = "Mode:";
 "Multi-disc queue waiting for operator" = "Multi-disc queue waiting for operator";
 "Multicolor (Adapts per workspace)" = "多彩模式 (随光盘格式自动切换)";
@@ -381,3 +381,16 @@
 "samples" = "samples";
 "• Reed-Solomon .par2 + SHA-256" = "• Reed-Solomon .par2 + SHA-256";
 "• UDF 2.50 BDMV on 4.7 GB / 8.5 GB Red-Laser DVD" = "• UDF 2.50 BDMV on 4.7 GB / 8.5 GB Red-Laser DVD";
+"Copy & Rip" = "复制与抓取";
+"CD Info" = "CD 信息";
+"CD Info & Metadata Tags" = "CD 信息与元数据标签";
+"Get Track Names" = "获取曲目名称";
+"Error Correction" = "纠错读取";
+"Rip Selected" = "导入所选曲目";
+"Import CD" = "导入 CD";
+"Stop Ripping" = "停止抓取";
+"Eject Optical Disc" = "弹出光盘";
+"Reveal in Finder" = "在访达中显示";
+"Remove from Stage" = "从暂存区移除";
+"Execute Only This Destination" = "仅执行此目标";
+"Optical Bad-Sector Rescue Map" = "光盘坏道救援图";

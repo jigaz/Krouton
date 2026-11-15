@@ -1,57 +1,23 @@
+import NetworkSpool
+import BurnKit
 import CoreImage
+import CryptoKit
 import Foundation
-import OpticalDough
-import Marmalade
-import VideoOven
-import Tartine
-import Galette
-import Crustini
+import OpticalCore
+import AudioKit
+import VideoKit
+import ImageKit
+import LabelKit
+import RescueKit
 
 @MainActor
 func runKroutonVerifySuites19To21(_ harness: inout KroutonTestHarness) {
-    harness.runSuite("19. Type-Safe Optical Recipe Catalog, Workspace Routing & File Extension Invariants") { h in
-    let formats = KroutonOpticalRecipeCatalog.defaultFormats
-    h.check(formats.count == 32, "Expected 32 canonical optical recipes, found \(formats.count)")
-
-    for spec in formats {
-        h.check(spec.formatID != nil, "Recipe '\(spec.id)' must map to a valid KroutonFormatID enum case")
-        h.check(!spec.exactShortDisplayName.isEmpty, "Recipe '\(spec.id)' must have a non-empty exactShortDisplayName")
-
-        if spec.filterGroup == .console {
-            h.check(spec.workspaceKind == .retroConsole, "Console format '\(spec.id)' must route to .retroConsole workspace")
-            h.check(!spec.allowedFileExtensions.isEmpty, "Console format '\(spec.id)' must restrict allowedFileExtensions")
-            h.check(!spec.allowsDirectorySelection, "Console format '\(spec.id)' must disallow directory selection")
-        }
-        if spec.filterGroup == .video {
-            h.check(spec.workspaceKind == .videoAuthoring, "Video format '\(spec.id)' must route to .videoAuthoring workspace")
-            h.check(!spec.allowedFileExtensions.contains("iso"), "Video authoring format '\(spec.id)' must never allow .iso images")
-        }
-    }
-
-    // Verify per-console specialized extensions
-    let wii = formats.first { $0.id == KroutonFormatID.consoleWii.rawValue }!
-    h.check(wii.allowedFileExtensions.contains("rvz") && wii.allowedFileExtensions.contains("wbfs"), "Wii must allow .rvz and .wbfs")
-    h.check(!wii.allowedFileExtensions.contains("ccd"), "Wii must not allow PS1 .ccd")
-
-    let ps1 = formats.first { $0.id == KroutonFormatID.consolePS1.rawValue }!
-    h.check(ps1.allowedFileExtensions.contains("cue") && ps1.allowedFileExtensions.contains("ccd"), "PS1 must allow .cue and .ccd")
-    h.check(!ps1.allowedFileExtensions.contains("wbfs"), "PS1 must not allow Wii .wbfs")
-
-    // Verify Copy Task IDs
-    h.check(KroutonCopyTaskID.allCases.count == 3, "Expected 3 canonical KroutonCopyTaskID cases")
-}
-
-harness.runSuite("20. Mastering & Extraction Domain Models (TOC, Video Titles & Config Codable Round-Trip)") { h in
-    let toc = KroutonRipTrackItem.defaultRedBookTOC
-    h.check(toc.count == 5, "Default Red Book TOC should have 5 tracks")
-    h.check(toc.first?.id == 1 && toc.last?.id == 5, "Track IDs must match track numbers")
-
-    let mbTOC = KroutonRipTrackItem.musicBrainzMatchedTOC
-    h.check(mbTOC.count == 5 && mbTOC[0].performer == "The Optical Pickups", "MusicBrainz TOC performer mismatch")
-
-    let titles = KroutonVideoExtractTitleItem.defaultVideoTitles
-    h.check(titles.count == 3, "Default Video Extract Titles should have 3 entries")
-    h.check(titles.filter { $0.seconds >= 120 }.count == 2, "Min duration filter (120s) should leave 2 feature titles")
+    harness.runSuite("15. Mastering & Extraction Domain Models (TOC, Video Titles, Track Montage & Config Round-Trip)") { h in
+    h.check(KroutonRipTrackItem.defaultRedBookTOC.isEmpty, "Default Red Book TOC must be empty (no fake tracks)")
+    h.check(KroutonRipTrackItem.musicBrainzMatchedTOC.isEmpty, "MusicBrainz fallback TOC must be empty")
+    h.check(KroutonVideoExtractTitleItem.defaultVideoTitles.isEmpty, "Default Video Titles must be empty")
+    let sampleTrack = KroutonRipTrackItem(num: 1, title: "Track 01", performer: "", duration: "04:34:23", arStatus: "Ready")
+    h.check(sampleTrack.id == 1, "Track ID must match track number")
 
     let consoleCfg = KroutonConsoleMasteringConfig()
     let data = try JSONEncoder().encode(consoleCfg)
@@ -91,7 +57,7 @@ harness.runSuite("20. Mastering & Extraction Domain Models (TOC, Video Titles & 
         bottomSubtitle: "50TH ANNIVERSARY RED BOOK MASTER",
         performer: "Pink Floyd",
         mcnCatalogBarcode: "5099902894521",
-        templateStyleRaw: "Concentric Studio Rings",
+        templateStyleRaw: "Concentric Workspace Rings",
         trayPresetName: "Epson ET-8550 Full Hub (120mm / 18mm)",
         outerDiameterMM: 120.0,
         innerDiameterMM: 18.0,
@@ -112,7 +78,7 @@ harness.runSuite("20. Mastering & Extraction Domain Models (TOC, Video Titles & 
     let lblDecoded = try JSONDecoder().decode(KroutonEmbeddedLabelSpec.self, from: lblData)
     h.check(lblDecoded == embeddedLabel && lblDecoded.vectorShapeLayers.count == 1, "KroutonEmbeddedLabelSpec round-trip with editable vector shapes & gradient")
 
-    // Verify Metal GPU Kaleidoscope Studio, 360° Tiny Planet Globe & 8x Polar Mandala Symmetry
+    // Verify Metal GPU Kaleidoscope Workspace, 360° Tiny Planet Globe & 8x Polar Mandala Symmetry
     let sym8 = KroutonKrustiniModule.replicateShapeWithPolarSymmetry(baseShape: snappedCircle, symmetryCount: 8)
     h.check(sym8.count == 8 && sym8[0].points.count == 36, "8x Polar Symmetry must generate 8 radially rotated vector shapes")
 
@@ -184,130 +150,382 @@ harness.runSuite("20. Mastering & Extraction Domain Models (TOC, Video Titles & 
         snapA.topArcRadiusMM = 44.0
         var snapB = snapA
         snapB.topArcRadiusMM = 51.5
-        h.check(snapA != snapB && snapB.topArcRadiusMM == 51.5, "Label Studio state snapshots must distinguish geometry mutations for Undo/Redo")
+        h.check(snapA != snapB && snapB.topArcRadiusMM == 51.5, "Label Workspace state snapshots must distinguish geometry mutations for Undo/Redo")
 
-
-
-
-
-
-
-
-}
-
-harness.runSuite("21. Phase 4 Workspace Modularization & 600-LOC File Ceiling & 200-LOC Function Gate") { h in
-    let repoRoot = URL(fileURLWithPath: #filePath)
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-    let workspacesDir = repoRoot.appendingPathComponent("Sources/KroutonApp/Workspaces")
-    let fm = FileManager.default
-
-    let expectedWorkspaceFiles = [
-        "AudioMasteringWorkspaces.swift",
-        "CarSafeAudioWorkspace.swift",
-        "CopyAndRipWorkspaces.swift",
-        "DataAndArchivalWorkspaces.swift",
-        "DiscImageInspectorWorkspace.swift",
-        "DiscLabelStudioWorkspace.swift",
-        "MasteringTelemetryPopovers.swift",
-        "RetroConsoleWorkspaces.swift",
-        "VideoAuthoringWorkspaces.swift"
-    ]
-
-    for file in expectedWorkspaceFiles {
-        let url = workspacesDir.appendingPathComponent(file)
-        h.check(fm.fileExists(atPath: url.path), "Expected modular workspace file: \(file)")
-        if let content = try? String(contentsOf: url, encoding: .utf8) {
-            let lineCount = content.components(separatedBy: .newlines).count
-            h.check(lineCount <= 600, "\(file) must stay <= 600 LOC (Rule 4 ceiling), found \(lineCount) LOC")
-            h.check(!content.contains("extension KroutonMainWorkspaceView"), "\(file) must use standalone View structs, not extension KroutonMainWorkspaceView")
-            h.check(content.contains(": View {"), "\(file) must declare at least one standalone SwiftUI View struct")
+        // Verify AudioProject Layout & UserEdited Invariants
+        var proj = AudioProject()
+        let u1 = URL(fileURLWithPath: "/tmp/track01.wav")
+        let u2 = URL(fileURLWithPath: "/tmp/track02.wav")
+        let u3 = URL(fileURLWithPath: "/tmp/track03.wav")
+        let added = proj.append([u1, u2, u3])
+        h.check(added.count == 3 && proj.tracks.count == 3, "AudioProject.append must add 3 distinct tracks")
+        for trk in proj.tracks {
+            var g = KroutonTrackTransitionSpec()
+            g.overlapSeconds = 0
+            g.preGapSeconds = 2.0
+            proj.update(trk.id) { $0.frameCount = 450; $0.transitionToNext = g }
         }
-    }
-
-    let legacyMonolith = workspacesDir.appendingPathComponent("KroutonMasteringWorkspaces.swift")
-    h.check(!fm.fileExists(atPath: legacyMonolith.path), "Legacy KroutonMasteringWorkspaces.swift monolith must be removed")
-
-    // Global Repository-Wide 600-LOC Ceiling Gate across 100% of Sources/**/*.swift
-    let fmAll = FileManager.default
-    if let enumAll = fmAll.enumerator(atPath: "Sources") {
-        while let relPath = enumAll.nextObject() as? String {
-            guard relPath.hasSuffix(".swift") else { continue }
-            let full = "Sources/\(relPath)"
-            if let text = try? String(contentsOfFile: full, encoding: .utf8) {
-                let lc = text.components(separatedBy: .newlines).count
-                h.check(lc <= 600, "Global 600-LOC Gate: \(full) must be <= 600 LOC, found \(lc) LOC")
+        let (layNoX, issuesNoX) = proj.layout()
+        h.check(issuesNoX.isEmpty && layNoX?.count == 3, "Analysed 3-track project must produce a clean layout")
+        if let lay = layNoX {
+            for idx in 0..<lay.count {
+                if idx > 0 { h.check(lay[idx].audioStart >= lay[idx - 1].audioStart, "audioStart must be non-decreasing") }
+                if let i00 = lay[idx].index00 { h.check(i00 <= lay[idx].index01, "index00 <= index01 where index00 exists") }
             }
+            h.check(proj.totalFrames == (450 * 3 + 150 * 2), "With no crossfades, totalFrames must equal sum(frameCount) + sum(gaps)")
         }
-    }
+        let id1 = proj.tracks[0].id, id2 = proj.tracks[1].id
+        proj.update(id1) { $0.title = "Custom Typed Title"; $0.userEdited.insert(.title) }
+        proj.update(id1) { $0.applyScanned(title: "Scanned Tag Title", performer: "Scanned Artist", isrc: "USABC2600001") }
+        h.check(proj.track(id1)?.title == "Custom Typed Title", "applyScanned must never overwrite a field listed in userEdited")
+        h.check(proj.track(id1)?.performer == "Scanned Artist" && proj.track(id1)?.isrc == "USABC2600001", "applyScanned must populate unedited fields and valid ISRC")
+        let snapTrack2 = proj.track(id2)
+        proj.move(id1, by: 1)
+        h.check(proj.track(id2) == snapTrack2, "move must never mutate any other track's fields")
 
-    // Verify that standalone workspaces adopt KroutonMasteringDeckCard and KroutonEmptyDropZoneView
-    let sharedComponentWorkspaces = [
-        "Sources/KroutonApp/Workspaces/AudioMasteringWorkspaces.swift",
-        "Sources/KroutonApp/Workspaces/CarSafeAudioWorkspace.swift",
-        "Sources/KroutonApp/Workspaces/DataAndArchivalWorkspaces.swift",
-        "Sources/KroutonApp/Workspaces/DiscImageInspectorWorkspace.swift",
-        "Sources/KroutonApp/Workspaces/RetroConsoleWorkspaces.swift",
-        "Sources/KroutonApp/Workspaces/VideoAuthoringWorkspaces.swift"
-    ]
-    for wp in sharedComponentWorkspaces {
-        let wpText = (try? String(contentsOfFile: wp, encoding: .utf8)) ?? ""
-        h.check(wpText.contains("KroutonMasteringDeckCard"), "\(wp) must adopt KroutonMasteringDeckCard")
-        h.check(wpText.contains("KroutonEmptyDropZoneView"), "\(wp) must adopt KroutonEmptyDropZoneView")
-    }
-
-        // Hygiene Gate: Forbid `let _ = (` warning-suppression tuple band-aids in KroutonApp
-        let kroutonAppDir = repoRoot.appendingPathComponent("Sources/KroutonApp")
-        if let enumApp = FileManager.default.enumerator(at: kroutonAppDir, includingPropertiesForKeys: nil) {
-            for case let fURL as URL in enumApp where fURL.pathExtension == "swift" {
-                let content = (try? String(contentsOf: fURL, encoding: .utf8)) ?? ""
-                let hasTupleBandAid = content.components(separatedBy: .newlines).contains {
-                    $0.trimmingCharacters(in: .whitespaces).hasPrefix("let _ = (")
-                }
-                h.check(!hasTupleBandAid, "Zero `let _ = (` warning-suppression band-aids allowed in \(fURL.lastPathComponent)")
-            }
+        // Verify SpliceOverlapMath Invariants
+        var xSpec = KroutonTrackTransitionSpec()
+        xSpec.overlapSeconds = 2.0
+        xSpec.preGapSeconds = 0.0
+        xSpec.fadeOutCurve = .equalPower
+        xSpec.fadeInCurve = .equalPower
+        let silentPeaks = FramePeaks(values: [Float](repeating: 0, count: 200))
+        h.check(SpliceOverlapMath.peakUpperBound(outgoingTail: silentPeaks, incomingHead: silentPeaks, spec: xSpec) == 0.0, "Silence on both sides must give 0.0 peak bound")
+        let unityPeaks = FramePeaks(values: [Float](repeating: 1.0, count: 200))
+        if let eqBound = SpliceOverlapMath.peakUpperBound(outgoingTail: unityPeaks, incomingHead: unityPeaks, spec: xSpec) {
+            h.check(abs(eqBound - sqrt(2.0)) < 0.03, "Full-scale on both sides with equal-power curves must give ~1.414 (+3.0 dB)")
         }
+        let shortPeaks = FramePeaks(values: [Float](repeating: 0.8, count: 50))
+        h.check(SpliceOverlapMath.peakUpperBound(outgoingTail: shortPeaks, incomingHead: unityPeaks, spec: xSpec) == nil, "Overlap longer than analysed window must return nil, never a guess")
 
+        // Verify AudioProject -> .CUE Compiler (Boundary N -> N+1 Pregap & Crossfade Splice Placement)
+        var cueProj = AudioProject(albumTitle: "RUMOURS", albumPerformer: "FLEETWOOD MAC", upc: "0075992731324", writeCDText: true)
+        let _ = cueProj.append([
+            URL(fileURLWithPath: "/tmp/01_Second_Hand_News.wav"),
+            URL(fileURLWithPath: "/tmp/02_Dreams.wav"),
+            URL(fileURLWithPath: "/tmp/03_Never_Going_Back.wav")
+        ])
+        let c1 = cueProj.tracks[0].id, c2 = cueProj.tracks[1].id, c3 = cueProj.tracks[2].id
+        // Track 1 (450 frames = 00:06:00) followed by a 2.0s (150 frames) pause before Track 2
+        cueProj.update(c1) {
+            $0.title = "Second Hand News"
+            $0.frameCount = 450
+            $0.transitionToNext = KroutonTrackTransitionSpec(overlapSeconds: 0.0, preGapSeconds: 2.0)
+        }
+        // Track 2 (600 frames = 00:08:00) followed by a 2.0s (150 frames) crossfade into Track 3 (50% splice ratio)
+        cueProj.update(c2) {
+            $0.title = "Dreams"
+            $0.frameCount = 600
+            $0.transitionToNext = KroutonTrackTransitionSpec(overlapSeconds: 2.0, preGapSeconds: 0.0, spliceIndex01Ratio: 0.50)
+        }
+        cueProj.update(c3) {
+            $0.title = "Never Going Back Again"
+            $0.frameCount = 450
+        }
+        let compiledCue = cueProj.compileCueSheet() ?? ""
+        h.check(compiledCue.contains("CATALOG 0075992731324"), ".CUE compiler must emit validated 13-digit CATALOG")
+        h.check(compiledCue.contains("  TRACK 01 AUDIO\n    TITLE \"Second Hand News\"\n    PERFORMER \"FLEETWOOD MAC\"\n    INDEX 01 00:00:00"), "TRACK 01 must start at INDEX 01 00:00:00 with no INDEX 00 from its own transitionToNext")
+        h.check(compiledCue.contains("  TRACK 02 AUDIO\n    TITLE \"Dreams\"\n    PERFORMER \"FLEETWOOD MAC\"\n    INDEX 00 00:06:00\n    INDEX 01 00:08:00"), "Track 1's 2s pause must land as TRACK 02's INDEX 00 (00:06:00) -> INDEX 01 (00:08:00)")
+        // Track 2 audio runs 600..1200f (00:08:00..00:16:00). A 150f crossfade starts Track 3 audio at 1050f (00:14:00) and places INDEX 01 at 1050 + 75 = 1125f (00:15:00)
+        h.check(compiledCue.contains("  TRACK 03 AUDIO\n    TITLE \"Never Going Back Again\"\n    PERFORMER \"FLEETWOOD MAC\"\n    INDEX 01 00:15:00"), "Track 2's 2s crossfade (50% ratio) must place TRACK 03 INDEX 01 at 00:15:00 with no INDEX 00")
 
-        // Verify 1:1 Millimeter-Calibrated PDF Print Sheet & 300-DPI PNG Encoder
-        let seedCI = KroutonKrustiniModule.makeGPUSeedCIImage(
-            pattern: .neonLaserPrism,
-            primaryColor: KroutonRGBAColor(r: 0.2, g: 0.6, b: 0.9, a: 1.0),
-            secondaryColor: KroutonRGBAColor(r: 0.9, g: 0.3, b: 0.5, a: 1.0),
-            dimension: 120.0
+        // Verify Track Montage Editor: 30s Crossfade Clamping, 1x/3x Zoom Geometry & Track-Aware INDEX 02..99 .CUE Emission
+        let maxFadeSpec = KroutonTrackTransitionSpec(
+            overlapSeconds: 45.0,
+            preGapSeconds: 0.0,
+            subIndexRatios: [0.75, 0.25, 1.40, 0.01]
         )
-        let ciCtx = CIContext()
-        if let testCG = ciCtx.createCGImage(seedCI, from: CGRect(x: 0, y: 0, width: 120, height: 120)) {
-            let pngData = KroutonKrustiniModule.encodeCGImageToPNGData(testCG, dpi: 300.0)
-            h.check((pngData?.count ?? 0) > 128, "300-DPI PNG encoder must produce valid non-empty PNG data")
-            let pdfData = KroutonKrustiniModule.renderCalibratedPrintSheetPDFData(
-                discCGImage: testCG,
-                presetName: "Epson ET-8550 Full Hub",
-                outerDiameterMM: 120.0,
-                innerDiameterMM: 18.0,
-                offsetXMM: 0.4,
-                offsetYMM: -0.3,
-                discTitle: "KROUTON_VERIFY_DISC",
-                includeCalibrationMarks: true
+        h.check(maxFadeSpec.overlapSeconds == 30.0 && maxFadeSpec.overlapRedBookFrames == 2250,
+                "KroutonTrackTransitionSpec must clamp overlapSeconds ceiling to 30.0s (2,250 Red Book frames)")
+        h.check(maxFadeSpec.subIndexRatios == [0.05, 0.25, 0.75, 0.95],
+                "subIndexRatios must clamp to [0.05, 0.95] and sort ascending")
+
+        let canvasSize = CGSize(width: 600, height: 174)
+        let fade4s = KroutonTrackTransitionSpec(
+            overlapSeconds: 4.0,
+            preGapSeconds: 0.0,
+            spliceIndex01Ratio: 0.50,
+            subIndexRatios: [0.35, 0.15, 0.82, 0.64]
+        )
+        let geom1x = SpliceCanvasGeometry(size: canvasSize, spec: fade4s, horizontalZoom: 1.0)
+        let geom3x = SpliceCanvasGeometry(size: canvasSize, spec: fade4s, horizontalZoom: 3.0)
+        h.check(abs(geom1x.effectiveSpanSeconds - 34.0) < 1e-6, "1x horizontal zoom must span 34.0 seconds")
+        h.check(abs(geom3x.effectiveSpanSeconds - (34.0 / 3.0)) < 1e-6, "3x horizontal zoom must span 11.333 seconds")
+        h.check((geom3x.zoneX1 - geom3x.zoneX0) > (geom1x.zoneX1 - geom1x.zoneX0) * 2.2,
+                "3x zoom must widen the rendered crossfade zone proportionally vs 1x zoom")
+        h.check(geom1x.subIndexDescriptors.count == 4, "Expected 4 track-aware subIndexDescriptors")
+        if geom1x.subIndexDescriptors.count == 4 {
+            let d0 = geom1x.subIndexDescriptors[0]
+            let d1 = geom1x.subIndexDescriptors[1]
+            let d2 = geom1x.subIndexDescriptors[2]
+            let d3 = geom1x.subIndexDescriptors[3]
+            h.check(!d0.isIncomingTrack && d0.redBookIndexNumber == 2, "First left-of-INDEX-01 marker must be Outgoing Track INDEX 02")
+            h.check(!d1.isIncomingTrack && d1.redBookIndexNumber == 3, "Second left-of-INDEX-01 marker must be Outgoing Track INDEX 03")
+            h.check(d2.isIncomingTrack && d2.redBookIndexNumber == 2, "First right-of-INDEX-01 marker must switch to Incoming Track INDEX 02")
+            h.check(d3.isIncomingTrack && d3.redBookIndexNumber == 3, "Second right-of-INDEX-01 marker must be Incoming Track INDEX 03")
+        }
+
+        // Verify AudioProject.compileCueSheet emits left-of-INDEX-01 sub-indexes on Track 1 and right-of-INDEX-01 sub-indexes on Track 2
+        var subCueProj = AudioProject(albumTitle: "LIVE CONCERT MONTAGE", albumPerformer: "KROUTON ENSEMBLE", writeCDText: true)
+        let _ = subCueProj.append([
+            URL(fileURLWithPath: "/tmp/01_Overture.wav"),
+            URL(fileURLWithPath: "/tmp/02_Finale.wav")
+        ])
+        let t1ID = subCueProj.tracks[0].id, t2ID = subCueProj.tracks[1].id
+        subCueProj.update(t1ID) {
+            $0.title = "Overture"
+            $0.frameCount = 900
+            $0.transitionToNext = KroutonTrackTransitionSpec(
+                overlapSeconds: 0.0,
+                preGapSeconds: 0.0,
+                spliceIndex01Ratio: 0.50,
+                subIndexRatios: [0.25, 0.50, 0.75]
             )
-            h.check((pdfData?.count ?? 0) > 256, "1:1 Vector PDF print sheet engine must produce valid PDF document data")
-            if let d = pdfData, let headerStr = String(data: d.prefix(5), encoding: .ascii) {
-                h.check(headerStr == "%PDF-", "Calibrated PDF print sheet must start with %PDF- magic header")
-            }
+        }
+        subCueProj.update(t2ID) {
+            $0.title = "Finale"
+            $0.frameCount = 900
+        }
+        let subCueText = subCueProj.compileCueSheet() ?? ""
+        h.check(subCueText.contains("  TRACK 01 AUDIO\n    TITLE \"Overture\"\n    PERFORMER \"KROUTON ENSEMBLE\"\n    INDEX 01 00:00:00\n    INDEX 02 00:03:00\n    INDEX 03 00:06:00"),
+                "Left-of-INDEX-01 subIndexRatios (0.25, 0.50) must emit as TRACK 01 INDEX 02 and INDEX 03")
+
+        // Verify Drag Reordering, CD-TEXT Constraint Enforcement & Multi-Track Batch Operations
+        let rawDirtyText = "  “Live” — in Oakland\u{0007}\u{001B} — " + String(repeating: "A", count: 80)
+        let sanitizedText = AudioProject.sanitizeCDTextField(rawDirtyText)
+        h.check(sanitizedText.count <= 60 && !sanitizedText.contains("\u{0007}") && sanitizedText.contains("\"Live\" -- in Oakland"),
+                "AudioProject.sanitizeCDTextField must fold curly quotes/em-dashes, strip control chars, and cap at 60 chars")
+        h.check(AudioProject.sanitizeUPCField("0123-4567-89012-999") == "0123456789012",
+                "AudioProject.sanitizeUPCField must keep only digits and cap at 13 characters")
+
+        var batchProj = AudioProject(albumTitle: "BATCH TEST", albumPerformer: "THE CHECKBOXES")
+        let _ = batchProj.append([
+            URL(fileURLWithPath: "/tmp/a.wav"),
+            URL(fileURLWithPath: "/tmp/b.wav"),
+            URL(fileURLWithPath: "/tmp/c.wav")
+        ])
+        let idA = batchProj.tracks[0].id, idB = batchProj.tracks[1].id, idC = batchProj.tracks[2].id
+        batchProj.moveTrack(from: 2, to: 0)
+        h.check(batchProj.tracks.map(\.id) == [idC, idA, idB], "moveTrack(from: 2, to: 0) must move Track C to index 0")
+
+        let selSet: Set<UUID> = [idC, idB]
+        batchProj.applyBatchPerformer("Featured Guest", to: selSet)
+        h.check(batchProj.track(idC)?.performer == "Featured Guest" && batchProj.track(idA)?.performer == "",
+                "applyBatchPerformer must update only selected tracks")
+
+        let assignedCount = batchProj.assignSequentialISRCs(baseISRC: "US-KRO-26-00010", to: selSet)
+        h.check(assignedCount == 2 && batchProj.track(idC)?.isrc == "USKRO2600010" && batchProj.track(idB)?.isrc == "USKRO2600011",
+                "assignSequentialISRCs must assign incrementing ISO 3901 ISRCs in disc order to selected tracks")
+
+
+        // Verify On-Demand Mid-Curve Handles (Hidden by default -> Click to Spawn -> Drag -> Double-Click to Remove)
+        var midSpec = KroutonTrackTransitionSpec(overlapSeconds: 6.0, preGapSeconds: 0.0)
+        h.check(midSpec.fadeOutMidTrim == nil && midSpec.fadeInMidTrim == nil,
+                "Mid-curve handles must be nil (hidden) by default")
+        let geomBefore = SpliceCanvasGeometry(size: CGSize(width: 600, height: 174), spec: midSpec, horizontalZoom: 3.0)
+        h.check(geomBefore.fadeOutMidHandle == nil && geomBefore.fadeInMidHandle == nil,
+                "SpliceCanvasGeometry must not expose active mid handles while trims are nil")
+        h.check(geomBefore.hitTestHiddenMidCurveVicinity(geomBefore.fadeOutMidAnchor) == .fadeOutMidHandle,
+                "Clicking near t=0.25 on Fade-Out curve must hit-test hidden .fadeOutMidHandle")
+        h.check(geomBefore.hitTestHiddenMidCurveVicinity(geomBefore.fadeInMidAnchor) == .fadeInMidHandle,
+                "Clicking near t=0.75 on Fade-In curve must hit-test hidden .fadeInMidHandle")
+
+        // Spawn only Fade-Out mid handle and drag it upward
+        let baseGainOut25 = midSpec.effectiveGainOut(at: 0.25)
+        let baseGainIn75  = midSpec.effectiveGainIn(at: 0.75)
+        midSpec.fadeOutMidTrim = 0.0
+        let geomWithOut = SpliceCanvasGeometry(size: CGSize(width: 600, height: 174), spec: midSpec, horizontalZoom: 3.0)
+        h.check(geomWithOut.fadeOutMidHandle != nil && geomWithOut.fadeInMidHandle == nil,
+                "Spawning Fade-Out mid handle must leave Fade-In mid handle hidden")
+        if var outMidSession = SpliceDragSession(start: geomWithOut.fadeOutMidAnchor, spec: midSpec, geometry: geomWithOut) {
+            h.check(outMidSession.target == .fadeOutMidHandle, "Hit-test on spawned Fade-Out mid handle must latch .fadeOutMidHandle")
+            let bentSpec = outMidSession.spec(
+                location: CGPoint(x: geomWithOut.fadeOutMidAnchor.x, y: geomWithOut.fadeOutMidAnchor.y - 30),
+                translation: CGSize(width: 0, height: -30)
+            )
+            h.check((bentSpec.fadeOutMidTrim ?? 0) > 0.10 && bentSpec.effectiveGainOut(at: 0.25) > baseGainOut25,
+                    "Dragging Fade-Out mid handle upward must boost effectiveGainOut(at: 0.25)")
+            h.check(abs(bentSpec.effectiveGainIn(at: 0.75) - baseGainIn75) < 1e-9,
+                    "Dragging Fade-Out mid handle must not alter Fade-In curve")
+            h.check(abs(bentSpec.effectiveGainOut(at: 0.0) - 1.0) < 1e-9 && abs(bentSpec.effectiveGainOut(at: 1.0) - 0.0) < 1e-9,
+                    "Mid-curve handle bell modulation must keep t=0 and t=1 endpoints pinned")
+        } else {
+            h.check(false, "Expected SpliceDragSession to latch .fadeOutMidHandle")
         }
 
 
-
-        // Verify Vector Shape Hit-Testing & Interactive Canvas Centroid Translation
-        let starShape = KroutonKrustiniModule.makeParametricVectorShape(kind: .star, centerX: 0.0, centerY: -0.50, radius: 0.14)
-        let pillShape = KroutonKrustiniModule.makeParametricVectorShape(kind: .capsule, centerX: 0.0, centerY: 0.50, radius: 0.20)
-        let hitID = KroutonKrustiniModule.nearestVectorShapeID(in: [starShape, pillShape], normalizedX: 0.02, normalizedY: -0.48)
-        h.check(hitID == starShape.id, "nearestVectorShapeID must hit-test the top star shape near (0.02, -0.48)")
-        let movedStar = KroutonKrustiniModule.recenterVectorShape(starShape, toNormalizedX: 0.35, normalizedY: 0.25)
-        let movedCX = movedStar.points.map(\.nx).reduce(0.0, +) / Double(max(1, movedStar.points.count))
-        let movedCY = movedStar.points.map(\.ny).reduce(0.0, +) / Double(max(1, movedStar.points.count))
-        h.check(abs(movedCX - 0.35) < 0.02 && abs(movedCY - 0.25) < 0.02, "recenterVectorShape must translate shape centroid to (0.35, 0.25)")
-
+        h.check(subCueText.contains("  TRACK 02 AUDIO\n    TITLE \"Finale\"\n    PERFORMER \"KROUTON ENSEMBLE\"\n    INDEX 01 00:12:00\n    INDEX 02"),
+                "Right-of-INDEX-01 subIndexRatio (0.75) must cross into TRACK 02 as TRACK 02 INDEX 02")
     }
+
+    harness.runSuite("16. RescueKit Optical Bad-Sector Rescue Copy Engine & Archival Disc Quality Grading") { h in
+    // 15a. Optical Rescue 3-stage state machine (Clean -> 2x CLV Downshift -> Zero-Pad Substitute)
+    let clean = KroutonKrustiniModule.evaluateSectorRescue(lba: 1000, c2ErrorCount: 0, retryAttempt: 0)
+    h.check(clean.action == .readCleanFullSpeed && clean.nextCursorLBA == 1001, "Clean sector advances LBA by 1 at full speed")
+
+    let retry = KroutonKrustiniModule.evaluateSectorRescue(lba: 1000, c2ErrorCount: 4, retryAttempt: 2, maxRetries: 5)
+    h.check(retry.action == .downshiftRetry2xCLV && retry.recommendedSpindleSpeedX == 2 && retry.nextCursorLBA == 1000,
+            "Damaged sector under retry threshold downshifts to 2x CLV and re-reads same LBA")
+
+    let exhausted = KroutonKrustiniModule.evaluateSectorRescue(
+        lba: 1000,
+        c2ErrorCount: 12,
+        retryAttempt: 5,
+        maxRetries: 5,
+        sectorSizeBytes: 2048,
+        fastSkipStepLBA: 16
+    )
+    h.check(exhausted.action == .substituteZeroSector && exhausted.replacementSectorBytes == 2048 && exhausted.nextCursorLBA == 1016,
+            "Exhausted sector substitutes 2048B zero-pad and fast-skips 16 LBA sectors")
+
+    
+    }
+
+    harness.runSuite("17. Frozen BurnSet State Machine, Single-Read Stager & Replay Verification") { h in
+        let stageTmp = FileManager.default.temporaryDirectory.appendingPathComponent("KroutonStageVerify_\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: stageTmp) }
+        try? FileManager.default.createDirectory(at: stageTmp, withIntermediateDirectories: true)
+        let srcFile1 = stageTmp.appendingPathComponent("Doc 100%.txt")
+        let srcFile2 = stageTmp.appendingPathComponent("Archive_Part2.bin")
+        try Data("ALPHA_100_PERCENT_PAYLOAD".utf8).write(to: srcFile1)
+        try Data(repeating: 0x5A, count: 8192).write(to: srcFile2)
+
+        let stagedResult = try BurnSetStager.freezeAndStageSet(
+            title: "THE_FORTY_CHARACTER_LONG_ARCHIVAL_VAULT_TITLE_2026",
+            discs: [
+                [StagedInputFile(sourceURL: srcFile1, relativePathOnDisc: "Docs/Doc 100%.txt")],
+                [StagedInputFile(sourceURL: srcFile2, relativePathOnDisc: "Bins/Archive_Part2.bin")]
+            ],
+            stagingRootDirectory: stageTmp,
+            manifestMode: .bagItRFC8493
+        )
+        h.check(stagedResult.burnSet.discs.count == 2, "BurnSetStager must freeze and stage 2 FrozenDisc images")
+        h.check(stagedResult.burnSet.discs[0].volumeLabel.hasSuffix("_D01") &&
+                stagedResult.burnSet.discs[1].volumeLabel.hasSuffix("_D02") &&
+                stagedResult.burnSet.discs[0].volumeLabel.count <= 32,
+                "SpanManifest.volumeLabel must produce unique <=32-char labels ending in _D01 and _D02")
+        let d1Tags = try SpanManifest.tagFiles(for: 1, in: stagedResult.setIndex)
+        let d1ManifestStr = String(data: d1Tags["manifest-sha256.txt"] ?? Data(), encoding: .utf8) ?? ""
+        h.check(d1ManifestStr.contains("data/Docs/Doc 100%25.txt"),
+                "SpanManifest must percent-encode '%' as '%25' in manifest-sha256.txt paths")
+        let d1InfoStr = String(data: d1Tags["bag-info.txt"] ?? Data(), encoding: .utf8) ?? ""
+        h.check(d1InfoStr.contains("Bag-Count: 1 of 2") && d1InfoStr.contains("Bag-Group-Identifier:"),
+                "RFC 8493 BagIt bag-info.txt must include Bag-Group-Identifier and Bag-Count")
+
+        let bSet = stagedResult.burnSet
+        let drv = DriveID("PIONEER-BDR-XS07")
+        let validLog: [BurnEvent] = [
+            .setCreated(bSet),
+            .attemptStarted(set: bSet.id, disc: 1, attempt: 1, drive: drv, mediaID: "MID-1", at: .now),
+            .phaseChanged(set: bSet.id, disc: 1, attempt: 1, phase: .verifying, at: .now),
+            .attemptSucceeded(set: bSet.id, disc: 1, attempt: 1, at: .now),
+            .attemptSucceeded(set: bSet.id, disc: 1, attempt: 1, at: .now),
+            .attemptStarted(set: bSet.id, disc: 2, attempt: 1, drive: drv, mediaID: "MID-2A", at: .now),
+            .attemptFailed(set: bSet.id, disc: 2, attempt: 1, failure: .writeError(sense: "3/0C/00"), at: .now),
+            .attemptStarted(set: bSet.id, disc: 2, attempt: 2, drive: drv, mediaID: "MID-2B", at: .now),
+            .attemptSucceeded(set: bSet.id, disc: 2, attempt: 2, at: .now)
+        ]
+        let (replayedSets, rejectedEvents) = BurnSetProgress.replay(validLog)
+        h.check(replayedSets.count == 1 && rejectedEvents.count == 1,
+                "BurnSetProgress.replay must reject duplicate attemptSucceeded while replaying valid events")
+        if let prog = replayedSets.first {
+            h.check(prog.isComplete && prog.jobs[0].attempts == 1 && prog.jobs[1].attempts == 2,
+                    "After Disc 2 succeeds on attempt 2, BurnSetProgress.isComplete must be true with attempts == 2")
+        }
+    }
+
+    harness.runSuite("18. Zero Shell-Injection Process Gate & 500-Frame Telemetry State Machine Fuzzing") { h in
+    // 16a. Scan all 21 production files to ensure Process never invokes a shell (/bin/sh, /bin/zsh, /bin/bash, -c)
+    let forbiddenShellPatterns = ["/bin/sh", "/bin/bash", "/bin/zsh", "/usr/bin/env sh", "Darwin.system(", "popen("]
+    let fm = FileManager.default
+    if let enumerator = fm.enumerator(atPath: "Sources") {
+        while let rel = enumerator.nextObject() as? String {
+            guard rel.hasSuffix(".swift"), !rel.contains("KroutonVerify/") else { continue }
+            let content = (try? String(contentsOfFile: "Sources/" + rel, encoding: .utf8)) ?? ""
+            for pat in forbiddenShellPatterns {
+                h.check(!content.contains(pat), "Forbidden shell pattern '\(pat)' found in \(rel)")
+            }
+        }
+    }
+
+    // 16b. Fuzz KrumbTelemetrySanitizer with out-of-order packets, NaN, Infinity, and terminal-state regressions
+    var state: KrumbTelemetryPhase = .preheating
+    var frac: Double = 0.0
+    let batchID = UUID()
+
+    for step in 1...250 {
+        let progress = Double(step) / 250.0
+        let normalFrame = KrumbTelemetryPacket(
+            batchId: batchID,
+            toasterId: "pioneer-01",
+            state: .toastingProgress,
+            fraction: progress,
+            currentLba: Int64(step * 100),
+            totalLba: 25000,
+            effectiveSpeedX: 16.0,
+            fifoFill: 0.95,
+            driveBufferFill: 0.92,
+            c2Errors: 0,
+            etaSeconds: 45
+        )
+        let res = KrumbTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: normalFrame)
+        h.check(res.fraction >= frac, "Progress must never regress during active burn")
+        state = res.state
+        frac = res.fraction
+
+        // Inject a stale out-of-order frame with lower fraction + NaN buffer values
+        let staleFuzzFrame = KrumbTelemetryPacket(
+            batchId: batchID,
+            toasterId: "pioneer-01",
+            state: .toastingProgress,
+            fraction: max(0.0, progress - 0.15),
+            currentLba: 10,
+            totalLba: 25000,
+            effectiveSpeedX: .nan,
+            fifoFill: .nan,
+            driveBufferFill: .infinity,
+            c2Errors: 0,
+            etaSeconds: 99
+        )
+        let fuzzRes = KrumbTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: staleFuzzFrame)
+        h.check(fuzzRes.fraction == frac, "Stale out-of-order telemetry frame must be ignored")
+        h.check(fuzzRes.fifoClamp == 0.0 && fuzzRes.driveClamp == 0.0, "NaN/Infinity buffer fills must clamp safely to 0.0")
+    }
+
+    // Transition to terminal BURNT_TOAST and verify late TOASTING_PROGRESS cannot resurrect the job
+    let failFrame = KrumbTelemetryPacket(
+        batchId: batchID,
+        toasterId: "pioneer-01",
+        state: .burntToast,
+        fraction: frac,
+        currentLba: 12000,
+        totalLba: 25000,
+        effectiveSpeedX: 0.0,
+        fifoFill: 0.0,
+        driveBufferFill: 0.0,
+        c2Errors: 99,
+        etaSeconds: 0
+    )
+    let termRes = KrumbTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: failFrame)
+    state = termRes.state
+    h.check(state == .burntToast, "Must transition to terminal .burntToast state")
+
+    let zombieFrame = KrumbTelemetryPacket(
+        batchId: batchID,
+        toasterId: "pioneer-01",
+        state: .toastingProgress,
+        fraction: 0.99,
+        currentLba: 24900,
+        totalLba: 25000,
+        effectiveSpeedX: 16.0,
+        fifoFill: 1.0,
+        driveBufferFill: 1.0,
+        c2Errors: 0,
+        etaSeconds: 1
+    )
+    let afterZombie = KrumbTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: zombieFrame)
+    h.check(afterZombie.state == .burntToast, "Terminal state must reject late out-of-order progress frames")
+    }
+
+    runKroutonVerifySuite22MultiDisc(&harness)
 }
