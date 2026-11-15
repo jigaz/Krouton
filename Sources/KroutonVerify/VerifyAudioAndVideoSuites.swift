@@ -33,6 +33,8 @@ func runVerifyAudioAndVideoSuites(_ harness: inout KroutonTestHarness) {
 
     let mcn = KroutonCDTextSanitizer.sanitizeMCN("0123-4567-89012-abc")
     h.check(mcn == "0123456789012" && mcn.count == 13, "MCN 13-digit EAN-13 normalization")
+    let defaultTrack = KroutonRedBookTrack(url: URL(fileURLWithPath: "/tmp/blank_isrc.wav"), title: "Unassigned")
+    h.check(defaultTrack.isrcCode.isEmpty, "KroutonRedBookTrack must default isrcCode to empty string instead of a fabricated registrant code")
     }
 
     harness.runSuite("10. Red Book Audio CD Frame (75 fps) & PCM Byte (2352 B/frame) Math") { h in

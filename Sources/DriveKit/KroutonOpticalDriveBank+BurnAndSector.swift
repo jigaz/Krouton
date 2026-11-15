@@ -167,12 +167,11 @@ extension KroutonOpticalDriveBank {
             duration = player.duration
         }
 
-        let isrc = String(format: "USKRO26%05d", max(1, index))
         return KroutonRedBookTrack(
             url: url,
             title: rawTitle,
-            performer: "Workspace Master",
-            isrcCode: isrc,
+            performer: "",
+            isrcCode: "",
             durationSeconds: max(4.0, duration),
             preGapSeconds: index == 1 ? 2.0 : 2.0,
             crossfadeSeconds: 0.0,

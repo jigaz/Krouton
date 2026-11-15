@@ -27,7 +27,7 @@ struct KroutonRedBookAudioWorkspaceView: View {
     @State private var isrcDrafts: [UUID: String] = [:]
     @State private var invalidISRCTrackIDs: Set<UUID> = []
     @State private var showISRCBatchPopover: Bool = false
-    @State private var batchISRCSeed: String = "USKRO2600001"
+    @State private var batchISRCSeed: String = ""
     @State private var cdTextStatusNotice: String = ""
 
     private var controller: AudioProjectController { store.audioController }

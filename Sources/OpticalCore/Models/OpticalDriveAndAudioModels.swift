@@ -212,7 +212,7 @@ public struct KroutonRedBookTrack: Identifiable, Hashable, Sendable, Codable {
         title: String,
         performer: String = "Artist",
         songWriter: String = "",
-        isrcCode: String = "USKRO2600001",
+        isrcCode: String = "",
         durationSeconds: Double = 215.0,
         preGapSeconds: Double = 2.0,
         crossfadeSeconds: Double = 0.0,

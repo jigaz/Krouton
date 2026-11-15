@@ -229,7 +229,7 @@ public struct AudioProject: Equatable, Codable, Sendable {
         }
     }
 
-    /// Batch-assigns sequential ISO 3901 ISRCs (e.g. "USKRO2600001", "USKRO2600002", ...) to `ids` in disc order.
+    /// Batch-assigns sequential ISO 3901 ISRCs (e.g. "CCXXXYY00001", "CCXXXYY00002", ...) to `ids` in disc order.
     @discardableResult
     public mutating func assignSequentialISRCs(baseISRC: String, to ids: Set<UUID>) -> Int {
         let compact = baseISRC.uppercased().filter { !$0.isWhitespace && $0 != "-" }
