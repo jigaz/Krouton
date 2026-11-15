@@ -16,7 +16,7 @@ import Combine
 
 struct KroutonDataAndArchivalWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
-    let activeSpec: KroutonRecipeSpec
+    let activeSpec: KroutonOpticalWorkflowSpec
     @Binding var enableCustomFinderLayoutTab: Bool
     @Binding var finderIconSize: Double
     @Binding var isDropTargeted: Bool

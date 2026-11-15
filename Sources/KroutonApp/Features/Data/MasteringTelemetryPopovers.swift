@@ -18,7 +18,7 @@ import Combine
 
 struct KroutonTartineLBAMapPopoverView: View {
     @ObservedObject var store: KroutonStateStore
-    let activeSpec: KroutonRecipeSpec
+    let activeSpec: KroutonOpticalWorkflowSpec
 
     var body: some View {
         let plan = store.planLiveTartineHybridLayout(
@@ -198,7 +198,7 @@ struct KroutonMarmaladeCuePopoverView: View {
 
 struct KroutonVideoOvenPopoverView: View {
     @ObservedObject var store: KroutonStateStore
-    let spec: KroutonRecipeSpec
+    let spec: KroutonOpticalWorkflowSpec
     let isBluRay: Bool
     let isDualLayer: Bool
     let fitToDiscDVD9Shrink: Bool

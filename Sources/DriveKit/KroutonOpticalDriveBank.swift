@@ -14,8 +14,8 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
     public var mediaKind: OpticalMediaKind {
         OpticalMediaKind(mediaDescription: availableDrives.first?.mediaType ?? "DVD-R")
     }
-    @Published public var availableDrives: [KroutonToasterInfo] = []
-    @Published public var selectedDrive: KroutonToasterInfo?
+    @Published public var availableDrives: [KroutonOpticalDriveInfo] = []
+    @Published public var selectedDrive: KroutonOpticalDriveInfo?
     @Published public var hardwareStatusLog: String = "Scanning IOKit / DiscRecording bus..."
 
         @Published public var isExecutingQueue: Bool = false
@@ -23,12 +23,12 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
     @Published public var activeJobProgress: Double = 0.0
     @Published public var activeJobDetail: String = ""
     @Published public var driveTelemetry: [String: KroutonKitchenThermometer] = [:]
-    @Published public var batchStates: [String: KroutonBatchToastState] = [:]
+    @Published public var batchStates: [String: KroutonBatchBurnState] = [:]
     @Published public var driveBookTypeOverrides: [String: String] = [:]
     var batchCountdownTimers: [String: Timer] = [:]
     var perDriveTimers: [String: Timer] = [:]
 
-    @Published public var neroSamples: [KroutonToastingSample] = []
+    @Published public var neroSamples: [KroutonBurnTelemetrySample] = []
     @Published public var currentSpeedX: Double = 0.0
     @Published public var currentSpeedKBs: Double = 0.0
     @Published public var peakSpeedX: Double = 0.0
@@ -41,7 +41,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
     @Published public var writeStrategyText: String = "P-CAV / CLV"
     @Published public var activeTrackNumber: Int = 1
     @Published public var elapsedSeconds: Int = 0
-    @Published public var completionReport: KroutonToastReport? = nil
+    @Published public var completionReport: KroutonBurnSessionReport? = nil
 
     var pollTimer: Timer?
     var activeDRBurn: DRBurn?
@@ -104,7 +104,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
     }
 
     // Scans macOS mounted optical volumes to extract Volume Names, File/Track counts, and Filesystem types
-    public static func scanMountedOpticalVolumes(bsdName: String?, isMediaPresent: Bool, isMediaBlank: Bool, usedBytes: Int64) -> [KroutonMountedSlice] {
+    public static func scanMountedOpticalVolumes(bsdName: String?, isMediaPresent: Bool, isMediaBlank: Bool, usedBytes: Int64) -> [KroutonMountedDiscVolume] {
         guard isMediaPresent && !isMediaBlank else { return [] }
         let fm = FileManager.default
         let keys: [URLResourceKey] = [
@@ -122,7 +122,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
             return []
         }
 
-        var results: [KroutonMountedSlice] = []
+        var results: [KroutonMountedDiscVolume] = []
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .medium
         dateFormatter.timeStyle = .none
@@ -153,7 +153,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
             let usedCap = max(0, totalCap - availCap)
             let createdStr = vals.volumeCreationDate.map { dateFormatter.string(from: $0) } ?? "Mastered Session"
 
-            results.append(KroutonMountedSlice(
+            results.append(KroutonMountedDiscVolume(
                 id: url.path,
                 volumeName: volName,
                 filesystemFormat: formatDesc,
@@ -200,7 +200,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
     }
 
     public func refreshDrives() {
-        var found: [KroutonToasterInfo] = []
+        var found: [KroutonOpticalDriveInfo] = []
 
         if let devices = DRDevice.devices() as? [DRDevice] {
             for dev in devices {
@@ -250,7 +250,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
                 var laserSpec = "—"
                 var blockSpec = "—"
                 var drmStatus = "Unencrypted (Clear Sectors)"
-                var mountedVols: [KroutonMountedSlice] = []
+                var mountedVols: [KroutonMountedDiscVolume] = []
                 var speeds: [String] = ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
 
                 if isTransition {
@@ -340,7 +340,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
                 }
 
                 let deviceID = "\(vendor)-\(product)-\(revision)"
-                found.append(KroutonToasterInfo(
+                found.append(KroutonOpticalDriveInfo(
                     id: deviceID,
                     vendor: vendor,
                     product: product,
@@ -435,7 +435,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
         hardwareStatusLog = "[MMC Bitsetting] Stamped Lead-In Book Type -> DVD-ROM (0x00) on \(name) via \(vendorProfile)"
     }
 
-    public func bookTypeStatus(for drive: KroutonToasterInfo, forceDVDROM: Bool) -> String {
+    public func bookTypeStatus(for drive: KroutonOpticalDriveInfo, forceDVDROM: Bool) -> String {
         if let explicit = driveBookTypeOverrides[drive.id] {
             return explicit
         }
@@ -463,7 +463,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
         ejectDrive(id: key)
 
         let nextCopy = completedCopy + 1
-        batchStates[key] = KroutonBatchToastState(
+        batchStates[key] = KroutonBatchBurnState(
             id: key,
             driveName: name,
             currentCopyIndex: nextCopy,
@@ -528,12 +528,12 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
         let key = resolved?.id ?? driveID
         guard !key.isEmpty else { return }
         let name = resolved?.displayName ?? "Optical Burner"
-        let currentSt = batchStates[key] ?? KroutonBatchToastState(id: key, driveName: name, currentCopyIndex: 2, totalCopies: 2)
+        let currentSt = batchStates[key] ?? KroutonBatchBurnState(id: key, driveName: name, currentCopyIndex: 2, totalCopies: 2)
         let nextCopy = currentSt.currentCopyIndex
         let total = max(2, currentSt.totalCopies)
         let startSec = max(1, countdownSeconds)
 
-        batchStates[key] = KroutonBatchToastState(
+        batchStates[key] = KroutonBatchBurnState(
             id: key,
             driveName: name,
             currentCopyIndex: nextCopy,

@@ -113,7 +113,7 @@ func runKroutonVerifySuites01To10(_ harness: inout KroutonTestHarness) {
         }
     }
 
-    harness.runSuite("3. Functional Kit Modules & Type-Safe Optical Recipe Catalog Routing") { h in
+    harness.runSuite("3. Functional Kit Modules & Type-Safe Optical Workflow Catalog Routing") { h in
     h.check(KroutonAudioEngine.version == "0.1.0-alpha.1", "Marmalade version")
     h.check(KroutonVideoAuthoringEngine.version == "0.1.0-alpha.1", "VideoOven version")
     h.check(KroutonHybridImagePlanner.version == "0.1.0-alpha.1", "Tartine version")
@@ -121,7 +121,7 @@ func runKroutonVerifySuites01To10(_ harness: inout KroutonTestHarness) {
     h.check(KroutonLabelGeometryEngine.version == "0.1.0-alpha.1", "Crustini version")
 
 
-    let formats = KroutonOpticalRecipeCatalog.defaultFormats
+    let formats = KroutonOpticalWorkflowCatalog.defaultFormats
     h.check(formats.count == 32, "Expected 32 canonical optical recipes, found \(formats.count)")
 
     for spec in formats {
@@ -269,10 +269,10 @@ func runKroutonVerifySuites01To10(_ harness: inout KroutonTestHarness) {
     payload.append(Data(repeating: 0xAA, count: 2048 - payload.count))
     try payload.write(to: tempURL)
 
-    let sha = KroutonLoafBootInspector.computeSHA256Hex(url: tempURL)
+    let sha = KroutonElToritoBootInspector.computeSHA256Hex(url: tempURL)
     h.check(sha.count == 64, "SHA-256 digest must be 64 hex characters")
 
-    let rows = KroutonLoafBootInspector.readSectorHexDump(url: tempURL, lba: 0, sectorSize: 2048)
+    let rows = KroutonElToritoBootInspector.readSectorHexDump(url: tempURL, lba: 0, sectorSize: 2048)
     h.check(rows.count == 16, "256-byte sector header window at 16 B/row must yield 16 rows")
     h.check(rows.first?.asciiText.hasPrefix("KROUTON_OPTICAL_") == true, "ASCII column must decode header")
     }

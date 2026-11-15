@@ -93,13 +93,13 @@ public struct KroutonAudioEngine {
         return packs
     }
 
-    /// Compiles a frame-accurate Red Book .cue sheet for a sequence of KroutonAudioCube tracks
+    /// Compiles a frame-accurate Red Book .cue sheet for a sequence of KroutonRedBookTrack tracks
     public static func compileRedBookCueSheet(
         albumTitle: String,
         albumPerformer: String,
         mcnCatalog: String = "",
         masterBinFilename: String = "KROUTON_AUDIO_MASTER.BIN",
-        tracks: [KroutonAudioCube]
+        tracks: [KroutonRedBookTrack]
     ) -> String {
         var lines: [String] = []
         let cleanMCN = KroutonSeasoningSanitizer.sanitizeMCN(mcnCatalog)

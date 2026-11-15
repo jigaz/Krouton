@@ -5,7 +5,7 @@ import OpticalCore
 
 struct KroutonDiscImageInspectorWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
-    let spec: KroutonRecipeSpec
+    let spec: KroutonOpticalWorkflowSpec
     @Binding var isDropTargeted: Bool
     let onPromptToAddFiles: () -> Void
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
@@ -68,7 +68,7 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                                 }.buttonStyle(.borderedProminent).tint(store.activeAccent).controlSize(.small)
                             }
                             Button("Compute SHA-256") {
-                                computedImageSHA256 = KroutonLoafBootInspector.computeSHA256Hex(url: entry.url)
+                                computedImageSHA256 = KroutonElToritoBootInspector.computeSHA256Hex(url: entry.url)
                                 imageActionStatusBanner = "SHA-256 Verified"
                             }.buttonStyle(.bordered).controlSize(.small)
                             Button("Replace...") { onPromptToAddFiles() }.buttonStyle(.bordered).controlSize(.small)
@@ -87,7 +87,7 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                             Spacer()
                         }
                         ScrollView {
-                            Text(KroutonLoafBootInspector.readSectorHexDump(url: entry.url, lba: inspectedImageLBA).map { "\($0.offsetHex)  \($0.hexBytes)  |\($0.asciiText)|" }.joined(separator: "\n"))
+                            Text(KroutonElToritoBootInspector.readSectorHexDump(url: entry.url, lba: inspectedImageLBA).map { "\($0.offsetHex)  \($0.hexBytes)  |\($0.asciiText)|" }.joined(separator: "\n"))
                                 .font(.system(size: 10.5, design: .monospaced))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(10)

@@ -43,12 +43,12 @@ public struct KroutonSettingsWindowView: View {
     // Bound to store.selectedSettingsPane for direct Format Chooser deep-linking
     @State var searchText: String = ""
 
-    @State var formatFilter: KroutonRecipeFilterGroup = .all
-    @State var formatSortOrder: [KeyPathComparator<KroutonRecipeSpec>] = [
+    @State var formatFilter: KroutonWorkflowFilterGroup = .all
+    @State var formatSortOrder: [KeyPathComparator<KroutonOpticalWorkflowSpec>] = [
         .init(\.technicalName, order: .forward)
     ]
-    @State var selectedFormatIDs: Set<KroutonRecipeSpec.ID> = []
-    @AppStorage("KroutonFormatTableColumnCustomization") var columnCustomization: TableColumnCustomization<KroutonRecipeSpec>
+    @State var selectedFormatIDs: Set<KroutonOpticalWorkflowSpec.ID> = []
+    @AppStorage("KroutonFormatTableColumnCustomization") var columnCustomization: TableColumnCustomization<KroutonOpticalWorkflowSpec>
 
     @State var newPresetName: String = "Custom Disc Tray Preset"
     @State var newOuterMM: Double = 120.0
@@ -442,7 +442,7 @@ public struct KroutonSettingsWindowView: View {
         }
     }
 
-    var filteredAndSortedFormats: [KroutonRecipeSpec] {
+    var filteredAndSortedFormats: [KroutonOpticalWorkflowSpec] {
         let filtered = store.discFormats.filter { fmt in
             switch formatFilter {
             case .all: return true
@@ -476,7 +476,7 @@ public struct KroutonSettingsWindowView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(KroutonRecipeFilterGroup.allCases) { group in
+                    ForEach(KroutonWorkflowFilterGroup.allCases) { group in
                         pillToggleButton(
                             title: group.rawValue,
                             sfSymbol: "line.3.horizontal.decrease.circle",
@@ -488,7 +488,7 @@ public struct KroutonSettingsWindowView: View {
                 }
             }
 
-            Table(of: KroutonRecipeSpec.self, selection: $selectedFormatIDs, sortOrder: $formatSortOrder, columnCustomization: $columnCustomization) {
+            Table(of: KroutonOpticalWorkflowSpec.self, selection: $selectedFormatIDs, sortOrder: $formatSortOrder, columnCustomization: $columnCustomization) {
                 TableColumn(KroutonL10n.tr("Show"), value: \.visibilitySortKey) { fmt in
                     Toggle("", isOn: Binding(
                         get: { fmt.showInTaskChooser },

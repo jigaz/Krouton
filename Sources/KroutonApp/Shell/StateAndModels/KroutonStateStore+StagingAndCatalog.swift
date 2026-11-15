@@ -20,7 +20,7 @@ extension KroutonStateStore {
         }
     }
 
-    public func activeFormatSpec() -> KroutonRecipeSpec {
+    public func activeFormatSpec() -> KroutonOpticalWorkflowSpec {
         discFormats.first(where: { $0.id == selectedTaskID }) ?? discFormats[0]
     }
 
@@ -53,7 +53,7 @@ extension KroutonStateStore {
         return result
     }
 
-    public func isURLCompatible(_ url: URL, for spec: KroutonRecipeSpec) -> Bool {
+    public func isURLCompatible(_ url: URL, for spec: KroutonOpticalWorkflowSpec) -> Bool {
         var isDir: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
         let ext = url.pathExtension.lowercased()

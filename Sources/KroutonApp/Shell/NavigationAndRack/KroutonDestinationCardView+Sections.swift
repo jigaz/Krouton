@@ -16,7 +16,7 @@ extension KroutonDestinationCardView {
 
         // Resolve THIS card's drive strictly from unclaimed drives (never steal a drive in otherUsedDriveIDs!)
         let hasUnclaimedPhysicalBurner = driveManager.availableDrives.contains(where: { !otherUsedDriveIDs.contains($0.id) })
-        let cardDrive: KroutonToasterInfo? = {
+        let cardDrive: KroutonOpticalDriveInfo? = {
             if let exact = driveManager.availableDrives.first(where: { $0.id == item.targetDriveID && !otherUsedDriveIDs.contains($0.id) }) {
                 return exact
             }
@@ -197,7 +197,7 @@ extension KroutonDestinationCardView {
         )
 
         // Resolve THIS card's drive strictly from unclaimed drives (never steal a drive in otherUsedDriveIDs!)
-        let cardDrive: KroutonToasterInfo? = {
+        let cardDrive: KroutonOpticalDriveInfo? = {
             if let exact = driveManager.availableDrives.first(where: { $0.id == item.targetDriveID && !otherUsedDriveIDs.contains($0.id) }) {
                 return exact
             }
@@ -330,7 +330,7 @@ extension KroutonDestinationCardView {
         )
 
         // Resolve THIS card's drive strictly from unclaimed drives (never steal a drive in otherUsedDriveIDs!)
-        let cardDrive: KroutonToasterInfo? = {
+        let cardDrive: KroutonOpticalDriveInfo? = {
             if let exact = driveManager.availableDrives.first(where: { $0.id == item.targetDriveID && !otherUsedDriveIDs.contains($0.id) }) {
                 return exact
             }

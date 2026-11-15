@@ -11,24 +11,24 @@ import Network
 
 // MARK: - 1. Canonical Bakery Typealiases (Old Names -> Real Bakery Structs in OpticalDough.swift)
 public typealias DriveManager                = any KroutonDriveTelemetryStore
-public typealias OpticalDriveDevice          = KroutonToasterInfo
+public typealias OpticalDriveDevice          = KroutonOpticalDriveInfo
 public typealias DrivePhaseScopeTelemetry    = KroutonKitchenThermometer
-public typealias NeroTelemetrySample         = KroutonToastingSample
+public typealias NeroTelemetrySample         = KroutonBurnTelemetrySample
 public typealias StagedFileEntry             = KroutonStagedFileEntry
-public typealias RedBookAudioTrack           = KroutonAudioCube
-public typealias AudioTransitionStyle        = KroutonCubePregapStyle
+public typealias RedBookAudioTrack           = KroutonRedBookTrack
+public typealias AudioTransitionStyle        = KroutonTrackPregapStyle
 public typealias CDTextSanitizer             = KroutonSeasoningSanitizer
 public typealias RedBookAuditionEngine       = KroutonCubeTasterEngine
-public typealias BootableImageInspector      = KroutonLoafBootInspector
-public typealias MountedVolumePartition      = KroutonMountedSlice
-public typealias BatchDuplicationState       = KroutonBatchToastState
-public typealias BurnCompletionReport        = KroutonToastReport
+public typealias BootableImageInspector      = KroutonElToritoBootInspector
+public typealias MountedVolumePartition      = KroutonMountedDiscVolume
+public typealias BatchDuplicationState       = KroutonBatchBurnState
+public typealias BurnCompletionReport        = KroutonBurnSessionReport
 public typealias HardwareAccelerationTier    = KroutonHeatTier
-public typealias MediaStreamProbeResult      = KroutonCubeProbeResult
-public typealias CodecCapabilityRow          = KroutonRecipeCodecRow
+public typealias MediaStreamProbeResult      = KroutonStreamProbeResult
+public typealias CodecCapabilityRow          = KroutonWorkflowCodecRow
 public typealias UniversalMediaDecoderEngine = KroutonMediaPrepEngine
 public typealias OpticalDriveTelemetry       = KroutonKitchenThermometer
-public typealias DrivePhaseScopeSample       = KroutonToastingSample
+public typealias DrivePhaseScopeSample       = KroutonBurnTelemetrySample
 
 // MARK: - 2. Krumb LAN Daemon Constants & `crates/recipe` Wire Structs (Port 7420)
 public enum KrumbNetworkConstants {
@@ -533,7 +533,7 @@ public final class KrumbKitchenClient: ObservableObject {
             tel.bufferFillPercent = bufPct
             tel.currentSectorLBA = Int64(Double(tel.totalSectorsLBA) * frac)
             tel.samples.append(
-                KroutonToastingSample(
+                KroutonBurnTelemetrySample(
                     progressFraction: frac,
                     speedMultiplierX: heatX,
                     spindleRPM: rpm,

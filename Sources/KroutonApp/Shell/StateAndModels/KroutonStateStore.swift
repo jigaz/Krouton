@@ -240,7 +240,7 @@ public final class KroutonStateStore: ObservableObject {
         KroutonCrashRecoveryController.shared.saveCurrentState(from: self)
     }
 
-    public var redBookTracks: [KroutonAudioCube] {
+    public var redBookTracks: [KroutonRedBookTrack] {
         get { audioController.project.derivedRedBookCubes }
         set { }
     }
@@ -255,7 +255,7 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var allowATIPOverburn: Bool = false
     @Published public var dualLayerBreakSectorLBA: Int64 = 2_086_912
     @Published public var discVolumeTitle: String = ""
-    @Published public var discFormats: [KroutonRecipeSpec] = KroutonOpticalRecipeCatalog.defaultFormats
+    @Published public var discFormats: [KroutonOpticalWorkflowSpec] = KroutonOpticalWorkflowCatalog.defaultFormats
 
     @Published public var notificationMatrix: [KroutonKitchenEventRow] = [
         KroutonKitchenEventRow(id: "start", eventTitle: "Burn, rip, or transcode started", eventSubtitle: "Triggered when laser calibration or extraction begins", bannerEnabled: true, iPhoneEnabled: true, watchEnabled: false, soundEnabled: false),
@@ -387,7 +387,7 @@ extension KroutonStateStore {
         albumTitle: String = "",
         albumPerformer: String = "",
         mcnCatalog: String = "",
-        tracks: [KroutonAudioCube] = []
+        tracks: [KroutonRedBookTrack] = []
     ) -> String {
         audioController.project.compileCueSheet() ?? KroutonAudioEngine.compileRedBookCueSheet(
             albumTitle: albumTitle,
@@ -400,7 +400,7 @@ extension KroutonStateStore {
     public func computeLiveMarmaladeCDTextPackCount(
         albumTitle: String = "",
         albumPerformer: String = "",
-        tracks: [KroutonAudioCube] = []
+        tracks: [KroutonRedBookTrack] = []
     ) -> Int {
         if let compiled = audioController.project.compileCDTextBlock() {
             return compiled.packs.count

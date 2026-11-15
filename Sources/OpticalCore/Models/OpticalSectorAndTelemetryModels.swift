@@ -5,7 +5,7 @@ import AVFoundation
 import CryptoKit
 
 // MARK: - Sprint 3 Part 2: UltraISO / PowerISO Bootable Sector 17 El Torito & Apple Partition Map Inspector
-public enum KroutonLoafBootInspector {
+public enum KroutonElToritoBootInspector {
     public static func inspectDiscImageBootability(url: URL) -> String? {
         let lower = url.lastPathComponent.lowercased()
         let isImage = lower.hasSuffix(".iso") || lower.hasSuffix(".img") || lower.hasSuffix(".dmg") || lower.hasSuffix(".cdr") || lower.hasSuffix(".toast") || lower.hasSuffix(".bin") || lower.hasSuffix(".rvz") || lower.hasSuffix(".gcm")
@@ -131,7 +131,7 @@ public struct KroutonStagedFileEntry: Identifiable, Hashable, Sendable {
     }
 
     public var bootabilityBadge: String? {
-        KroutonLoafBootInspector.inspectDiscImageBootability(url: url)
+        KroutonElToritoBootInspector.inspectDiscImageBootability(url: url)
     }
 
     public var isConvertibleBinOrIso: Bool {
@@ -140,7 +140,7 @@ public struct KroutonStagedFileEntry: Identifiable, Hashable, Sendable {
     }
 }
 
-public struct KroutonToastingSample: Identifiable, Hashable, Sendable {
+public struct KroutonBurnTelemetrySample: Identifiable, Hashable, Sendable {
     public let id: UUID
     public let progressFraction: Double
     public let speedMultiplierX: Double
@@ -162,7 +162,7 @@ public struct KroutonToastingSample: Identifiable, Hashable, Sendable {
     }
 }
 
-public struct KroutonBatchToastState: Identifiable, Hashable, Sendable {
+public struct KroutonBatchBurnState: Identifiable, Hashable, Sendable {
     public let id: String // Drive ID
     public var driveName: String
     public var currentCopyIndex: Int
@@ -214,7 +214,7 @@ public struct KroutonKitchenThermometer: Identifiable, Hashable, Sendable {
     public var laserWavelengthText: String
     public var writeStrategyText: String
     public var elapsedSeconds: Int
-    public var samples: [KroutonToastingSample]
+    public var samples: [KroutonBurnTelemetrySample]
 
     public init(
         id: String,
@@ -236,7 +236,7 @@ public struct KroutonKitchenThermometer: Identifiable, Hashable, Sendable {
         laserWavelengthText: String = "780 nm IR",
         writeStrategyText: String = "P-CAV",
         elapsedSeconds: Int = 0,
-        samples: [KroutonToastingSample] = []
+        samples: [KroutonBurnTelemetrySample] = []
     ) {
         self.id = id
         self.driveName = driveName
@@ -276,7 +276,7 @@ public struct KroutonKitchenThermometer: Identifiable, Hashable, Sendable {
                 samples.removeAll()
                 peakSpeedX = speedX
             } else if abs(clamped - last.progressFraction) < 0.003 {
-                samples[samples.count - 1] = KroutonToastingSample(
+                samples[samples.count - 1] = KroutonBurnTelemetrySample(
                     progressFraction: last.progressFraction,
                     speedMultiplierX: speedX,
                     spindleRPM: Double(rpm),
@@ -290,7 +290,7 @@ public struct KroutonKitchenThermometer: Identifiable, Hashable, Sendable {
         }
         let monotonicFrac = max(samples.last?.progressFraction ?? 0.0, clamped)
         progressFraction = monotonicFrac
-        samples.append(KroutonToastingSample(
+        samples.append(KroutonBurnTelemetrySample(
             progressFraction: monotonicFrac,
             speedMultiplierX: speedX,
             spindleRPM: Double(rpm),
@@ -301,7 +301,7 @@ public struct KroutonKitchenThermometer: Identifiable, Hashable, Sendable {
     }
 }
 
-public struct KroutonToastReport: Identifiable, Hashable, Sendable {
+public struct KroutonBurnSessionReport: Identifiable, Hashable, Sendable {
     public let id: UUID
     public let isSuccess: Bool
     public let title: String

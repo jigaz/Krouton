@@ -212,7 +212,7 @@ struct KroutonMainWorkspaceView: View {
     // New Data Disc File System Bridge State
     // Dedicated Disc Image Burner State
 
-    var primarySelectedDrive: KroutonToasterInfo? {
+    var primarySelectedDrive: KroutonOpticalDriveInfo? {
         if let firstBurnerCard = store.destinationQueue.first(where: { $0.kind == .physicalBurner }),
            let match = driveManager.driveForID(firstBurnerCard.targetDriveID) {
             return match

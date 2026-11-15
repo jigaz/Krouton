@@ -15,7 +15,7 @@ struct KroutonDestinationCardView: View {
     let isRightQueueCompact: Bool
     let enableCustomFinderLayoutTab: Bool
     let finderIconSize: Double
-    let primarySelectedDrive: KroutonToasterInfo?
+    let primarySelectedDrive: KroutonOpticalDriveInfo?
 
     @State var activeDiscPopoverCardID: UUID? = nil
 
@@ -30,7 +30,7 @@ struct KroutonDestinationCardView: View {
         )
 
         // Resolve THIS card's drive strictly from unclaimed drives (never steal a drive in otherUsedDriveIDs!)
-        let cardDrive: KroutonToasterInfo? = {
+        let cardDrive: KroutonOpticalDriveInfo? = {
             if let exact = driveManager.availableDrives.first(where: { $0.id == item.targetDriveID && !otherUsedDriveIDs.contains($0.id) }) {
                 return exact
             }

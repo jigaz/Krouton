@@ -320,7 +320,7 @@ public struct AudioProject: Equatable, Codable, Sendable {
 
 // Migration notes
 //
-// 1. KroutonAudioCube becomes a derived value, built from (AudioTrack, AudioTrackLayout)
+// 1. KroutonRedBookTrack becomes a derived value, built from (AudioTrack, AudioTrackLayout)
 //    only where an older API still wants it. Delete it once the cue compiler and
 //    CD-TEXT compiler take AudioProject + [AudioTrackLayout] directly.
 // 2. The cue compiler should emit INDEX lines from AudioTrackLayout. Today the pause
@@ -336,9 +336,9 @@ public struct AudioProject: Equatable, Codable, Sendable {
 //   - applyScanned never changes a field listed in userEdited
 
 extension AudioProject {
-    /// Derived legacy KroutonAudioCube values from (AudioTrack, AudioTrackLayout) where older APIs still expect it.
+    /// Derived legacy KroutonRedBookTrack values from (AudioTrack, AudioTrackLayout) where older APIs still expect it.
     /// Note that track i's pregap comes from track (i-1)'s transitionToNext, fixing the off-by-one pause bug.
-    public var derivedRedBookCubes: [KroutonAudioCube] {
+    public var derivedRedBookCubes: [KroutonRedBookTrack] {
         let computedLayout = layout().layout
         return tracks.enumerated().map { idx, track in
             let prevSpec: KroutonTrackTransitionSpec? = idx > 0 ? tracks[idx - 1].transitionToNext : nil
@@ -347,14 +347,14 @@ extension AudioProject {
                 return prev.isCrossfading ? 0.0 : prev.preGapSeconds
             }()
             let xfade: Double = prevSpec?.isCrossfading == true ? (prevSpec?.overlapSeconds ?? 0.0) : 0.0
-            let style: KroutonCubePregapStyle = {
+            let style: KroutonTrackPregapStyle = {
                 guard let prev = prevSpec else { return .gapless0s }
                 if prev.isCrossfading { return .jamCrossfade }
                 return prev.preGapSeconds <= 0.01 ? .gapless0s : .standard2s
             }()
             let frames = track.frameCount ?? computedLayout.flatMap { idx < $0.count ? $0[idx].index01 : nil } ?? 0
             let secs = frames > 0 ? (Double(frames) / 75.0) : 0.0
-            return KroutonAudioCube(
+            return KroutonRedBookTrack(
                 id: track.id,
                 url: track.source,
                 title: track.title.isEmpty ? track.source.deletingPathExtension().lastPathComponent : track.title,

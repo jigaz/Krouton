@@ -8,7 +8,7 @@ import Foundation
 
 struct KroutonVideoAuthoringWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
-    let spec: KroutonRecipeSpec
+    let spec: KroutonOpticalWorkflowSpec
     let isCenterWorkspaceNarrow: Bool
     @Binding var fitToDiscDVD9Shrink: Bool
     let preserveMenusAndExtras: Bool

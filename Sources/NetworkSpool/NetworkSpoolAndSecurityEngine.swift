@@ -10,7 +10,7 @@ extension KrumbKitchenClient {
     public func executeSpoolAndBurn(
         endpoint: String,
         stagedFiles: [KroutonStagedFileEntry],
-        audioCubes: [KroutonAudioCube],
+        audioCubes: [KroutonRedBookTrack],
         volumeTitle: String,
         performer: String,
         mcnBarcode: String,

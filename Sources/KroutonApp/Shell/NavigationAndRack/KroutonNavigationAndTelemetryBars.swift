@@ -274,7 +274,7 @@ struct KroutonLeftFormatChooserColumnView: View {
 struct KroutonCentralWorkspaceCapacityBarView: View {
     @ObservedObject var store: KroutonStateStore
     let activeDiscCapacityBytes: Int64
-    let primarySelectedDrive: KroutonToasterInfo?
+    let primarySelectedDrive: KroutonOpticalDriveInfo?
 
     private var capacityTelemetry: (headerLabel: String, compactLabel: String, usedBytes: Int64, totalBytes: Int64, sectorsText: String) {
         // 1. Rip Audio CD / Extract Video Disc -> Local SSD Extraction Target

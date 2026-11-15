@@ -5,7 +5,7 @@ import OpticalCore
 
 struct KroutonBurnStationWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
-    let primarySelectedDrive: KroutonToasterInfo?
+    let primarySelectedDrive: KroutonOpticalDriveInfo?
     let isCenterWorkspaceNarrow: Bool
     @Binding var enableCustomFinderLayoutTab: Bool
     @Binding var finderIconSize: Double
@@ -18,7 +18,7 @@ struct KroutonBurnStationWorkspaceView: View {
     let onPromptToAddFiles: () -> Void
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 
-    func addButtonTitle(for spec: KroutonRecipeSpec) -> String {
+    func addButtonTitle(for spec: KroutonOpticalWorkflowSpec) -> String {
         switch spec.workspaceKind {
         case .redBookAudio:       return "Add Audio Tracks..."
         case .carSafeMP3Audio:    return "Add Audio or Folders..."
@@ -29,7 +29,7 @@ struct KroutonBurnStationWorkspaceView: View {
         }
     }
 
-    func addButtonSymbol(for spec: KroutonRecipeSpec) -> String {
+    func addButtonSymbol(for spec: KroutonOpticalWorkflowSpec) -> String {
         if spec.workspaceKind == .redBookAudio || spec.workspaceKind == .carSafeMP3Audio {
             return "waveform.badge.plus"
         } else if spec.workspaceKind == .videoAuthoring {
@@ -58,7 +58,7 @@ struct KroutonBurnStationWorkspaceView: View {
     // MARK: - Retro Console ROM Mastering Deck & Pre-Flight Sanity Engine
 
 
-    func currentPreFlightSanityWarning(for spec: KroutonRecipeSpec) -> String? {
+    func currentPreFlightSanityWarning(for spec: KroutonOpticalWorkflowSpec) -> String? {
         if (spec.filterGroup == .console || spec.id.hasPrefix("console-")), let drive = primarySelectedDrive, drive.isMediaPresent && drive.isMediaErasable {
             return "Retro Console Pickup Warning: \(drive.displayName) has rewritable \(drive.mediaType) loaded (~20% reflectivity). Vintage PS1/PS2/GameCube/Dreamcast optical pickups require high-reflectivity write-once CD-R or DVD-R media at 4x–8x."
         }

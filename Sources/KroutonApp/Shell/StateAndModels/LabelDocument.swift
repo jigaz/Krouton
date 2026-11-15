@@ -49,7 +49,7 @@ public struct LabelDocument: Equatable, Sendable {
 
     public init() {}
 
-    public mutating func stampTracklist(titleText: String, performerText: String, tracks: [KroutonAudioCube]) {
+    public mutating func stampTracklist(titleText: String, performerText: String, tracks: [KroutonRedBookTrack]) {
         textElements.removeAll()
         textElements.append(KroutonLabelTextElement(text: titleText, isCurvedArc: true, radiusMM: 44.0, angleDegrees: 0.0, fontSizePoints: 14.0, isBold: true))
         textElements.append(KroutonLabelTextElement(text: performerText, isCurvedArc: true, radiusMM: 38.0, angleDegrees: 180.0, fontSizePoints: 10.5, isBottomUpright: true, isBold: true))

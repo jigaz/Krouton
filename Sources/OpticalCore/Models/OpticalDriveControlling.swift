@@ -58,6 +58,6 @@ public enum KroutonDiagnostics {
 /// can inject a fake/mock drive without coupling to `@Published` UI banner properties.
 @MainActor
 public protocol OpticalDriveControlling: AnyObject {
-    var availableDrives: [KroutonToasterInfo] { get }
+    var availableDrives: [KroutonOpticalDriveInfo] { get }
     var mediaKind: OpticalMediaKind { get }
 }

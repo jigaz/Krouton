@@ -9,7 +9,7 @@ struct KroutonFloatingThermometerView: View {
     @ObservedObject var driveManager: KroutonOpticalDriveBank
     let onDockInline: () -> Void
 
-    var drive: KroutonToasterInfo? { driveManager.driveForID(driveID) }
+    var drive: KroutonOpticalDriveInfo? { driveManager.driveForID(driveID) }
     var telemetry: KroutonKitchenThermometer {
         driveManager.telemetryForDrive(driveID) ?? KroutonKitchenThermometer(id: driveID, driveName: drive?.displayName ?? "Optical Burner")
     }

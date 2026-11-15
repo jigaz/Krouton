@@ -15,7 +15,7 @@ public final class KroutonRipCancelToken: @unchecked Sendable {
 
 struct KroutonCopyAndRipWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
-    let primarySelectedDrive: KroutonToasterInfo?
+    let primarySelectedDrive: KroutonOpticalDriveInfo?
     let isCenterWorkspaceNarrow: Bool
     @Binding var fitToDiscDVD9Shrink: Bool
     @Binding var preserveMenusAndExtras: Bool

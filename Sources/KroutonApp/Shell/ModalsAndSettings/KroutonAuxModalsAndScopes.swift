@@ -37,7 +37,7 @@ struct KroutonSliceArtworkView: View {
 }
 
 struct KroutonSliceMediaPopover: View {
-    let drive: KroutonToasterInfo
+    let drive: KroutonOpticalDriveInfo
     let accent: Color
 
     var body: some View {
@@ -109,7 +109,7 @@ struct KroutonSliceMediaPopover: View {
 }
 
 struct KroutonMasteringReportSheet: View {
-    let report: KroutonToastReport
+    let report: KroutonBurnSessionReport
     let accent: Color
     let onDismiss: () -> Void
 

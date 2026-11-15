@@ -368,7 +368,7 @@ extension KroutonStateStore {
     func executeSingleDestination(
         _ target: KroutonBakeBatchItem,
         driveManager: KroutonOpticalDriveBank,
-        primarySelectedDrive: KroutonToasterInfo?,
+        primarySelectedDrive: KroutonOpticalDriveInfo?,
         enableCustomFinderLayoutTab: Bool,
         finderIconSize: Double
     ) {
@@ -377,7 +377,7 @@ extension KroutonStateStore {
             return
         }
         if stagedFiles.isEmpty && selectedCategory == .burn {
-            driveManager.completionReport = KroutonToastReport(
+            driveManager.completionReport = KroutonBurnSessionReport(
                 isSuccess: false,
                 title: "File List Is Empty",
                 summary: "There are no files or folders staged in the central workspace.",
@@ -406,7 +406,7 @@ extension KroutonStateStore {
     }
     func executeDestinationQueue(
         driveManager: KroutonOpticalDriveBank,
-        primarySelectedDrive: KroutonToasterInfo?,
+        primarySelectedDrive: KroutonOpticalDriveInfo?,
         enableCustomFinderLayoutTab: Bool,
         finderIconSize: Double
     ) {
@@ -415,7 +415,7 @@ extension KroutonStateStore {
             return
         }
         if stagedFiles.isEmpty && selectedCategory == .burn {
-            driveManager.completionReport = KroutonToastReport(
+            driveManager.completionReport = KroutonBurnSessionReport(
                 isSuccess: false,
                 title: "File List Is Empty",
                 summary: "There are no files or folders staged in the central workspace.",
@@ -447,7 +447,7 @@ extension KroutonStateStore {
     func runTargetDestination(
         _ target: KroutonBakeBatchItem,
         driveManager: KroutonOpticalDriveBank,
-        primarySelectedDrive: KroutonToasterInfo?,
+        primarySelectedDrive: KroutonOpticalDriveInfo?,
         enableCustomFinderLayoutTab: Bool,
         finderIconSize: Double
     ) async {
@@ -554,7 +554,7 @@ extension KroutonStateStore {
                 }
                 let elapsed = max(1, Int(Date().timeIntervalSince(t0)))
                 let avgX = max(0.1, Double(liveCD.totalPCMBytes) / Double(elapsed) / 176_400.0)
-                driveManager.completionReport = KroutonToastReport(
+                driveManager.completionReport = KroutonBurnSessionReport(
                     isSuccess: failedTracks == 0 && okTracks > 0,
                     title: failedTracks == 0 ? "Audio CD Extraction Complete (\(okTracks) Tracks)" : "Audio CD Partial Extraction (\(okTracks)/\(liveCD.tracks.count) Tracks)",
                     summary: "Extracted \(okTracks)/\(liveCD.tracks.count) Red Book tracks (\(failedTracks) errors) from \(liveCD.mountPath) (DiscID \(liveCD.musicBrainzDiscID)) to \(outDir.path).",

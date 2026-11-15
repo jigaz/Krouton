@@ -5,7 +5,7 @@ import OpticalCore
 
 struct KroutonCarSafeAudioWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
-    let spec: KroutonRecipeSpec
+    let spec: KroutonOpticalWorkflowSpec
     let isCenterWorkspaceNarrow: Bool
     @Binding var isDropTargeted: Bool
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool

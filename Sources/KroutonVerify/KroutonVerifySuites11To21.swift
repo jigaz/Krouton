@@ -33,7 +33,7 @@ func runKroutonVerifySuites11To21(_ harness: inout KroutonTestHarness) {
     }
 
     harness.runSuite("10. Red Book Audio Cube Frame (75 fps) & PCM Byte (2352 B/frame) Math") { h in
-    let cube = KroutonAudioCube(
+    let cube = KroutonRedBookTrack(
         url: URL(fileURLWithPath: "/tmp/test.wav"),
         title: "Track 01",
         performer: "Krouton Trio",
@@ -74,7 +74,7 @@ func runKroutonVerifySuites11To21(_ harness: inout KroutonTestHarness) {
 
     // 11c. Frame-accurate Red Book .cue sheet generation
     let tracks = [
-        KroutonAudioCube(
+        KroutonRedBookTrack(
             url: URL(fileURLWithPath: "/tmp/01.wav"),
             title: "Solar Overture",
             performer: "The Bakery",
@@ -87,7 +87,7 @@ func runKroutonVerifySuites11To21(_ harness: inout KroutonTestHarness) {
             preEmphasisEnabled: true,
             copyPermittedSCMS: true
         ),
-        KroutonAudioCube(
+        KroutonRedBookTrack(
             url: URL(fileURLWithPath: "/tmp/02.wav"),
             title: "Laser Groove",
             performer: "The Bakery",

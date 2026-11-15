@@ -107,7 +107,7 @@ extension KroutonOpticalDriveBank {
                 current.elapsedSeconds = max(1, Int(Date().timeIntervalSince(startDate)))
                 current.phaseTitle = nextFrac < 0.99 ? "Phase Scope Active (\(String(format: "%.1fx", speedX)))" : "Sweep Complete"
 
-                current.samples.append(KroutonToastingSample(
+                current.samples.append(KroutonBurnTelemetrySample(
                     progressFraction: nextFrac,
                     speedMultiplierX: speedX,
                     spindleRPM: Double(rpm),
@@ -135,7 +135,7 @@ extension KroutonOpticalDriveBank {
         }
     }
 
-    public func driveForID(_ id: String) -> KroutonToasterInfo? {
+    public func driveForID(_ id: String) -> KroutonOpticalDriveInfo? {
         if let match = availableDrives.first(where: { $0.id == id }) {
             return match
         }
@@ -171,14 +171,14 @@ extension KroutonOpticalDriveBank {
     public func eraseRewritableDisc(
         driveID: String? = nil,
         fullErase: Bool,
-        onCompletion: @escaping @MainActor (KroutonToastReport) -> Void
+        onCompletion: @escaping @MainActor (KroutonBurnSessionReport) -> Void
     ) {
         let resolvedMeta = driveForID(driveID ?? "")
         let driveName = resolvedMeta?.displayName ?? "Optical Drive"
         let fwRev = resolvedMeta?.firmware ?? "1.0"
 
         guard let device = resolveDRDevice(id: driveID ?? selectedDrive?.id) else {
-            let report = KroutonToastReport(
+            let report = KroutonBurnSessionReport(
                 isSuccess: false,
                 title: "Optical Drive Not Found",
                 summary: "Krouton could not communicate with the selected optical burner on the USB/SATA bus.",
@@ -201,7 +201,7 @@ extension KroutonOpticalDriveBank {
         let status = device.status() as? [String: Any] ?? [:]
         let mediaState = status[DRDeviceMediaStateKey] as? String ?? DRDeviceMediaStateNone
         guard mediaState == DRDeviceMediaStateMediaPresent else {
-            let report = KroutonToastReport(
+            let report = KroutonBurnSessionReport(
                 isSuccess: false,
                 title: "Drive Slot Is Empty",
                 summary: "There is currently no optical disc inserted in \(driveName).",
@@ -226,7 +226,7 @@ extension KroutonOpticalDriveBank {
         let mType = Self.formatHumanMediaType(mediaInfo[DRDeviceMediaTypeKey] as? String ?? "Disc")
 
         guard isErasable else {
-            let report = KroutonToastReport(
+            let report = KroutonBurnSessionReport(
                 isSuccess: false,
                 title: "Disc Is Not Rewritable",
                 summary: "The inserted \(mType) media is write-once and cannot be erased.",
@@ -300,7 +300,7 @@ extension KroutonOpticalDriveBank {
                 self.currentSpeedKBs = simulatedX * divisor
                 self.currentSpindleRPM = Int(2200.0 + (800.0 * (1.0 - clampedPct * 0.3)))
                 self.currentSectorLBA = Int64(Double(self.totalTargetSectorsLBA) * clampedPct)
-                let sample = KroutonToastingSample(
+                let sample = KroutonBurnTelemetrySample(
                     progressFraction: clampedPct,
                     speedMultiplierX: simulatedX,
                     spindleRPM: Double(self.currentSpindleRPM),
@@ -336,7 +336,7 @@ extension KroutonOpticalDriveBank {
                     self.refreshDrives()
                     let mins = self.elapsedSeconds / 60
                     let secs = self.elapsedSeconds % 60
-                    let report = KroutonToastReport(
+                    let report = KroutonBurnSessionReport(
                         isSuccess: true,
                         title: "Rewritable Disc Erased Successfully",
                         summary: "The \(mType) in \(driveName) has been blanked and is ready for a new mastering session.",
@@ -369,7 +369,7 @@ extension KroutonOpticalDriveBank {
                         matshitaAdvice = "Try running a Full Erase instead of Quick Erase, or test the disc in another optical drive."
                     }
 
-                    let report = KroutonToastReport(
+                    let report = KroutonBurnSessionReport(
                         isSuccess: false,
                         title: "Unable to Erase Rewritable Disc",
                         summary: "\(errStr)\(senseStr.isEmpty ? "" : " (\(senseStr))")",
@@ -398,7 +398,7 @@ extension KroutonOpticalDriveBank {
         compressImage: Bool,
         enableCustomLayout: Bool,
         iconSizePx: Int
-    ) async -> KroutonToastReport {
+    ) async -> KroutonBurnSessionReport {
         isExecutingQueue = true
         jobStartTime = Date()
         neroSamples = []
@@ -419,7 +419,7 @@ extension KroutonOpticalDriveBank {
                 try fm.copyItem(at: item.url, to: destURL)
                 let frac = 0.15 + (0.35 * Double(index + 1) / Double(max(1, stagedFiles.count)))
                 activeJobProgress = frac
-                neroSamples.append(KroutonToastingSample(progressFraction: frac, speedMultiplierX: 0.0, spindleRPM: 0, throughputKBs: 48_000))
+                neroSamples.append(KroutonBurnTelemetrySample(progressFraction: frac, speedMultiplierX: 0.0, spindleRPM: 0, throughputKBs: 48_000))
             }
 
             if enableCustomLayout {
@@ -467,7 +467,7 @@ extension KroutonOpticalDriveBank {
                 activeJobDetail = expandedPath
                 isExecutingQueue = false
                 /* Acoustic cue handled by KroutonApp UI layer */
-                let report = KroutonToastReport(
+                let report = KroutonBurnSessionReport(
                     isSuccess: true,
                     title: "Disc Image Mastered Successfully",
                     summary: "Created a mountable hybrid disc image containing \(stagedFiles.count) items at \(expandedPath).",
@@ -487,7 +487,7 @@ extension KroutonOpticalDriveBank {
             } else {
                 isExecutingQueue = false
                 activeJobPhase = "Image Creation Failed (Code \(status))"
-                let report = KroutonToastReport(
+                let report = KroutonBurnSessionReport(
                     isSuccess: false,
                     title: "Disc Image Creation Failed",
                     summary: "The macOS hdiutil imaging engine exited with status code \(status).",
@@ -509,7 +509,7 @@ extension KroutonOpticalDriveBank {
             try? fm.removeItem(at: tempRoot)
             isExecutingQueue = false
             activeJobPhase = "Error: \(error.localizedDescription)"
-            let report = KroutonToastReport(
+            let report = KroutonBurnSessionReport(
                 isSuccess: false,
                 title: "Disc Image Mastering Error",
                 summary: error.localizedDescription,

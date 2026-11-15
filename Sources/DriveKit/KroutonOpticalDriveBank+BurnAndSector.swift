@@ -19,7 +19,7 @@ extension KroutonOpticalDriveBank {
         requestedSpeedLabel: String,
         simulationMode: Bool,
         verifyDisc: Bool,
-        onCompletion: @escaping @MainActor (KroutonToastReport) -> Void
+        onCompletion: @escaping @MainActor (KroutonBurnSessionReport) -> Void
     ) {
         let resolvedMeta = driveForID(driveID ?? "")
         let driveName = resolvedMeta?.displayName ?? "Optical Drive"
@@ -28,7 +28,7 @@ extension KroutonOpticalDriveBank {
         let totalLBA = max(1, stagedFiles.reduce(0) { $0 + $1.sectorsLBA })
 
         guard let device = resolveDRDevice(id: driveID ?? selectedDrive?.id) else {
-            let report = KroutonToastReport(
+            let report = KroutonBurnSessionReport(
                 isSuccess: false,
                 title: "Optical Burner Disconnected",
                 summary: "Could not locate \(driveName) on the hardware bus.",
@@ -51,7 +51,7 @@ extension KroutonOpticalDriveBank {
         let status = device.status() as? [String: Any] ?? [:]
         let mediaState = status[DRDeviceMediaStateKey] as? String ?? DRDeviceMediaStateNone
         guard mediaState == DRDeviceMediaStateMediaPresent else {
-            let report = KroutonToastReport(
+            let report = KroutonBurnSessionReport(
                 isSuccess: false,
                 title: "No Disc in Optical Drive",
                 summary: "The slot on \(driveName) is currently empty.",
@@ -199,7 +199,7 @@ extension KroutonOpticalDriveBank {
                 self.activeJobProgress = clampedPct
                 self.activeJobPhase = Self.formatHumanBurnState(rawState, isErase: false)
 
-                let sample = KroutonToastingSample(
+                let sample = KroutonBurnTelemetrySample(
                     progressFraction: clampedPct,
                     speedMultiplierX: speedX,
                     spindleRPM: Double(self.currentSpindleRPM),
@@ -242,7 +242,7 @@ extension KroutonOpticalDriveBank {
 
                     let mins = self.elapsedSeconds / 60
                     let secs = 0 // Hardware buffer fill not reported by DRStatus
-                    let report = KroutonToastReport(
+                    let report = KroutonBurnSessionReport(
                         isSuccess: true,
                         title: simulationMode ? "Simulation Burn Completed" : "Optical Disc Burn Complete",
                         summary: simulationMode
@@ -278,7 +278,7 @@ extension KroutonOpticalDriveBank {
                         advice = "If this is a previously written rewritable disc, run 'Erase RW -> Quick Erase' first, or select a slower write speed."
                     }
 
-                    let report = KroutonToastReport(
+                    let report = KroutonBurnSessionReport(
                         isSuccess: false,
                         title: "Optical Burn Failed",
                         summary: "\(errStr)\(senseStr.isEmpty ? "" : " — Hardware Sense: \(senseStr)")",
@@ -309,7 +309,7 @@ extension KroutonOpticalDriveBank {
     }
 
     // MARK: - UltraISO / PowerISO .BIN/.CUE (2,352 B/sector) <-> .ISO (2,048 B/sector) Sector Converter
-    public func convertBinAndIsoSectorImage(sourceURL: URL) async -> (outputURL: URL?, report: KroutonToastReport) {
+    public func convertBinAndIsoSectorImage(sourceURL: URL) async -> (outputURL: URL?, report: KroutonBurnSessionReport) {
         let lower = sourceURL.lastPathComponent.lowercased()
         let baseName = sourceURL.deletingPathExtension().lastPathComponent
         let parentDir = sourceURL.deletingLastPathComponent()
@@ -351,7 +351,7 @@ extension KroutonOpticalDriveBank {
                 isExecutingQueue = false
                 /* Acoustic cue handled by KroutonApp UI layer */
                 let secs = max(1, Int(Date().timeIntervalSince(startTime)))
-                let rep = KroutonToastReport(
+                let rep = KroutonBurnSessionReport(
                     isSuccess: true,
                     title: ".BIN → .ISO Sector Conversion Complete",
                     summary: "Extracted 2,048-byte user payloads from 2,352-byte raw sectors into \(outISO.path).",
@@ -405,7 +405,7 @@ extension KroutonOpticalDriveBank {
                 isExecutingQueue = false
                 /* Acoustic cue handled by KroutonApp UI layer */
                 let secs = max(1, Int(Date().timeIntervalSince(startTime)))
-                let rep = KroutonToastReport(
+                let rep = KroutonBurnSessionReport(
                     isSuccess: true,
                     title: ".ISO → .BIN/.CUE Conversion Complete",
                     summary: "Synthesized 2,352-byte Mode 1 raw sectors + companion .CUE descriptor at \(outCUE.path).",
@@ -425,7 +425,7 @@ extension KroutonOpticalDriveBank {
             }
         } catch {
             isExecutingQueue = false
-            let rep = KroutonToastReport(
+            let rep = KroutonBurnSessionReport(
                 isSuccess: false,
                 title: "Sector Conversion Error",
                 summary: error.localizedDescription,
@@ -445,7 +445,7 @@ extension KroutonOpticalDriveBank {
         }
     }
 
-    public static func inspectAudioTrack(url: URL, index: Int) -> KroutonAudioCube {
+    public static func inspectAudioTrack(url: URL, index: Int) -> KroutonRedBookTrack {
         let rawTitle = url.deletingPathExtension().lastPathComponent
         var duration: Double = 212.0
         var sampleRate: Int = 44100
@@ -463,7 +463,7 @@ extension KroutonOpticalDriveBank {
         }
 
         let isrc = String(format: "USKRO26%05d", max(1, index))
-        return KroutonAudioCube(
+        return KroutonRedBookTrack(
             url: url,
             title: rawTitle,
             performer: "Workspace Master",
@@ -478,7 +478,7 @@ extension KroutonOpticalDriveBank {
     }
 
     // Stages a Car-Safe MP3/FLAC Folder Tree (Zero-padded 001_ prefixes + strips .DS_Store & ._AppleDouble files!)
-    public static func stageCarSafeAudioDirectory(tracks: [KroutonAudioCube], tempRoot: URL) throws -> [KroutonStagedFileEntry] {
+    public static func stageCarSafeAudioDirectory(tracks: [KroutonRedBookTrack], tempRoot: URL) throws -> [KroutonStagedFileEntry] {
         let fm = FileManager.default
         try fm.createDirectory(at: tempRoot, withIntermediateDirectories: true)
         var staged: [KroutonStagedFileEntry] = []

@@ -13,7 +13,7 @@ struct KroutonDestinationRackColumnView: View {
     let isRightQueueCompact: Bool
     let enableCustomFinderLayoutTab: Bool
     let finderIconSize: Double
-    let primarySelectedDrive: KroutonToasterInfo?
+    let primarySelectedDrive: KroutonOpticalDriveInfo?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {

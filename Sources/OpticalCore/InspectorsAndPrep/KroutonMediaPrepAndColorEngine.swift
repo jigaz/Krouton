@@ -16,7 +16,7 @@ public enum KroutonHeatTier: String, Sendable {
     case bitstreamPassthrough = "Direct Optical Bitstream Passthrough (Zero Re-encode)"
 }
 
-public struct KroutonCubeProbeResult: Identifiable, Hashable, Sendable {
+public struct KroutonStreamProbeResult: Identifiable, Hashable, Sendable {
     public let id = UUID()
     public let fileExtension: String
     public let containerFormat: String
@@ -51,7 +51,7 @@ public struct KroutonCubeProbeResult: Identifiable, Hashable, Sendable {
     }
 }
 
-public struct KroutonRecipeCodecRow: Identifiable, Hashable, Sendable {
+public struct KroutonWorkflowCodecRow: Identifiable, Hashable, Sendable {
     public let id: String
     public let category: String
     public let formatsAndExtensions: String
@@ -61,7 +61,7 @@ public struct KroutonRecipeCodecRow: Identifiable, Hashable, Sendable {
 }
 
 public enum KroutonMediaPrepEngine {
-    public static var liveHardwareCodecMatrix: [KroutonRecipeCodecRow] {
+    public static var liveHardwareCodecMatrix: [KroutonWorkflowCodecRow] {
         let h264HW = VTIsHardwareDecodeSupported(kCMVideoCodecType_H264)
         let hevcHW = VTIsHardwareDecodeSupported(kCMVideoCodecType_HEVC)
         let proResHW = VTIsHardwareDecodeSupported(kCMVideoCodecType_AppleProRes422HQ)
@@ -70,7 +70,7 @@ public enum KroutonMediaPrepEngine {
         let mpeg2HW = VTIsHardwareDecodeSupported(kCMVideoCodecType_MPEG2Video)
 
         return [
-            KroutonRecipeCodecRow(
+            KroutonWorkflowCodecRow(
                 id: "vt-hevc-h264",
                 category: "Modern Cinema Video (H.264 / H.265 HEVC / HDR10 / Dolby Vision)",
                 formatsAndExtensions: ".mp4, .mov, .m4v, .hevc, .h264, .ts",
@@ -78,7 +78,7 @@ public enum KroutonMediaPrepEngine {
                 hardwareStatus: (h264HW && hevcHW) ? "Hardware ASIC Active (8-bit & 10-bit 4:2:2)" : "Software Fallback",
                 isHardwareAccelerated: h264HW && hevcHW
             ),
-            KroutonRecipeCodecRow(
+            KroutonWorkflowCodecRow(
                 id: "vt-prores",
                 category: "Broadcast & Post-Production Mezzanine (ProRes / CineForm / DNxHR)",
                 formatsAndExtensions: ".mov, .mxf (ProRes 422 / LT / HQ / 4444 / XQ / RAW)",
@@ -86,7 +86,7 @@ public enum KroutonMediaPrepEngine {
                 hardwareStatus: proResHW ? "Dedicated ProRes Silicon Engine" : "Apple Accelerate SIMD",
                 isHardwareAccelerated: true
             ),
-            KroutonRecipeCodecRow(
+            KroutonWorkflowCodecRow(
                 id: "vt-av1-vp9",
                 category: "Next-Gen Web & Archival Video (AV1 / VP9 / WebM)",
                 formatsAndExtensions: ".mkv, .webm, .mp4, .ivf (AV1 10-bit / VP9 Profile 2)",
@@ -94,7 +94,7 @@ public enum KroutonMediaPrepEngine {
                 hardwareStatus: (av1HW || vp9HW) ? "Hardware Decode + NEON SIMD" : "ARM64 NEON 12-Thread SIMD",
                 isHardwareAccelerated: av1HW || vp9HW
             ),
-            KroutonRecipeCodecRow(
+            KroutonWorkflowCodecRow(
                 id: "ffmpeg-containers",
                 category: "Universal Multi-Track Containers & Optical Streams",
                 formatsAndExtensions: ".mkv, .m2ts, .mts, .vob, .evo, .avi, .wmv, .asf, .flv, .ogv, .rmvb",
@@ -102,7 +102,7 @@ public enum KroutonMediaPrepEngine {
                 hardwareStatus: "Zero-Copy Packet Remux -> VT Hardware",
                 isHardwareAccelerated: true
             ),
-            KroutonRecipeCodecRow(
+            KroutonWorkflowCodecRow(
                 id: "legacy-optical-video",
                 category: "Legacy Set-Top & Broadcast Video (MPEG-2 / VC-1 / DivX / Xvid / DV)",
                 formatsAndExtensions: ".vob, .mpg, .mpeg, .m2v, .vc1, .dv, .avi",
@@ -110,7 +110,7 @@ public enum KroutonMediaPrepEngine {
                 hardwareStatus: mpeg2HW ? "VideoToolbox HW + NEON SIMD" : "ARM64 NEON SIMD (400+ fps)",
                 isHardwareAccelerated: true
             ),
-            KroutonRecipeCodecRow(
+            KroutonWorkflowCodecRow(
                 id: "audiophile-lossless",
                 category: "Audiophile Lossless, Linear PCM & Scarlet Book DSD",
                 formatsAndExtensions: ".wav (RF64/32f), .aiff, .flac, .alac, .ape, .wv, .tta, .dsf, .dff",
@@ -118,7 +118,7 @@ public enum KroutonMediaPrepEngine {
                 hardwareStatus: "Apple Accelerate vDSP 64-Bit Float",
                 isHardwareAccelerated: true
             ),
-            KroutonRecipeCodecRow(
+            KroutonWorkflowCodecRow(
                 id: "cinema-surround",
                 category: "Home Theater Bitstream & Lossy Audio (Atmos / TrueHD / DTS-HD / Opus)",
                 formatsAndExtensions: ".ac3, .eac3, .thd, .mlp, .dts, .dtshd, .opus, .ogg, .mp3, .m4a, .wma",
@@ -126,7 +126,7 @@ public enum KroutonMediaPrepEngine {
                 hardwareStatus: "Direct Bitstream / Accelerate vDSP",
                 isHardwareAccelerated: true
             ),
-            KroutonRecipeCodecRow(
+            KroutonWorkflowCodecRow(
                 id: "optical-subtitles",
                 category: "Optical Bitmap & Styled Text Subtitles (Blu-ray CEA-608 / VobSub Track Passthrough & DVD VobSub)",
                 formatsAndExtensions: ".sup (BD CEA-608 / VobSub Track Passthrough), .idx/.sub (VobSub), .ass, .ssa, .srt, .vtt, CEA-608/708",
@@ -138,12 +138,12 @@ public enum KroutonMediaPrepEngine {
     }
 
     /// Probes any audio/video/container URL and returns its exact decoder pipeline & hardware acceleration badge
-    public static func probeFile(_ url: URL) -> KroutonCubeProbeResult {
+    public static func probeFile(_ url: URL) -> KroutonStreamProbeResult {
         let ext = url.pathExtension.lowercased()
         switch ext {
         // --- 1. Apple Compressor / Broadcast Mezzanine ---
         case "mov", "mxf":
-            return KroutonCubeProbeResult(
+            return KroutonStreamProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: ext == "mxf" ? "SMPTE MXF Container" : "QuickTime MOV Container",
                 videoCodecName: "Apple ProRes 422 HQ / HEVC 10-Bit",
@@ -156,7 +156,7 @@ public enum KroutonMediaPrepEngine {
             )
         // --- 2. HandBrake / VLC Matroska & Blu-ray Transport Streams ---
         case "mkv", "m2ts", "mts", "ts", "webm":
-            return KroutonCubeProbeResult(
+            return KroutonStreamProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: ext == "mkv" ? "Matroska (.MKV) Multi-Track" : (ext == "webm" ? "WebM Container" : "Blu-ray MPEG-2 Transport Stream (.M2TS)"),
                 videoCodecName: ext == "webm" ? "VP9 / AV1 10-Bit" : "HEVC 10-Bit HDR / H.264 High@L5.1",
@@ -169,7 +169,7 @@ public enum KroutonMediaPrepEngine {
             )
         // --- 3. Standard MP4 / M4V ---
         case "mp4", "m4v":
-            return KroutonCubeProbeResult(
+            return KroutonStreamProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: "ISO Base Media (.MP4)",
                 videoCodecName: "H.264 / HEVC (VideoToolbox)",
@@ -182,7 +182,7 @@ public enum KroutonMediaPrepEngine {
             )
         // --- 4. Legacy DVD VOB / MPEG-2 / AVI / WMV / VC-1 ---
         case "vob", "mpg", "mpeg", "m2v", "evo":
-            return KroutonCubeProbeResult(
+            return KroutonStreamProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: "DVD Program Stream (MPEG-PS / VOB)",
                 videoCodecName: "MPEG-2 Main@Main (2,048 B Navigation Packs)",
@@ -194,7 +194,7 @@ public enum KroutonMediaPrepEngine {
                 targetMasteringPipeline: "Zero-Generation Loss MPEG-2 Passthrough (Or Smart Requantize)"
             )
         case "avi", "wmv", "asf", "flv", "divx", "dv", "ogv", "rmvb":
-            return KroutonCubeProbeResult(
+            return KroutonStreamProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: "Legacy Container (\(ext.uppercased()))",
                 videoCodecName: "VC-1 / MPEG-4 ASP (DivX/Xvid) / DV",
@@ -207,7 +207,7 @@ public enum KroutonMediaPrepEngine {
             )
         // --- 5. Audiophile Lossless & DSD Audio ---
         case "flac", "ape", "wv", "tta", "shn":
-            return KroutonCubeProbeResult(
+            return KroutonStreamProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: "Lossless Audiophile (\(ext.uppercased()))",
                 videoCodecName: nil,
@@ -219,7 +219,7 @@ public enum KroutonMediaPrepEngine {
                 targetMasteringPipeline: "libFLAC/WavPack -> vDSP 64-Bit Sinc Resampler -> 44.1 kHz 16-Bit Red Book PCM"
             )
         case "dsf", "dff":
-            return KroutonCubeProbeResult(
+            return KroutonStreamProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: "Scarlet Book 1-Bit DSD (\(ext.uppercased()))",
                 videoCodecName: nil,
@@ -231,7 +231,7 @@ public enum KroutonMediaPrepEngine {
                 targetMasteringPipeline: "8th-OrdervDSP Decimation Filter (Or Native SACD-R Scarlet Book UDF)"
             )
         case "wav", "aiff", "aif", "caf", "alac":
-            return KroutonCubeProbeResult(
+            return KroutonStreamProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: "Uncompressed Linear PCM (\(ext.uppercased()))",
                 videoCodecName: nil,
@@ -244,7 +244,7 @@ public enum KroutonMediaPrepEngine {
             )
         // --- 6. Surround Bitstreams & Lossy Audio ---
         case "ac3", "eac3", "thd", "mlp", "dts", "dtshd":
-            return KroutonCubeProbeResult(
+            return KroutonStreamProbeResult(
                 fileExtension: ext.uppercased(),
                 containerFormat: "Cinema Surround Bitstream (\(ext.uppercased()))",
                 videoCodecName: nil,
@@ -256,7 +256,7 @@ public enum KroutonMediaPrepEngine {
                 targetMasteringPipeline: "Direct S/PDIF / BDMV Bitstream Passthrough (Or 5.1 -> Stereo Folddown)"
             )
         default:
-            return KroutonCubeProbeResult(
+            return KroutonStreamProbeResult(
                 fileExtension: ext.isEmpty ? "MEDIA" : ext.uppercased(),
                 containerFormat: "Universal Media Stream",
                 videoCodecName: nil,
@@ -284,7 +284,7 @@ extension KroutonStagedFileEntry {
 }
 
 // MARK: - Live Disc Image Sector Hex/ASCII Reader & CryptoKit SHA-256 Engine
-extension KroutonLoafBootInspector {
+extension KroutonElToritoBootInspector {
     public struct HexDumpRow: Identifiable, Hashable, Sendable {
         public let id: Int
         public let offsetHex: String

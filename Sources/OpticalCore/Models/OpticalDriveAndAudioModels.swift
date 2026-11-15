@@ -4,7 +4,7 @@ import VideoToolbox
 import AudioToolbox
 import Foundation
 import AVFoundation
-public struct KroutonMountedSlice: Identifiable, Hashable, Sendable {
+public struct KroutonMountedDiscVolume: Identifiable, Hashable, Sendable {
     public let id: String
     public let volumeName: String
     public let filesystemFormat: String
@@ -38,7 +38,7 @@ public struct KroutonMountedSlice: Identifiable, Hashable, Sendable {
     }
 }
 
-public struct KroutonToasterInfo: Identifiable, Hashable, Sendable {
+public struct KroutonOpticalDriveInfo: Identifiable, Hashable, Sendable {
     public let id: String
     public let vendor: String
     public let product: String
@@ -67,7 +67,7 @@ public struct KroutonToasterInfo: Identifiable, Hashable, Sendable {
     public let laserWavelengthNA: String
     public let sectorBlockSize: String
     public let copyProtectionStatus: String
-    public let mountedVolumes: [KroutonMountedSlice]
+    public let mountedVolumes: [KroutonMountedDiscVolume]
     public let availableWriteSpeeds: [String]
 
     public init(
@@ -99,7 +99,7 @@ public struct KroutonToasterInfo: Identifiable, Hashable, Sendable {
         laserWavelengthNA: String = "780 nm IR (0.45 NA)",
         sectorBlockSize: String = "2,048 Bytes (Mode 1)",
         copyProtectionStatus: String = "Unencrypted ( CSS / AACS Clear )",
-        mountedVolumes: [KroutonMountedSlice] = [],
+        mountedVolumes: [KroutonMountedDiscVolume] = [],
         availableWriteSpeeds: [String] = ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
     ) {
         self.id = id
@@ -182,7 +182,7 @@ public struct KroutonToasterInfo: Identifiable, Hashable, Sendable {
 }
 
 // MARK: - Sprint 3: WaveBurner Red Book Audio CD & Car-Safe MP3 Models
-public enum KroutonCubePregapStyle: String, CaseIterable, Identifiable, Codable, Sendable {
+public enum KroutonTrackPregapStyle: String, CaseIterable, Identifiable, Codable, Sendable {
     case standard2s = "2.0s Standard Pre-Gap"
     case gapless0s = "0.0s Gapless (Live)"
     case customPause = "Custom INDEX 00 Pause"
@@ -190,7 +190,7 @@ public enum KroutonCubePregapStyle: String, CaseIterable, Identifiable, Codable,
     public var id: String { rawValue }
 }
 
-public struct KroutonAudioCube: Identifiable, Hashable, Sendable, Codable {
+public struct KroutonRedBookTrack: Identifiable, Hashable, Sendable, Codable {
     public let id: UUID
     public let url: URL
     public var title: String
@@ -200,7 +200,7 @@ public struct KroutonAudioCube: Identifiable, Hashable, Sendable, Codable {
     public var durationSeconds: Double
     public var preGapSeconds: Double     // INDEX 00 duration (0.0s gapless .. 4.0s)
     public var crossfadeSeconds: Double  // Jam-style overlap duration
-    public var transitionStyle: KroutonCubePregapStyle
+    public var transitionStyle: KroutonTrackPregapStyle
     public var preEmphasisEnabled: Bool
     public var copyPermittedSCMS: Bool
     public var sampleRateHz: Int
@@ -216,7 +216,7 @@ public struct KroutonAudioCube: Identifiable, Hashable, Sendable, Codable {
         durationSeconds: Double = 215.0,
         preGapSeconds: Double = 2.0,
         crossfadeSeconds: Double = 0.0,
-        transitionStyle: KroutonCubePregapStyle = .standard2s,
+        transitionStyle: KroutonTrackPregapStyle = .standard2s,
         preEmphasisEnabled: Bool = false,
         copyPermittedSCMS: Bool = true,
         sampleRateHz: Int = 44100,
@@ -313,7 +313,7 @@ public final class KroutonCubeTasterEngine: ObservableObject {
         auditionStatusText = "Idle"
     }
 
-    public func auditionTransition(from trackA: KroutonAudioCube, to trackB: KroutonAudioCube?) {
+    public func auditionTransition(from trackA: KroutonRedBookTrack, to trackB: KroutonRedBookTrack?) {
         stopAudition()
         isAuditioning = true
         auditioningTrackID = trackA.id

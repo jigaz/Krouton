@@ -12,7 +12,7 @@ struct KroutonRedBookAudioWorkspaceView: View {
     @ObservedObject private var montageState = TrackMontageWindowState.shared
     @Environment(\.undoManager) private var undoManager
 
-    let spec: KroutonRecipeSpec
+    let spec: KroutonOpticalWorkflowSpec
     let isCenterWorkspaceNarrow: Bool
     @Binding var cdTextAlbumTitle: String
     @Binding var cdTextAlbumPerformer: String
