@@ -205,7 +205,7 @@ extension KroutonDestinationCardView {
         }()
 
         let activeCardDriveID = (item.kind == .networkBurner) ? "network-spool-drive" : (cardDrive?.id ?? "")
-        let validSpeeds = cardDrive?.availableWriteSpeeds ?? ["Max Safe (Auto)", "24x (4234 KB/s)", "10x (1764 KB/s)", "8x (1411 KB/s)", "4x (705 KB/s)", "2x (353 KB/s)"]
+        let validSpeeds = cardDrive?.availableWriteSpeeds ?? ["Max Safe (Auto)"]
 
 
         VStack(alignment: .leading, spacing: 10) {

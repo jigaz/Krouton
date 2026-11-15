@@ -38,7 +38,7 @@ func buildSmoothScopeTraces(
         let x = size.width * CGFloat(min(1.0, max(0.0, s.progressFraction)))
         let ySpeed = size.height * (1.0 - CGFloat(min(1.0, s.speedMultiplierX / maxScaleX)))
         let yRPM = size.height * (1.0 - CGFloat(min(1.0, s.spindleRPM / maxScaleRPM)))
-        let bufNorm = 0.95 + 0.04 * sin(s.progressFraction * 28.0)
+        let bufNorm = min(1.0, max(0.0, telemetry.bufferFillPercent / 100.0))
         let yBuf = size.height * (1.0 - CGFloat(0.15 * bufNorm))
 
         ptsSpeed.append(CGPoint(x: x, y: ySpeed))
@@ -195,7 +195,7 @@ struct KroutonMiniPhaseScopeView: View {
                     .font(.system(size: 9.5, weight: .bold, design: .monospaced))
                     .foregroundStyle(primaryColor).lineLimit(1).fixedSize(horizontal: true, vertical: false)
                 Spacer(minLength: 4)
-                Text("\(telemetry.currentSpindleRPM) RPM")
+                Text(telemetry.currentSpindleRPM > 0 ? "\(telemetry.currentSpindleRPM) RPM" : "— RPM")
                     .font(.system(size: 9.5, weight: .bold, design: .monospaced))
                     .foregroundStyle(rpmColor).lineLimit(1).fixedSize(horizontal: true, vertical: false)
             }
@@ -205,7 +205,7 @@ struct KroutonMiniPhaseScopeView: View {
                     .font(.system(size: 9.5, weight: .bold, design: .monospaced))
                     .foregroundStyle(primaryColor).lineLimit(1)
                 Spacer(minLength: 2)
-                Text("\(telemetry.currentSpindleRPM)")
+                Text(telemetry.currentSpindleRPM > 0 ? "\(telemetry.currentSpindleRPM)" : "—")
                     .font(.system(size: 9.5, weight: .bold, design: .monospaced))
                     .foregroundStyle(rpmColor).lineLimit(1)
             }
@@ -334,12 +334,12 @@ extension KroutonFloatingPhaseScopeView {
     @ViewBuilder
     func floatingTelemetryChannelGrid(primaryColor: Color, harmonyColor: Color, rpmColor: Color, useHarmony: Bool) -> some View {
         let tiles: [(String, String, String, Color)] = [
-            ("THROUGHPUT", String(format: "Live %.1fx (%.0f KB/s)", telemetry.currentSpeedX, telemetry.currentSpeedKBs), String(format: "Avg %.1fx • Peak %.1fx • Target P-CAV", telemetry.averageSpeedX, telemetry.peakSpeedX), primaryColor),
-            ("SPINDLE MOTOR", "\(telemetry.currentSpindleRPM) RPM", "\(telemetry.writeStrategyText) • Angular Servo Locked", rpmColor),
-            ("LASER POWER", telemetry.laserWavelengthText, String(format: "Active OPC Power: %.1f mW", telemetry.isActive ? 14.8 + (telemetry.progressFraction * 4.2) : 0.0), primaryColor),
-            ("RADIAL TRACKING", "LBA \(telemetry.currentSectorLBA) / \(telemetry.totalSectorsLBA)", String(format: "Radius r = %.2f / 58.00 mm (%.1f%%)", telemetry.radialMillimeters, telemetry.progressFraction * 100.0), useHarmony ? harmonyColor : primaryColor),
-            ("BUFFER", String(format: "%.0f%% Full (Zero Underruns)", telemetry.bufferFillPercent), "Hardware BURN-Proof / SuperLink Active", primaryColor),
-            ("SERVO JITTER", String(format: "%.2f%% (C1/C2 Clear)", telemetry.isActive ? 4.8 + (telemetry.progressFraction * 0.7) : 0.0), "Phase-Locked Loop • Zero ECC Errors", useHarmony ? harmonyColor : primaryColor)
+            ("THROUGHPUT", telemetry.currentSpeedKBs > 0 ? String(format: "Live %.1fx (%.0f KB/s)", telemetry.currentSpeedX, telemetry.currentSpeedKBs) : "—", telemetry.peakSpeedX > 0 ? String(format: "Avg %.1fx • Peak %.1fx", telemetry.averageSpeedX, telemetry.peakSpeedX) : "Reported by DiscRecording", primaryColor),
+            ("SPINDLE MOTOR", telemetry.currentSpindleRPM > 0 ? "\(telemetry.currentSpindleRPM) RPM" : "—", telemetry.writeStrategyText, rpmColor),
+            ("LASER WAVELENGTH", telemetry.laserWavelengthText, "OPC Power Managed by Drive Firmware", primaryColor),
+            ("RADIAL PROGRESS", "LBA \(telemetry.currentSectorLBA) / \(telemetry.totalSectorsLBA)", String(format: "Progress: %.1f%%", telemetry.progressFraction * 100.0), useHarmony ? harmonyColor : primaryColor),
+            ("BUFFER", telemetry.bufferFillPercent > 0 ? String(format: "%.0f%%", telemetry.bufferFillPercent) : "—", "Managed by Drive Hardware", primaryColor),
+            ("ELAPSED TIME", String(format: "%02d:%02d", telemetry.elapsedSeconds / 60, telemetry.elapsedSeconds % 60), telemetry.phaseTitle, useHarmony ? harmonyColor : primaryColor)
         ]
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
             ForEach(tiles, id: \.0) { title, pri, sec, col in
