@@ -69,6 +69,7 @@ let package = Package(
         .testTarget(name: "RescueKitTests", dependencies: ["OpticalCore", "RescueKit"]),
         .testTarget(name: "LabelKitTests", dependencies: ["OpticalCore", "AudioKit", "RescueKit", "LabelKit"]),
         .testTarget(name: "VideoKitTests", dependencies: ["OpticalCore", "VideoKit"]),
-        .testTarget(name: "PersistenceTests", dependencies: ["OpticalCore", "Persistence"])
+        .testTarget(name: "PersistenceTests", dependencies: ["OpticalCore", "Persistence"]),
+        .testTarget(name: "KroutonVerifyTests", dependencies: ["KroutonVerify"])
     ]
 )

@@ -257,6 +257,46 @@ struct KroutonRedBookAudioWorkspaceView: View {
         .background(Color.primary.opacity(0.04))
     }
 
+    /// Performer and ISRC fields of a track row, hidden when the workspace is narrow.
+    @ViewBuilder
+    private func trackPerformerAndISRCFields(track: AudioTrack, isISRCInvalid: Bool) -> some View {
+        if !isCenterWorkspaceNarrow {
+            TextField(project.albumPerformer.isEmpty ? "Track Artist" : project.albumPerformer, text: controller.performerBinding(track.id))
+                .textFieldStyle(.roundedBorder)
+                .font(.system(size: 11))
+                .frame(width: 145, alignment: .leading)
+
+            TextField(
+                "CCXXXYYNNNNN",
+                text: Binding(
+                    get: { isrcDrafts[track.id] ?? track.isrc },
+                    set: { raw in
+                        let cleaned = String(raw.uppercased().filter { $0.isLetter || $0.isNumber }.prefix(12))
+                        isrcDrafts[track.id] = cleaned
+                        if cleaned.isEmpty || cleaned.count == 12 {
+                            if controller.setISRC(cleaned, for: track.id) {
+                                invalidISRCTrackIDs.remove(track.id)
+                                isrcDrafts.removeValue(forKey: track.id)
+                            } else {
+                                invalidISRCTrackIDs.insert(track.id)
+                            }
+                        } else {
+                            invalidISRCTrackIDs.insert(track.id)
+                        }
+                    }
+                )
+            )
+            .textFieldStyle(.roundedBorder)
+            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+            .overlay(
+                RoundedRectangle(cornerRadius: 5)
+                    .stroke(isISRCInvalid ? Color.orange : Color.clear, lineWidth: 1)
+            )
+            .help("ISO 3901 ISRC: 2 country letters + 3 registrant chars + 2 year digits + 5 serial digits (12 chars)")
+            .frame(width: 118, alignment: .leading)
+        }
+    }
+
     @ViewBuilder
     private func trackRowView(track: AudioTrack, discNumber: Int, trackNum: Int, isLastOnDisc: Bool, totalDiscs: Int) -> some View {
         let isLastTrack = isLastOnDisc
@@ -350,41 +390,7 @@ struct KroutonRedBookAudioWorkspaceView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             // 5. Editable CD-TEXT Track Performer & ISO 3901 ISRC
-            if !isCenterWorkspaceNarrow {
-                TextField(project.albumPerformer.isEmpty ? "Track Artist" : project.albumPerformer, text: controller.performerBinding(track.id))
-                    .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 11))
-                    .frame(width: 145, alignment: .leading)
-
-                TextField(
-                    "CCXXXYYNNNNN",
-                    text: Binding(
-                        get: { isrcDrafts[track.id] ?? track.isrc },
-                        set: { raw in
-                            let cleaned = String(raw.uppercased().filter { $0.isLetter || $0.isNumber }.prefix(12))
-                            isrcDrafts[track.id] = cleaned
-                            if cleaned.isEmpty || cleaned.count == 12 {
-                                if controller.setISRC(cleaned, for: track.id) {
-                                    invalidISRCTrackIDs.remove(track.id)
-                                    isrcDrafts.removeValue(forKey: track.id)
-                                } else {
-                                    invalidISRCTrackIDs.insert(track.id)
-                                }
-                            } else {
-                                invalidISRCTrackIDs.insert(track.id)
-                            }
-                        }
-                    )
-                )
-                .textFieldStyle(.roundedBorder)
-                .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 5)
-                        .stroke(isISRCInvalid ? Color.orange : Color.clear, lineWidth: 1)
-                )
-                .help("ISO 3901 ISRC: 2 country letters + 3 registrant chars + 2 year digits + 5 serial digits (12 chars)")
-                .frame(width: 118, alignment: .leading)
-            }
+            trackPerformerAndISRCFields(track: track, isISRCInvalid: isISRCInvalid)
 
             // 6. Analysed Red Book Length (MM:SS:FF)
             Group {

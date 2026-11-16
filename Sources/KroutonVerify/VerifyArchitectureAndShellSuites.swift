@@ -14,7 +14,7 @@ import VideoKit
 
 func runVerifyArchitectureAndShellSuites(_ harness: inout KroutonTestHarness) {
     let fm = FileManager.default
-    let rootURL = URL(fileURLWithPath: fm.currentDirectoryPath)
+    let rootURL = KroutonTestHarness.repositoryRoot
     let sourcesURL = rootURL.appendingPathComponent("Sources")
 
     var allSwiftFiles: [URL] = []
@@ -26,6 +26,7 @@ func runVerifyArchitectureAndShellSuites(_ harness: inout KroutonTestHarness) {
         }
     }
     allSwiftFiles.sort { $0.path < $1.path }
+    harness.lint(allSwiftFiles.count > 50, "Source tree not found under \(sourcesURL.path); the source-rule suites would pass without checking anything")
 
     // -------------------------------------------------------------------------
     // SUITE 1: 11-Target Functional Module Architecture, Hardware Isolation & Zero Banned Symbols
@@ -52,14 +53,14 @@ func runVerifyArchitectureAndShellSuites(_ harness: inout KroutonTestHarness) {
                 }
             }
         }
-        h.check(culinaryTypeViolations.isEmpty, "Zero culinary type declarations allowed across Sources/: \(culinaryTypeViolations.joined(separator: ", "))")
+        h.lint(culinaryTypeViolations.isEmpty, "Zero culinary type declarations allowed across Sources/: \(culinaryTypeViolations.joined(separator: ", "))")
         let expectedModules = [
             "OpticalCore", "DriveKit", "BurnKit", "AudioKit", "ImageKit",
             "RescueKit", "LabelKit", "VideoKit", "NetworkSpool", "Persistence", "KroutonApp"
         ]
         for mod in expectedModules {
             let modDir = sourcesURL.appendingPathComponent(mod)
-            h.check(fm.fileExists(atPath: modDir.path), "Expected functional module target directory: Sources/\(mod)")
+            h.lint(fm.fileExists(atPath: modDir.path), "Expected functional module target directory: Sources/\(mod)")
         }
 
         let bannedTokens = ["NS" + "Alert", "NS" + "Panel", "NS" + "Window", "NS" + "ViewRepresentable", "WK" + "WebView"]
@@ -68,15 +69,15 @@ func runVerifyArchitectureAndShellSuites(_ harness: inout KroutonTestHarness) {
             let relPath = fileURL.path.replacingOccurrences(of: rootURL.path + "/", with: "")
 
             for token in bannedTokens {
-                h.check(!src.contains(token), "\(relPath) must not reference banned AppKit/WebKit symbol \(token)")
+                h.lint(!src.contains(token), "\(relPath) must not reference banned AppKit/WebKit symbol \(token)")
             }
 
             // Hardware Isolation Gate: ONLY Sources/DriveKit/ may import DiscRecording or IOKit
             if !relPath.hasPrefix("Sources/DriveKit/") {
                 let importsDiscRecording = src.range(of: #"^(?:@preconcurrency\s+)?import\s+DiscRecording\b"#, options: .regularExpression) != nil
                 let importsIOKit = src.range(of: #"^import\s+IOKit\b"#, options: .regularExpression) != nil
-                h.check(!importsDiscRecording, "\(relPath) must not import DiscRecording outside Sources/DriveKit/")
-                h.check(!importsIOKit, "\(relPath) must not import IOKit outside Sources/DriveKit/")
+                h.lint(!importsDiscRecording, "\(relPath) must not import DiscRecording outside Sources/DriveKit/")
+                h.lint(!importsIOKit, "\(relPath) must not import IOKit outside Sources/DriveKit/")
             }
         }
     }
@@ -85,7 +86,7 @@ func runVerifyArchitectureAndShellSuites(_ harness: inout KroutonTestHarness) {
         let shellDirs = ["App", "StateAndModels", "DesignSystem", "NavigationAndRack", "ModalsAndSettings", "Services"]
         for dir in shellDirs {
             let p = sourcesURL.appendingPathComponent("KroutonApp/Shell/\(dir)").path
-            h.check(fm.fileExists(atPath: p), "Missing KroutonApp/Shell directory: \(dir)")
+            h.lint(fm.fileExists(atPath: p), "Missing KroutonApp/Shell directory: \(dir)")
         }
 
         let featureFiles = [
@@ -101,7 +102,7 @@ func runVerifyArchitectureAndShellSuites(_ harness: inout KroutonTestHarness) {
         ]
         for rel in featureFiles {
             let p = sourcesURL.appendingPathComponent("KroutonApp/Features/\(rel)").path
-            h.check(fm.fileExists(atPath: p), "Expected modular feature workspace file: Features/\(rel)")
+            h.lint(fm.fileExists(atPath: p), "Expected modular feature workspace file: Features/\(rel)")
         }
 
         let deckAdopters = [
@@ -115,15 +116,18 @@ func runVerifyArchitectureAndShellSuites(_ harness: inout KroutonTestHarness) {
         for rel in deckAdopters {
             let p = sourcesURL.appendingPathComponent("KroutonApp/Features/\(rel)")
             let content = (try? String(contentsOf: p, encoding: .utf8)) ?? ""
-            h.check(content.contains("KroutonMasteringDeckCard"), "Features/\(rel) must adopt KroutonMasteringDeckCard")
-            h.check(content.contains("KroutonEmptyDropZoneView"), "Features/\(rel) must adopt KroutonEmptyDropZoneView")
+            h.lint(content.contains("KroutonMasteringDeckCard"), "Features/\(rel) must adopt KroutonMasteringDeckCard")
+            h.lint(content.contains("KroutonEmptyDropZoneView"), "Features/\(rel) must adopt KroutonEmptyDropZoneView")
         }
 
         for fileURL in allSwiftFiles {
             let src = (try? String(contentsOf: fileURL, encoding: .utf8)) ?? ""
             let lines = src.components(separatedBy: .newlines)
             let relPath = fileURL.path.replacingOccurrences(of: rootURL.path + "/", with: "")
-            h.check(lines.count <= 600, "\(relPath) (\(lines.count) LOC) exceeds 600-LOC file ceiling")
+            h.lint(lines.count <= 600, "\(relPath) (\(lines.count) LOC) exceeds 600-LOC file ceiling")
+            let longFunctions = VerifyFunctionLengthScanner.functions(in: src).filter { $0.lineCount > 200 }
+            let described = longFunctions.map { "\($0.name) at line \($0.startLine) (\($0.lineCount) lines)" }.joined(separator: ", ")
+            h.lint(longFunctions.isEmpty, "\(relPath) has functions over the 200-line ceiling: \(described)")
         }
         verifyMenuAndContextualShortcutParity(&h)
     }
@@ -174,15 +178,15 @@ func runVerifyArchitectureAndShellSuites(_ harness: inout KroutonTestHarness) {
 }
 
 private func verifyMenuAndContextualShortcutParity(_ h: inout KroutonTestHarness) {
-    let repoRoot = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    let repoRoot = KroutonTestHarness.repositoryRoot
     let menuCmdURL = repoRoot.appendingPathComponent("Sources/KroutonApp/Shell/App/KroutonMenuCommands.swift")
     let menuCmdText = (try? String(contentsOf: menuCmdURL, encoding: .utf8)) ?? ""
-    h.check(menuCmdText.contains("CommandGroup(replacing: .appSettings)"), "KroutonMenuCommands must register canonical .appSettings CommandGroup")
+    h.lint(menuCmdText.contains("CommandGroup(replacing: .appSettings)"), "KroutonMenuCommands must register canonical .appSettings CommandGroup")
     for notif in ["kroutonMenuScanTOC", "kroutonMenuRipSelected", "kroutonMenuShowCDInfo", "kroutonMenuInspectHybridLBA", "kroutonMenuInspectAudioCue", "kroutonMenuInspectVideoBitrate"] {
-        h.check(menuCmdText.contains("static let \(notif)") && menuCmdText.contains(".\(notif)"), "KroutonMenuCommands must declare and post \(notif)")
+        h.lint(menuCmdText.contains("static let \(notif)") && menuCmdText.contains(".\(notif)"), "KroutonMenuCommands must declare and post \(notif)")
     }
     for fmtID in ["data-hybrid", "cd-da", "dvd-video", "bd-r-sl", "m-disc", "image-burn", "copy-rescue"] {
-        h.check(menuCmdText.contains("\"\(fmtID)\""), "KroutonMenuCommands must route workflow task ID \(fmtID)")
+        h.lint(menuCmdText.contains("\"\(fmtID)\""), "KroutonMenuCommands must route workflow task ID \(fmtID)")
     }
     let popoverBindings: [(String, String, String)] = [
         ("Sources/KroutonApp/Features/Data/DataAndArchivalWorkspaces.swift", ".kroutonMenuInspectHybridLBA", "showHybridLBAMapPopover = true"),
@@ -191,7 +195,7 @@ private func verifyMenuAndContextualShortcutParity(_ h: inout KroutonTestHarness
     ]
     for (relPath, notifName, stateAssign) in popoverBindings {
         let fileText = (try? String(contentsOf: repoRoot.appendingPathComponent(relPath), encoding: .utf8)) ?? ""
-        h.check(fileText.contains(".onReceive(NotificationCenter.default.publisher(for: \(notifName)))") && fileText.contains(stateAssign), "\(relPath) must wire .onReceive(\(notifName)) to \(stateAssign)")
+        h.lint(fileText.contains(".onReceive(NotificationCenter.default.publisher(for: \(notifName)))") && fileText.contains(stateAssign), "\(relPath) must wire .onReceive(\(notifName)) to \(stateAssign)")
     }
     let contextMenuFiles = [
         "Sources/KroutonApp/Features/Data/DataAndArchivalWorkspaces.swift",
@@ -205,6 +209,6 @@ private func verifyMenuAndContextualShortcutParity(_ h: inout KroutonTestHarness
     ]
     for relPath in contextMenuFiles {
         let fileText = (try? String(contentsOf: repoRoot.appendingPathComponent(relPath), encoding: .utf8)) ?? ""
-        h.check(fileText.contains(".contextMenu") && fileText.contains(".keyboardShortcut("), "\(relPath) must provide .contextMenu with .keyboardShortcut badges")
+        h.lint(fileText.contains(".contextMenu") && fileText.contains(".keyboardShortcut("), "\(relPath) must provide .contextMenu with .keyboardShortcut badges")
     }
 }

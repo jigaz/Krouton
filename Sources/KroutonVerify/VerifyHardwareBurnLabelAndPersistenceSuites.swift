@@ -93,19 +93,26 @@ func runVerifyHardwareBurnLabelAndPersistenceSuites(_ harness: inout KroutonTest
     // 16a. Scan all 21 production files to ensure Process never invokes a shell (/bin/sh, /bin/zsh, /bin/bash, -c)
     let forbiddenShellPatterns = ["/bin/sh", "/bin/bash", "/bin/zsh", "/usr/bin/env sh", "Darwin.system(", "popen("]
     let fm = FileManager.default
-    if let enumerator = fm.enumerator(atPath: "Sources") {
+    let sourcesPath = KroutonTestHarness.repositoryRoot.appendingPathComponent("Sources").path
+    var scannedFileCount = 0
+    if let enumerator = fm.enumerator(atPath: sourcesPath) {
         while let rel = enumerator.nextObject() as? String {
             guard rel.hasSuffix(".swift"), !rel.contains("KroutonVerify/") else { continue }
-            let content = (try? String(contentsOfFile: "Sources/" + rel, encoding: .utf8)) ?? ""
+            scannedFileCount += 1
+            let content = (try? String(contentsOfFile: sourcesPath + "/" + rel, encoding: .utf8)) ?? ""
             for pat in forbiddenShellPatterns {
-                h.check(!content.contains(pat), "Forbidden shell pattern '\(pat)' found in \(rel)")
+                h.lint(!content.contains(pat), "Forbidden shell pattern '\(pat)' found in \(rel)")
             }
         }
     }
+    h.lint(scannedFileCount > 50, "Shell-pattern scan found no sources under \(sourcesPath)")
 
     // 16b. Fuzz SpoolTelemetrySanitizer with out-of-order packets, NaN, Infinity, and terminal-state regressions
     var state: SpoolTelemetryPhase = .preheating
     var frac: Double = 0.0
+    var progressRegressed = false
+    var staleFrameApplied = false
+    var unsafeBufferValue = false
     let batchID = UUID()
 
     for step in 1...250 {
@@ -124,7 +131,7 @@ func runVerifyHardwareBurnLabelAndPersistenceSuites(_ harness: inout KroutonTest
             etaSeconds: 45
         )
         let res = SpoolTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: normalFrame)
-        h.check(res.fraction >= frac, "Progress must never regress during active burn")
+        if res.fraction < frac { progressRegressed = true }
         state = res.state
         frac = res.fraction
 
@@ -143,9 +150,12 @@ func runVerifyHardwareBurnLabelAndPersistenceSuites(_ harness: inout KroutonTest
             etaSeconds: 99
         )
         let fuzzRes = SpoolTelemetrySanitizer.sanitizeProgressTransition(previousState: state, previousFraction: frac, incomingFrame: staleFuzzFrame)
-        h.check(fuzzRes.fraction == frac, "Stale out-of-order telemetry frame must be ignored")
-        h.check(fuzzRes.fifoClamp == 0.0 && fuzzRes.driveClamp == 0.0, "NaN/Infinity buffer fills must clamp safely to 0.0")
+        if fuzzRes.fraction != frac { staleFrameApplied = true }
+        if fuzzRes.fifoClamp != 0.0 || fuzzRes.driveClamp != 0.0 { unsafeBufferValue = true }
     }
+    h.check(!progressRegressed, "Progress must never regress during active burn (250 frames)")
+    h.check(!staleFrameApplied, "Stale out-of-order telemetry frames must be ignored (250 frames)")
+    h.check(!unsafeBufferValue, "NaN/Infinity buffer fills must clamp safely to 0.0 (250 frames)")
 
     // Transition to terminal BURN_FAILED and verify late BURNING_PROGRESS cannot resurrect the job
     let failFrame = SpoolTelemetryPacket(
