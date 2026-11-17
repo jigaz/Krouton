@@ -3,18 +3,18 @@ import AudioKit
 import SwiftUI
 
 @MainActor
-public final class SpliceAudioAuditioner: ObservableObject {
-    public static let shared = SpliceAudioAuditioner()
-    @Published public var isPlaying: Bool = false
-    @Published public var playheadProgress: Double = 0.0
-    @Published public var activeTrackID: UUID? = nil
-    @Published public var leadLagSeconds: Double = 3.0 // ±3s, ±5s, ±10s pre/post-roll
+final class SpliceAudioAuditioner: ObservableObject {
+    static let shared = SpliceAudioAuditioner()
+    @Published var isPlaying: Bool = false
+    @Published var playheadProgress: Double = 0.0
+    @Published var activeTrackID: UUID? = nil
+    @Published var leadLagSeconds: Double = 3.0 // ±3s, ±5s, ±10s pre/post-roll
 
     private var playerOut: AVAudioPlayer?
     private var playerIn: AVAudioPlayer?
     private var timer: Timer?
 
-    public func stop() {
+    func stop() {
         timer?.invalidate()
         timer = nil
         playerOut?.stop()
@@ -26,7 +26,7 @@ public final class SpliceAudioAuditioner: ObservableObject {
         playheadProgress = 0.0
     }
 
-    public func startTransitionAudition(
+    func startTransitionAudition(
         trackID: UUID? = nil,
         outgoingURL: URL?,
         incomingURL: URL?,

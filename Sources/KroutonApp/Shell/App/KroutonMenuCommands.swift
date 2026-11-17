@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 
 // MARK: - KroutonMenuCommands
 
-public extension Notification.Name {
+extension Notification.Name {
     static let kroutonMenuScanTOC = Notification.Name("krouton.menu.scanTOC")
     static let kroutonMenuRipSelected = Notification.Name("krouton.menu.ripSelected")
     static let kroutonMenuShowCDInfo = Notification.Name("krouton.menu.showCDInfo")

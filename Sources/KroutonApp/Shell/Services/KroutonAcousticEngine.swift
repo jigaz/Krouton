@@ -9,10 +9,10 @@ import SwiftUI
 ///
 /// Unifies procedural waveform generation and macOS system `.aiff` loading into a single
 /// `44.1 kHz` mono `Float32` DSP pipeline with lazy `AVAudioPCMBuffer` memoization.
-public final class KroutonAcousticEngine: @unchecked Sendable {
-    public static let shared = KroutonAcousticEngine()
+final class KroutonAcousticEngine: @unchecked Sendable {
+    static let shared = KroutonAcousticEngine()
 
-    public static let sampleRate: Double = 44_100.0
+    static let sampleRate: Double = 44_100.0
 
     private let lock = NSLock()
     private let engine = AVAudioEngine()
@@ -27,7 +27,7 @@ public final class KroutonAcousticEngine: @unchecked Sendable {
 
     /// Plays the specified `KroutonAcousticCue`, lazily synthesizing or loading+augmenting its buffer
     /// on first invocation and replaying from RAM on all subsequent calls.
-    public func play(_ cue: KroutonAcousticCue) {
+    func play(_ cue: KroutonAcousticCue) {
         if cue.source == .systemAlert {
             AudioServicesPlaySystemSound(kSystemSoundID_UserPreferredAlert)
             return
@@ -54,7 +54,7 @@ public final class KroutonAcousticEngine: @unchecked Sendable {
     }
 
     /// Clears the in-memory `AVAudioPCMBuffer` cache.
-    public func purgeCache() {
+    func purgeCache() {
         lock.lock()
         cache.removeAll()
         lock.unlock()
@@ -208,7 +208,7 @@ public final class KroutonAcousticEngine: @unchecked Sendable {
 
 // MARK: - Declarative SwiftUI Modifier
 
-public extension View {
+extension View {
     /// Declarative SwiftUI modifier that triggers a `KroutonAcousticCue` and synchronized trackpad
     /// haptic feedback whenever `trigger` satisfies `condition`.
     func acousticFeedback<T: Equatable>(

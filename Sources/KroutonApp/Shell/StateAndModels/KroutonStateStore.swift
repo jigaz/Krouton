@@ -9,73 +9,73 @@ import SwiftUI
 import VideoKit
 
 @MainActor
-public final class KroutonStateStore: ObservableObject {
+final class KroutonStateStore: ObservableObject {
     // MARK: - Modular Feature Sub-Stores & Domain Models
-    public let labelWorkspaceSubStore = KroutonLabelWorkspaceSubStore()
-    public let discImageInspectorSubStore = KroutonDiscImageInspectorSubStore()
-    public let burnQueueSubStore = KroutonBurnQueueSubStore()
-    public let depotCatalogSubStore = KroutonDepotCatalogSubStore()
+    let labelWorkspaceSubStore = KroutonLabelWorkspaceSubStore()
+    let discImageInspectorSubStore = KroutonDiscImageInspectorSubStore()
+    let burnQueueSubStore = KroutonBurnQueueSubStore()
+    let depotCatalogSubStore = KroutonDepotCatalogSubStore()
 
-    @Published public var appearance = AppearancePreferences()
-    @Published public var depot = DepotCatalogue()
-    @Published public var label = LabelDocument()
-    @Published public var rip = RipSettings()
+    @Published var appearance = AppearancePreferences()
+    @Published var depot = DepotCatalogue()
+    @Published var label = LabelDocument()
+    @Published var rip = RipSettings()
 
     public static weak var shared: KroutonStateStore?
     var isHydratingPreferences: Bool = false
 
     // MARK: - Core Navigation, Staging & Burn Queue State
-    public var savedQueuesByDomain: [String: [KroutonBakeBatchItem]] = [:]
-    @Published public var scratchDiskPath: String = "~/Library/Caches/app.krouton.staging"
-    @Published public var autoPurgeScratch: Bool = true
-    @Published public var selectedSettingsPane: KroutonSettingsCategory = .general
-    @Published public var selectedCategory: KroutonMasteringStation = .burn {
+    var savedQueuesByDomain: [String: [KroutonBakeBatchItem]] = [:]
+    @Published var scratchDiskPath: String = "~/Library/Caches/app.krouton.staging"
+    @Published var autoPurgeScratch: Bool = true
+    @Published var selectedSettingsPane: KroutonSettingsCategory = .general
+    @Published var selectedCategory: KroutonMasteringStation = .burn {
         didSet {
             guard !isHydratingPreferences, rememberLastTaskOnLaunch else { return }
             UserDefaults.standard.set(selectedCategory.rawValue, forKey: "krouton.pref.lastCategory")
         }
     }
-    @Published public var selectedTaskID: String = "data-hybrid" {
+    @Published var selectedTaskID: String = "data-hybrid" {
         didSet {
             guard !isHydratingPreferences, rememberLastTaskOnLaunch else { return }
             UserDefaults.standard.set(selectedTaskID, forKey: "krouton.pref.lastTaskID")
             KroutonCrashRecoveryController.shared.saveCurrentState(from: self)
         }
     }
-    @Published public var bitsetVendorProfile: String = "Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)"
-    @Published public var autoLoadNextDiscBatchMode: Bool = true
-    @Published public var autoLoadCountdownSeconds: Int = 5
+    @Published var bitsetVendorProfile: String = "Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)"
+    @Published var autoLoadNextDiscBatchMode: Bool = true
+    @Published var autoLoadCountdownSeconds: Int = 5
 
-    @Published public var stagedFiles: [KroutonStagedFileEntry] = []
-    @Published public var rejectedDropNotice: String? = nil
+    @Published var stagedFiles: [KroutonStagedFileEntry] = []
+    @Published var rejectedDropNotice: String? = nil
 
     lazy var audioController = AudioProjectController { [weak self] _ in
         guard let self else { return }
         KroutonCrashRecoveryController.shared.saveCurrentState(from: self)
     }
 
-    public var redBookTracks: [KroutonRedBookTrack] {
+    var redBookTracks: [KroutonRedBookTrack] {
         get { audioController.project.derivedRedBookCubes }
         set { }
     }
 
-    @Published public var discPerformer: String = ""
-    @Published public var discMCNBarcode: String = ""
-    @Published public var carSafeZeroPadPrefix: Bool = true
-    @Published public var carSafeStripAppleDouble: Bool = true
-    @Published public var carSafeGenerateM3U: Bool = true
-    @Published public var includeUDFBridge: Bool = true
-    @Published public var includeJolietNames: Bool = true
-    @Published public var allowATIPOverburn: Bool = false
-    @Published public var dualLayerBreakSectorLBA: Int64 = 2_086_912
-    @Published public var discVolumeTitle: String = ""
-    @Published public var dataTargetDiscMedium: KroutonSpanningDiscMedium = .dvd5Single
-    @Published public var targetDiscMediumByTask: [String: KroutonSpanningDiscMedium] = [:]
-    @Published public var dataDiscVolumeOverrides: [Int: String] = [:]
-    @Published public var finderLayoutBlueprint = KroutonFinderLayoutBlueprint()
-    @Published public var discFormats: [KroutonOpticalWorkflowSpec] = KroutonOpticalWorkflowCatalog.defaultFormats
+    @Published var discPerformer: String = ""
+    @Published var discMCNBarcode: String = ""
+    @Published var carSafeZeroPadPrefix: Bool = true
+    @Published var carSafeStripAppleDouble: Bool = true
+    @Published var carSafeGenerateM3U: Bool = true
+    @Published var includeUDFBridge: Bool = true
+    @Published var includeJolietNames: Bool = true
+    @Published var allowATIPOverburn: Bool = false
+    @Published var dualLayerBreakSectorLBA: Int64 = 2_086_912
+    @Published var discVolumeTitle: String = ""
+    @Published var dataTargetDiscMedium: KroutonSpanningDiscMedium = .dvd5Single
+    @Published var targetDiscMediumByTask: [String: KroutonSpanningDiscMedium] = [:]
+    @Published var dataDiscVolumeOverrides: [Int: String] = [:]
+    @Published var finderLayoutBlueprint = KroutonFinderLayoutBlueprint()
+    @Published var discFormats: [KroutonOpticalWorkflowSpec] = KroutonOpticalWorkflowCatalog.defaultFormats
 
-    @Published public var notificationMatrix: [KroutonKitchenEventRow] = [
+    @Published var notificationMatrix: [KroutonKitchenEventRow] = [
         KroutonKitchenEventRow(id: "start", eventTitle: "Burn, rip, or transcode started", eventSubtitle: "Triggered when laser calibration or extraction begins", bannerEnabled: true, iPhoneEnabled: true, watchEnabled: false, soundEnabled: false),
         KroutonKitchenEventRow(id: "done", eventTitle: "Task completed & verified", eventSubtitle: "Triggered when all queued destinations finish without error", bannerEnabled: true, iPhoneEnabled: true, watchEnabled: true, soundEnabled: true),
         KroutonKitchenEventRow(id: "err", eventTitle: "Task failed or buffer underrun", eventSubtitle: "Critical hardware, media, or network link interruption", bannerEnabled: true, iPhoneEnabled: true, watchEnabled: true, soundEnabled: true),
@@ -84,7 +84,7 @@ public final class KroutonStateStore: ObservableObject {
         KroutonKitchenEventRow(id: "depot", eventTitle: "Disc Image Depot download verified", eventSubtitle: "ISO / image downloaded and SHA-256 verified", bannerEnabled: true, iPhoneEnabled: false, watchEnabled: false, soundEnabled: true)
     ]
 
-    @Published public var destinationQueue: [KroutonBakeBatchItem] = [
+    @Published var destinationQueue: [KroutonBakeBatchItem] = [
         KroutonBakeBatchItem(
             kind: .physicalBurner,
             hardwareOrPath: "",
@@ -96,10 +96,10 @@ public final class KroutonStateStore: ObservableObject {
     ]
 
     // MARK: - Single Consolidated Colour-Scheme & Accent Resolution
-    public func refreshOpticalDrives() { KroutonWindowManager.shared.driveManager.refreshDrives() }
-    public func ejectActiveOpticalDisc() { KroutonWindowManager.shared.driveManager.ejectDrive(id: KroutonWindowManager.shared.driveManager.availableDrives.first?.id) }
+    func refreshOpticalDrives() { KroutonWindowManager.shared.driveManager.refreshDrives() }
+    func ejectActiveOpticalDisc() { KroutonWindowManager.shared.driveManager.ejectDrive(id: KroutonWindowManager.shared.driveManager.availableDrives.first?.id) }
 
-    public func multicolorPresetID(forTaskID taskID: String, category: KroutonMasteringStation) -> Int {
+    func multicolorPresetID(forTaskID taskID: String, category: KroutonMasteringStation) -> Int {
         switch category {
         case .depot: return 4
         case .copy:  return 1
@@ -129,7 +129,7 @@ public final class KroutonStateStore: ObservableObject {
             ?? KroutonAccentColorPreset.allPresets[0]
     }
 
-    public func effectiveColorForTask(id taskID: String, category: KroutonMasteringStation) -> Color {
+    func effectiveColorForTask(id taskID: String, category: KroutonMasteringStation) -> Color {
         if selectedAccentIndex == -1 {
             let pid = multicolorPresetID(forTaskID: taskID, category: category)
             let p = KroutonAccentColorPreset.allPresets.first(where: { $0.id == pid }) ?? resolvedAccentPreset
@@ -138,19 +138,19 @@ public final class KroutonStateStore: ObservableObject {
         return activeAccent
     }
 
-    public var activeAccent: Color {
+    var activeAccent: Color {
         resolvedAccentPreset.effectiveAccent(for: appearance.effectiveColorScheme)
     }
 
-    public var activeOnAccentText: Color {
+    var activeOnAccentText: Color {
         resolvedAccentPreset.effectiveOnAccentText(for: appearance.effectiveColorScheme)
     }
 
-    public var activeLocale: Locale { appearance.activeLocale }
-    public var totalStagedBytes: Int64 { stagedFiles.reduce(0) { $0 + $1.byteSize } }
-    public var totalStagedSectorsLBA: Int64 { stagedFiles.reduce(0) { $0 + $1.sectorsLBA } }
+    var activeLocale: Locale { appearance.activeLocale }
+    var totalStagedBytes: Int64 { stagedFiles.reduce(0) { $0 + $1.byteSize } }
+    var totalStagedSectorsLBA: Int64 { stagedFiles.reduce(0) { $0 + $1.sectorsLBA } }
 
-    public init() {
+    init() {
         Self.shared = self
         hydratePreferencesFromUserDefaults()
     }

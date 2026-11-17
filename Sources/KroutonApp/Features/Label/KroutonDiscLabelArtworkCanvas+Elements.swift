@@ -145,7 +145,7 @@ extension KroutonDiscLabelArtworkCanvas {
     }
 
     /// Pure, unit-testable polar radius clamp shared by drag gesture, hit-testing, and arc rendering.
-    public static func clampedTextRadiusMM(_ rawRadiusMM: Double, hubDiameterMM: Double, outerDiameterMM: Double) -> Double {
+    static func clampedTextRadiusMM(_ rawRadiusMM: Double, hubDiameterMM: Double, outerDiameterMM: Double) -> Double {
         let minR = max(12.0, hubDiameterMM * 0.54)
         let maxR = max(minR + 4.0, outerDiameterMM * 0.46)
         return max(minR, min(maxR, rawRadiusMM))

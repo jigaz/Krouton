@@ -14,17 +14,17 @@ import VideoKit
 
 @MainActor
 extension KroutonStateStore {
-    public func toggleFormatVisibility(id: String) {
+    func toggleFormatVisibility(id: String) {
         if let idx = discFormats.firstIndex(where: { $0.id == id }) {
             discFormats[idx].showInTaskChooser.toggle()
         }
     }
 
-    public func activeFormatSpec() -> KroutonOpticalWorkflowSpec {
+    func activeFormatSpec() -> KroutonOpticalWorkflowSpec {
         discFormats.first(where: { $0.id == selectedTaskID }) ?? discFormats[0]
     }
 
-    public func expandAudioFilesInDirectory(_ dirURL: URL, allowedExtensions: Set<String>) -> [URL] {
+    func expandAudioFilesInDirectory(_ dirURL: URL, allowedExtensions: Set<String>) -> [URL] {
         guard let children = try? FileManager.default.contentsOfDirectory(
             at: dirURL,
             includingPropertiesForKeys: [.isDirectoryKey],
@@ -53,7 +53,7 @@ extension KroutonStateStore {
         return result
     }
 
-    public func isURLCompatible(_ url: URL, for spec: KroutonOpticalWorkflowSpec) -> Bool {
+    func isURLCompatible(_ url: URL, for spec: KroutonOpticalWorkflowSpec) -> Bool {
         var isDir: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
         let ext = url.pathExtension.lowercased()
@@ -78,7 +78,7 @@ extension KroutonStateStore {
         return allowed.contains(ext)
     }
 
-    public func purgeIncompatibleStagedFilesForCurrentTask() {
+    func purgeIncompatibleStagedFilesForCurrentTask() {
         guard selectedCategory == .burn else { return }
         let spec = activeFormatSpec()
         guard !spec.allowedFileExtensions.isEmpty else { return }
@@ -89,7 +89,7 @@ extension KroutonStateStore {
         }
     }
 
-    public func addStagedURLs(_ urls: [URL]) {
+    func addStagedURLs(_ urls: [URL]) {
         let spec = activeFormatSpec()
         let allowedSet = Set(spec.allowedFileExtensions)
         var compatibleURLs: [URL] = []
@@ -136,20 +136,20 @@ extension KroutonStateStore {
         }
     }
 
-    public var totalRedBookFramesLBA: Int64 {
+    var totalRedBookFramesLBA: Int64 {
         audioController.project.totalFrames ?? redBookTracks.reduce(Int64(0)) { $0 + $1.totalRedBookFrames }
     }
 
-    public var totalRedBookBytes: Int64 {
+    var totalRedBookBytes: Int64 {
         totalRedBookFramesLBA * 2352
     }
 
-    public func removeStagedFile(id: UUID) {
+    func removeStagedFile(id: UUID) {
         stagedFiles.removeAll { $0.id == id }
         audioController.remove(id)
     }
 
-    public func toggleMacVisibility(id: UUID) {
+    func toggleMacVisibility(id: UUID) {
         guard let idx = stagedFiles.firstIndex(where: { $0.id == id }) else { return }
         stagedFiles[idx].showOnMac.toggle()
         if !stagedFiles[idx].showOnMac && !stagedFiles[idx].showOnPC {
@@ -157,7 +157,7 @@ extension KroutonStateStore {
         }
     }
 
-    public func togglePCVisibility(id: UUID) {
+    func togglePCVisibility(id: UUID) {
         guard let idx = stagedFiles.firstIndex(where: { $0.id == id }) else { return }
         stagedFiles[idx].showOnPC.toggle()
         if !stagedFiles[idx].showOnPC && !stagedFiles[idx].showOnMac {
@@ -165,28 +165,28 @@ extension KroutonStateStore {
         }
     }
 
-    public func enableCurrentTaskChooserFormat() {
+    func enableCurrentTaskChooserFormat() {
         if let idx = discFormats.firstIndex(where: { $0.id == selectedTaskID }) {
             discFormats[idx].showInTaskChooser = true
         }
     }
 
-    public var resolvedFolderIconColor: Color {
+    var resolvedFolderIconColor: Color {
         folderColorMode.resolvedFolderColor(accent: activeAccent)
     }
 
-    public func announceForVoiceOver(_ message: String) {
+    func announceForVoiceOver(_ message: String) {
         guard voiceOverSpokenTelemetry else { return }
         KroutonOSDesktopBridge.postVoiceOverAnnouncement(message)
     }
 
     /// Forwards localization lookup to the single KroutonL10n.tr implementation
-    public func tr(_ key: String) -> String {
+    func tr(_ key: String) -> String {
         KroutonL10n.activeISOCode = appLanguage.isoCode
         return KroutonL10n.tr(key)
     }
 
-    public func parseSizeDisplayToBytes(_ sizeDisplay: String) -> Int64 {
+    func parseSizeDisplayToBytes(_ sizeDisplay: String) -> Int64 {
         let parts = sizeDisplay.split(separator: " ")
         guard let val = Double(parts.first ?? "0") else { return 0 }
         if sizeDisplay.uppercased().contains("GB") {
@@ -197,7 +197,7 @@ extension KroutonStateStore {
         return 0
     }
 
-    public func convertStagedBinOrIso(id: UUID) {
+    func convertStagedBinOrIso(id: UUID) {
         guard let idx = stagedFiles.firstIndex(where: { $0.id == id }) else { return }
         let entry = stagedFiles[idx]
         let lower = entry.name.lowercased()
@@ -230,7 +230,7 @@ extension KroutonStateStore {
         }
     }
 
-    public func downloadAndStageDepotItem(id: String, jumpToInspector: Bool = false) {
+    func downloadAndStageDepotItem(id: String, jumpToInspector: Bool = false) {
         guard let idx = depotItems.firstIndex(where: { $0.id == id }) else { return }
         let item = depotItems[idx]
         let cacheDir = URL(fileURLWithPath: "/tmp/KroutonDepotCache", isDirectory: true)
@@ -271,7 +271,7 @@ extension KroutonStateStore {
         }
     }
 
-    public func stageDepotItemForBurning(_ item: KroutonDepotCatalogItem, jumpToInspector: Bool = false) {
+    func stageDepotItemForBurning(_ item: KroutonDepotCatalogItem, jumpToInspector: Bool = false) {
         let cacheDir = URL(fileURLWithPath: "/tmp/KroutonDepotCache", isDirectory: true)
         let safeFilename = item.id + "-" + item.version.replacingOccurrences(of: " ", with: "_") + ".iso"
         let isoURL = cacheDir.appendingPathComponent(safeFilename)
@@ -330,7 +330,7 @@ extension KroutonStateStore {
 
     // MARK: - Shared Data Disc Spanning Helpers
 
-    public func resolvedDataDiscMedium(forFormatID formatID: String) -> KroutonSpanningDiscMedium {
+    func resolvedDataDiscMedium(forFormatID formatID: String) -> KroutonSpanningDiscMedium {
         let allowed = KroutonSpanningDiscMedium.allowedMedia(forFormatID: formatID)
         let spec = discFormats.first(where: { $0.id == formatID })
         if spec?.workspaceKind == .redBookAudio {
@@ -345,7 +345,7 @@ extension KroutonStateStore {
         return allowed.first ?? .dvd5Single
     }
 
-    public func setTargetDiscMedium(_ medium: KroutonSpanningDiscMedium, forFormatID formatID: String) {
+    func setTargetDiscMedium(_ medium: KroutonSpanningDiscMedium, forFormatID formatID: String) {
         let allowed = KroutonSpanningDiscMedium.allowedMedia(forFormatID: formatID)
         let resolved = allowed.contains(medium) ? medium : KroutonSpanningDiscMedium.defaultMedium(forFormatID: formatID)
         targetDiscMediumByTask[formatID] = resolved
@@ -357,7 +357,7 @@ extension KroutonStateStore {
         objectWillChange.send()
     }
 
-    public func targetDiscMediumBinding(forFormatID formatID: String) -> Binding<KroutonSpanningDiscMedium> {
+    func targetDiscMediumBinding(forFormatID formatID: String) -> Binding<KroutonSpanningDiscMedium> {
         Binding(
             get: { [weak self] in
                 self?.resolvedDataDiscMedium(forFormatID: formatID) ?? KroutonSpanningDiscMedium.defaultMedium(forFormatID: formatID)
@@ -368,16 +368,16 @@ extension KroutonStateStore {
         )
     }
 
-    public func dataDiscPlan(forFormatID formatID: String) -> DiscPlan<KroutonStagedFileEntry> {
+    func dataDiscPlan(forFormatID formatID: String) -> DiscPlan<KroutonStagedFileEntry> {
         let medium = resolvedDataDiscMedium(forFormatID: formatID)
         return DiscSpanningEngine.planDataDiscs(stagedFiles, medium: medium)
     }
 
-    public func toggleDataManualDiscBreak(before entryID: UUID) {
+    func toggleDataManualDiscBreak(before entryID: UUID) {
         DiscSpanningEngine.toggleManualDiscBreak(before: entryID, in: &stagedFiles)
     }
 
-    public func dataDiscVolumeBinding(forDisc discNumber: Int) -> Binding<String> {
+    func dataDiscVolumeBinding(forDisc discNumber: Int) -> Binding<String> {
         Binding(
             get: { [weak self] in self?.dataDiscVolumeOverrides[discNumber] ?? "" },
             set: { [weak self] newValue in

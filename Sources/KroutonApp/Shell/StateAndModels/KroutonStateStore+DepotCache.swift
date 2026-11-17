@@ -87,7 +87,7 @@ extension KroutonStateStore {
     }
 
     /// Queries the live Internet Archive REST API (archive.org/advancedsearch.php) for optical ISO / CDR / BIN-CUE items
-    public func queryInternetArchiveLive(query: String) {
+    func queryInternetArchiveLive(query: String) {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let searchTerm = trimmed.isEmpty ? "macaddict OR systemrescue OR freedos OR homebrew iso" : trimmed
         isSearchingInternetArchive = true
@@ -140,7 +140,7 @@ extension KroutonStateStore {
         }
     }
 
-    public func clearStagedFiles() {
+    func clearStagedFiles() {
         stagedFiles.removeAll()
         audioController.clearAll()
     }

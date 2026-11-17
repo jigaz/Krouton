@@ -6,16 +6,16 @@ import UniformTypeIdentifiers
 
 // MARK: - Stage 1 Disc Label Designer: Photoshop-Style Left Tool Rail + Blank Disc + Circular Gradient + Curved Text Tool
 
-public enum KroutonStage1Tool: String, CaseIterable, Identifiable {
+enum KroutonStage1Tool: String, CaseIterable, Identifiable {
     case select     = "Select"
     case text       = "Text Tool"
     case shapes     = "Vector Shapes"
     case background = "Background"
     case adjust     = "Adjust FX"
     case discSize   = "Disc Size"
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
-    public var iconName: String {
+    var iconName: String {
         switch self {
         case .select:     return "cursorarrow"
         case .text:       return "textformat"
@@ -26,7 +26,7 @@ public enum KroutonStage1Tool: String, CaseIterable, Identifiable {
         }
     }
 
-    public var railLabel: String {
+    var railLabel: String {
         switch self {
         case .select:     return "Move"
         case .text:       return "Text"
@@ -38,14 +38,14 @@ public enum KroutonStage1Tool: String, CaseIterable, Identifiable {
     }
 }
 
-public struct KroutonDiscLabelWorkspaceView: View {
+struct KroutonDiscLabelWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
     @State var activeTool: KroutonStage1Tool = .background
     @State var newPresetName: String = ""
     @State var workingGeometryOverride: KroutonDiscLabelGeometry? = nil
     @State var statusBanner: String = ""
 
-    public init(store: KroutonStateStore) {
+    init(store: KroutonStateStore) {
         self.store = store
     }
 
@@ -98,7 +98,7 @@ public struct KroutonDiscLabelWorkspaceView: View {
         )
     }
 
-    public var body: some View {
+    var body: some View {
         VStack(spacing: 0) {
             topHeaderBar(preset: activePreset)
             Divider()

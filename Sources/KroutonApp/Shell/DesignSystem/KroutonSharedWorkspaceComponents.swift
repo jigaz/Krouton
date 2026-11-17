@@ -3,13 +3,13 @@ import SwiftUI
 
 // MARK: - Phase 4: Reusable Mastering Hardware Deck Card & Drop-Zone Primitives
 
-public struct KroutonMasteringDeckCard<Content: View>: View {
+struct KroutonMasteringDeckCard<Content: View>: View {
     @ObservedObject var store: KroutonStateStore
     let paddingAmount: CGFloat
     let cornerRadius: CGFloat
     let content: Content
 
-    public init(
+    init(
         store: KroutonStateStore,
         paddingAmount: CGFloat = 10,
         cornerRadius: CGFloat = 9,
@@ -21,7 +21,7 @@ public struct KroutonMasteringDeckCard<Content: View>: View {
         self.content = content()
     }
 
-    public var body: some View {
+    var body: some View {
         content
             .padding(paddingAmount)
             .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
@@ -34,7 +34,7 @@ public struct KroutonMasteringDeckCard<Content: View>: View {
     }
 }
 
-public struct KroutonEmptyDropZoneView: View {
+struct KroutonEmptyDropZoneView: View {
     @ObservedObject var store: KroutonStateStore
     let isDropTargeted: Bool
     let sfSymbol: String
@@ -45,7 +45,7 @@ public struct KroutonEmptyDropZoneView: View {
     let actionSymbol: String
     let onAction: (() -> Void)?
 
-    public init(
+    init(
         store: KroutonStateStore,
         isDropTargeted: Bool = false,
         sfSymbol: String,
@@ -67,7 +67,7 @@ public struct KroutonEmptyDropZoneView: View {
         self.onAction = onAction
     }
 
-    public var body: some View {
+    var body: some View {
         VStack(spacing: 10) {
             Image(systemName: sfSymbol)
                 .font(.system(size: symbolSize))

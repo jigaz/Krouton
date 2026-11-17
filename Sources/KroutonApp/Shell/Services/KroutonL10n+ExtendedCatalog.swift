@@ -3,7 +3,7 @@ import Foundation
 extension KroutonL10n {
     /// Extended multilingual dictionary covering newly added Multi-Disc Spanning, Disc Size,
     /// Audio/Video Authoring, and Accessibility controls across all 9 foreign languages.
-    public static let extendedCatalog: [String: [String: String]] = [
+    static let extendedCatalog: [String: [String: String]] = [
         "Disc Size:": [
             "ja": "ディスク容量:", "de": "Disk-Größe:", "fr": "Taille du disque :", "es": "Tamaño de disco:",
             "it": "Dimensione disco:", "pt": "Tamanho do disco:", "nl": "Schijfgrootte:", "zh-Hans": "光盘容量:", "ko": "디스크 크기:"

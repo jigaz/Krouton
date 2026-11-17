@@ -2,17 +2,17 @@ import Foundation
 import OpticalCore
 
 /// Feature model owning Disc Image Depot subscriptions, curated items, and Internet Archive search state.
-public struct DepotCatalogue: Equatable, Sendable {
-    public var channels: [KroutonDepotFeedSubscription] = KroutonDepotStaticCatalog.defaultChannels
-    public var items: [KroutonDepotCatalogItem] = KroutonDepotStaticCatalog.defaultItems
-    public var customFeedURL: String = "https://depot.krouton.app/v1/manifest.json"
-    public var autoVerifySHA256: Bool = true
-    public var enableVMTestBoot: Bool = true
-    public var stagedItemID: String? = nil
-    public var selectedHeroItemID: String? = nil
-    public var downloadProgress: [String: Double] = [:]
-    public var isSearchingInternetArchive: Bool = false
-    public var archiveOrgLiveCount: Int = 0
+struct DepotCatalogue: Equatable, Sendable {
+    var channels: [KroutonDepotFeedSubscription] = KroutonDepotStaticCatalog.defaultChannels
+    var items: [KroutonDepotCatalogItem] = KroutonDepotStaticCatalog.defaultItems
+    var customFeedURL: String = "https://depot.krouton.app/v1/manifest.json"
+    var autoVerifySHA256: Bool = true
+    var enableVMTestBoot: Bool = true
+    var stagedItemID: String? = nil
+    var selectedHeroItemID: String? = nil
+    var downloadProgress: [String: Double] = [:]
+    var isSearchingInternetArchive: Bool = false
+    var archiveOrgLiveCount: Int = 0
 
-    public init() {}
+    init() {}
 }

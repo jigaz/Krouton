@@ -4,27 +4,27 @@ import SwiftUI
 @MainActor
 // MARK: - SpliceDragController
 
-public final class TrackMontageWindowState: ObservableObject {
-    public static let shared = TrackMontageWindowState()
-    @Published public var isFloatingWindowOpen: Bool = false
-    @Published public var activeTrackID: UUID? = nil
+final class TrackMontageWindowState: ObservableObject {
+    static let shared = TrackMontageWindowState()
+    @Published var isFloatingWindowOpen: Bool = false
+    @Published var activeTrackID: UUID? = nil
     /// GPU-backed "foosh" warp phase: 0.0 = resting, 1.0 = mid-flight launch/dock impulse
-    @Published public var fooshPhase: Double = 0.0
+    @Published var fooshPhase: Double = 0.0
     /// Vertical height multiplier: 0.50 (50%) ... 2.00 (200%), base height = 174 pt
-    @Published public var heightScale: Double = 1.0
+    @Published var heightScale: Double = 1.0
     /// Horizontal zoom factor: 3.0 (default 11.3s precision span) or 1.0 (Zoom Out 34s concert span)
-    @Published public var horizontalZoom: Double = 3.0
-    public static let baseCanvasHeight: CGFloat = 174.0
+    @Published var horizontalZoom: Double = 3.0
+    static let baseCanvasHeight: CGFloat = 174.0
 
-    public var scaledCanvasHeight: CGFloat {
+    var scaledCanvasHeight: CGFloat {
         Self.baseCanvasHeight * CGFloat(max(0.50, min(2.00, heightScale)))
     }
-    public var miniGhostCanvasHeight: CGFloat {
+    var miniGhostCanvasHeight: CGFloat {
         Self.baseCanvasHeight * 0.25
     }
 
     /// Triggers a GPU-composited "foosh" launch or dock animation across the inline & floating views
-    public func triggerFooshTransition(openingFloating: Bool, action: @escaping @MainActor () -> Void) {
+    func triggerFooshTransition(openingFloating: Bool, action: @escaping @MainActor () -> Void) {
         withAnimation(.spring(response: 0.22, dampingFraction: 0.68)) {
             fooshPhase = openingFloating ? 1.0 : -1.0
         }
@@ -38,11 +38,11 @@ public final class TrackMontageWindowState: ObservableObject {
 }
 
 /// GPU-backed Metal offscreen (`drawingGroup`) 3D perspective + scale + blur "foosh" transition modifier
-public struct KroutonGPUFooshTransitionModifier: ViewModifier {
+struct KroutonGPUFooshTransitionModifier: ViewModifier {
     let phase: Double
     let isFloatingSurface: Bool
 
-    public func body(content: Content) -> some View {
+    func body(content: Content) -> some View {
         let mag = abs(phase)
         let scaleX: CGFloat = 1.0 - CGFloat(mag * 0.14)
         let scaleY: CGFloat = 1.0 - CGFloat(mag * 0.32)

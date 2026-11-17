@@ -8,24 +8,24 @@ import VideoKit
 
 // MARK: - KroutonStateDomainModels
 
-public struct KroutonAccentColorPreset: Identifiable, Hashable, Sendable {
-    public let id: Int
-    public let swatchColor: Color
-    public let darkAccent: Color
-    public let lightAccent: Color
-    public let darkOnAccentText: Color
-    public let lightOnAccentText: Color
-    public let isMonochrome: Bool
+struct KroutonAccentColorPreset: Identifiable, Hashable, Sendable {
+    let id: Int
+    let swatchColor: Color
+    let darkAccent: Color
+    let lightAccent: Color
+    let darkOnAccentText: Color
+    let lightOnAccentText: Color
+    let isMonochrome: Bool
 
-    public func effectiveAccent(for scheme: ColorScheme?) -> Color {
+    func effectiveAccent(for scheme: ColorScheme?) -> Color {
         scheme == .light ? lightAccent : darkAccent
     }
 
-    public func effectiveOnAccentText(for scheme: ColorScheme?) -> Color {
+    func effectiveOnAccentText(for scheme: ColorScheme?) -> Color {
         scheme == .light ? lightOnAccentText : darkOnAccentText
     }
 
-    public static let allPresets: [KroutonAccentColorPreset] = [
+    static let allPresets: [KroutonAccentColorPreset] = [
         // -1: Multicolor (macOS System Settings Rainbow Wheel)
         KroutonAccentColorPreset(id: -1, swatchColor: Color.blue, darkAccent: Color(red: 0.32, green: 0.62, blue: 0.98), lightAccent: Color(red: 0.0, green: 0.44, blue: 0.92), darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
         // 0: Red
@@ -51,13 +51,13 @@ public struct KroutonAccentColorPreset: Identifiable, Hashable, Sendable {
     ]
 }
 
-public enum KroutonRoastAppearanceMode: String, CaseIterable, Identifiable, Sendable {
+enum KroutonRoastAppearanceMode: String, CaseIterable, Identifiable, Sendable {
     case auto = "Auto"
     case dark = "Dark"
     case light = "Light"
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
-    public var sfSymbol: String {
+    var sfSymbol: String {
         switch self {
         case .auto: return "circle.lefthalf.filled"
         case .dark: return "moon.fill"
@@ -65,7 +65,7 @@ public enum KroutonRoastAppearanceMode: String, CaseIterable, Identifiable, Send
         }
     }
 
-    public var colorScheme: ColorScheme? {
+    var colorScheme: ColorScheme? {
         switch self {
         case .auto: return nil
         case .dark: return .dark
@@ -74,28 +74,28 @@ public enum KroutonRoastAppearanceMode: String, CaseIterable, Identifiable, Send
     }
 }
 
-public enum KroutonBurnFailureSeverity: String, Sendable {
+enum KroutonBurnFailureSeverity: String, Sendable {
     case criticalOverburn
     case warning4GBNoUDF
     case warningFilenameLength
     case warningConsoleMedia
 }
 
-public enum KroutonGarnishStyleMode: String, CaseIterable, Identifiable, Sendable {
+enum KroutonGarnishStyleMode: String, CaseIterable, Identifiable, Sendable {
     case defaultStyle = "Default"
     case dark = "Dark"
     case clear = "Clear"
     case tinted = "Tinted"
-    public var id: String { rawValue }
+    var id: String { rawValue }
 }
 
-public enum KroutonTrackIconSizeMode: String, CaseIterable, Identifiable, Sendable {
+enum KroutonTrackIconSizeMode: String, CaseIterable, Identifiable, Sendable {
     case small = "Small"
     case medium = "Medium"
     case large = "Large"
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
-    public var iconFontSize: CGFloat {
+    var iconFontSize: CGFloat {
         switch self {
         case .small: return 12
         case .medium: return 15
@@ -103,7 +103,7 @@ public enum KroutonTrackIconSizeMode: String, CaseIterable, Identifiable, Sendab
         }
     }
 
-    public var titleFontSize: CGFloat {
+    var titleFontSize: CGFloat {
         switch self {
         case .small: return 11.5
         case .medium: return 12.5
@@ -111,7 +111,7 @@ public enum KroutonTrackIconSizeMode: String, CaseIterable, Identifiable, Sendab
         }
     }
 
-    public var rowVerticalPadding: CGFloat {
+    var rowVerticalPadding: CGFloat {
         switch self {
         case .small: return 4
         case .medium: return 6
@@ -120,17 +120,17 @@ public enum KroutonTrackIconSizeMode: String, CaseIterable, Identifiable, Sendab
     }
 }
 
-public enum KroutonStageFolderColorMode: String, CaseIterable, Identifiable, Sendable {
+enum KroutonStageFolderColorMode: String, CaseIterable, Identifiable, Sendable {
     case automatic = "Automatic"
     case classicAqua = "Classic Aqua Blue"
     case accentTinted = "Theme Accent"
     case secondaryHarmony = "Secondary Harmony"
     case amberGold = "Amber Gold"
     case graphite = "Space Gray"
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     @MainActor
-    public func resolvedFolderColor(accent: Color) -> Color {
+    func resolvedFolderColor(accent: Color) -> Color {
         let store = KroutonStateStore.shared
         switch self {
         case .automatic:
@@ -152,15 +152,15 @@ public enum KroutonStageFolderColorMode: String, CaseIterable, Identifiable, Sen
     }
 }
 
-public enum KroutonCroutonLabelStyle: String, CaseIterable, Identifiable, Sendable {
+enum KroutonCroutonLabelStyle: String, CaseIterable, Identifiable, Sendable {
     case synthGrid     = "Synth Technical Grid"
     case vinylGrooves  = "Concentric Workspace Rings"
     case dualHalftone  = "Split-Harmony Radial"
     case archivalSpec  = "Minimalist Archival Spec"
-    public var id: String { rawValue }
+    var id: String { rawValue }
 }
 
-public enum KroutonLanguage: String, CaseIterable, Identifiable, Sendable {
+enum KroutonLanguage: String, CaseIterable, Identifiable, Sendable {
     case system = "System Default (Auto)"
     case english = "English (US)"
     case japanese = "日本語 (Japanese)"
@@ -172,9 +172,9 @@ public enum KroutonLanguage: String, CaseIterable, Identifiable, Sendable {
     case dutch = "Nederlands (Dutch)"
     case chineseSimplified = "简体中文 (Chinese)"
     case korean = "한국어 (Korean)"
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
-    public var isoCode: String {
+    var isoCode: String {
         switch self {
         case .system: return Locale.preferredLanguages.first?.prefix(2).lowercased() ?? "en"
         case .english: return "en"
@@ -191,57 +191,57 @@ public enum KroutonLanguage: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-public enum KroutonMasteringStation: String, CaseIterable, Identifiable, Sendable {
+enum KroutonMasteringStation: String, CaseIterable, Identifiable, Sendable {
     case burn = "BURN"
     case depot = "DISC IMAGE DEPOT"
     case copy = "COPY"
     case label = "LABEL"
-    public var id: String { rawValue }
+    var id: String { rawValue }
 }
 
-public struct KroutonDepotCatalogItem: Identifiable, Hashable, Sendable {
-    public let id: String
-    public var title: String
-    public var subtitle: String
-    public var channel: String
-    public var version: String
-    public var sizeDisplay: String
-    public var architecture: String
-    public var bootStandard: String
-    public var sha256Short: String
-    public var sfSymbol: String
-    public var isDownloaded: Bool
+struct KroutonDepotCatalogItem: Identifiable, Hashable, Sendable {
+    let id: String
+    var title: String
+    var subtitle: String
+    var channel: String
+    var version: String
+    var sizeDisplay: String
+    var architecture: String
+    var bootStandard: String
+    var sha256Short: String
+    var sfSymbol: String
+    var isDownloaded: Bool
 }
 
-public struct KroutonDepotFeedSubscription: Identifiable, Hashable, Sendable {
-    public let id: String
-    public var name: String
-    public var description: String
-    public var itemCount: Int
-    public var isEnabled: Bool
-    public var sfSymbol: String
+struct KroutonDepotFeedSubscription: Identifiable, Hashable, Sendable {
+    let id: String
+    var name: String
+    var description: String
+    var itemCount: Int
+    var isEnabled: Bool
+    var sfSymbol: String
 }
 
-public struct KroutonDiscLabelGeometry: Identifiable, Hashable, Sendable {
-    public var id = UUID()
-    public var name: String
-    public var outerDiameterMM: Double
-    public var innerDiameterMM: Double
-    public var offsetXMM: Double
-    public var offsetYMM: Double
+struct KroutonDiscLabelGeometry: Identifiable, Hashable, Sendable {
+    var id = UUID()
+    var name: String
+    var outerDiameterMM: Double
+    var innerDiameterMM: Double
+    var offsetXMM: Double
+    var offsetYMM: Double
 }
 
-public struct KroutonKitchenEventRow: Identifiable, Hashable, Sendable {
-    public let id: String
-    public var eventTitle: String
-    public var eventSubtitle: String
-    public var bannerEnabled: Bool
-    public var iPhoneEnabled: Bool
-    public var watchEnabled: Bool
-    public var soundEnabled: Bool
+struct KroutonKitchenEventRow: Identifiable, Hashable, Sendable {
+    let id: String
+    var eventTitle: String
+    var eventSubtitle: String
+    var bannerEnabled: Bool
+    var iPhoneEnabled: Bool
+    var watchEnabled: Bool
+    var soundEnabled: Bool
 }
 
-public enum KroutonBurnDestinationKind: String, CaseIterable, Identifiable, Codable, Sendable {
+enum KroutonBurnDestinationKind: String, CaseIterable, Identifiable, Codable, Sendable {
     case physicalBurner = "Physical Burner"
     case networkBurner = "Network Server Burner"
     case discImage = "Disc Image File"
@@ -249,9 +249,9 @@ public enum KroutonBurnDestinationKind: String, CaseIterable, Identifiable, Coda
     case videoExtract = "Video Transcode (H.265 / HEVC)"
     case discPrinter = "Disc Printer (Epson ET-8550)"
     case pdfVector = "Vector PDF Label"
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
-    public var sfSymbol: String {
+    var sfSymbol: String {
         switch self {
         case .physicalBurner: return "opticaldiscdrive.fill"
         case .networkBurner: return "server.rack"
@@ -263,7 +263,7 @@ public enum KroutonBurnDestinationKind: String, CaseIterable, Identifiable, Coda
         }
     }
 
-    public var compactBadgeTitle: String {
+    var compactBadgeTitle: String {
         switch self {
         case .physicalBurner: return "USB"
         case .networkBurner:  return "LAN"
@@ -276,17 +276,17 @@ public enum KroutonBurnDestinationKind: String, CaseIterable, Identifiable, Coda
     }
 }
 
-public struct KroutonBakeBatchItem: Identifiable, Hashable, Codable, Sendable {
-    public var id: UUID = UUID()
-    public var kind: KroutonBurnDestinationKind
-    public var targetDriveID: String = ""
-    public var hardwareOrPath: String
-    public var speedOrCodec: String
-    public var simulationMode: Bool
-    public var verifyAfterBurn: Bool
-    public var compressAfterCreation: Bool
-    public var copiesToBurn: Int = 1
-    public var completedCopies: Int = 0
+struct KroutonBakeBatchItem: Identifiable, Hashable, Codable, Sendable {
+    var id: UUID = UUID()
+    var kind: KroutonBurnDestinationKind
+    var targetDriveID: String = ""
+    var hardwareOrPath: String
+    var speedOrCodec: String
+    var simulationMode: Bool
+    var verifyAfterBurn: Bool
+    var compressAfterCreation: Bool
+    var copiesToBurn: Int = 1
+    var completedCopies: Int = 0
     /// Non-nil when managed by the multi-disc spanning engine (1 = Disc 1, 2 = Disc 2, etc.)
-    public var spannedDiscNumber: Int? = nil
+    var spannedDiscNumber: Int? = nil
 }

@@ -15,8 +15,8 @@ import Foundation
 //
 
 // MARK: - Ephemeral Kernel Page-Aligned Burn Cache (Zero Idle RAM Overhead)
-public final class KroutonEphemeralBurnCache: @unchecked Sendable {
-    public static let shared = KroutonEphemeralBurnCache()
+final class KroutonEphemeralBurnCache: @unchecked Sendable {
+    static let shared = KroutonEphemeralBurnCache()
 
     private let lock = NSLock()
     private var vmAddress: vm_address_t = 0
@@ -26,7 +26,7 @@ public final class KroutonEphemeralBurnCache: @unchecked Sendable {
     private init() {}
 
     /// Current RAM bytes held by the burn ring-buffer (0 bytes whenever idle!)
-    public var activeBufferBytes: Int {
+    var activeBufferBytes: Int {
         lock.lock()
         defer { lock.unlock() }
         return isAcquired ? Int(allocatedBytes) : 0
@@ -35,7 +35,7 @@ public final class KroutonEphemeralBurnCache: @unchecked Sendable {
     /// Grabs a page-aligned RAM cache from the Mach kernel ONLY when a disc burn begins.
     /// Defaults to a 32 MiB optical underrun protection buffer aligned to 16 KB Apple Silicon pages.
     @discardableResult
-    public func acquireForActiveBurn(megabytes: Int = 32) -> UnsafeMutableRawPointer? {
+    func acquireForActiveBurn(megabytes: Int = 32) -> UnsafeMutableRawPointer? {
         lock.lock()
         defer { lock.unlock() }
 
@@ -63,7 +63,7 @@ public final class KroutonEphemeralBurnCache: @unchecked Sendable {
 
     /// Immediately releases 100% of the burn buffer pages back to the macOS kernel (`vm_deallocate`)
     /// and purges URLCache / autorelease pools so physical RAM drops immediately after a burn.
-    public func releaseImmediatelyAfterBurn() {
+    func releaseImmediatelyAfterBurn() {
         lock.lock()
         let addr = self.vmAddress
         let size = self.allocatedBytes
@@ -91,14 +91,14 @@ public final class KroutonEphemeralBurnCache: @unchecked Sendable {
     }
 }
 
-public extension Notification.Name {
+extension Notification.Name {
     static let kroutonDidReleaseEphemeralRAM = Notification.Name("krouton.didReleaseEphemeralRAM")
 }
 
 // MARK: - Zero-Idle CPU Power & App-Nap Governor
 @MainActor
-public final class KroutonIdlePowerMonitor: ObservableObject {
-    public static let shared = KroutonIdlePowerMonitor()
+final class KroutonIdlePowerMonitor: ObservableObject {
+    static let shared = KroutonIdlePowerMonitor()
 
     /// True ONLY when the Krouton app is foregrounded AND at least one window is visible on screen.
     /// Views & scopes bind to this to pause TimelineViews and animations at 0.0% CPU when backgrounded.

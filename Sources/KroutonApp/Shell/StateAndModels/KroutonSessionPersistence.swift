@@ -7,19 +7,19 @@ import SwiftUI
 
 // MARK: - KroutonSessionPersistence
 
-public struct KroutonPersistedSessionSnapshot: Codable, Sendable, Equatable {
-    public var selectedCategoryRaw: String
-    public var selectedTaskID: String
-    public var discVolumeTitle: String
-    public var discPerformer: String
-    public var discMCNBarcode: String
-    public var stagedFilePaths: [String]
-    public var fileReferences: [FileReference]
-    public var audioProject: AudioProject
-    public var destinationQueue: [KroutonBakeBatchItem]
-    public var savedAtISO8601: String
+struct KroutonPersistedSessionSnapshot: Codable, Sendable, Equatable {
+    var selectedCategoryRaw: String
+    var selectedTaskID: String
+    var discVolumeTitle: String
+    var discPerformer: String
+    var discMCNBarcode: String
+    var stagedFilePaths: [String]
+    var fileReferences: [FileReference]
+    var audioProject: AudioProject
+    var destinationQueue: [KroutonBakeBatchItem]
+    var savedAtISO8601: String
 
-    public init(
+    init(
         selectedCategoryRaw: String,
         selectedTaskID: String,
         discVolumeTitle: String,
@@ -45,8 +45,8 @@ public struct KroutonPersistedSessionSnapshot: Codable, Sendable, Equatable {
 }
 
 @MainActor
-public final class KroutonCrashRecoveryController: ObservableObject {
-    public static let shared = KroutonCrashRecoveryController()
+final class KroutonCrashRecoveryController: ObservableObject {
+    static let shared = KroutonCrashRecoveryController()
 
     private let sessionDirectory: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
@@ -63,11 +63,11 @@ public final class KroutonCrashRecoveryController: ObservableObject {
 
     private var didEvaluateLaunch: Bool = false
 
-    @Published public var showCrashRecoveryPrompt: Bool = false
-    @Published public var crashReasonText: String = ""
-    @Published public var pendingSnapshot: KroutonPersistedSessionSnapshot? = nil
-    @Published public var missingStagedFilePaths: [String] = []
-    @Published public var interruptedBurns: [BurnJournalRecord] = []
+    @Published var showCrashRecoveryPrompt: Bool = false
+    @Published var crashReasonText: String = ""
+    @Published var pendingSnapshot: KroutonPersistedSessionSnapshot? = nil
+    @Published var missingStagedFilePaths: [String] = []
+    @Published var interruptedBurns: [BurnJournalRecord] = []
 
     private init() {
         NotificationCenter.default.addObserver(
@@ -94,7 +94,7 @@ public final class KroutonCrashRecoveryController: ObservableObject {
         }
     }
 
-    public func evaluateLaunchStateAndHydrateIfClean(store: KroutonStateStore) {
+    func evaluateLaunchStateAndHydrateIfClean(store: KroutonStateStore) {
         guard !didEvaluateLaunch else { return }
         didEvaluateLaunch = true
 
@@ -149,7 +149,7 @@ public final class KroutonCrashRecoveryController: ObservableObject {
         }
     }
 
-    public func saveCurrentState(from store: KroutonStateStore) {
+    func saveCurrentState(from store: KroutonStateStore) {
         guard store.rememberLastTaskOnLaunch, !showCrashRecoveryPrompt else { return }
         let paths = store.stagedFiles.map { $0.url.path }
         let refs = store.stagedFiles.map { FileReference(url: $0.url) }
@@ -169,16 +169,16 @@ public final class KroutonCrashRecoveryController: ObservableObject {
         }
     }
 
-    public func flushNow() async {
+    func flushNow() async {
         await sessionStore.flush()
     }
 
-    public func markCleanShutdown(store: KroutonStateStore) {
+    func markCleanShutdown(store: KroutonStateStore) {
         saveCurrentState(from: store)
         runLock?.markCleanExit()
     }
 
-    public func startEmptySession(store: KroutonStateStore) {
+    func startEmptySession(store: KroutonStateStore) {
         showCrashRecoveryPrompt = false
         pendingSnapshot = nil
         missingStagedFilePaths.removeAll()
@@ -194,7 +194,7 @@ public final class KroutonCrashRecoveryController: ObservableObject {
         }
     }
 
-    public func restoreCrashedSession(store: KroutonStateStore) {
+    func restoreCrashedSession(store: KroutonStateStore) {
         showCrashRecoveryPrompt = false
         let snap = pendingSnapshot
         pendingSnapshot = nil
@@ -206,7 +206,7 @@ public final class KroutonCrashRecoveryController: ObservableObject {
         }
     }
 
-    public func acknowledgeInterruptedBurns() {
+    func acknowledgeInterruptedBurns() {
         let jobs = interruptedBurns
         interruptedBurns.removeAll()
         Task {
@@ -214,7 +214,7 @@ public final class KroutonCrashRecoveryController: ObservableObject {
         }
     }
 
-    public func simulateUncleanCrashFlagForTesting(store: KroutonStateStore) {
+    func simulateUncleanCrashFlagForTesting(store: KroutonStateStore) {
         let paths = store.stagedFiles.map { $0.url.path }
         let refs = store.stagedFiles.map { FileReference(url: $0.url) }
         pendingSnapshot = KroutonPersistedSessionSnapshot(
@@ -268,15 +268,15 @@ public final class KroutonCrashRecoveryController: ObservableObject {
     }
 }
 
-public struct KroutonCrashRecoveryBannerView: View {
+struct KroutonCrashRecoveryBannerView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var recovery = KroutonCrashRecoveryController.shared
 
-    public init(store: KroutonStateStore) {
+    init(store: KroutonStateStore) {
         self.store = store
     }
 
-    public var body: some View {
+    var body: some View {
         VStack(spacing: 0) {
             if recovery.showCrashRecoveryPrompt {
                 HStack(spacing: 12) {

@@ -5,18 +5,18 @@ import SwiftUI
 
 // MARK: - KroutonNotificationAndCompanionService
 
-public struct KroutonCompanionLivePayload: Codable, Sendable, Equatable {
-    public var eventID: String
-    public var title: String
-    public var subtitle: String
-    public var progressFraction: Double
-    public var driveName: String
-    public var speedLabel: String
-    public var iPhoneLiveActivityActive: Bool
-    public var appleWatchSmartStackActive: Bool
-    public var timestampISO8601: String
+struct KroutonCompanionLivePayload: Codable, Sendable, Equatable {
+    var eventID: String
+    var title: String
+    var subtitle: String
+    var progressFraction: Double
+    var driveName: String
+    var speedLabel: String
+    var iPhoneLiveActivityActive: Bool
+    var appleWatchSmartStackActive: Bool
+    var timestampISO8601: String
 
-    public init(
+    init(
         eventID: String,
         title: String,
         subtitle: String,
@@ -40,10 +40,10 @@ public struct KroutonCompanionLivePayload: Codable, Sendable, Equatable {
 }
 
 @MainActor
-public final class KroutonNotificationAndCompanionService: ObservableObject {
-    public static let shared = KroutonNotificationAndCompanionService()
+final class KroutonNotificationAndCompanionService: ObservableObject {
+    static let shared = KroutonNotificationAndCompanionService()
 
-    @Published public var latestCompanionPayload = KroutonCompanionLivePayload(
+    @Published var latestCompanionPayload = KroutonCompanionLivePayload(
         eventID: "idle",
         title: "Optical Workspace Ready",
         subtitle: "Standing by for Burn, Rip, or Verification",
@@ -55,11 +55,11 @@ public final class KroutonNotificationAndCompanionService: ObservableObject {
         timestampISO8601: ISO8601DateFormatter().string(from: Date())
     )
 
-    @Published public var lastDispatchedBannerText: String = "No notifications dispatched in this session."
+    @Published var lastDispatchedBannerText: String = "No notifications dispatched in this session."
 
     private init() {}
 
-    public func dispatchEvent(
+    func dispatchEvent(
         id eventID: String,
         title: String,
         subtitle: String,

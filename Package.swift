@@ -1,6 +1,11 @@
 // swift-tools-version: 6.0
 import PackageDescription
 
+let strictSwiftSettings: [SwiftSetting] = [
+    .swiftLanguageMode(.v6),
+    .unsafeFlags(["-warnings-as-errors"])
+]
+
 let package = Package(
     name: "krouton",
     defaultLocalization: "en",
@@ -22,16 +27,16 @@ let package = Package(
         .library(name: "Persistence", targets: ["Persistence"])
     ],
     targets: [
-        .target(name: "OpticalCore"),
-        .target(name: "DriveKit", dependencies: ["OpticalCore"]),
-        .target(name: "BurnKit", dependencies: ["OpticalCore", "DriveKit", "ImageKit"]),
-        .target(name: "AudioKit", dependencies: ["OpticalCore"]),
-        .target(name: "ImageKit", dependencies: ["OpticalCore"]),
-        .target(name: "RescueKit", dependencies: ["OpticalCore"]),
-        .target(name: "LabelKit", dependencies: ["OpticalCore", "AudioKit", "RescueKit"]),
-        .target(name: "VideoKit", dependencies: ["OpticalCore"]),
-        .target(name: "NetworkSpool", dependencies: ["OpticalCore"]),
-        .target(name: "Persistence", dependencies: ["OpticalCore"]),
+        .target(name: "OpticalCore", swiftSettings: strictSwiftSettings),
+        .target(name: "DriveKit", dependencies: ["OpticalCore"], swiftSettings: strictSwiftSettings),
+        .target(name: "BurnKit", dependencies: ["OpticalCore", "DriveKit", "ImageKit"], swiftSettings: strictSwiftSettings),
+        .target(name: "AudioKit", dependencies: ["OpticalCore"], swiftSettings: strictSwiftSettings),
+        .target(name: "ImageKit", dependencies: ["OpticalCore"], swiftSettings: strictSwiftSettings),
+        .target(name: "RescueKit", dependencies: ["OpticalCore"], swiftSettings: strictSwiftSettings),
+        .target(name: "LabelKit", dependencies: ["OpticalCore", "AudioKit", "RescueKit"], swiftSettings: strictSwiftSettings),
+        .target(name: "VideoKit", dependencies: ["OpticalCore"], swiftSettings: strictSwiftSettings),
+        .target(name: "NetworkSpool", dependencies: ["OpticalCore"], swiftSettings: strictSwiftSettings),
+        .target(name: "Persistence", dependencies: ["OpticalCore"], swiftSettings: strictSwiftSettings),
         .executableTarget(
             name: "KroutonApp",
             dependencies: [
@@ -48,7 +53,8 @@ let package = Package(
             ],
             resources: [
                 .process("Resources")
-            ]
+            ],
+            swiftSettings: strictSwiftSettings
         ),
         .executableTarget(
             name: "KroutonVerify",
@@ -63,16 +69,17 @@ let package = Package(
                 "VideoKit",
                 "NetworkSpool",
                 "Persistence"
-            ]
+            ],
+            swiftSettings: strictSwiftSettings
         ),
-        .testTarget(name: "OpticalCoreTests", dependencies: ["OpticalCore"]),
-        .testTarget(name: "BurnKitTests", dependencies: ["OpticalCore", "DriveKit", "BurnKit"]),
-        .testTarget(name: "AudioKitTests", dependencies: ["OpticalCore", "AudioKit"]),
-        .testTarget(name: "ImageKitTests", dependencies: ["OpticalCore", "ImageKit"]),
-        .testTarget(name: "RescueKitTests", dependencies: ["OpticalCore", "RescueKit"]),
-        .testTarget(name: "LabelKitTests", dependencies: ["OpticalCore", "AudioKit", "RescueKit", "LabelKit"]),
-        .testTarget(name: "VideoKitTests", dependencies: ["OpticalCore", "VideoKit"]),
-        .testTarget(name: "PersistenceTests", dependencies: ["OpticalCore", "Persistence"]),
-        .testTarget(name: "KroutonVerifyTests", dependencies: ["KroutonVerify"])
+        .testTarget(name: "OpticalCoreTests", dependencies: ["OpticalCore"], swiftSettings: strictSwiftSettings),
+        .testTarget(name: "BurnKitTests", dependencies: ["OpticalCore", "DriveKit", "BurnKit"], swiftSettings: strictSwiftSettings),
+        .testTarget(name: "AudioKitTests", dependencies: ["OpticalCore", "AudioKit"], swiftSettings: strictSwiftSettings),
+        .testTarget(name: "ImageKitTests", dependencies: ["OpticalCore", "ImageKit"], swiftSettings: strictSwiftSettings),
+        .testTarget(name: "RescueKitTests", dependencies: ["OpticalCore", "RescueKit"], swiftSettings: strictSwiftSettings),
+        .testTarget(name: "LabelKitTests", dependencies: ["OpticalCore", "AudioKit", "RescueKit", "LabelKit"], swiftSettings: strictSwiftSettings),
+        .testTarget(name: "VideoKitTests", dependencies: ["OpticalCore", "VideoKit"], swiftSettings: strictSwiftSettings),
+        .testTarget(name: "PersistenceTests", dependencies: ["OpticalCore", "Persistence"], swiftSettings: strictSwiftSettings),
+        .testTarget(name: "KroutonVerifyTests", dependencies: ["KroutonVerify"], swiftSettings: strictSwiftSettings)
     ]
 )

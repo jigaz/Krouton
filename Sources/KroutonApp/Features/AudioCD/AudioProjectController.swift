@@ -4,14 +4,14 @@ import SwiftUI
 
 @MainActor
 @Observable
-public final class AudioProjectController {
+final class AudioProjectController {
 
-    public struct LiveTransition: Equatable {
-        public let trackID: UUID
-        public var spec: KroutonTrackTransitionSpec
+    struct LiveTransition: Equatable {
+        let trackID: UUID
+        var spec: KroutonTrackTransitionSpec
     }
 
-    public enum AnalysisState {
+    enum AnalysisState {
         case pending
         case ready(TrackAnalysis)
         case failed(String)
@@ -21,12 +21,12 @@ public final class AudioProjectController {
     public private(set) var liveTransition: LiveTransition?
     public private(set) var analysis: [UUID: AnalysisState] = [:]
 
-    @ObservationIgnored public var undoManager: UndoManager?
+    @ObservationIgnored var undoManager: UndoManager?
     @ObservationIgnored private let service: AudioAnalysisService
     @ObservationIgnored private let persist: @MainActor (AudioProject) -> Void
     @ObservationIgnored private var analysisTasks: [UUID: Task<Void, Never>] = [:]
 
-    public init(
+    init(
         project: AudioProject = AudioProject(),
         service: AudioAnalysisService = .shared,
         persist: @escaping @MainActor (AudioProject) -> Void
@@ -39,31 +39,31 @@ public final class AudioProjectController {
 
     // MARK: - Reading
 
-    public func transition(after trackID: UUID) -> KroutonTrackTransitionSpec {
+    func transition(after trackID: UUID) -> KroutonTrackTransitionSpec {
         if let live = liveTransition, live.trackID == trackID { return live.spec }
         return project.track(trackID)?.transitionToNext ?? project.defaultTransition
     }
 
-    public func readyAnalysis(_ trackID: UUID) -> TrackAnalysis? {
+    func readyAnalysis(_ trackID: UUID) -> TrackAnalysis? {
         if case .ready(let value)? = analysis[trackID] { return value }
         return nil
     }
 
     // MARK: - Preview (per frame, cheap)
 
-    public func preview(_ spec: KroutonTrackTransitionSpec, after trackID: UUID) {
+    func preview(_ spec: KroutonTrackTransitionSpec, after trackID: UUID) {
         liveTransition = LiveTransition(trackID: trackID, spec: spec)
     }
 
-    public func cancelPreview() { liveTransition = nil }
+    func cancelPreview() { liveTransition = nil }
 
     // MARK: - Commit (once per gesture or discrete edit)
 
-    public func commitTransition(_ spec: KroutonTrackTransitionSpec, after trackID: UUID, actionName: String = "Edit Transition") {
+    func commitTransition(_ spec: KroutonTrackTransitionSpec, after trackID: UUID, actionName: String = "Edit Transition") {
         edit(actionName) { $0.update(trackID) { $0.transitionToNext = spec } }
     }
 
-    public func edit(_ actionName: String, _ change: (inout AudioProject) -> Void) {
+    func edit(_ actionName: String, _ change: (inout AudioProject) -> Void) {
         liveTransition = nil
         let before = project
         change(&project)
@@ -72,7 +72,7 @@ public final class AudioProjectController {
         persist(project)
     }
 
-    public func setTitle(_ text: String, for trackID: UUID) {
+    func setTitle(_ text: String, for trackID: UUID) {
         let sanitized = AudioProject.sanitizeCDTextField(text)
         edit("Edit CD-TEXT Title") {
             $0.update(trackID) {
@@ -82,7 +82,7 @@ public final class AudioProjectController {
         }
     }
 
-    public func setPerformer(_ text: String, for trackID: UUID) {
+    func setPerformer(_ text: String, for trackID: UUID) {
         let sanitized = AudioProject.sanitizeCDTextField(text)
         edit("Edit CD-TEXT Artist") {
             $0.update(trackID) {
@@ -93,7 +93,7 @@ public final class AudioProjectController {
     }
 
     @discardableResult
-    public func setISRC(_ text: String, for trackID: UUID) -> Bool {
+    func setISRC(_ text: String, for trackID: UUID) -> Bool {
         var accepted = false
         edit("Edit ISRC") {
             $0.update(trackID) {
@@ -104,21 +104,21 @@ public final class AudioProjectController {
         return accepted
     }
 
-    public func move(_ trackID: UUID, by delta: Int) {
+    func move(_ trackID: UUID, by delta: Int) {
         edit("Reorder Tracks") { $0.move(trackID, by: delta) }
     }
 
-    public func moveTrack(from sourceIndex: Int, to destinationIndex: Int) {
+    func moveTrack(from sourceIndex: Int, to destinationIndex: Int) {
         edit("Reorder Tracks") { $0.moveTrack(from: sourceIndex, to: destinationIndex) }
     }
 
-    public func remove(_ trackID: UUID) {
+    func remove(_ trackID: UUID) {
         analysisTasks.removeValue(forKey: trackID)?.cancel()
         analysis.removeValue(forKey: trackID)
         edit("Remove Track") { $0.remove(trackID) }
     }
 
-    public func removeTracks(_ ids: Set<UUID>) {
+    func removeTracks(_ ids: Set<UUID>) {
         for id in ids {
             analysisTasks.removeValue(forKey: id)?.cancel()
             analysis.removeValue(forKey: id)
@@ -126,22 +126,22 @@ public final class AudioProjectController {
         edit("Remove Selected Tracks") { $0.removeTracks(ids) }
     }
 
-    public func applyBatchTransition(to ids: Set<UUID>, actionName: String, transform: @escaping (KroutonTrackTransitionSpec) -> KroutonTrackTransitionSpec) {
+    func applyBatchTransition(to ids: Set<UUID>, actionName: String, transform: @escaping (KroutonTrackTransitionSpec) -> KroutonTrackTransitionSpec) {
         edit(actionName) { $0.applyBatchTransition(ids, transform: transform) }
     }
 
-    public func applyBatchPerformer(_ performer: String, to ids: Set<UUID>) {
+    func applyBatchPerformer(_ performer: String, to ids: Set<UUID>) {
         edit("Set Selected Track Artist") { $0.applyBatchPerformer(performer, to: ids) }
     }
 
     @discardableResult
-    public func assignSequentialISRCs(baseISRC: String, to ids: Set<UUID>) -> Int {
+    func assignSequentialISRCs(baseISRC: String, to ids: Set<UUID>) -> Int {
         var count = 0
         edit("Assign Sequential ISRCs") { count = $0.assignSequentialISRCs(baseISRC: baseISRC, to: ids) }
         return count
     }
 
-    public func add(_ urls: [URL]) {
+    func add(_ urls: [URL]) {
         var added: [AudioTrack] = []
         edit("Add Tracks") { added = $0.append(urls) }
         guard !added.isEmpty else { return }
@@ -177,21 +177,21 @@ public final class AudioProjectController {
 
     // MARK: - CD-TEXT Enforced Bindings
 
-    public func titleBinding(_ trackID: UUID) -> Binding<String> {
+    func titleBinding(_ trackID: UUID) -> Binding<String> {
         Binding(
             get: { [weak self] in self?.project.track(trackID)?.title ?? "" },
             set: { [weak self] in self?.setTitle($0, for: trackID) }
         )
     }
 
-    public func performerBinding(_ trackID: UUID) -> Binding<String> {
+    func performerBinding(_ trackID: UUID) -> Binding<String> {
         Binding(
             get: { [weak self] in self?.project.track(trackID)?.performer ?? "" },
             set: { [weak self] in self?.setPerformer($0, for: trackID) }
         )
     }
 
-    public var albumTitleBinding: Binding<String> {
+    var albumTitleBinding: Binding<String> {
         Binding(
             get: { [weak self] in self?.project.albumTitle ?? "" },
             set: { [weak self] val in
@@ -201,7 +201,7 @@ public final class AudioProjectController {
         )
     }
 
-    public var albumPerformerBinding: Binding<String> {
+    var albumPerformerBinding: Binding<String> {
         Binding(
             get: { [weak self] in self?.project.albumPerformer ?? "" },
             set: { [weak self] val in
@@ -211,7 +211,7 @@ public final class AudioProjectController {
         )
     }
 
-    public var upcBinding: Binding<String> {
+    var upcBinding: Binding<String> {
         Binding(
             get: { [weak self] in self?.project.upc ?? "" },
             set: { [weak self] val in
@@ -223,7 +223,7 @@ public final class AudioProjectController {
 
     // MARK: - Multi-Disc Spanning & Per-Disc Persistent Metadata Bindings
 
-    public var targetDiscMediumBinding: Binding<KroutonSpanningDiscMedium> {
+    var targetDiscMediumBinding: Binding<KroutonSpanningDiscMedium> {
         Binding(
             get: { [weak self] in self?.project.targetDiscMedium ?? .cd80Min700MB },
             set: { [weak self] medium in
@@ -232,7 +232,7 @@ public final class AudioProjectController {
         )
     }
 
-    public func discTitleBinding(forDisc discNumber: Int) -> Binding<String> {
+    func discTitleBinding(forDisc discNumber: Int) -> Binding<String> {
         Binding(
             get: { [weak self] in self?.project.metadata(forDisc: discNumber).title ?? "" },
             set: { [weak self] newTitle in
@@ -244,7 +244,7 @@ public final class AudioProjectController {
         )
     }
 
-    public func discPerformerBinding(forDisc discNumber: Int) -> Binding<String> {
+    func discPerformerBinding(forDisc discNumber: Int) -> Binding<String> {
         Binding(
             get: { [weak self] in self?.project.metadata(forDisc: discNumber).performer ?? "" },
             set: { [weak self] newPerf in
@@ -256,7 +256,7 @@ public final class AudioProjectController {
         )
     }
 
-    public func discUPCBinding(forDisc discNumber: Int) -> Binding<String> {
+    func discUPCBinding(forDisc discNumber: Int) -> Binding<String> {
         Binding(
             get: { [weak self] in self?.project.metadata(forDisc: discNumber).upc ?? "" },
             set: { [weak self] newUPC in
@@ -268,21 +268,21 @@ public final class AudioProjectController {
         )
     }
 
-    public func toggleManualDiscBreak(before trackID: UUID) {
+    func toggleManualDiscBreak(before trackID: UUID) {
         guard DiscSpanningEngine.canToggleManualDiscBreak(before: trackID, in: project.tracks) else { return }
         edit("Toggle Disc Break") {
             $0.update(trackID) { $0.startsNewDisc.toggle() }
         }
     }
 
-    public var writeCDTextBinding: Binding<Bool> {
+    var writeCDTextBinding: Binding<Bool> {
         Binding(
             get: { [weak self] in self?.project.writeCDText ?? true },
             set: { [weak self] val in self?.edit("Toggle CD-TEXT") { $0.writeCDText = val } }
         )
     }
 
-    public func restore(_ restored: AudioProject) {
+    func restore(_ restored: AudioProject) {
         analysisTasks.values.forEach { $0.cancel() }
         analysisTasks.removeAll()
         analysis.removeAll()
@@ -290,7 +290,7 @@ public final class AudioProjectController {
         for track in project.tracks { startAnalysis(of: track) }
     }
 
-    public func clearAll() {
+    func clearAll() {
         analysisTasks.values.forEach { $0.cancel() }
         analysisTasks.removeAll()
         analysis.removeAll()
@@ -313,7 +313,7 @@ public final class AudioProjectController {
 
     // MARK: - Analysis (off the main actor)
 
-    public func startAnalysis(of track: AudioTrack) {
+    func startAnalysis(of track: AudioTrack) {
         analysis[track.id] = .pending
         analysisTasks[track.id] = Task { [weak self, service, id = track.id, url = track.source] in
             do {

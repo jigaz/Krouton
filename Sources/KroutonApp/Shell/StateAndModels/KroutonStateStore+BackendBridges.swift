@@ -10,7 +10,7 @@ import VideoKit
 
 // MARK: - Live Backend Engine Bridge Across Culinary Modules
 extension KroutonStateStore {
-    public func compileLiveAudioCueSheet(
+    func compileLiveAudioCueSheet(
         albumTitle: String = "",
         albumPerformer: String = "",
         mcnCatalog: String = "",
@@ -24,7 +24,7 @@ extension KroutonStateStore {
         )
     }
 
-    public func computeLiveCDTextPackCount(
+    func computeLiveCDTextPackCount(
         albumTitle: String = "",
         albumPerformer: String = "",
         tracks: [KroutonRedBookTrack] = []
@@ -37,7 +37,7 @@ extension KroutonStateStore {
         return (try? CDTextBlockCompiler.compile(CDTextInput(album: albumFields, tracks: trackFields)).packs.count) ?? 0
     }
 
-    public func planLiveHybridDataLayout(
+    func planLiveHybridDataLayout(
         volumeLabel: String = "",
         entries: [KroutonStagedFileEntry] = [],
         isElToritoBootable: Bool = false
@@ -49,7 +49,7 @@ extension KroutonStateStore {
         )
     }
 
-    public func computeLiveVideoBitrateBudget(
+    func computeLiveVideoBitrateBudget(
         durationSeconds: Double = 5400.0,
         audioKbps: Int = 448,
         medium: KroutonVideoTargetMedium = .dvd5SingleLayer
@@ -61,7 +61,7 @@ extension KroutonStateStore {
         )
     }
 
-    public func stampProjectTracklistOrManifestOnDisc(albumTitle: String = "", performer: String = "") {
+    func stampProjectTracklistOrManifestOnDisc(albumTitle: String = "", performer: String = "") {
         if !albumTitle.isEmpty { discVolumeTitle = albumTitle }
         if !performer.isEmpty { discPerformer = performer }
         Task { @MainActor in

@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 
 // MARK: - KroutonSettingsWindow
 
-public enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendable {
+enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendable {
     case general = "General"
     case formatChooser = "Format Chooser"
     case discImageDepot = "Disc Image Depot"
@@ -17,9 +17,9 @@ public enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendabl
     case notifications = "Notifications"
     case accessibilityLanguage = "Accessibility & Language"
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
-    public var sfSymbol: String {
+    var sfSymbol: String {
         switch self {
         case .general: return "gearshape"
         case .formatChooser: return "list.bullet.rectangle"
@@ -34,7 +34,7 @@ public enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendabl
     }
 }
 
-public struct KroutonSettingsWindowView: View {
+struct KroutonSettingsWindowView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var driveManager: KroutonOpticalDriveBank
     @ObservedObject var spoolClient: SpoolRemoteNodeClient = .shared
@@ -58,12 +58,12 @@ public struct KroutonSettingsWindowView: View {
     @State var newOffsetX: Double = 0.0
     @State var newOffsetY: Double = 0.0
 
-    public init(store: KroutonStateStore, driveManager: KroutonOpticalDriveBank) {
+    init(store: KroutonStateStore, driveManager: KroutonOpticalDriveBank) {
         self.store = store
         self.driveManager = driveManager
     }
 
-    public var body: some View {
+    var body: some View {
         NavigationSplitView {
             VStack(spacing: 10) {
                 HStack(spacing: 6) {

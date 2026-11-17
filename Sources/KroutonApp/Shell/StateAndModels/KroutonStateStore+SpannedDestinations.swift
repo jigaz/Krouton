@@ -11,7 +11,7 @@ extension KroutonStateStore {
 
     /// Computes the active spanning disc count & resolved per-disc volume labels across
     /// Audio CD (`audioController.discPlan`) and all staged file/media workspaces (`dataDiscPlan`).
-    public func activeSpannedDiscLabels() -> [String] {
+    func activeSpannedDiscLabels() -> [String] {
         guard selectedCategory == .burn else { return [] }
         let spec = activeFormatSpec()
         if spec.filterGroup == .audio && spec.id != "mp3-cd" {
@@ -44,7 +44,7 @@ extension KroutonStateStore {
 
     /// Automatically adds, renames, or removes right-column destination cards to match the
     /// active multi-disc spanning plan (`Disc 1`, `Disc 2`, `Disc 3`…).
-    public func syncSpannedDestinations(driveManager: KroutonOpticalDriveBank) {
+    func syncSpannedDestinations(driveManager: KroutonOpticalDriveBank) {
         guard selectedCategory == .burn else { return }
         let labels = activeSpannedDiscLabels()
         let requiredDiscs = max(1, labels.count)

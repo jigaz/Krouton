@@ -62,7 +62,7 @@ struct KroutonTestHarness {
 /// Computed properties such as a SwiftUI `body` are not functions and are not measured.
 // MARK: - Function Length Scanner
 
-public enum VerifyFunctionLengthScanner {
+enum VerifyFunctionLengthScanner {
     struct Function: Equatable {
         let name: String
         let startLine: Int

@@ -6,43 +6,43 @@ import SwiftUI
 
 // MARK: - Stage 1 Clean Printable Disc Canvas (Live Reactive Inputs + Interactive Drag-on-Disc)
 
-public struct KroutonDiscLabelArtworkCanvas: View {
+struct KroutonDiscLabelArtworkCanvas: View {
     @State var activeDragTargetID: UUID?
     @State var freehandDraftPoints: [KroutonNormalizedPoint] = []
-    public var onCommitFreehandStroke: (([KroutonNormalizedPoint]) -> Void)? = nil
-    public let preset: KroutonDiscLabelGeometry
-    public let template: KroutonCroutonLabelStyle
-    public let title: String
-    public let subtitle: String
-    public let performer: String
-    public let mcnBarcode: String
-    public let trackLines: [String]
-    public let showTracklist: Bool
-    public let primaryColor: Color
-    public let harmonyColor: Color
-    public let isExportMode: Bool
-    public let diameterPoints: CGFloat
+    var onCommitFreehandStroke: (([KroutonNormalizedPoint]) -> Void)? = nil
+    let preset: KroutonDiscLabelGeometry
+    let template: KroutonCroutonLabelStyle
+    let title: String
+    let subtitle: String
+    let performer: String
+    let mcnBarcode: String
+    let trackLines: [String]
+    let showTracklist: Bool
+    let primaryColor: Color
+    let harmonyColor: Color
+    let isExportMode: Bool
+    let diameterPoints: CGFloat
 
     // Stage 1 explicit reactive inputs (with defaults for backward compatibility)
-    public var backgroundStyle: KroutonVectorBackgroundStyle
-    public var bgPrimaryColor: Color
-    public var bgSecondaryColor: Color
-    public var gradientMidpoint: Double
-    public var gradientAngle: Double
-    public var gpuSeedPattern: KroutonGPUSeedPattern
-    public var kaleidoscopeFacets: Int
-    public var kaleidoscopeRig: KroutonKaleidoscopeMirrorRig
-    public var chamberTumble: Double
-    public var tinyPlanetRadius: Double
-    public var bgAdjustments: KroutonBackgroundAdjustments
-    public var vectorShapes: [KroutonVectorShapeLayer]
-    public var textElements: [KroutonLabelTextElement]
-    public var selectedTextID: UUID?
-    public var showAlignmentGrid: Bool
-    public var onSelectOrDragText: ((UUID, Double, Double) -> Void)?
-    public var onDragVectorShape: ((UUID, Double, Double) -> Void)?
+    var backgroundStyle: KroutonVectorBackgroundStyle
+    var bgPrimaryColor: Color
+    var bgSecondaryColor: Color
+    var gradientMidpoint: Double
+    var gradientAngle: Double
+    var gpuSeedPattern: KroutonGPUSeedPattern
+    var kaleidoscopeFacets: Int
+    var kaleidoscopeRig: KroutonKaleidoscopeMirrorRig
+    var chamberTumble: Double
+    var tinyPlanetRadius: Double
+    var bgAdjustments: KroutonBackgroundAdjustments
+    var vectorShapes: [KroutonVectorShapeLayer]
+    var textElements: [KroutonLabelTextElement]
+    var selectedTextID: UUID?
+    var showAlignmentGrid: Bool
+    var onSelectOrDragText: ((UUID, Double, Double) -> Void)?
+    var onDragVectorShape: ((UUID, Double, Double) -> Void)?
 
-    public init(
+    init(
         preset: KroutonDiscLabelGeometry,
         template: KroutonCroutonLabelStyle,
         title: String,
@@ -118,7 +118,7 @@ public struct KroutonDiscLabelArtworkCanvas: View {
         diameterPoints * CGFloat(innerMM / outerMM)
     }
 
-    public var body: some View {
+    var body: some View {
         ZStack {
             // 1. Printable Disc Surface (Unified CoreImage pipeline when adjustments or procedural styles are active)
             discSurfaceBackground

@@ -4,11 +4,11 @@ import OSLog
 
 /// Prevents macOS system idle sleep, display sleep, App Nap, and Sudden Termination
 /// while a physical optical burn, disc image master, or extraction is actively running.
-public final class KroutonPowerAndBurnAssertion: @unchecked Sendable {
-    public static let shared = KroutonPowerAndBurnAssertion()
+final class KroutonPowerAndBurnAssertion: @unchecked Sendable {
+    static let shared = KroutonPowerAndBurnAssertion()
 
-    public static let logger = Logger(subsystem: "com.krouton.opticalstudio", category: "HardwareBurnGuard")
-    public static let signposter = OSSignposter(logger: logger)
+    static let logger = Logger(subsystem: "com.krouton.opticalstudio", category: "HardwareBurnGuard")
+    static let signposter = OSSignposter(logger: logger)
 
     private let lock = NSLock()
     private var systemSleepAssertionID: IOPMAssertionID = IOPMAssertionID(0)
@@ -19,14 +19,14 @@ public final class KroutonPowerAndBurnAssertion: @unchecked Sendable {
 
     private init() {}
 
-    public var hasActiveAssertion: Bool {
+    var hasActiveAssertion: Bool {
         lock.lock()
         defer { lock.unlock() }
         return isHeld
     }
 
     /// Acquires IOKit power assertions + ProcessInfo activity lock for an active optical job.
-    public func acquire(reason: String = "Krouton Optical Laser Mastering Active") {
+    func acquire(reason: String = "Krouton Optical Laser Mastering Active") {
         lock.lock()
         defer { lock.unlock() }
         guard !isHeld else { return }
@@ -65,7 +65,7 @@ public final class KroutonPowerAndBurnAssertion: @unchecked Sendable {
     }
 
     /// Releases IOKit power assertions and restores normal macOS power management.
-    public func releaseAssertion() {
+    func releaseAssertion() {
         lock.lock()
         defer { lock.unlock() }
         guard isHeld else { return }

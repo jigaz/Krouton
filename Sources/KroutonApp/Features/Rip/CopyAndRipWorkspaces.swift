@@ -9,10 +9,10 @@ import VideoKit
 
 // MARK: - CopyAndRipWorkspaces
 
-public final class KroutonRipCancelToken: @unchecked Sendable {
-    public var isCancelled: Bool = false
-    public var cancelledTracks: Set<Int> = []
-    public init() {}
+final class KroutonRipCancelToken: @unchecked Sendable {
+    var isCancelled: Bool = false
+    var cancelledTracks: Set<Int> = []
+    init() {}
 }
 
 struct KroutonCopyAndRipWorkspaceView: View {

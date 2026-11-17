@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 
 // MARK: - Deterministic SwiftUI .fileImporter Coordinator for Optical Payloads & Copy/Rip Paths
 
-public enum KroutonImporterIntent: Sendable {
+enum KroutonImporterIntent: Sendable {
     case stageOpticalPayload
     case customCallback
 }

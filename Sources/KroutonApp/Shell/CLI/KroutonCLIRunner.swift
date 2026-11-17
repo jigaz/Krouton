@@ -9,8 +9,8 @@ import VideoKit
 /// Headless command-line interface for Krouton (`krouton` / `Krouton`).
 // MARK: - KroutonCLIRunner
 
-public enum KroutonCLIRunner {
-    public static let versionString = "1.0.0"
+enum KroutonCLIRunner {
+    static let versionString = "1.0.0"
 
     private static let cliSubcommands: Set<String> = [
         "--help", "-h", "help",
@@ -18,7 +18,7 @@ public enum KroutonCLIRunner {
         "drives", "formats", "inspect", "span", "iso", "completions"
     ]
 
-    public static func shouldRunHeadlessCLI(arguments: [String] = CommandLine.arguments) -> Bool {
+    static func shouldRunHeadlessCLI(arguments: [String] = CommandLine.arguments) -> Bool {
         let userArgs = arguments.dropFirst().filter { arg in
             !arg.hasPrefix("-NS") && !arg.hasPrefix("-Apple") && !arg.hasPrefix("-psn_")
         }
@@ -27,7 +27,7 @@ public enum KroutonCLIRunner {
     }
 
     @MainActor
-    public static func evaluate(arguments: [String]) -> (exitCode: Int32, output: String) {
+    static func evaluate(arguments: [String]) -> (exitCode: Int32, output: String) {
         let args = Array(arguments.dropFirst().filter {
             !$0.hasPrefix("-NS") && !$0.hasPrefix("-Apple") && !$0.hasPrefix("-psn_")
         })
@@ -223,7 +223,7 @@ public enum KroutonCLIRunner {
         }
     }
 
-    public static func parseMediumToken(_ raw: String) -> KroutonSpanningDiscMedium {
+    static func parseMediumToken(_ raw: String) -> KroutonSpanningDiscMedium {
         let l = raw.lowercased()
         if l.contains("650") || l.contains("74") { return .cd74Min650MB }
         if l.contains("700") || l.contains("80") || l == "cd" { return .cd80Min700MB }
@@ -237,7 +237,7 @@ public enum KroutonCLIRunner {
         return .dvd5Single
     }
 
-    public static let helpText = """
+    static let helpText = """
     KROUTON — macOS Optical Media Mastering Suite & CLI (v\(versionString))
 
     USAGE:
@@ -255,7 +255,7 @@ public enum KroutonCLIRunner {
       --help, -h                        Print this help message
     """
 
-    public static func completionScript(for shell: String) -> String {
+    static func completionScript(for shell: String) -> String {
         switch shell {
         case "bash":
             return "complete -W 'drives formats inspect span iso completions --help --version --json' krouton Krouton"

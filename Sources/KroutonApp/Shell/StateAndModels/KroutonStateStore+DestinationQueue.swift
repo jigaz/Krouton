@@ -16,7 +16,7 @@ extension KroutonStateStore {
         savedQueuesByDomain[currentDestinationDomainKey] = destinationQueue
     }
     /// Format-aware Disc Image extension (.cue/.bin for Red Book & Raw CD Consoles, .dmg for macOS HFS+/APFS, .iso for Hybrid/UDF/Video/DVD)
-    public var defaultDiscImageTarget: (path: String, description: String) {
+    var defaultDiscImageTarget: (path: String, description: String) {
         let cleanTitle = discVolumeTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? (selectedTaskID == "dvd-video" ? "DVD_VIDEO" : "KROUTON_DISC")
             : discVolumeTitle.replacingOccurrences(of: " ", with: "_")
@@ -39,7 +39,7 @@ extension KroutonStateStore {
         }
     }
     /// Strict task-aware allowed destination types (never offer Video Transcode on Audio CD or Burners on Rip tasks!)
-    public var allowedDestinationsForCurrentCategory: [KroutonBurnDestinationKind] {
+    var allowedDestinationsForCurrentCategory: [KroutonBurnDestinationKind] {
         switch selectedCategory {
         case .depot:
             return [.physicalBurner, .networkBurner]
@@ -149,7 +149,7 @@ extension KroutonStateStore {
         case .pdfVector: return "doc.richtext.fill"
         }
     }
-    public var primaryActionTitle: String {
+    var primaryActionTitle: String {
         let count = destinationQueue.count
         switch selectedCategory {
         case .burn:
@@ -169,7 +169,7 @@ extension KroutonStateStore {
             return "PRINT LABEL (\(count))"
         }
     }
-    public var primaryActionSymbol: String {
+    var primaryActionSymbol: String {
         switch selectedCategory {
         case .burn: return "flame.fill"
         case .depot: return "arrow.down.doc.fill"
@@ -182,7 +182,7 @@ extension KroutonStateStore {
         case .label: return "printer.fill"
         }
     }
-    public var queueStatusSummaryText: String {
+    var queueStatusSummaryText: String {
         switch selectedCategory {
         case .burn:
             return "Queue Ready • \(stagedFiles.count) Items (\(ByteCountFormatter.string(fromByteCount: totalStagedBytes, countStyle: .file)))"
@@ -204,7 +204,7 @@ extension KroutonStateStore {
         }
     }
     /// Maps any (category, taskID) pair to its logical Destination Domain bucket
-    public static func destinationDomainKey(category: KroutonMasteringStation, taskID: String) -> String {
+    static func destinationDomainKey(category: KroutonMasteringStation, taskID: String) -> String {
         switch category {
         case .burn, .depot:
             return "domain.opticalBurn"
@@ -219,11 +219,11 @@ extension KroutonStateStore {
             return "domain.discLabel"
         }
     }
-    public var currentDestinationDomainKey: String {
+    var currentDestinationDomainKey: String {
         Self.destinationDomainKey(category: selectedCategory, taskID: selectedTaskID)
     }
     /// Saves the active destinationQueue into the current domain bucket
-    public func snapshotCurrentDestinationQueue() {
+    func snapshotCurrentDestinationQueue() {
         let key = currentDestinationDomainKey
         if !destinationQueue.isEmpty {
             savedQueuesByDomain[key] = destinationQueue
@@ -234,7 +234,7 @@ extension KroutonStateStore {
     /// 2. If switching within the same domain (e.g. Audio CD -> DVD-Video -> Hybrid Data), keeps compatible
     ///    USB Burner & LAN Server cards and updates any .discImage extension (.cue <-> .iso <-> .dmg)!
     /// 3. If switching to a different domain (e.g. Label -> Audio CD -> Label), restores the saved queue for that domain!
-    public func syncDefaultDestinationForCategory(_ category: KroutonMasteringStation, taskID: String, driveManager: KroutonOpticalDriveBank) {
+    func syncDefaultDestinationForCategory(_ category: KroutonMasteringStation, taskID: String, driveManager: KroutonOpticalDriveBank) {
         let targetDomain = Self.destinationDomainKey(category: category, taskID: taskID)
         let allowed = allowedDestinationsForCurrentCategory
         // 1. Check if we already have a saved queue for the target domain (or compatible cards in the current queue)

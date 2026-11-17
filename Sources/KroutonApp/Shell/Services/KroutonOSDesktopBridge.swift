@@ -7,22 +7,22 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-public enum KroutonOSDesktopBridge {
+enum KroutonOSDesktopBridge {
     private static let activeLock = NSLock()
     nonisolated(unsafe) private static var _isVisiblyActive: Bool = true
 
-    public static func setApplicationVisiblyActive(_ active: Bool) {
+    static func setApplicationVisiblyActive(_ active: Bool) {
         activeLock.lock()
         _isVisiblyActive = active
         activeLock.unlock()
     }
 
-    public static func revealInFinder(url: URL) { _ = LSOpenCFURLRef(url as CFURL, nil) }
-    public static func playAcousticCue(_ cue: KroutonAcousticCue = .warning) {
+    static func revealInFinder(url: URL) { _ = LSOpenCFURLRef(url as CFURL, nil) }
+    static func playAcousticCue(_ cue: KroutonAcousticCue = .warning) {
         KroutonAcousticEngine.shared.play(cue)
     }
 
-    public static func copyTextToClipboard(_ text: String) {
+    static func copyTextToClipboard(_ text: String) {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/pbcopy")
         let pipe = Pipe()
@@ -34,7 +34,7 @@ public enum KroutonOSDesktopBridge {
         }
     }
 
-    public static func revealURLsInFinder(_ urls: [URL]) {
+    static func revealURLsInFinder(_ urls: [URL]) {
         guard let u = urls.first else { return }
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/open")
@@ -42,7 +42,7 @@ public enum KroutonOSDesktopBridge {
         try? p.run()
     }
 
-    public static func revealFolderInFinder(path: String) {
+    static func revealFolderInFinder(path: String) {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/open")
         p.arguments = [path]
@@ -50,7 +50,7 @@ public enum KroutonOSDesktopBridge {
     }
 
     @MainActor
-    public static func printSwiftUIView<V: View>(_ view: V) {
+    static func printSwiftUIView<V: View>(_ view: V) {
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2.0
         guard let cg = renderer.cgImage,
@@ -66,19 +66,19 @@ public enum KroutonOSDesktopBridge {
         try? p.run()
     }
 
-    public static func isSystemDarkMode() -> Bool {
+    static func isSystemDarkMode() -> Bool {
         UserDefaults.standard.string(forKey: "AppleInterfaceStyle") == "Dark"
     }
 
-    public static func postVoiceOverAnnouncement(_ message: String) {
+    static func postVoiceOverAnnouncement(_ message: String) {
         Task { @MainActor in AccessibilityNotification.Announcement(message).post() }
     }
 
-    public static var didBecomeActiveNotification: Notification.Name { Notification.Name("KroutonDidBecomeActive") }
-    public static var didResignActiveNotification: Notification.Name { Notification.Name("KroutonDidResignActive") }
-    public static var didChangeWindowOcclusionNotification: Notification.Name { Notification.Name("KroutonOcclusion") }
+    static var didBecomeActiveNotification: Notification.Name { Notification.Name("KroutonDidBecomeActive") }
+    static var didResignActiveNotification: Notification.Name { Notification.Name("KroutonDidResignActive") }
+    static var didChangeWindowOcclusionNotification: Notification.Name { Notification.Name("KroutonOcclusion") }
 
-    public static func isApplicationVisiblyActive() -> Bool {
+    static func isApplicationVisiblyActive() -> Bool {
         activeLock.lock()
         defer { activeLock.unlock() }
         return _isVisiblyActive

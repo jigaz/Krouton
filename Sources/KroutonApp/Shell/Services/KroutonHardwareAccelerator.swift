@@ -1,16 +1,16 @@
 import CryptoKit
 import Foundation
 
-public actor KroutonHardwareAccelerator {
-    public static let shared = KroutonHardwareAccelerator()
+actor KroutonHardwareAccelerator {
+    static let shared = KroutonHardwareAccelerator()
     private init() {}
 
-    public func computeSHA256Hex(for data: Data) -> String {
+    func computeSHA256Hex(for data: Data) -> String {
         let digest = SHA256.hash(data: data)
         return digest.map { String(format: "%02x", $0) }.joined()
     }
 
-    public func computeFileSHA256Hex(at url: URL, chunkSize: Int = 4 * 1024 * 1024) throws -> String {
+    func computeFileSHA256Hex(at url: URL, chunkSize: Int = 4 * 1024 * 1024) throws -> String {
         let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
         var hasher = SHA256()

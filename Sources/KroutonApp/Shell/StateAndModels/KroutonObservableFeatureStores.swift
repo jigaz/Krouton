@@ -7,26 +7,26 @@ import SwiftUI
 /// Value-type snapshot of the Polar Disc Label Workspace canvas for 32-level Undo/Redo (`Cmd+Z` / `Cmd+Shift+Z`).
 // MARK: - KroutonObservableFeatureStores
 
-public struct KroutonLabelCanvasSnapshot: Equatable, Sendable {
-    public var templateStyle: KroutonCroutonLabelStyle
-    public var backgroundStyle: KroutonVectorBackgroundStyle
-    public var vectorShapes: [KroutonVectorShapeLayer]
-    public var primaryRGBA: KroutonRGBAColor
-    public var secondaryRGBA: KroutonRGBAColor
-    public var gradientMidpoint: Double
-    public var gradientAngle: Double
-    public var gpuSeedPattern: KroutonGPUSeedPattern
-    public var kaleidoscopeRig: KroutonKaleidoscopeMirrorRig
-    public var kaleidoscopeFacets: Int
-    public var chamberTumble: Double
-    public var tinyPlanetRadius: Double
-    public var bgAdjustments: KroutonBackgroundAdjustments
-    public var textElements: [KroutonLabelTextElement]
-    public var selectedTextID: UUID?
-    public var workingGeometryOverride: KroutonDiscLabelGeometry?
+struct KroutonLabelCanvasSnapshot: Equatable, Sendable {
+    var templateStyle: KroutonCroutonLabelStyle
+    var backgroundStyle: KroutonVectorBackgroundStyle
+    var vectorShapes: [KroutonVectorShapeLayer]
+    var primaryRGBA: KroutonRGBAColor
+    var secondaryRGBA: KroutonRGBAColor
+    var gradientMidpoint: Double
+    var gradientAngle: Double
+    var gpuSeedPattern: KroutonGPUSeedPattern
+    var kaleidoscopeRig: KroutonKaleidoscopeMirrorRig
+    var kaleidoscopeFacets: Int
+    var chamberTumble: Double
+    var tinyPlanetRadius: Double
+    var bgAdjustments: KroutonBackgroundAdjustments
+    var textElements: [KroutonLabelTextElement]
+    var selectedTextID: UUID?
+    var workingGeometryOverride: KroutonDiscLabelGeometry?
 
     @MainActor
-    public init(from store: KroutonStateStore, overrideGeometry: KroutonDiscLabelGeometry?) {
+    init(from store: KroutonStateStore, overrideGeometry: KroutonDiscLabelGeometry?) {
         let (r1, g1, b1, a1) = KroutonPureColorMath.extractSRGB(store.labelBgPrimaryColor)
         let (r2, g2, b2, a2) = KroutonPureColorMath.extractSRGB(store.labelBgSecondaryColor)
         self.templateStyle = store.selectedLabelTemplate
@@ -48,7 +48,7 @@ public struct KroutonLabelCanvasSnapshot: Equatable, Sendable {
     }
 
     /// Epsilon-tolerant comparison so ColorPicker / Slider float rounding never triggers a false edit after Undo/Redo.
-    public func isMeaningfullyDifferent(from other: KroutonLabelCanvasSnapshot) -> Bool {
+    func isMeaningfullyDifferent(from other: KroutonLabelCanvasSnapshot) -> Bool {
         if templateStyle != other.templateStyle { return true }
         if backgroundStyle != other.backgroundStyle { return true }
         if vectorShapes != other.vectorShapes { return true }
@@ -82,7 +82,7 @@ public struct KroutonLabelCanvasSnapshot: Equatable, Sendable {
     }
 
     @MainActor
-    public func apply(to store: KroutonStateStore) -> KroutonDiscLabelGeometry? {
+    func apply(to store: KroutonStateStore) -> KroutonDiscLabelGeometry? {
         store.selectedLabelTemplate = templateStyle
         store.labelBackgroundStyle = backgroundStyle
         store.labelVectorShapes = vectorShapes
@@ -109,24 +109,24 @@ public struct KroutonLabelCanvasSnapshot: Equatable, Sendable {
 /// Cursor-based 32-step Undo/Redo engine for the Polar Disc Label Workspace.
 @Observable
 @MainActor
-public final class KroutonLabelWorkspaceSubStore {
-    public var workingGeometryOverride: KroutonDiscLabelGeometry? = nil
-    public var transientStatusBanner: String = ""
-    public var isFreehandDrawMode: Bool = false
-    public var autoSnapFreehandShapes: Bool = true
-    public var lastExportedPNGURL: URL? = nil
+final class KroutonLabelWorkspaceSubStore {
+    var workingGeometryOverride: KroutonDiscLabelGeometry? = nil
+    var transientStatusBanner: String = ""
+    var isFreehandDrawMode: Bool = false
+    var autoSnapFreehandShapes: Bool = true
+    var lastExportedPNGURL: URL? = nil
     public private(set) var timeline: [KroutonLabelCanvasSnapshot] = []
     public private(set) var cursor: Int = -1
-    public let maxHistoryDepth: Int = 32
+    let maxHistoryDepth: Int = 32
     private var suppressRecordingUntil: TimeInterval = 0
     private var lastEditTimestamp: TimeInterval = 0
 
-    public init() {}
+    init() {}
 
-    public var canUndo: Bool { cursor > 0 && timeline.indices.contains(cursor - 1) }
-    public var canRedo: Bool { cursor >= 0 && (cursor + 1) < timeline.count }
+    var canUndo: Bool { cursor > 0 && timeline.indices.contains(cursor - 1) }
+    var canRedo: Bool { cursor >= 0 && (cursor + 1) < timeline.count }
 
-    public func seedInitialSnapshotIfNeeded(from store: KroutonStateStore) {
+    func seedInitialSnapshotIfNeeded(from store: KroutonStateStore) {
         if timeline.isEmpty {
             let initial = KroutonLabelCanvasSnapshot(from: store, overrideGeometry: workingGeometryOverride)
             timeline = [initial]
@@ -135,7 +135,7 @@ public final class KroutonLabelWorkspaceSubStore {
     }
 
     /// Called before an explicit discrete action or automatically via `.onChange` when canvas state changes.
-    public func recordUndoSnapshot(from store: KroutonStateStore, coalesceWindow: TimeInterval = 0.0) {
+    func recordUndoSnapshot(from store: KroutonStateStore, coalesceWindow: TimeInterval = 0.0) {
         let now = ProcessInfo.processInfo.systemUptime
         guard now >= suppressRecordingUntil else { return }
         seedInitialSnapshotIfNeeded(from: store)
@@ -159,7 +159,7 @@ public final class KroutonLabelWorkspaceSubStore {
         store.objectWillChange.send()
     }
 
-    public func undo(into store: KroutonStateStore) {
+    func undo(into store: KroutonStateStore) {
         seedInitialSnapshotIfNeeded(from: store)
         // Flush any unrecorded live state into the timeline before stepping back
         let live = KroutonLabelCanvasSnapshot(from: store, overrideGeometry: workingGeometryOverride)
@@ -178,7 +178,7 @@ public final class KroutonLabelWorkspaceSubStore {
         store.objectWillChange.send()
     }
 
-    public func redo(into store: KroutonStateStore) {
+    func redo(into store: KroutonStateStore) {
         guard (cursor + 1) < timeline.count else { return }
         cursor += 1
         suppressRecordingUntil = ProcessInfo.processInfo.systemUptime + 0.35
@@ -191,15 +191,15 @@ public final class KroutonLabelWorkspaceSubStore {
 /// Fine-grained `@Observable` sub-store for `Galette` disc image inspection and CUE sheet parsing.
 @Observable
 @MainActor
-public final class KroutonDiscImageInspectorSubStore {
-    public var lastClassifiedSummary: String = ""
-    public var parsedCueTrackCount: Int = 0
-    public var bootArchitecture: String = ""
-    public var isBootableVerified: Bool = false
+final class KroutonDiscImageInspectorSubStore {
+    var lastClassifiedSummary: String = ""
+    var parsedCueTrackCount: Int = 0
+    var bootArchitecture: String = ""
+    var isBootableVerified: Bool = false
 
-    public init() {}
+    init() {}
 
-    public func analyzeImageWithDiscDepot(imageBytes: Data, sampleCueText: String? = nil) {
+    func analyzeImageWithDiscDepot(imageBytes: Data, sampleCueText: String? = nil) {
         let classification = KroutonDiscImageDepot.classifyBootableImage(headerBytes: imageBytes)
         self.bootArchitecture = classification.architectureDescription
         self.isBootableVerified = classification.isBootable
@@ -213,20 +213,20 @@ public final class KroutonDiscImageInspectorSubStore {
 /// Fine-grained `@Observable` sub-store isolating hardware & image destination queue telemetry.
 @Observable
 @MainActor
-public final class KroutonBurnQueueSubStore {
-    public var activeQueueStatusMessage: String = ""
-    public var completedTargetCount: Int = 0
-    public var lastMasteredISOURL: URL? = nil
-    public var lastMasteredSHA256: String = ""
-    public init() {}
+final class KroutonBurnQueueSubStore {
+    var activeQueueStatusMessage: String = ""
+    var completedTargetCount: Int = 0
+    var lastMasteredISOURL: URL? = nil
+    var lastMasteredSHA256: String = ""
+    init() {}
 }
 
 /// Fine-grained `@Observable` sub-store isolating Depot Catalog filtering and verification state.
 @Observable
 @MainActor
-public final class KroutonDepotCatalogSubStore {
-    public var lastVerifiedItemID: String = ""
-    public var lastVerifiedDigest: String = ""
-    public var activeCategoryFilter: String = "All"
-    public init() {}
+final class KroutonDepotCatalogSubStore {
+    var lastVerifiedItemID: String = ""
+    var lastVerifiedDigest: String = ""
+    var activeCategoryFilter: String = "All"
+    init() {}
 }

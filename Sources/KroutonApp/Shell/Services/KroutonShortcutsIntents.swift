@@ -7,7 +7,7 @@ import VideoKit
 
 // MARK: - AppEnum for Target Optical Media Size in Apple Shortcuts
 
-public enum KroutonShortcutDiscMedium: String, AppEnum, CaseIterable, Sendable {
+enum KroutonShortcutDiscMedium: String, AppEnum, CaseIterable, Sendable {
     case cd650MB   = "CD-R 74 min / 650 MB"
     case cd700MB   = "CD-R 80 min / 700 MB"
     case cd800MB   = "CD-R 90 min / 800 MB (Overburn)"
@@ -19,9 +19,9 @@ public enum KroutonShortcutDiscMedium: String, AppEnum, CaseIterable, Sendable {
     case bdxl100   = "BDXL 100 GB Triple-Layer"
     case bdxl128   = "BDXL 128 GB Quad-Layer"
 
-    public static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Optical Disc Size")
+    static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Optical Disc Size")
 
-    public static let caseDisplayRepresentations: [KroutonShortcutDiscMedium: DisplayRepresentation] = [
+    static let caseDisplayRepresentations: [KroutonShortcutDiscMedium: DisplayRepresentation] = [
         .cd650MB: "CD-R 650 MB (74 min)",
         .cd700MB: "CD-R 700 MB (80 min)",
         .cd800MB: "CD-R 800 MB (90 min Overburn)",
@@ -34,22 +34,22 @@ public enum KroutonShortcutDiscMedium: String, AppEnum, CaseIterable, Sendable {
         .bdxl128: "BDXL Quad-Layer (128 GB)"
     ]
 
-    public var spanningMedium: KroutonSpanningDiscMedium {
+    var spanningMedium: KroutonSpanningDiscMedium {
         KroutonSpanningDiscMedium(rawValue: rawValue) ?? .dvd5Single
     }
 }
 
 // MARK: - 1. List Connected Optical Drives Intent
 
-public struct KroutonListOpticalDrivesIntent: AppIntent {
-    public static let title: LocalizedStringResource = "List Optical Drives & Media Status"
-    public static let description = IntentDescription("Scans connected USB, SATA, FireWire, and Thunderbolt optical drives and reports loaded disc capacity and ATIP/MID manufacturer.")
-    public static let openAppWhenRun: Bool = false
+struct KroutonListOpticalDrivesIntent: AppIntent {
+    static let title: LocalizedStringResource = "List Optical Drives & Media Status"
+    static let description = IntentDescription("Scans connected USB, SATA, FireWire, and Thunderbolt optical drives and reports loaded disc capacity and ATIP/MID manufacturer.")
+    static let openAppWhenRun: Bool = false
 
-    public init() {}
+    init() {}
 
     @MainActor
-    public func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
+    func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
         let bank = KroutonOpticalDriveBank()
         bank.refreshDrives()
         let drives = bank.availableDrives
@@ -68,20 +68,20 @@ public struct KroutonListOpticalDrivesIntent: AppIntent {
 
 // MARK: - 2. Inspect Disc Image & SHA-256 Intent
 
-public struct KroutonInspectDiscImageIntent: AppIntent {
-    public static let title: LocalizedStringResource = "Inspect Optical Disc Image"
-    public static let description = IntentDescription("Inspects an .ISO, .DMG, .BIN, or .CUE disc image for El Torito / APM bootability, filesystems, 2048-byte LBA sector count, and optional SHA-256 digest.")
-    public static let openAppWhenRun: Bool = false
+struct KroutonInspectDiscImageIntent: AppIntent {
+    static let title: LocalizedStringResource = "Inspect Optical Disc Image"
+    static let description = IntentDescription("Inspects an .ISO, .DMG, .BIN, or .CUE disc image for El Torito / APM bootability, filesystems, 2048-byte LBA sector count, and optional SHA-256 digest.")
+    static let openAppWhenRun: Bool = false
 
     @Parameter(title: "Disc Image Path", description: "POSIX path to an .iso, .dmg, .bin, or .cue file")
-    public var imagePath: String
+    var imagePath: String
 
     @Parameter(title: "Compute SHA-256 Checksum", default: false)
-    public var computeSHA256: Bool
+    var computeSHA256: Bool
 
-    public init() {}
+    init() {}
 
-    public func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
+    func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
         let expanded = (imagePath as NSString).expandingTildeInPath
         let url = URL(fileURLWithPath: expanded)
         guard FileManager.default.fileExists(atPath: url.path) else {
@@ -110,21 +110,21 @@ public struct KroutonInspectDiscImageIntent: AppIntent {
 
 // MARK: - 3. Plan Multi-Disc Spanning Intent
 
-public struct KroutonPlanMultiDiscSpanIntent: AppIntent {
-    public static let title: LocalizedStringResource = "Calculate Multi-Disc Spanning Plan"
-    public static let description = IntentDescription("Calculates how many optical discs are required to span a list of files or folders for a selected target disc storage size (650 MB CD-R up to 128 GB BDXL).")
-    public static let openAppWhenRun: Bool = false
+struct KroutonPlanMultiDiscSpanIntent: AppIntent {
+    static let title: LocalizedStringResource = "Calculate Multi-Disc Spanning Plan"
+    static let description = IntentDescription("Calculates how many optical discs are required to span a list of files or folders for a selected target disc storage size (650 MB CD-R up to 128 GB BDXL).")
+    static let openAppWhenRun: Bool = false
 
     @Parameter(title: "Target Disc Size", default: .dvd5)
-    public var targetDiscSize: KroutonShortcutDiscMedium
+    var targetDiscSize: KroutonShortcutDiscMedium
 
     @Parameter(title: "File or Folder Paths", description: "Paths to stage and span across discs")
-    public var filePaths: [String]
+    var filePaths: [String]
 
-    public init() {}
+    init() {}
 
     @MainActor
-    public func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
+    func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
         let entries: [KroutonStagedFileEntry] = filePaths.compactMap { raw in
             let path = (raw as NSString).expandingTildeInPath
             let url = URL(fileURLWithPath: path)
@@ -143,23 +143,23 @@ public struct KroutonPlanMultiDiscSpanIntent: AppIntent {
 
 // MARK: - 4. Build Hybrid UDF / ISO-9660 Image Intent
 
-public struct KroutonBuildHybridISOIntent: AppIntent {
-    public static let title: LocalizedStringResource = "Master Hybrid UDF/ISO-9660 Disc Image"
-    public static let description = IntentDescription("Builds a mountable hybrid UDF + ISO-9660 + Joliet .iso optical disc image from a source folder.")
-    public static let openAppWhenRun: Bool = false
+struct KroutonBuildHybridISOIntent: AppIntent {
+    static let title: LocalizedStringResource = "Master Hybrid UDF/ISO-9660 Disc Image"
+    static let description = IntentDescription("Builds a mountable hybrid UDF + ISO-9660 + Joliet .iso optical disc image from a source folder.")
+    static let openAppWhenRun: Bool = false
 
     @Parameter(title: "Source Folder Path")
-    public var sourceFolderPath: String
+    var sourceFolderPath: String
 
     @Parameter(title: "Output .ISO Path", default: "~/Desktop/KROUTON_MASTER.iso")
-    public var outputISOPath: String
+    var outputISOPath: String
 
     @Parameter(title: "Volume Title", default: "KROUTON_DISC")
-    public var volumeTitle: String
+    var volumeTitle: String
 
-    public init() {}
+    init() {}
 
-    public func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
+    func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
         let srcURL = URL(fileURLWithPath: (sourceFolderPath as NSString).expandingTildeInPath)
         let outURL = URL(fileURLWithPath: (outputISOPath as NSString).expandingTildeInPath)
         let writtenBytes = try OpticalDiscVolumeScanner.buildOpticalISOImage(
@@ -175,18 +175,18 @@ public struct KroutonBuildHybridISOIntent: AppIntent {
 
 // MARK: - 5. Open Krouton Mastering Format Intent
 
-public struct KroutonOpenWorkspaceIntent: AppIntent {
-    public static let title: LocalizedStringResource = "Open Krouton Mastering Format"
-    public static let description = IntentDescription("Opens the Krouton macOS app directly into the specified optical format workspace (e.g., cd-da, dvd-video, bd-on-dvd, data-universal).")
-    public static let openAppWhenRun: Bool = true
+struct KroutonOpenWorkspaceIntent: AppIntent {
+    static let title: LocalizedStringResource = "Open Krouton Mastering Format"
+    static let description = IntentDescription("Opens the Krouton macOS app directly into the specified optical format workspace (e.g., cd-da, dvd-video, bd-on-dvd, data-universal).")
+    static let openAppWhenRun: Bool = true
 
     @Parameter(title: "Format ID", default: "data-universal")
-    public var formatID: String
+    var formatID: String
 
-    public init() {}
+    init() {}
 
     @MainActor
-    public func perform() async throws -> some IntentResult & ProvidesDialog {
+    func perform() async throws -> some IntentResult & ProvidesDialog {
         let store = KroutonWindowManager.shared.store
         if store.discFormats.contains(where: { $0.id == formatID }) {
             store.selectedCategory = .burn
@@ -199,8 +199,8 @@ public struct KroutonOpenWorkspaceIntent: AppIntent {
 
 // MARK: - Apple Shortcuts Provider
 
-public struct KroutonShortcutsProvider: AppShortcutsProvider {
-    public static var appShortcuts: [AppShortcut] {
+struct KroutonShortcutsProvider: AppShortcutsProvider {
+    static var appShortcuts: [AppShortcut] {
         AppShortcut(
             intent: KroutonListOpticalDrivesIntent(),
             phrases: [

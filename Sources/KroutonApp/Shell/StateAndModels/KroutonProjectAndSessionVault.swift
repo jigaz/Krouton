@@ -8,25 +8,25 @@ import UniformTypeIdentifiers
 
 // MARK: - .krut Optical Mastering Workspace Project Format, Sidecar Ticket & Encrypted Vault
 
-public extension UTType {
+extension UTType {
     static var kroutonProject: UTType {
         UTType(filenameExtension: "krut", conformingTo: .json) ?? .json
     }
 }
 
-public struct KroutonProjectSourceRecord: Codable, Hashable, Sendable {
-    public var absolutePath: String
-    public var relativePath: String?
-    public var bookmarkData: Data?
-    public var name: String
-    public var isDirectory: Bool
-    public var byteSize: Int64
-    public var itemCount: Int
-    public var posixPermissions: String
-    public var showOnMac: Bool
-    public var showOnPC: Bool
+struct KroutonProjectSourceRecord: Codable, Hashable, Sendable {
+    var absolutePath: String
+    var relativePath: String?
+    var bookmarkData: Data?
+    var name: String
+    var isDirectory: Bool
+    var byteSize: Int64
+    var itemCount: Int
+    var posixPermissions: String
+    var showOnMac: Bool
+    var showOnPC: Bool
 
-    public static func redactHomePath(_ rawPath: String) -> String {
+    static func redactHomePath(_ rawPath: String) -> String {
         let normalized = KroutonKrutSecurityEngine.normalizeCrossFilesystemPath(rawPath)
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         if normalized.hasPrefix(home + "/") {
@@ -35,7 +35,7 @@ public struct KroutonProjectSourceRecord: Codable, Hashable, Sendable {
         return normalized
     }
 
-    public init(from entry: KroutonStagedFileEntry, relativeTo projectURL: URL? = nil) {
+    init(from entry: KroutonStagedFileEntry, relativeTo projectURL: URL? = nil) {
         self.absolutePath = Self.redactHomePath(entry.url.path)
         if let baseDir = projectURL?.deletingLastPathComponent().path,
            entry.url.path.hasPrefix(baseDir + "/") {
@@ -55,7 +55,7 @@ public struct KroutonProjectSourceRecord: Codable, Hashable, Sendable {
     }
 
     /// 4-tier cross-filesystem resolver (APFS Inode -> Safe Relative Path -> Case-Insensitive ext4/Btrfs/NTFS -> Expanded '~' Path)
-    public func resolveURL(relativeTo projectURL: URL? = nil) -> (url: URL, isMissing: Bool) {
+    func resolveURL(relativeTo projectURL: URL? = nil) -> (url: URL, isMissing: Bool) {
         let fm = FileManager.default
         if let bm = bookmarkData {
             var isStale = false
@@ -85,17 +85,17 @@ public struct KroutonProjectSourceRecord: Codable, Hashable, Sendable {
     }
 }
 
-public struct KroutonSavedDestinationRecord: Codable, Hashable, Sendable {
-    public var kindRawValue: String
-    public var targetDriveID: String
-    public var hardwareOrPath: String
-    public var speedOrCodec: String
-    public var simulationMode: Bool
-    public var verifyAfterBurn: Bool
-    public var compressAfterCreation: Bool
-    public var copiesToBurn: Int
+struct KroutonSavedDestinationRecord: Codable, Hashable, Sendable {
+    var kindRawValue: String
+    var targetDriveID: String
+    var hardwareOrPath: String
+    var speedOrCodec: String
+    var simulationMode: Bool
+    var verifyAfterBurn: Bool
+    var compressAfterCreation: Bool
+    var copiesToBurn: Int
 
-    public init(from item: KroutonBakeBatchItem) {
+    init(from item: KroutonBakeBatchItem) {
         self.kindRawValue = item.kind.rawValue
         self.targetDriveID = item.targetDriveID
         self.hardwareOrPath = item.hardwareOrPath
@@ -106,7 +106,7 @@ public struct KroutonSavedDestinationRecord: Codable, Hashable, Sendable {
         self.copiesToBurn = item.copiesToBurn
     }
 
-    public func toBatchItem() -> KroutonBakeBatchItem {
+    func toBatchItem() -> KroutonBakeBatchItem {
         let resolvedKind = KroutonBurnDestinationKind(rawValue: kindRawValue) ?? .physicalBurner
         return KroutonBakeBatchItem(
             kind: resolvedKind,
@@ -121,37 +121,37 @@ public struct KroutonSavedDestinationRecord: Codable, Hashable, Sendable {
     }
 }
 
-public struct KroutonProjectManifest: Codable, Hashable, Sendable {
-    public var schemaURL: String = KroutonWebEndpoints.krutSchemaURLString
-    public var generatorURL: String = KroutonWebEndpoints.homeURLString
-    public var schemaVersion: String = "1.0"
-    public var savedAtISO8601: String
-    public var isSidecarFile: Bool = false
-    public var coreSpec: KroutonKrutCoreSpec
-    public var selectedCategoryRaw: String
-    public var selectedTaskID: String
-    public var discVolumeTitle: String
-    public var discPerformer: String
-    public var discMCNBarcode: String
-    public var discLabel: KroutonEmbeddedLabelSpec = KroutonEmbeddedLabelSpec()
-    public var labelDiscTitle: String
-    public var labelSubtitle: String
-    public var labelTemplateRaw: String
-    public var labelPresetIndex: Int
-    public var labelShowTracklistOnDisc: Bool
-    public var stagedSources: [KroutonProjectSourceRecord]
-    public var activeQueue: [KroutonSavedDestinationRecord]
-    public var savedQueuesByDomain: [String: [KroutonSavedDestinationRecord]]
+struct KroutonProjectManifest: Codable, Hashable, Sendable {
+    var schemaURL: String = KroutonWebEndpoints.krutSchemaURLString
+    var generatorURL: String = KroutonWebEndpoints.homeURLString
+    var schemaVersion: String = "1.0"
+    var savedAtISO8601: String
+    var isSidecarFile: Bool = false
+    var coreSpec: KroutonKrutCoreSpec
+    var selectedCategoryRaw: String
+    var selectedTaskID: String
+    var discVolumeTitle: String
+    var discPerformer: String
+    var discMCNBarcode: String
+    var discLabel: KroutonEmbeddedLabelSpec = KroutonEmbeddedLabelSpec()
+    var labelDiscTitle: String
+    var labelSubtitle: String
+    var labelTemplateRaw: String
+    var labelPresetIndex: Int
+    var labelShowTracklistOnDisc: Bool
+    var stagedSources: [KroutonProjectSourceRecord]
+    var activeQueue: [KroutonSavedDestinationRecord]
+    var savedQueuesByDomain: [String: [KroutonSavedDestinationRecord]]
 
-    public static let maxAllowedKrutBytes: Int = 16 * 1024 * 1024
+    static let maxAllowedKrutBytes: Int = 16 * 1024 * 1024
 
-    public func encodePrettyJSON() throws -> Data {
+    func encodePrettyJSON() throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         return try encoder.encode(self)
     }
 
-    public static func decode(from data: Data) throws -> KroutonProjectManifest {
+    static func decode(from data: Data) throws -> KroutonProjectManifest {
         guard data.count <= maxAllowedKrutBytes else {
             throw CocoaError(.fileReadTooLarge)
         }
@@ -159,35 +159,35 @@ public struct KroutonProjectManifest: Codable, Hashable, Sendable {
     }
 }
 
-public struct KroutonProjectFileDocument: FileDocument {
-    public static var readableContentTypes: [UTType] { [.kroutonProject, .json] }
-    public var jsonData: Data
+struct KroutonProjectFileDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.kroutonProject, .json] }
+    var jsonData: Data
 
-    public init(jsonData: Data = Data()) {
+    init(jsonData: Data = Data()) {
         self.jsonData = jsonData
     }
 
-    public init(configuration: ReadConfiguration) throws {
+    init(configuration: ReadConfiguration) throws {
         self.jsonData = configuration.file.regularFileContents ?? Data()
     }
 
-    public func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
         FileWrapper(regularFileWithContents: jsonData)
     }
 }
 
 @MainActor
-public final class KroutonProjectDialogBridge: ObservableObject {
-    public static let shared = KroutonProjectDialogBridge()
-    @Published public var isShowingExporter: Bool = false
-    @Published public var isShowingImporter: Bool = false
-    @Published public var exportDocument: KroutonProjectFileDocument = KroutonProjectFileDocument()
-    @Published public var defaultFilename: String = "Krouton_Master.krut"
+final class KroutonProjectDialogBridge: ObservableObject {
+    static let shared = KroutonProjectDialogBridge()
+    @Published var isShowingExporter: Bool = false
+    @Published var isShowingImporter: Bool = false
+    @Published var exportDocument: KroutonProjectFileDocument = KroutonProjectFileDocument()
+    @Published var defaultFilename: String = "Krouton_Master.krut"
 }
 
 @MainActor
 extension KroutonStateStore {
-    public func buildProjectManifest(
+    func buildProjectManifest(
         relativeTo projectURL: URL? = nil,
         isSidecar: Bool = false,
         verifiedSHA256: String = "",
@@ -279,7 +279,7 @@ extension KroutonStateStore {
         )
     }
 
-    public func applyProjectManifest(_ manifest: KroutonProjectManifest, projectURL: URL? = nil, driveManager: KroutonOpticalDriveBank? = nil) {
+    func applyProjectManifest(_ manifest: KroutonProjectManifest, projectURL: URL? = nil, driveManager: KroutonOpticalDriveBank? = nil) {
         if let cat = KroutonMasteringStation(rawValue: manifest.selectedCategoryRaw) {
             selectedCategory = cat
         }
@@ -361,7 +361,7 @@ extension KroutonStateStore {
         }
     }
 
-    public func presentSaveKrutProjectSheet() {
+    func presentSaveKrutProjectSheet() {
         guard let data = try? buildProjectManifest().encodePrettyJSON() else { return }
         let cleanTitle = discVolumeTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? "Krouton_Master"
@@ -371,7 +371,7 @@ extension KroutonStateStore {
         KroutonProjectDialogBridge.shared.isShowingExporter = true
     }
 
-    public func presentOpenKrutProjectSheet() {
+    func presentOpenKrutProjectSheet() {
         KroutonProjectDialogBridge.shared.isShowingImporter = true
     }
 }

@@ -150,7 +150,7 @@ extension KroutonStateStore {
         return Color(red: r, green: g, blue: b)
     }
 
-    public var resolvedColorScheme: ColorScheme {
+    var resolvedColorScheme: ColorScheme {
         switch appearanceMode {
         case .light: return .light
         case .dark:  return .dark
@@ -160,7 +160,7 @@ extension KroutonStateStore {
         }
     }
 
-    public static func secondaryHarmonyForPresetID(_ id: Int, scheme: ColorScheme = .dark) -> Color {
+    static func secondaryHarmonyForPresetID(_ id: Int, scheme: ColorScheme = .dark) -> Color {
         if scheme == .light {
             switch id {
             case 0:  return p3Color(0.50, 0.16, 0.84)
@@ -253,7 +253,7 @@ extension KroutonStateStore {
 }
 
 // MARK: - Native SwiftUI Semantic Surface Colors (Zero NSColor Dependency)
-public extension Color {
+extension Color {
     private static var isEffectiveDarkAppearance: Bool {
         if let raw = UserDefaults.standard.string(forKey: "krouton.pref.appearanceMode"),
            let mode = KroutonRoastAppearanceMode(rawValue: raw) {

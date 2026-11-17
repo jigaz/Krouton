@@ -38,6 +38,13 @@ extension KroutonTestHarness {
             h.check(KroutonDomainIdentity.Module.allCases.count == 11, "KroutonDomainIdentity.Module must enumerate all 11 targets")
             h.check(KroutonDomainIdentity.Module.driveKit.subsystem == "app.krouton.drivekit", "DriveKit subsystem must be app.krouton.drivekit")
 
+            let packageSwiftURL = rootURL.appendingPathComponent("Package.swift")
+            let packageSwiftText = (try? String(contentsOf: packageSwiftURL, encoding: .utf8)) ?? ""
+            h.lint(packageSwiftText.contains(".swiftLanguageMode(.v6)") && packageSwiftText.contains("-warnings-as-errors"), "Package.swift must enforce .swiftLanguageMode(.v6) and -warnings-as-errors")
+            let targetDeclCount = packageSwiftText.components(separatedBy: "Target(").count - 1 + (packageSwiftText.components(separatedBy: ".target(").count - 1)
+            let settingsUsageCount = packageSwiftText.components(separatedBy: "swiftSettings: strictSwiftSettings").count - 1
+            h.lint(targetDeclCount == 21 && settingsUsageCount == 21, "All 21 targets in Package.swift must adopt strictSwiftSettings")
+
             let culinaryTypeRegex = try! NSRegularExpression(
                 pattern: #"\b(?:struct|enum|class|actor|protocol|typealias)\s+[A-Za-z0-9_]*(?:Toaster|Toast|Loaf|AudioCube|Cube|Recipe|Bakery|Pantry|Crustini|Krustini|Crust|Slice|Dough|Oven|Marmalade|Tartine|Galette|Krumb|Crumb|Baguette|Brioche)[A-Za-z0-9_]*"#,
                 options: [.caseInsensitive]
@@ -77,6 +84,11 @@ extension KroutonTestHarness {
             }
         }
 
+        self.runSuite2ModularHygiene(allSwiftFiles: allSwiftFiles, rootURL: rootURL, sourcesURL: sourcesURL, fm: fm)
+        self.runSuite3CatalogRouting()
+    }
+
+    private mutating func runSuite2ModularHygiene(allSwiftFiles: [URL], rootURL: URL, sourcesURL: URL, fm: FileManager) {
         // -------------------------------------------------------------------------
         // SUITE 2: Dynamic Cluster Discovery, 400/500-LOC Ceilings, +Role Pairing & Member-Order Hygiene
         // -------------------------------------------------------------------------
@@ -195,12 +207,18 @@ extension KroutonTestHarness {
                     }
                 }
                 h.lint(reactiveOrderViolation == nil, "\(relPath) declares reactive property wrapper after body/methods (\(reactiveOrderViolation ?? ""))")
+
+                // 8. Access-control law: zero redundant `public` declarations in executable leaf targets (KroutonApp & KroutonVerify)
+                if relPath.hasPrefix("Sources/KroutonApp/") || relPath.hasPrefix("Sources/KroutonVerify/") {
+                    let hasPublicDecl = lines.contains {
+                        $0.range(of: #"^\s*(?:@[A-Za-z0-9_()]+\s+)*public\s+(?:final\s+|static\s+|class\s+|override\s+|mutating\s+|nonisolated\s+)*(?:struct|class|enum|actor|protocol|extension|func|var|let|init|typealias)\b"#, options: .regularExpression) != nil
+                    }
+                    h.lint(!hasPublicDecl, "\(relPath) is in an executable target and must not declare redundant public symbols")
+                }
             }
 
             Self.verifyDynamicMenuAndShortcutContracts(&h, allSwiftFiles: allSwiftFiles, clusterSourceByPrefix: clusterSourceByPrefix)
         }
-
-        self.runSuite3CatalogRouting()
     }
 
     private mutating func runSuite3CatalogRouting() {

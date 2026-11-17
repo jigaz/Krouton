@@ -189,12 +189,12 @@ struct ABComparison: Equatable {
 }
 
 /// Independent Floating Window View for the Track Montage Editor (Normal Resizable & Fullscreen-Capable Window)
-public struct KroutonFloatingTrackMontageWindowView: View {
+struct KroutonFloatingTrackMontageWindowView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject private var montageState = TrackMontageWindowState.shared
     @ObservedObject private var auditioner = SpliceAudioAuditioner.shared
 
-    public init(store: KroutonStateStore) {
+    init(store: KroutonStateStore) {
         self.store = store
     }
 
@@ -210,7 +210,7 @@ public struct KroutonFloatingTrackMontageWindowView: View {
         return 0
     }
 
-    public var body: some View {
+    var body: some View {
         Group {
             if project.tracks.count >= 2 {
                 let idx = resolvedTrackIndex

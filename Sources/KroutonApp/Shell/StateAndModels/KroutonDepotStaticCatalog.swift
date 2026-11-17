@@ -3,8 +3,8 @@ import OpticalCore
 import SwiftUI
 
 // MARK: - Static Disc Image Depot Feed Subscriptions & Curated Optical Catalog
-public enum KroutonDepotStaticCatalog {
-    public static let defaultChannels: [KroutonDepotFeedSubscription] = [
+enum KroutonDepotStaticCatalog {
+    static let defaultChannels: [KroutonDepotFeedSubscription] = [
         KroutonDepotFeedSubscription(id: "rescue", name: "System Rescue, Partitioning & Hardware Diagnostics", description: "SystemRescue, GParted Live, Rescuezilla, Memtest86+, FreeDOS 1.4 BIOS Room", itemCount: 14, isEnabled: true, sfSymbol: "cross.case.fill"),
         KroutonDepotFeedSubscription(id: "linux", name: "Live Linux & BSD Official Optical Releases", description: "Ubuntu LTS, Fedora Workstation, Debian Live, Arch, FreeBSD Boot-Only & DVD", itemCount: 28, isEnabled: true, sfSymbol: "terminal.fill"),
         KroutonDepotFeedSubscription(id: "windows", name: "Microsoft Windows & DOS Official ISO API", description: "Direct Microsoft token downloader for Windows 11 (w/ DVD-5 Splitter) & Windows 10", itemCount: 8, isEnabled: true, sfSymbol: "window.ceiling"),
@@ -12,7 +12,7 @@ public enum KroutonDepotStaticCatalog {
         KroutonDepotFeedSubscription(id: "shareware", name: "Internet Archive — 90s Cover Discs & Shareware Vault", description: "MacAddict, Macworld, Next Generation, and classic demo CDs", itemCount: 65, isEnabled: false, sfSymbol: "opticaldisc.fill")
     ]
 
-    public static let defaultItems: [KroutonDepotCatalogItem] = [
+    static let defaultItems: [KroutonDepotCatalogItem] = [
         // =====================================================================
         // 1. System Rescue & BIOS ("Rescue & Diagnostics" — 10 Titles)
         // =====================================================================
@@ -101,7 +101,7 @@ public enum KroutonDepotStaticCatalog {
 
 // MARK: - KroutonDepotCatalogItem CAD Blueprint & Volume Structure Schematic Helpers
 extension KroutonDepotCatalogItem {
-    public var blueprintSectorSegments: [(label: String, lbaRange: String)] {
+    var blueprintSectorSegments: [(label: String, lbaRange: String)] {
         if bootStandard.contains("APM") || bootStandard.contains("HFS") {
             return [
                 ("BLK 0..1: Driver + APM", "LBA 00..63"),
@@ -129,7 +129,7 @@ extension KroutonDepotCatalogItem {
         }
     }
 
-    public var blueprintRootFiles: [String] {
+    var blueprintRootFiles: [String] {
         switch channel {
         case "Rescue & Diagnostics":
             return [

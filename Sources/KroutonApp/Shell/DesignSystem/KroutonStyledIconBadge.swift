@@ -11,16 +11,16 @@ import UniformTypeIdentifiers
 import VideoKit
 
 // MARK: - Functional Icon & Widget Style Renderer (Default / Dark / Clear / Tinted)
-public struct KroutonStyledIconBadge: View {
-    public let sfSymbol: String
-    public let tintColor: Color
-    public let style: KroutonGarnishStyleMode
-    public var isSelectedRow: Bool = false
-    public var onAccentText: Color = .white
-    public var size: CGFloat = 24
-    public var symbolSize: CGFloat = 13
+struct KroutonStyledIconBadge: View {
+    let sfSymbol: String
+    let tintColor: Color
+    let style: KroutonGarnishStyleMode
+    var isSelectedRow: Bool = false
+    var onAccentText: Color = .white
+    var size: CGFloat = 24
+    var symbolSize: CGFloat = 13
 
-    public init(
+    init(
         sfSymbol: String,
         tintColor: Color,
         style: KroutonGarnishStyleMode,
@@ -38,7 +38,7 @@ public struct KroutonStyledIconBadge: View {
         self.symbolSize = symbolSize
     }
 
-    public var body: some View {
+    var body: some View {
         let activeStore = KroutonStateStore.shared
         let isLight = (activeStore?.resolvedColorScheme == .light)
         let useHarmonyBg = (style == .tinted && (activeStore?.enableSecondaryAccentUITints ?? false))
