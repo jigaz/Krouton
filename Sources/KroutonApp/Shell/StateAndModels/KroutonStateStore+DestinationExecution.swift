@@ -120,7 +120,7 @@ extension KroutonStateStore {
             )
             objectWillChange.send()
         case .physicalBurner:
-            if forceDVDROMBookType, !target.targetDriveID.isEmpty {
+            if self.forceDVDROMBookType, !target.targetDriveID.isEmpty {
                 driveManager.stampDVDROMBookType(for: target.targetDriveID, vendorProfile: bitsetVendorProfile)
             }
             let burnSucceeded = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
@@ -146,7 +146,7 @@ extension KroutonStateStore {
                         completedCopy: finishedCount,
                         totalCopies: target.copiesToBurn,
                         countdownSeconds: autoLoadCountdownSeconds,
-                        bitsetDVDROM: forceDVDROMBookType
+                        bitsetDVDROM: self.forceDVDROMBookType
                     ) { [weak self] in
                         guard let self = self else { return }
                         if let updatedItem = self.destinationQueue.first(where: { $0.id == target.id }) {

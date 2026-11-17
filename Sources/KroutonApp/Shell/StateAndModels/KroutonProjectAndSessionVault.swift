@@ -209,54 +209,54 @@ extension KroutonStateStore {
             payloadSHA256Hex: verifiedSHA256,
             writeMethod: writeMethod,
             dualLayerBreakSectorLBA: dualLayerBreakSectorLBA,
-            forceDVDROMBookType: forceDVDROMBookType,
+            forceDVDROMBookType: self.forceDVDROMBookType,
             performOPCBeforeWrite: true,
             ephemeralAutoPurgeOnComplete: true
         )
-        let activePreset = labelPresets[min(max(0, selectedLabelPresetIndex), max(0, labelPresets.count - 1))]
+        let activePreset = self.labelPresets[min(max(0, self.selectedLabelPresetIndex), max(0, self.labelPresets.count - 1))]
         let resolvedLines: [String] = !stagedFiles.isEmpty
             ? stagedFiles.prefix(8).enumerated().map { idx, f in String(format: "%02d. %@", idx + 1, f.name) }
             : redBookTracks.prefix(8).map { $0.title }
-        let effectiveLabelTitle = (labelDiscTitle.isEmpty && discVolumeTitle != "KROUTON_DISC" && !discVolumeTitle.isEmpty)
+        let effectiveLabelTitle = (self.labelDiscTitle.isEmpty && discVolumeTitle != "KROUTON_DISC" && !discVolumeTitle.isEmpty)
             ? discVolumeTitle
-            : labelDiscTitle
+            : self.labelDiscTitle
 
-        let (r1, g1, b1, a1) = KroutonPureColorMath.extractSRGB(labelBgPrimaryColor)
-        let (r2, g2, b2, a2) = KroutonPureColorMath.extractSRGB(labelBgSecondaryColor)
+        let (r1, g1, b1, a1) = KroutonPureColorMath.extractSRGB(self.labelBgPrimaryColor)
+        let (r2, g2, b2, a2) = KroutonPureColorMath.extractSRGB(self.labelBgSecondaryColor)
         var embeddedLabel = KroutonEmbeddedLabelSpec(
             primaryArcTitle: effectiveLabelTitle,
-            bottomSubtitle: labelSubtitle,
+            bottomSubtitle: self.labelSubtitle,
             performer: discPerformer,
             mcnCatalogBarcode: discMCNBarcode,
-            templateStyleRaw: selectedLabelTemplate.rawValue,
+            templateStyleRaw: self.selectedLabelTemplate.rawValue,
             trayPresetName: activePreset.name,
             outerDiameterMM: activePreset.outerDiameterMM,
             innerDiameterMM: activePreset.innerDiameterMM,
             offsetXMM: activePreset.offsetXMM,
             offsetYMM: activePreset.offsetYMM,
-            showTracklistOnDisc: labelShowTracklistOnDisc,
+            showTracklistOnDisc: self.labelShowTracklistOnDisc,
             stampedTracklistLines: resolvedLines,
-            accentPresetIndex: selectedAccentIndex,
-            useHarmonySplitComplement: enableSecondaryAccentUITints,
-            autoSearchQuery: autoLabelSearchQuery
+            accentPresetIndex: self.selectedAccentIndex,
+            useHarmonySplitComplement: self.enableSecondaryAccentUITints,
+            autoSearchQuery: self.autoLabelSearchQuery
         )
-        embeddedLabel.backgroundStyle = labelBackgroundStyle
+        embeddedLabel.backgroundStyle = self.labelBackgroundStyle
         embeddedLabel.backgroundPrimaryColor = KroutonRGBAColor(r: Double(r1), g: Double(g1), b: Double(b1), a: Double(a1))
         embeddedLabel.backgroundSecondaryColor = KroutonRGBAColor(r: Double(r2), g: Double(g2), b: Double(b2), a: Double(a2))
-        embeddedLabel.gradientAngleDegrees = labelGradientAngle
-        embeddedLabel.topArcRadiusMM = labelTopArcRadiusMM
-        embeddedLabel.bottomArcRadiusMM = labelBottomArcRadiusMM
-        embeddedLabel.arcLetterSpacing = labelArcLetterSpacing
-        embeddedLabel.vectorShapeLayers = labelVectorShapes
-        embeddedLabel.textElements = labelTextElements
-        embeddedLabel.gradientMidpointRatio = labelGradientMidpoint
-        embeddedLabel.bgAdjustments = labelBgAdjustments
-        embeddedLabel.gpuSeedPattern = labelGPUSeedPattern
-        embeddedLabel.kaleidoscopeFacetCount = labelKaleidoscopeFacets
-        embeddedLabel.kaleidoscopeMirrorRig = labelKaleidoscopeRig
-        embeddedLabel.kaleidoscopeChamberTumble = labelChamberTumble
-        embeddedLabel.tinyPlanetRadiusRatio = labelTinyPlanetRadius
-        embeddedLabel.useVisionForegroundCutout = labelUseVisionForeground
+        embeddedLabel.gradientAngleDegrees = self.labelGradientAngle
+        embeddedLabel.topArcRadiusMM = self.labelTopArcRadiusMM
+        embeddedLabel.bottomArcRadiusMM = self.labelBottomArcRadiusMM
+        embeddedLabel.arcLetterSpacing = self.labelArcLetterSpacing
+        embeddedLabel.vectorShapeLayers = self.labelVectorShapes
+        embeddedLabel.textElements = self.labelTextElements
+        embeddedLabel.gradientMidpointRatio = self.labelGradientMidpoint
+        embeddedLabel.bgAdjustments = self.labelBgAdjustments
+        embeddedLabel.gpuSeedPattern = self.labelGPUSeedPattern
+        embeddedLabel.kaleidoscopeFacetCount = self.labelKaleidoscopeFacets
+        embeddedLabel.kaleidoscopeMirrorRig = self.labelKaleidoscopeRig
+        embeddedLabel.kaleidoscopeChamberTumble = self.labelChamberTumble
+        embeddedLabel.tinyPlanetRadiusRatio = self.labelTinyPlanetRadius
+        embeddedLabel.useVisionForegroundCutout = self.labelUseVisionForeground
 
         return KroutonProjectManifest(
             savedAtISO8601: ISO8601DateFormatter().string(from: Date()),
@@ -269,10 +269,10 @@ extension KroutonStateStore {
             discMCNBarcode: discMCNBarcode,
             discLabel: embeddedLabel,
             labelDiscTitle: effectiveLabelTitle,
-            labelSubtitle: labelSubtitle,
-            labelTemplateRaw: selectedLabelTemplate.rawValue,
-            labelPresetIndex: selectedLabelPresetIndex,
-            labelShowTracklistOnDisc: labelShowTracklistOnDisc,
+            labelSubtitle: self.labelSubtitle,
+            labelTemplateRaw: self.selectedLabelTemplate.rawValue,
+            labelPresetIndex: self.selectedLabelPresetIndex,
+            labelShowTracklistOnDisc: self.labelShowTracklistOnDisc,
             stagedSources: stagedFiles.map { KroutonProjectSourceRecord(from: $0, relativeTo: projectURL) },
             activeQueue: destinationQueue.map { KroutonSavedDestinationRecord(from: $0) },
             savedQueuesByDomain: domainMap
@@ -288,34 +288,34 @@ extension KroutonStateStore {
         discPerformer = manifest.discPerformer
         discMCNBarcode = manifest.discMCNBarcode
         let lbl = manifest.discLabel
-        labelDiscTitle = !lbl.primaryArcTitle.isEmpty ? lbl.primaryArcTitle : manifest.labelDiscTitle
-        labelSubtitle = !lbl.bottomSubtitle.isEmpty ? lbl.bottomSubtitle : manifest.labelSubtitle
+        self.labelDiscTitle = !lbl.primaryArcTitle.isEmpty ? lbl.primaryArcTitle : manifest.labelDiscTitle
+        self.labelSubtitle = !lbl.bottomSubtitle.isEmpty ? lbl.bottomSubtitle : manifest.labelSubtitle
         if let tpl = KroutonCroutonLabelStyle(rawValue: lbl.templateStyleRaw) ?? KroutonCroutonLabelStyle(rawValue: manifest.labelTemplateRaw) {
-            selectedLabelTemplate = tpl
+            self.selectedLabelTemplate = tpl
         }
-        selectedLabelPresetIndex = min(max(0, manifest.labelPresetIndex), max(0, labelPresets.count - 1))
-        labelShowTracklistOnDisc = lbl.showTracklistOnDisc
-        labelBackgroundStyle = lbl.backgroundStyle
-        labelBgPrimaryColor = Color(red: lbl.backgroundPrimaryColor.r, green: lbl.backgroundPrimaryColor.g, blue: lbl.backgroundPrimaryColor.b, opacity: lbl.backgroundPrimaryColor.a)
-        labelBgSecondaryColor = Color(red: lbl.backgroundSecondaryColor.r, green: lbl.backgroundSecondaryColor.g, blue: lbl.backgroundSecondaryColor.b, opacity: lbl.backgroundSecondaryColor.a)
-        labelGradientAngle = lbl.gradientAngleDegrees
-        labelTopArcRadiusMM = lbl.topArcRadiusMM
-        labelBottomArcRadiusMM = lbl.bottomArcRadiusMM
-        labelArcLetterSpacing = lbl.arcLetterSpacing
-        labelVectorShapes = lbl.vectorShapeLayers
-        labelTextElements = lbl.textElements
-        labelGradientMidpoint = lbl.gradientMidpointRatio
-        labelBgAdjustments = lbl.bgAdjustments
-        labelGPUSeedPattern = lbl.gpuSeedPattern
-        labelKaleidoscopeFacets = lbl.kaleidoscopeFacetCount
-        labelKaleidoscopeRig = lbl.kaleidoscopeMirrorRig
-        labelChamberTumble = lbl.kaleidoscopeChamberTumble
-        labelTinyPlanetRadius = lbl.tinyPlanetRadiusRatio
-        labelUseVisionForeground = lbl.useVisionForegroundCutout
+        self.selectedLabelPresetIndex = min(max(0, manifest.labelPresetIndex), max(0, self.labelPresets.count - 1))
+        self.labelShowTracklistOnDisc = lbl.showTracklistOnDisc
+        self.labelBackgroundStyle = lbl.backgroundStyle
+        self.labelBgPrimaryColor = Color(red: lbl.backgroundPrimaryColor.r, green: lbl.backgroundPrimaryColor.g, blue: lbl.backgroundPrimaryColor.b, opacity: lbl.backgroundPrimaryColor.a)
+        self.labelBgSecondaryColor = Color(red: lbl.backgroundSecondaryColor.r, green: lbl.backgroundSecondaryColor.g, blue: lbl.backgroundSecondaryColor.b, opacity: lbl.backgroundSecondaryColor.a)
+        self.labelGradientAngle = lbl.gradientAngleDegrees
+        self.labelTopArcRadiusMM = lbl.topArcRadiusMM
+        self.labelBottomArcRadiusMM = lbl.bottomArcRadiusMM
+        self.labelArcLetterSpacing = lbl.arcLetterSpacing
+        self.labelVectorShapes = lbl.vectorShapeLayers
+        self.labelTextElements = lbl.textElements
+        self.labelGradientMidpoint = lbl.gradientMidpointRatio
+        self.labelBgAdjustments = lbl.bgAdjustments
+        self.labelGPUSeedPattern = lbl.gpuSeedPattern
+        self.labelKaleidoscopeFacets = lbl.kaleidoscopeFacetCount
+        self.labelKaleidoscopeRig = lbl.kaleidoscopeMirrorRig
+        self.labelChamberTumble = lbl.kaleidoscopeChamberTumble
+        self.labelTinyPlanetRadius = lbl.tinyPlanetRadiusRatio
+        self.labelUseVisionForeground = lbl.useVisionForegroundCutout
         if let breakLBA = manifest.coreSpec.dualLayerBreakSectorLBA {
             dualLayerBreakSectorLBA = breakLBA
         }
-        forceDVDROMBookType = manifest.coreSpec.forceDVDROMBookType
+        self.forceDVDROMBookType = manifest.coreSpec.forceDVDROMBookType
 
         var restoredDomainMap: [String: [KroutonBakeBatchItem]] = [:]
         for (k, records) in manifest.savedQueuesByDomain {

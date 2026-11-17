@@ -90,12 +90,12 @@ extension KroutonStateStore {
     func queryInternetArchiveLive(query: String) {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let searchTerm = trimmed.isEmpty ? "macaddict OR systemrescue OR freedos OR homebrew iso" : trimmed
-        isSearchingInternetArchive = true
+        self.isSearchingInternetArchive = true
 
         let rawQ = "(\(searchTerm)) AND mediatype:(software OR image) AND (format:(ISO Image) OR format:(BIN) OR title:(CD-ROM) OR title:(DVD))"
         guard let encodedQ = rawQ.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
               let url = URL(string: "https://archive.org/advancedsearch.php?q=\(encodedQ)&fl[]=identifier&fl[]=title&fl[]=description&fl[]=creator&fl[]=year&rows=8&page=1&output=json") else {
-            isSearchingInternetArchive = false
+            self.isSearchingInternetArchive = false
             return
         }
 

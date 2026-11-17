@@ -700,3 +700,16 @@ This file tracks proposed and completed changes across AI coding sessions (Claud
   - `Sources/KroutonApp/Resources/LocalizableCatalog.json` (A)
   - `Sources/KroutonApp/Shell/Services/KroutonL10n+ExtendedCatalog.swift` (D)
   - `Sources/KroutonApp/Shell/Services/KroutonL10n.swift` (M)
+
+- **2026-11-17 15:39 [commit 39750dc]:** Replace 65 manual sub-store forwarding properties with @dynamicMemberLookup on KroutonStateStore 
+  - `Sources/KroutonApp/Shell/DesignSystem/KroutonThemeEngine.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/DepotCatalogue.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonProjectAndSessionVault.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+DepotCache.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+DestinationExecution.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+DestinationQueue.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+LabelExport.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+StagingAndCatalog.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+SubStoreForwarding.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/LabelDocument.swift` (M)

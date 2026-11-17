@@ -85,7 +85,7 @@ extension KroutonStateStore {
         let beforeCount = stagedFiles.count
         stagedFiles.removeAll { !isURLCompatible($0.url, for: spec) }
         if stagedFiles.count < beforeCount {
-            stagedDepotItemID = nil
+            self.stagedDepotItemID = nil
         }
     }
 
@@ -168,17 +168,17 @@ extension KroutonStateStore {
     }
 
     var resolvedFolderIconColor: Color {
-        folderColorMode.resolvedFolderColor(accent: activeAccent)
+        self.folderColorMode.resolvedFolderColor(accent: activeAccent)
     }
 
     func announceForVoiceOver(_ message: String) {
-        guard voiceOverSpokenTelemetry else { return }
+        guard self.voiceOverSpokenTelemetry else { return }
         KroutonOSDesktopBridge.postVoiceOverAnnouncement(message)
     }
 
     /// Forwards localization lookup to the single KroutonL10n.tr implementation
     func tr(_ key: String) -> String {
-        KroutonL10n.activeISOCode = appLanguage.isoCode
+        KroutonL10n.activeISOCode = self.appLanguage.isoCode
         return KroutonL10n.tr(key)
     }
 
@@ -227,21 +227,21 @@ extension KroutonStateStore {
     }
 
     func downloadAndStageDepotItem(id: String, jumpToInspector: Bool = false) {
-        guard let idx = depotItems.firstIndex(where: { $0.id == id }) else { return }
-        let item = depotItems[idx]
+        guard let idx = self.depotItems.firstIndex(where: { $0.id == id }) else { return }
+        let item = self.depotItems[idx]
         let cacheDir = URL(fileURLWithPath: "/tmp/KroutonDepotCache", isDirectory: true)
         try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
         let safeFilename = item.id + "-" + item.version.replacingOccurrences(of: " ", with: "_") + ".iso"
         let isoURL = cacheDir.appendingPathComponent(safeFilename)
 
         if FileManager.default.fileExists(atPath: isoURL.path) {
-            depotItems[idx].isDownloaded = true
-            stageDepotItemForBurning(depotItems[idx], jumpToInspector: jumpToInspector)
+            self.depotItems[idx].isDownloaded = true
+            stageDepotItemForBurning(self.depotItems[idx], jumpToInspector: jumpToInspector)
             return
         }
 
-        if depotDownloadProgress[id] != nil { return }
-        depotDownloadProgress[id] = 0.08
+        if self.depotDownloadProgress[id] != nil { return }
+        self.depotDownloadProgress[id] = 0.08
         rejectedDropNotice = nil
 
         Task { @MainActor in
@@ -276,7 +276,7 @@ extension KroutonStateStore {
             return
         }
         stagedFiles = [KroutonOpticalDriveBank.inspectFileOrFolder(url: isoURL)]
-        stagedDepotItemID = item.id
+        self.stagedDepotItemID = item.id
         discVolumeTitle = String(item.id.uppercased().replacingOccurrences(of: "-", with: "_").prefix(32))
         if jumpToInspector {
             selectedCategory = .burn

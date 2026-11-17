@@ -9,16 +9,16 @@ import SwiftUI
 extension KroutonStateStore {
     @MainActor
     func executeLabelDestinationExport() {
-        let idx = min(max(0, selectedLabelPresetIndex), max(0, labelPresets.count - 1))
-        let preset = labelWorkspaceSubStore.workingGeometryOverride ?? (labelPresets.isEmpty
+        let idx = min(max(0, self.selectedLabelPresetIndex), max(0, self.labelPresets.count - 1))
+        let preset = labelWorkspaceSubStore.workingGeometryOverride ?? (self.labelPresets.isEmpty
             ? KroutonDiscLabelGeometry(name: "Standard 120mm Disc", outerDiameterMM: 120, innerDiameterMM: 18, offsetXMM: 0, offsetYMM: 0)
-            : labelPresets[idx])
+            : self.labelPresets[idx])
         let exportPixels: CGFloat = preset.outerDiameterMM <= 85.0 ? 945.0 : 1417.0
         let exportCanvas = KroutonDiscLabelArtworkCanvas(
             preset: preset,
-            template: selectedLabelTemplate,
-            title: labelDiscTitle,
-            subtitle: labelSubtitle,
+            template: self.selectedLabelTemplate,
+            title: self.labelDiscTitle,
+            subtitle: self.labelSubtitle,
             performer: discPerformer,
             mcnBarcode: discMCNBarcode,
             trackLines: [],
@@ -27,19 +27,19 @@ extension KroutonStateStore {
             harmonyColor: uiSecondaryAccent,
             isExportMode: true,
             diameterPoints: exportPixels,
-            backgroundStyle: labelBackgroundStyle,
-            bgPrimaryColor: labelBgPrimaryColor,
-            bgSecondaryColor: labelBgSecondaryColor,
-            gradientMidpoint: labelGradientMidpoint,
-            gradientAngle: labelGradientAngle,
-            gpuSeedPattern: labelGPUSeedPattern,
-            kaleidoscopeFacets: labelKaleidoscopeFacets,
-            kaleidoscopeRig: labelKaleidoscopeRig,
-            chamberTumble: labelChamberTumble,
-            tinyPlanetRadius: labelTinyPlanetRadius,
-            bgAdjustments: labelBgAdjustments,
-            vectorShapes: labelVectorShapes,
-            textElements: labelTextElements
+            backgroundStyle: self.labelBackgroundStyle,
+            bgPrimaryColor: self.labelBgPrimaryColor,
+            bgSecondaryColor: self.labelBgSecondaryColor,
+            gradientMidpoint: self.labelGradientMidpoint,
+            gradientAngle: self.labelGradientAngle,
+            gpuSeedPattern: self.labelGPUSeedPattern,
+            kaleidoscopeFacets: self.labelKaleidoscopeFacets,
+            kaleidoscopeRig: self.labelKaleidoscopeRig,
+            chamberTumble: self.labelChamberTumble,
+            tinyPlanetRadius: self.labelTinyPlanetRadius,
+            bgAdjustments: self.labelBgAdjustments,
+            vectorShapes: self.labelVectorShapes,
+            textElements: self.labelTextElements
         )
         let renderer = ImageRenderer(content: exportCanvas)
         renderer.scale = 1.0

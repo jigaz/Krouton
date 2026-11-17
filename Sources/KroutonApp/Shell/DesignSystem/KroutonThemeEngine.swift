@@ -132,7 +132,7 @@ extension KroutonStateStore {
     }
 
     var resolvedColorScheme: ColorScheme {
-        switch appearanceMode {
+        switch self.appearanceMode {
         case .light: return .light
         case .dark:  return .dark
         case .auto:
@@ -175,33 +175,33 @@ extension KroutonStateStore {
 
     var activeSecondaryAccent: Color {
         let scheme = resolvedColorScheme
-        if selectedAccentIndex >= 0 && selectedAccentIndex <= 9 {
-            return Self.secondaryHarmonyForPresetID(selectedAccentIndex, scheme: scheme)
+        if self.selectedAccentIndex >= 0 && self.selectedAccentIndex <= 9 {
+            return Self.secondaryHarmonyForPresetID(self.selectedAccentIndex, scheme: scheme)
         }
         let pid = multicolorPresetID(forTaskID: selectedTaskID, category: selectedCategory)
         return Self.secondaryHarmonyForPresetID(pid, scheme: scheme)
     }
 
     var uiSecondaryAccent: Color {
-        enableSecondaryAccentUITints ? activeSecondaryAccent : activeAccent
+        self.enableSecondaryAccentUITints ? activeSecondaryAccent : activeAccent
     }
 
     var mainPanelTintOverlay: Color {
-        guard enableSecondaryAccentUITints else { return Color.clear }
+        guard self.enableSecondaryAccentUITints else { return Color.clear }
         return activeAccent.opacity(resolvedColorScheme == .light ? 0.085 : 0.11)
     }
 
     var sidebarTintOverlay: Color {
-        guard enableSecondaryAccentUITints else { return Color.clear }
+        guard self.enableSecondaryAccentUITints else { return Color.clear }
         return activeAccent.opacity(resolvedColorScheme == .light ? 0.065 : 0.085)
     }
 
     var harmonizedCardFill: Color {
-        enableSecondaryAccentUITints ? activeAccent.opacity(0.07) : Color.primary.opacity(0.04)
+        self.enableSecondaryAccentUITints ? activeAccent.opacity(0.07) : Color.primary.opacity(0.04)
     }
 
     var harmonizedCardBorder: Color {
-        enableSecondaryAccentUITints ? activeSecondaryAccent.opacity(resolvedColorScheme == .light ? 0.42 : 0.28) : Color.primary.opacity(0.08)
+        self.enableSecondaryAccentUITints ? activeSecondaryAccent.opacity(resolvedColorScheme == .light ? 0.42 : 0.28) : Color.primary.opacity(0.08)
     }
 }
 

@@ -9,6 +9,7 @@ import SwiftUI
 import VideoKit
 
 @MainActor
+@dynamicMemberLookup
 final class KroutonStateStore: ObservableObject {
     // MARK: - Modular Feature Sub-Stores & Domain Models
     let labelWorkspaceSubStore = KroutonLabelWorkspaceSubStore()
@@ -29,13 +30,13 @@ final class KroutonStateStore: ObservableObject {
     @Published var selectedSettingsPane: KroutonSettingsCategory = .general
     @Published var selectedCategory: KroutonMasteringStation = .burn {
         didSet {
-            guard !isHydratingPreferences, rememberLastTaskOnLaunch else { return }
+            guard !isHydratingPreferences, self.rememberLastTaskOnLaunch else { return }
             UserDefaults.standard.set(selectedCategory.rawValue, forKey: "krouton.pref.lastCategory")
         }
     }
     @Published var selectedTaskID: String = "data-hybrid" {
         didSet {
-            guard !isHydratingPreferences, rememberLastTaskOnLaunch else { return }
+            guard !isHydratingPreferences, self.rememberLastTaskOnLaunch else { return }
             UserDefaults.standard.set(selectedTaskID, forKey: "krouton.pref.lastTaskID")
             KroutonCrashRecoveryController.shared.saveCurrentState(from: self)
         }
@@ -124,17 +125,17 @@ final class KroutonStateStore: ObservableObject {
     }
 
     private var resolvedAccentPreset: KroutonAccentColorPreset {
-        if selectedAccentIndex == -1 {
+        if self.selectedAccentIndex == -1 {
             let targetID = multicolorPresetID(forTaskID: selectedTaskID, category: selectedCategory)
             return KroutonAccentColorPreset.allPresets.first(where: { $0.id == targetID }) ?? KroutonAccentColorPreset.allPresets[1]
         }
-        return KroutonAccentColorPreset.allPresets.first(where: { $0.id == selectedAccentIndex })
+        return KroutonAccentColorPreset.allPresets.first(where: { $0.id == self.selectedAccentIndex })
             ?? KroutonAccentColorPreset.allPresets.first(where: { $0.id == 8 })
             ?? KroutonAccentColorPreset.allPresets[0]
     }
 
     func effectiveColorForTask(id taskID: String, category: KroutonMasteringStation) -> Color {
-        if selectedAccentIndex == -1 {
+        if self.selectedAccentIndex == -1 {
             let pid = multicolorPresetID(forTaskID: taskID, category: category)
             let p = KroutonAccentColorPreset.allPresets.first(where: { $0.id == pid }) ?? resolvedAccentPreset
             return p.effectiveAccent(for: appearance.effectiveColorScheme)
@@ -166,7 +167,7 @@ final class KroutonStateStore: ObservableObject {
         appearance.load(from: defaults)
         if let rawTpl = defaults.string(forKey: "krouton.pref.labelTemplate"),
            let tpl = KroutonCroutonLabelStyle(rawValue: rawTpl) {
-            label.selectedTemplate = tpl
+            label.selectedLabelTemplate = tpl
         }
         if appearance.rememberLastTaskOnLaunch {
             if let rawCat = defaults.string(forKey: "krouton.pref.lastCategory"),
