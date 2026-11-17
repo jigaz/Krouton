@@ -15,7 +15,7 @@ extension KroutonDiscLabelWorkspaceView {
                     .font(.subheadline.bold())
                 Spacer()
                 if !store.labelVectorShapes.isEmpty {
-                    Button("Clear All") {
+                    Button(KroutonL10n.tr("Clear All")) {
                         store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
                         store.labelVectorShapes.removeAll()
                     }
@@ -241,7 +241,7 @@ extension KroutonDiscLabelWorkspaceView {
                     .font(.caption.bold())
                     .lineLimit(1)
                 Spacer()
-                Button("4× Ring") {
+                Button(KroutonL10n.tr("4× Ring")) {
                     guard store.labelVectorShapes.indices.contains(index) else { return }
                     store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
                     let base = store.labelVectorShapes[index]
@@ -261,6 +261,8 @@ extension KroutonDiscLabelWorkspaceView {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.mini)
+                .accessibilityLabel(KroutonL10n.tr("Delete Vector Shape"))
+                .help(KroutonL10n.tr("Delete Vector Shape"))
             }
 
             HStack(spacing: 6) {
@@ -268,17 +270,17 @@ extension KroutonDiscLabelWorkspaceView {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 Slider(value: widthBinding, in: 1.0...8.0)
-                Button("-Scale") {
+                Button(KroutonL10n.tr("-Scale")) {
                     guard store.labelVectorShapes.indices.contains(index) else { return }
                     store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
                     store.labelVectorShapes[index] = KroutonLabelGeometryEngine.transformVectorShape(store.labelVectorShapes[index], scaleFactor: 0.88)
                 }.buttonStyle(.bordered).controlSize(.mini)
-                Button("+Scale") {
+                Button(KroutonL10n.tr("+Scale")) {
                     guard store.labelVectorShapes.indices.contains(index) else { return }
                     store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
                     store.labelVectorShapes[index] = KroutonLabelGeometryEngine.transformVectorShape(store.labelVectorShapes[index], scaleFactor: 1.14)
                 }.buttonStyle(.bordered).controlSize(.mini)
-                Button("Rot 15°") {
+                Button(KroutonL10n.tr("Rot 15°")) {
                     guard store.labelVectorShapes.indices.contains(index) else { return }
                     store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
                     store.labelVectorShapes[index] = KroutonLabelGeometryEngine.transformVectorShape(store.labelVectorShapes[index], rotateDegrees: 15.0)
@@ -314,7 +316,7 @@ extension KroutonDiscLabelWorkspaceView {
                     .font(.caption.bold())
                     .foregroundStyle(.secondary)
                 Spacer()
-                Button("+ Shapes & Badges") {
+                Button(KroutonL10n.tr("+ Shapes & Badges")) {
                     activeTool = .shapes
                 }
                 .buttonStyle(.bordered)
@@ -328,7 +330,7 @@ extension KroutonDiscLabelWorkspaceView {
                     .font(.caption.bold())
                     .foregroundStyle(.secondary)
                 Spacer()
-                Button("+ Add Text") {
+                Button(KroutonL10n.tr("+ Add Text")) {
                     addNewTextElement()
                     activeTool = .text
                 }
@@ -359,15 +361,15 @@ extension KroutonDiscLabelWorkspaceView {
                     }
                     .buttonStyle(.plain)
                     .contextMenu {
-                        Button("Select Text Layer") { store.labelSelectedTextID = item.id }
-                        Button("Duplicate Text Layer (180° Mirror)") {
+                        Button(KroutonL10n.tr("Select Text Layer")) { store.labelSelectedTextID = item.id }
+                        Button(KroutonL10n.tr("Duplicate Text Layer (180° Mirror)")) {
                             store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
                             var copy = item; copy.id = UUID(); copy.angleDegrees = fmod(item.angleDegrees + 180.0, 360.0)
                             copy.isBottomUpright = (copy.angleDegrees >= 110.0 && copy.angleDegrees <= 250.0)
                             store.labelTextElements.append(copy); store.labelSelectedTextID = copy.id
                         }.keyboardShortcut("d", modifiers: .command)
                         Divider()
-                        Button("Delete Text Layer", role: .destructive) {
+                        Button(KroutonL10n.tr("Delete Text Layer"), role: .destructive) {
                             store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
                             store.labelTextElements.removeAll { $0.id == item.id }; store.labelSelectedTextID = store.labelTextElements.last?.id
                         }.keyboardShortcut(.delete, modifiers: .command)

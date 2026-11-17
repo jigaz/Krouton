@@ -55,13 +55,13 @@ extension KroutonCopyAndRipWorkspaceView {
                     }
                 }
             }
-            Toggle("Album is a compilation of songs by various artists", isOn: $cdInfoIsCompilation)
+            Toggle(KroutonL10n.tr("Album is a compilation of songs by various artists"), isOn: $cdInfoIsCompilation)
                 .toggleStyle(.checkbox).font(.caption)
-            Toggle("Use error correction when reading Audio CDs", isOn: $audioRipErrorCorrection)
+            Toggle(KroutonL10n.tr("Use error correction when reading Audio CDs"), isOn: $audioRipErrorCorrection)
                 .toggleStyle(.checkbox).font(.caption)
             HStack {
                 Spacer()
-                Button("OK") { showCDInfoPopover = false }
+                Button(KroutonL10n.tr("OK")) { showCDInfoPopover = false }
                     .buttonStyle(.borderedProminent).tint(store.activeAccent)
             }
         }
@@ -92,25 +92,30 @@ extension KroutonCopyAndRipWorkspaceView {
                             }.labelsHidden().font(.caption)
                         }
                     }
-                    HStack(spacing: 10) {
-                        Button(audioRipSelectedTracks.count == audioRipTracks.count ? "Deselect All" : "Select All (\(audioRipTracks.count))") {
-                            if audioRipSelectedTracks.count == audioRipTracks.count {
-                                audioRipSelectedTracks.removeAll()
-                            } else {
-                                audioRipSelectedTracks = Set(audioRipTracks.map(\.num))
-                            }
-                        }.buttonStyle(.bordered).controlSize(.mini)
-                        Button {
-                            if let snap = mountedCDSnapshot { lookupMusicBrainzMetadata(for: snap) }
-                            else { rescanOpticalDiscForCopyTask(isAudioRipTask: true, isShrinkTask: false, fetchMetadata: true) }
-                        } label: {
-                            Label(KroutonL10n.tr("Get Track Names"), systemImage: "sparkles.tv")
-                        }.buttonStyle(.bordered).controlSize(.mini)
-                        Toggle(KroutonL10n.tr("Error Correction"), isOn: $audioRipErrorCorrection).toggleStyle(.checkbox).font(.caption.bold())
-                        Toggle("AccurateRip + CRC32", isOn: $audioRipAccurateRip).toggleStyle(.checkbox).font(.caption)
-                        Toggle("Write .CUE + .LOG", isOn: $audioRipGenerateCueLog).toggleStyle(.checkbox).font(.caption)
-                        Spacer(minLength: 4)
-                        Text("Out: \(copyOutputFolderPath)").font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 8) {
+                            Button(audioRipSelectedTracks.count == audioRipTracks.count ? "Deselect All" : "Select All (\(audioRipTracks.count))") {
+                                if audioRipSelectedTracks.count == audioRipTracks.count {
+                                    audioRipSelectedTracks.removeAll()
+                                } else {
+                                    audioRipSelectedTracks = Set(audioRipTracks.map(\.num))
+                                }
+                            }.buttonStyle(.bordered).controlSize(.mini).fixedSize()
+                            Button {
+                                if let snap = mountedCDSnapshot { lookupMusicBrainzMetadata(for: snap) }
+                                else { rescanOpticalDiscForCopyTask(isAudioRipTask: true, isShrinkTask: false, fetchMetadata: true) }
+                            } label: {
+                                Label(KroutonL10n.tr("Get Track Names"), systemImage: "sparkles.tv")
+                            }.buttonStyle(.bordered).controlSize(.mini).fixedSize()
+                            Spacer(minLength: 4)
+                            Text("Out: \(copyOutputFolderPath)").font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                        }
+                        HStack(spacing: 12) {
+                            Toggle(KroutonL10n.tr("Error Correction"), isOn: $audioRipErrorCorrection).toggleStyle(.checkbox).font(.caption.bold()).fixedSize()
+                            Toggle(KroutonL10n.tr("AccurateRip + CRC32"), isOn: $audioRipAccurateRip).toggleStyle(.checkbox).font(.caption).fixedSize()
+                            Toggle(KroutonL10n.tr("Write .CUE + .LOG"), isOn: $audioRipGenerateCueLog).toggleStyle(.checkbox).font(.caption).fixedSize()
+                            Spacer(minLength: 0)
+                        }
                     }
                 }
             }
@@ -204,16 +209,16 @@ extension KroutonCopyAndRipWorkspaceView {
             Button("Start / Convert Track \(String(format: "%02d", item.num))") {
                 startHardwareAudioCDExtraction(onlyTrackNumber: item.num)
             }.keyboardShortcut("r", modifiers: [.command, .shift])
-            Button("Play Track in Default Player") {
+            Button(KroutonL10n.tr("Play Track in Default Player")) {
                 if let src = mountedCDSnapshot?.tracks.first(where: { $0.trackNumber == item.num })?.sourceAIFFURL {
                     KroutonOSDesktopBridge.revealInFinder(url: src)
                 }
             }
             Divider()
-            Button("Get Info (CD Info...)") {
+            Button(KroutonL10n.tr("Get Info (CD Info...)")) {
                 showCDInfoPopover = true
             }.keyboardShortcut("i", modifiers: .command)
-            Button("Locate Source File in Finder") {
+            Button(KroutonL10n.tr("Locate Source File in Finder")) {
                 if let src = mountedCDSnapshot?.tracks.first(where: { $0.trackNumber == item.num })?.sourceAIFFURL {
                     KroutonOSDesktopBridge.revealInFinder(url: src)
                 }

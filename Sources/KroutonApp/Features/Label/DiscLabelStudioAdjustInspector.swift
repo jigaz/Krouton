@@ -13,7 +13,7 @@ extension KroutonDiscLabelWorkspaceView {
                 Label("Adjust Background", systemImage: "slider.horizontal.3")
                     .font(.subheadline.bold())
                 Spacer()
-                Button("Reset") {
+                Button(KroutonL10n.tr("Reset")) {
                     store.labelBgAdjustments = KroutonBackgroundAdjustments()
                 }
                 .font(.caption2.bold())
@@ -97,18 +97,18 @@ extension KroutonDiscLabelWorkspaceView {
                     .foregroundStyle(.secondary)
 
                 HStack(spacing: 6) {
-                    Button("Frosted") {
+                    Button(KroutonL10n.tr("Frosted")) {
                         store.labelBgAdjustments.blurRadius = 12.0
                         store.labelBgAdjustments.brightness = 0.08
                     }.buttonStyle(.bordered).controlSize(.mini)
 
-                    Button("Pastel Ink-Saver") {
+                    Button(KroutonL10n.tr("Pastel Ink-Saver")) {
                         store.labelBgAdjustments.brightness = 0.22
                         store.labelBgAdjustments.contrast = 0.82
                         store.labelBgAdjustments.saturation = 0.75
                     }.buttonStyle(.bordered).controlSize(.mini)
 
-                    Button("B&W Mono") {
+                    Button(KroutonL10n.tr("B&W Mono")) {
                         store.labelBgAdjustments.saturation = 0.0
                     }.buttonStyle(.bordered).controlSize(.mini)
                 }

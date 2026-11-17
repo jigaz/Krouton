@@ -1,0 +1,220 @@
+import Foundation
+import OpticalCore
+
+// MARK: - Disc Image Depot Real Disk Operations (BIN->ISO Sector Extraction, hdiutil Convert/Mount/Verify)
+
+public struct DiscImageInspectionReport: Sendable, Equatable {
+    public let fileURL: URL
+    public let fileName: String
+    public let byteSize: Int64
+    public let classification: KroutonDiscImageClassification
+    public let bootClassification: DiscImageBootClassification
+    public let cueTracks: [KroutonDiscImageCueTrack]
+    public let resolvedBinURL: URL?
+}
+
+public enum DiscImageDepotOperations {
+    /// Inspects any `.iso`, `.dmg`, `.cdr`, `.img`, `.bin`, or `.cue` file on disk using `KroutonDiscImageDepot`.
+    public static func inspectImageFile(at url: URL) -> DiscImageInspectionReport {
+        let fm = FileManager.default
+        let lowerExt = url.pathExtension.lowercased()
+        var targetDataURL = url
+        var cueTracks: [KroutonDiscImageCueTrack] = []
+        var resolvedBinURL: URL? = nil
+
+        if lowerExt == "cue", let cueText = try? String(contentsOf: url, encoding: .utf8) {
+            cueTracks = KroutonDiscImageDepot.parseCueSheet(cueText)
+            if let binCandidate = resolveCompanionBinURL(forCueURL: url, cueText: cueText),
+               fm.fileExists(atPath: binCandidate.path) {
+                resolvedBinURL = binCandidate
+                targetDataURL = binCandidate
+            }
+        } else if lowerExt == "bin" {
+            let cueSibling = url.deletingPathExtension().appendingPathExtension("cue")
+            if fm.fileExists(atPath: cueSibling.path),
+               let cueText = try? String(contentsOf: cueSibling, encoding: .utf8) {
+                cueTracks = KroutonDiscImageDepot.parseCueSheet(cueText)
+            }
+        }
+
+        let fileSize = Int64((try? targetDataURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+        // Read first 600 KB (covers LBA 0..299 including PVD at LBA 16, El Torito at LBA 17, UDF Anchor at LBA 256)
+        var headerData = Data()
+        if let fh = try? FileHandle(forReadingFrom: targetDataURL) {
+            defer { try? fh.close() }
+            headerData = (try? fh.read(upToCount: 614_400)) ?? Data()
+        }
+
+        let asciiSample = String(decoding: headerData, as: UTF8.self)
+        let classification = KroutonDiscImageDepot.classifyDepotImage(
+            byteSize: fileSize,
+            signatureSampleASCII: asciiSample
+        )
+        let bootClass = KroutonDiscImageDepot.classifyBootableImage(headerBytes: headerData)
+
+        return DiscImageInspectionReport(
+            fileURL: url,
+            fileName: url.lastPathComponent,
+            byteSize: fileSize,
+            classification: classification,
+            bootClassification: bootClass,
+            cueTracks: cueTracks,
+            resolvedBinURL: resolvedBinURL
+        )
+    }
+
+    /// Resolves the `FILE "..." BINARY` path referenced inside a `.cue` sheet (or sibling `.bin`).
+    public static func resolveCompanionBinURL(forCueURL cueURL: URL, cueText: String) -> URL? {
+        let dir = cueURL.deletingLastPathComponent()
+        for rawLine in cueText.components(separatedBy: .newlines) {
+            let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
+            if line.uppercased().hasPrefix("FILE "),
+               let q1 = line.firstIndex(of: "\""),
+               let q2 = line.lastIndex(of: "\""),
+               q1 < q2 {
+                let relName = String(line[line.index(after: q1)..<q2])
+                let candidate = dir.appendingPathComponent(relName)
+                if FileManager.default.fileExists(atPath: candidate.path) {
+                    return candidate
+                }
+            }
+        }
+        let sibling = cueURL.deletingPathExtension().appendingPathExtension("bin")
+        return FileManager.default.fileExists(atPath: sibling.path) ? sibling : nil
+    }
+
+    /// Converts a raw 2,352-byte/sector `.bin` (or `.cue` referencing a `.bin`) into a clean 2,048-byte/sector `.iso` on disk.
+    public static func extractRawBinToISO(sourceURL: URL, outputISOURL: URL) throws -> Int64 {
+        let fm = FileManager.default
+        var binURL = sourceURL
+        if sourceURL.pathExtension.lowercased() == "cue" {
+            let cueText = (try? String(contentsOf: sourceURL, encoding: .utf8)) ?? ""
+            if let resolved = resolveCompanionBinURL(forCueURL: sourceURL, cueText: cueText) {
+                binURL = resolved
+            }
+        }
+
+        if fm.fileExists(atPath: outputISOURL.path) {
+            try fm.removeItem(at: outputISOURL)
+        }
+        fm.createFile(atPath: outputISOURL.path, contents: nil)
+
+        let inHandle = try FileHandle(forReadingFrom: binURL)
+        defer { try? inHandle.close() }
+        let outHandle = try FileHandle(forWritingTo: outputISOURL)
+        defer { try? outHandle.close() }
+
+        let fileBytes = Int64((try? binURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+        let isRaw2352 = (fileBytes > 0 && fileBytes % 2352 == 0)
+        let sectorStride = isRaw2352 ? 2352 : 2048
+        let batchSectors = 512
+        var writtenBytes: Int64 = 0
+
+        while true {
+            guard let chunk = try inHandle.read(upToCount: sectorStride * batchSectors), !chunk.isEmpty else { break }
+            if !isRaw2352 {
+                try outHandle.write(contentsOf: chunk)
+                writtenBytes += Int64(chunk.count)
+            } else {
+                var outBatch = Data()
+                outBatch.reserveCapacity((chunk.count / 2352) * 2048)
+                var offset = 0
+                while offset + 2352 <= chunk.count {
+                    let rawSec = chunk.subdata(in: offset..<(offset + 2352))
+                    if let iso2048 = KroutonDiscImageDepot.extractISO2048SectorFromRaw2352(rawSec) {
+                        outBatch.append(iso2048)
+                    }
+                    offset += 2352
+                }
+                if !outBatch.isEmpty {
+                    try outHandle.write(contentsOf: outBatch)
+                    writtenBytes += Int64(outBatch.count)
+                }
+            }
+        }
+        return writtenBytes
+    }
+
+    /// Converts `.dmg` -> `.iso` (via `hdiutil convert -format UDTO -ov` + `.cdr` rename) or `.iso`/`.cdr` -> `.dmg` (`UDZO`).
+    public static func convertDiskImageWithHdiutil(sourceURL: URL, outputURL: URL) throws -> Int64 {
+        let fm = FileManager.default
+        if fm.fileExists(atPath: outputURL.path) {
+            try? fm.removeItem(at: outputURL)
+        }
+        let targetExt = outputURL.pathExtension.lowercased()
+        let formatArg = (targetExt == "iso" || targetExt == "cdr") ? "UDTO" : "UDZO"
+
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
+        proc.arguments = ["convert", sourceURL.path, "-format", formatArg, "-ov", "-o", outputURL.path]
+        let errPipe = Pipe()
+        proc.standardOutput = FileHandle.nullDevice
+        proc.standardError = errPipe
+        try proc.run()
+        proc.waitUntilExit()
+
+        // hdiutil convert -format UDTO appends .cdr when target ends in .iso
+        let cdrCandidate = URL(fileURLWithPath: outputURL.path + ".cdr")
+        if !fm.fileExists(atPath: outputURL.path), fm.fileExists(atPath: cdrCandidate.path) {
+            try fm.moveItem(at: cdrCandidate, to: outputURL)
+        }
+
+        guard proc.terminationStatus == 0, fm.fileExists(atPath: outputURL.path) else {
+            let msg = String(decoding: errPipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            throw NSError(domain: "DiscImageDepotOperations", code: Int(proc.terminationStatus), userInfo: [
+                NSLocalizedDescriptionKey: msg.isEmpty ? "hdiutil convert failed (\(proc.terminationStatus))" : msg
+            ])
+        }
+        return Int64((try? outputURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+    }
+
+    /// Mounts an `.iso`, `.dmg`, `.cdr`, or `.img` in macOS Finder via `/usr/bin/hdiutil attach`.
+    public static func mountDiskImageInFinder(url: URL) throws -> String {
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
+        proc.arguments = ["attach", url.path]
+        let outPipe = Pipe()
+        let errPipe = Pipe()
+        proc.standardOutput = outPipe
+        proc.standardError = errPipe
+        try proc.run()
+        proc.waitUntilExit()
+
+        guard proc.terminationStatus == 0 else {
+            let msg = String(decoding: errPipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            throw NSError(domain: "DiscImageDepotOperations", code: Int(proc.terminationStatus), userInfo: [
+                NSLocalizedDescriptionKey: msg.isEmpty ? "Unable to mount \(url.lastPathComponent)" : msg
+            ])
+        }
+        let outText = String(decoding: outPipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        if let volLine = outText.components(separatedBy: .newlines).first(where: { $0.contains("/Volumes/") }),
+           let range = volLine.range(of: "/Volumes/") {
+            return String(volLine[range.lowerBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return "Mounted in Finder"
+    }
+
+    /// Verifies image container integrity and checksums via `/usr/bin/hdiutil verify`.
+    public static func verifyDiskImageIntegrity(url: URL) -> (isValid: Bool, summary: String) {
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
+        proc.arguments = ["verify", url.path]
+        let errPipe = Pipe()
+        proc.standardOutput = FileHandle.nullDevice
+        proc.standardError = errPipe
+        do {
+            try proc.run()
+            proc.waitUntilExit()
+            if proc.terminationStatus == 0 {
+                return (true, "Verified OK (hdiutil checksum valid)")
+            }
+            let msg = String(decoding: errPipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return (false, msg.isEmpty ? "Verification failed (\(proc.terminationStatus))" : msg)
+        } catch {
+            return (false, error.localizedDescription)
+        }
+    }
+}

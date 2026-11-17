@@ -76,7 +76,7 @@ struct KroutonDiscMediaPopover: View {
                             Text("\(vol.itemCount) Items • \(ByteCountFormatter.string(fromByteCount: vol.usedBytes, countStyle: .file))").font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Button("Open in Finder") { KroutonOSDesktopBridge.revealFolderInFinder(path: vol.mountPath) }.buttonStyle(.bordered).controlSize(.mini)
+                        Button(KroutonL10n.tr("Open in Finder")) { KroutonOSDesktopBridge.revealFolderInFinder(path: vol.mountPath) }.buttonStyle(.bordered).controlSize(.mini)
                     }.padding(9).background(Color.kroutonControlSurface).clipShape(RoundedRectangle(cornerRadius: 8))
                 }
 
@@ -144,15 +144,15 @@ struct KroutonMasteringReportSheet: View {
             Label(report.diagnosticAdvice, systemImage: "info.circle.fill").font(.callout).foregroundStyle(.secondary)
             Spacer()
             HStack {
-                Button("Copy Archival Certificate") {
+                Button(KroutonL10n.tr("Copy Archival Certificate")) {
                     let cert = KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(driveModel: report.driveModel, mediaType: report.mediaFormattedName, sectorsWrittenLBA: report.sectorsWrittenLBA)
                     KroutonOSDesktopBridge.copyTextToClipboard(cert.certificateText)
                 }
-                Button("Copy Telemetry Log") {
+                Button(KroutonL10n.tr("Copy Telemetry Log")) {
                     KroutonOSDesktopBridge.copyTextToClipboard("\(report.title)\n\(report.summary)\nSectors: \(report.sectorsWrittenLBA) LBA")
                 }
                 Spacer()
-                Button("Done") { onDismiss() }.buttonStyle(.borderedProminent).tint(accent).keyboardShortcut(.defaultAction)
+                Button(KroutonL10n.tr("Done")) { onDismiss() }.buttonStyle(.borderedProminent).tint(accent).keyboardShortcut(.defaultAction)
             }
         }.padding(24).frame(width: 580, height: 400).background(Color.kroutonWindowSurface)
     }

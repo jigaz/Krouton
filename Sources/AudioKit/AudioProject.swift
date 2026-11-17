@@ -17,7 +17,7 @@ import Foundation
 // Pure Foundation. Not compiled here (no Swift toolchain in my sandbox); the
 // layout arithmetic was checked with a reference port.
 
-public struct AudioTrack: Identifiable, Equatable, Codable, Sendable {
+public struct AudioTrack: DiscBreakableItem, Identifiable, Equatable, Codable, Sendable {
     public enum Field: String, Codable, Sendable { case title, performer, isrc }
 
     public let id: UUID

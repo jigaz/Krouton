@@ -45,6 +45,9 @@ let package = Package(
                 "VideoKit",
                 "NetworkSpool",
                 "Persistence"
+            ],
+            resources: [
+                .process("Resources")
             ]
         ),
         .executableTarget(

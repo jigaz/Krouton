@@ -193,11 +193,11 @@ public struct KroutonDiscLabelWorkspaceView: View {
                                 } : nil
                             )
                             .contextMenu {
-                                Button("Add Curved Text Layer") { addDefaultCurvedTextLayer() }.keyboardShortcut("t", modifiers: .command)
+                                Button(KroutonL10n.tr("Add Curved Text Layer")) { addDefaultCurvedTextLayer() }.keyboardShortcut("t", modifiers: .command)
                                 Button(store.labelShowAlignmentGrid ? "Hide 10mm Alignment Grid" : "Show 10mm Alignment Grid") { store.labelShowAlignmentGrid.toggle() }.keyboardShortcut("g", modifiers: .command)
-                                Button("Actual Size (100%)") { store.labelCanvasZoom = 1.0 }.keyboardShortcut("0", modifiers: [.command, .option])
+                                Button(KroutonL10n.tr("Actual Size (100%)")) { store.labelCanvasZoom = 1.0 }.keyboardShortcut("0", modifiers: [.command, .option])
                                 Divider()
-                                Button("Delete Selected Text Layer", role: .destructive) { deleteSelectedLabelTextLayer() }.keyboardShortcut(.delete, modifiers: .command).disabled(store.labelSelectedTextID == nil)
+                                Button(KroutonL10n.tr("Delete Selected Text Layer"), role: .destructive) { deleteSelectedLabelTextLayer() }.keyboardShortcut(.delete, modifiers: .command).disabled(store.labelSelectedTextID == nil)
                             }
                             .shadow(color: .black.opacity(0.45), radius: 16, y: 6)
                         }
@@ -244,7 +244,7 @@ public struct KroutonDiscLabelWorkspaceView: View {
                 .font(.caption.bold())
                 .foregroundStyle(.secondary)
 
-            Picker("Preset", selection: $store.selectedLabelPresetIndex) {
+            Picker(KroutonL10n.tr("Preset"), selection: $store.selectedLabelPresetIndex) {
                 ForEach(store.labelPresets.indices, id: \.self) { idx in
                     Text(store.labelPresets[idx].name).tag(idx)
                 }
@@ -399,14 +399,16 @@ public struct KroutonDiscLabelWorkspaceView: View {
         HStack(spacing: 10) {
             Button { store.labelCanvasZoom = max(0.65, store.labelCanvasZoom - 0.10) } label: {
                 Image(systemName: "minus.magnifyingglass").font(.caption.bold())
-            }.buttonStyle(.plain)
+            }.buttonStyle(.plain).accessibilityLabel(KroutonL10n.tr("Zoom Out Canvas")).help(KroutonL10n.tr("Zoom Out Canvas"))
 
             Slider(value: $store.labelCanvasZoom, in: 0.65...1.35)
                 .frame(width: 90)
+                .accessibilityLabel(KroutonL10n.tr("Label Canvas Zoom"))
+                .accessibilityValue("\(Int((store.labelCanvasZoom * 100).rounded()))%")
 
             Button { store.labelCanvasZoom = min(1.35, store.labelCanvasZoom + 0.10) } label: {
                 Image(systemName: "plus.magnifyingglass").font(.caption.bold())
-            }.buttonStyle(.plain)
+            }.buttonStyle(.plain).accessibilityLabel(KroutonL10n.tr("Zoom In Canvas")).help(KroutonL10n.tr("Zoom In Canvas"))
 
             Button("100%") { store.labelCanvasZoom = 1.0 }
                 .font(.caption2.monospaced())
@@ -436,7 +438,7 @@ public struct KroutonDiscLabelWorkspaceView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Button("Test Print") {
+            Button(KroutonL10n.tr("Test Print")) {
                 exportHighRes300DPILabelPNG(preset: preset, isTestPrintSheet: true)
             }
             .font(.caption.bold())
@@ -482,17 +484,17 @@ public struct KroutonDiscLabelWorkspaceView: View {
                 Slider(value: activeGeometryBinding.outerDiameterMM, in: 70...120, step: 1)
 
                 HStack(spacing: 6) {
-                    Button("Full Hub (18/120)") {
+                    Button(KroutonL10n.tr("Full Hub (18/120)")) {
                         activeGeometryBinding.wrappedValue.innerDiameterMM = 18
                         activeGeometryBinding.wrappedValue.outerDiameterMM = 120
                     }.buttonStyle(.bordered).controlSize(.mini)
 
-                    Button("Standard (41/118)") {
+                    Button(KroutonL10n.tr("Standard (41/118)")) {
                         activeGeometryBinding.wrappedValue.innerDiameterMM = 41
                         activeGeometryBinding.wrappedValue.outerDiameterMM = 118
                     }.buttonStyle(.bordered).controlSize(.mini)
 
-                    Button("Mini 80mm") {
+                    Button(KroutonL10n.tr("Mini 80mm")) {
                         activeGeometryBinding.wrappedValue.innerDiameterMM = 18
                         activeGeometryBinding.wrappedValue.outerDiameterMM = 80
                     }.buttonStyle(.bordered).controlSize(.mini)

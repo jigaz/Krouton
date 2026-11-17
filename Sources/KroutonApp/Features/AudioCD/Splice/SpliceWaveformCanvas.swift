@@ -127,7 +127,7 @@ private struct SpliceCanvasRenderer {
             if isInterior, abs(x - geometry.index01X) > 62 {
                 let seconds = (fraction - 0.5) * geometry.effectiveSpanSeconds
                 let label = Text(String(format: "%+.1fs", seconds))
-                    .font(.system(size: 7.5, weight: .semibold, design: .monospaced))
+                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.45))
                 context.draw(label, at: CGPoint(x: x, y: 11))
             }
@@ -139,7 +139,7 @@ private struct SpliceCanvasRenderer {
             : [("0 dB", rulerHeight + 8), ("-6 dB", rulerHeight + bodyHeight * 0.25), ("-12 dB", splitY - 7),
                ("0 dB", splitY + 8), ("-6 dB", rulerHeight + bodyHeight * 0.75), ("-12 dB", size.height - 7)]
         for (text, y) in scale {
-            let label = Text(text).font(.system(size: 7, weight: .bold, design: .monospaced)).foregroundStyle(.white.opacity(0.38))
+            let label = Text(text).font(.system(size: 9, weight: .bold, design: .monospaced)).foregroundStyle(.white.opacity(0.38))
             context.draw(label, at: CGPoint(x: 17, y: y))
         }
 

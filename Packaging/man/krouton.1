@@ -1,0 +1,34 @@
+.TH KROUTON 1 "November 2026" "Krouton 1.0.0" "macOS Optical Mastering Manual"
+.SH NAME
+krouton \- macOS optical media mastering studio and headless CLI
+.SH SYNOPSIS
+.B krouton
+.RI [ subcommand ]
+.RI [ options ]
+.SH DESCRIPTION
+.B krouton
+is a native macOS optical disc authoring, archival rescue, multi-disc spanning, and inspection suite supporting Red Book CD-DA, Hybrid UDF/ISO-9660/Joliet Data, DVD-Video, AVCHD-on-DVD, Blu-ray, and BDXL (up to 128 GB).
+When invoked without arguments,
+.B krouton
+launches the interactive SwiftUI workspace. When invoked with a subcommand, it executes headlessly on the terminal.
+.SH SUBCOMMANDS
+.TP
+.B drives [--json]
+List connected USB, SATA, FireWire, and Thunderbolt optical drives, firmware revisions, ATIP/MID manufacturer codes, and free LBA sectors.
+.TP
+.B formats [--json]
+List all supported optical mastering workflows and compatible target disc sizes.
+.TP
+.B inspect IfileR [--sha256] [--json]
+Inspect an .iso, .dmg, .bin, or .cue disc image for El Torito / Apple Partition Map bootability, filesystems, 2048-byte LBA sectors, and SHA-256 digest.
+.TP
+.B span [--medium IsizeR] Ifiles...R [--json]
+Calculate a multi-disc spanning plan across target media capacities (cd650, cd700, cd800, minidvd, dvd5, dvd9, bd25, bd50, bdxl100, bdxl128).
+.TP
+.B iso -V ItitleR -o Ioutput.isoR Isource-dirR
+Master a hybrid UDF + ISO-9660 + Joliet optical disc image from a source folder.
+.TP
+.B completions Izsh|bash|fishR
+Output shell tab-completion script for the specified shell.
+.SH AUTHOR
+Jorgen Thompquist (Team D3BJL3F92P)

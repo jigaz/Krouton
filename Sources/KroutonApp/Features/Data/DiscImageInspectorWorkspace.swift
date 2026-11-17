@@ -2,6 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 import Foundation
 import OpticalCore
+import ImageKit
 
 struct KroutonDiscImageInspectorWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
@@ -12,9 +13,20 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
 
     @State private var discImageWriteMethod: String = "DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)"
     @State private var verifyImageSHA256BeforeBurn: Bool = true
-    @State private var inspectedImageLBA: Int = 17
+    @State private var selectedDepotEntryID: UUID? = nil
+    @State private var inspectedImageLBA: Int = 16
+    @State private var customLBAText: String = "16"
     @State private var computedImageSHA256: String = ""
     @State private var imageActionStatusBanner: String = ""
+    @State private var inspectionReport: DiscImageInspectionReport? = nil
+
+    private var activeEntry: KroutonStagedFileEntry? {
+        if let selID = selectedDepotEntryID,
+           let matched = store.stagedFiles.first(where: { $0.id == selID }) {
+            return matched
+        }
+        return store.stagedFiles.first
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -22,20 +34,20 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
                         Image(systemName: "opticaldisc.fill").foregroundStyle(store.activeAccent)
-                        Text("SECTOR-EXACT DISC IMAGE INSPECTOR & BOOTABLE OS BURNER")
+                        Text("DISC IMAGE DEPOT • BOOT INSPECTOR, CONVERTER & SECTOR VIEWER")
                             .font(.system(size: 10, weight: .heavy, design: .monospaced)).foregroundStyle(.secondary).lineLimit(1)
                         Spacer(minLength: 4)
-                        Text(imageActionStatusBanner.isEmpty ? ".ISO • .DMG • .CDR • .BIN/.CUE" : "[ \(imageActionStatusBanner) ]")
+                        Text(imageActionStatusBanner.isEmpty ? ".ISO • .DMG • .CDR • .BIN/.CUE • .IMG" : "[ \(imageActionStatusBanner) ]")
                             .font(.system(size: 9, weight: .bold, design: .monospaced))
                             .foregroundStyle(imageActionStatusBanner.isEmpty ? .secondary : store.activeAccent).lineLimit(1)
                     }
                     HStack(spacing: 12) {
-                        Picker("Laser Write Topology:", selection: $discImageWriteMethod) {
+                        Picker(KroutonL10n.tr("Laser Write Topology:"), selection: $discImageWriteMethod) {
                             Text("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)").tag("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)")
                             Text("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)").tag("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)")
                             Text("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)").tag("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)")
                         }.font(.caption.bold())
-                        Toggle("Verify SHA-256 Digest Before Write", isOn: $verifyImageSHA256BeforeBurn).toggleStyle(.checkbox).font(.caption.bold())
+                        Toggle(KroutonL10n.tr("Verify SHA-256 Digest Before Write"), isOn: $verifyImageSHA256BeforeBurn).toggleStyle(.checkbox).font(.caption.bold())
                         Spacer(minLength: 0)
                     }
                 }
@@ -51,8 +63,25 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                         )
                     )
 
-                if let entry = store.stagedFiles.first {
+                if let entry = activeEntry {
                     VStack(alignment: .leading, spacing: 10) {
+                        if store.stagedFiles.count > 1 {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 6) {
+                                    ForEach(store.stagedFiles) { item in
+                                        Button(item.name) {
+                                            selectedDepotEntryID = item.id
+                                            computedImageSHA256 = ""
+                                            refreshInspection(for: item)
+                                        }
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.mini)
+                                        .tint(item.id == entry.id ? store.activeAccent : .secondary)
+                                    }
+                                }
+                            }
+                        }
+
                         HStack(spacing: 10) {
                             Image(systemName: "opticaldisc.fill").font(.title2).foregroundStyle(store.activeAccent)
                             VStack(alignment: .leading, spacing: 2) {
@@ -61,33 +90,97 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                                     .font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary).lineLimit(1)
                             }
                             Spacer()
-                            if entry.isConvertibleBinOrIso {
-                                Button(entry.conversionTargetLabel) {
-                                    store.convertStagedBinOrIso(id: entry.id)
-                                    imageActionStatusBanner = "Converted \(entry.name)"
-                                }.buttonStyle(.borderedProminent).tint(store.activeAccent).controlSize(.small)
+                            Button(conversionButtonLabel(for: entry)) {
+                                store.convertStagedBinOrIso(id: entry.id)
+                                imageActionStatusBanner = "Converting \(entry.name)..."
                             }
-                            Button("Compute SHA-256") {
-                                computedImageSHA256 = KroutonElToritoBootInspector.computeSHA256Hex(url: entry.url)
-                                imageActionStatusBanner = "SHA-256 Verified"
-                            }.buttonStyle(.bordered).controlSize(.small)
-                            Button("Replace...") { onPromptToAddFiles() }.buttonStyle(.bordered).controlSize(.small)
+                            .buttonStyle(.borderedProminent).tint(store.activeAccent).controlSize(.small)
+
+                            Button(KroutonL10n.tr("Mount")) {
+                                do {
+                                    let vol = try DiscImageDepotOperations.mountDiskImageInFinder(url: inspectionReport?.resolvedBinURL ?? entry.url)
+                                    imageActionStatusBanner = "Mounted: \(vol)"
+                                } catch {
+                                    imageActionStatusBanner = error.localizedDescription
+                                }
+                            }
+                            .buttonStyle(.bordered).controlSize(.small)
+
+                            Button(KroutonL10n.tr("Verify")) {
+                                let res = DiscImageDepotOperations.verifyDiskImageIntegrity(url: entry.url)
+                                computedImageSHA256 = KroutonElToritoBootInspector.computeSHA256Hex(url: inspectionReport?.resolvedBinURL ?? entry.url)
+                                imageActionStatusBanner = res.isValid ? "Verified OK" : "SHA-256 Computed"
+                            }
+                            .buttonStyle(.bordered).controlSize(.small)
+
+                            Button(KroutonL10n.tr("Add Image...")) { onPromptToAddFiles() }.buttonStyle(.bordered).controlSize(.small)
                         }
+
+                        if let report = inspectionReport {
+                            HStack(spacing: 8) {
+                                depotBadge(report.classification.detectedFilesystems.joined(separator: " + "), color: store.activeAccent)
+                                depotBadge(report.classification.isBootable ? "BOOTABLE: \(report.classification.bootStandard)" : report.classification.bootStandard,
+                                           color: report.classification.isBootable ? .green : .secondary)
+                                depotBadge("Target: \(report.classification.recommendedMediaBadge)", color: .blue)
+                                depotBadge("\(report.classification.totalSectors2048) Sectors (2048B)", color: .secondary)
+                                Spacer()
+                            }
+
+                            if !report.cueTracks.isEmpty {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("CUE SHEET TRACK TABLE (\(report.cueTracks.count) TRACKS)")
+                                        .font(.system(size: 9.5, weight: .bold, design: .monospaced)).foregroundStyle(.secondary)
+                                    ForEach(report.cueTracks) { trk in
+                                        HStack(spacing: 10) {
+                                            Text(String(format: "Track %02d", trk.trackNumber))
+                                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                            Text(trk.mode.rawValue)
+                                                .font(.system(size: 10, design: .monospaced)).foregroundStyle(store.activeAccent)
+                                            Text(trk.title).font(.caption).lineLimit(1)
+                                            Spacer()
+                                            Text("INDEX 01 LBA \(trk.index01LBA)")
+                                                .font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary)
+                                        }
+                                    }
+                                }
+                                .padding(8)
+                                .background(Color.black.opacity(0.16))
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                            }
+                        }
+
                         if !computedImageSHA256.isEmpty {
-                            Text("SHA-256: \(computedImageSHA256)").font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundStyle(.green)
+                            Text("SHA-256: \(computedImageSHA256)")
+                                .font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundStyle(.green)
                         }
+
                         Divider()
+
                         HStack(spacing: 8) {
-                            Text("Jump to Sector:").font(.caption.bold())
+                            Text("Sector Hex Inspector:").font(.caption.bold())
                             ForEach([(0, "LBA 0 (System)"), (16, "LBA 16 (PVD)"), (17, "LBA 17 (El Torito)"), (256, "LBA 256 (UDF)")], id: \.0) { lba, title in
-                                Button(title) { inspectedImageLBA = lba }
-                                    .buttonStyle(.bordered).controlSize(.mini)
-                                    .tint(inspectedImageLBA == lba ? store.activeAccent : .secondary)
+                                Button(title) {
+                                    inspectedImageLBA = lba
+                                    customLBAText = "\(lba)"
+                                }
+                                .buttonStyle(.bordered).controlSize(.mini)
+                                .tint(inspectedImageLBA == lba ? store.activeAccent : .secondary)
                             }
+                            TextField("LBA", text: $customLBAText)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.system(size: 10, design: .monospaced))
+                                .frame(width: 72)
+                                .onSubmit {
+                                    if let val = Int(customLBAText.trimmingCharacters(in: .whitespaces)), val >= 0 {
+                                        inspectedImageLBA = val
+                                    }
+                                }
                             Spacer()
                         }
+
                         ScrollView {
-                            Text(KroutonElToritoBootInspector.readSectorHexDump(url: entry.url, lba: inspectedImageLBA).map { "\($0.offsetHex)  \($0.hexBytes)  |\($0.asciiText)|" }.joined(separator: "\n"))
+                            let dumpURL = inspectionReport?.resolvedBinURL ?? entry.url
+                            Text(KroutonElToritoBootInspector.readSectorHexDump(url: dumpURL, lba: inspectedImageLBA).map { "\($0.offsetHex)  \($0.hexBytes)  |\($0.asciiText)|" }.joined(separator: "\n"))
                                 .font(.system(size: 10.5, design: .monospaced))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(10)
@@ -96,17 +189,41 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                     .padding(14)
+                    .onAppear { refreshInspection(for: entry) }
+                    .onChange(of: entry.id) { _, _ in refreshInspection(for: entry) }
+                    .onChange(of: entry.name) { _, _ in refreshInspection(for: entry) }
                 } else {
                     KroutonEmptyDropZoneView(
                         store: store,
                         isDropTargeted: isDropTargeted,
                         sfSymbol: "opticaldisc.fill",
-                        headline: "Drop an .ISO, .BIN/.CUE, .DMG, .CDR, or .IMG Disc Image to Inspect & Burn",
-                        subtitle: "Inspect live 2,048-byte / 2,352-byte LBA sectors (PVD LBA 16, El Torito Boot Catalog LBA 17, UDF Anchor LBA 256) and verify SHA-256 before burning."
+                        headline: "Drop .ISO, .BIN/.CUE, .DMG, .CDR, or .IMG Disc Images into the Depot",
+                        subtitle: "Classify ISO-9660/UDF/El Torito bootability, parse .CUE tracks, convert .BIN/.DMG/.ISO, mount in Finder, and inspect 2,048B/2,352B LBA sectors."
                     )
                 }
             }
             .onDrop(of: [.fileURL], isTargeted: $isDropTargeted, perform: onHandleFinderDrop)
         }
+    }
+
+    private func refreshInspection(for entry: KroutonStagedFileEntry) {
+        inspectionReport = DiscImageDepotOperations.inspectImageFile(at: entry.url)
+    }
+
+    private func conversionButtonLabel(for entry: KroutonStagedFileEntry) -> String {
+        let lower = entry.name.lowercased()
+        if lower.hasSuffix(".bin") || lower.hasSuffix(".cue") { return "Extract .ISO (2048B)" }
+        if lower.hasSuffix(".dmg") { return "Convert to .ISO" }
+        return "Convert to .DMG"
+    }
+
+    private func depotBadge(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(color.opacity(0.14))
+            .foregroundStyle(color)
+            .clipShape(Capsule())
     }
 }

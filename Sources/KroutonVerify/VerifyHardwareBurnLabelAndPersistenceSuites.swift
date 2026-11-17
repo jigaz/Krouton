@@ -394,5 +394,44 @@ func runVerifyHardwareBurnLabelAndPersistenceSuites(_ harness: inout KroutonTest
             h.check(prog.isComplete && prog.jobs[0].attempts == 1 && prog.jobs[1].attempts == 2,
                     "After Disc 2 succeeds on attempt 2, BurnSetProgress.isComplete must be true with attempts == 2")
         }
+
+        // 8. Shared DiscSpanningEngine.planDataDiscs (auto-spawn Disc 2 at capacity, auto-collapse on removal, manual disc break)
+        let f1 = KroutonStagedFileEntry(url: URL(fileURLWithPath: "/tmp/part1.bin"), name: "part1.bin", isDirectory: false, byteSize: 450_000_000, itemCount: 1, posixPermissions: "0644", modifiedDate: .now)
+        let f2 = KroutonStagedFileEntry(url: URL(fileURLWithPath: "/tmp/part2.bin"), name: "part2.bin", isDirectory: false, byteSize: 450_000_000, itemCount: 1, posixPermissions: "0644", modifiedDate: .now)
+        let dataEntries = [f1, f2]
+        let cdPlan = DiscSpanningEngine.planDataDiscs(dataEntries, medium: .cd80Min700MB)
+        h.check(cdPlan.discs.count == 2 && cdPlan.discs[1].startedBecause == .capacity,
+                "Two 450 MB files on 700 MB CD-R must auto-spawn Disc 2 with startedBecause == .capacity")
+
+        let shrunkPlan = DiscSpanningEngine.planDataDiscs([f1], medium: .cd80Min700MB)
+        h.check(shrunkPlan.discs.count == 1,
+                "Removing second 450 MB file must automatically collapse Disc 2 back to 1 disc")
+
+        var manualEntries = [
+            KroutonStagedFileEntry(url: URL(fileURLWithPath: "/tmp/a.txt"), name: "a.txt", isDirectory: false, byteSize: 4096, itemCount: 1, posixPermissions: "0644", modifiedDate: .now),
+            KroutonStagedFileEntry(url: URL(fileURLWithPath: "/tmp/b.txt"), name: "b.txt", isDirectory: false, byteSize: 4096, itemCount: 1, posixPermissions: "0644", modifiedDate: .now)
+        ]
+        DiscSpanningEngine.toggleManualDiscBreak(before: manualEntries[1].id, in: &manualEntries)
+        let manualDataPlan = DiscSpanningEngine.planDataDiscs(manualEntries, medium: .dvd5Single)
+        h.check(manualDataPlan.discs.count == 2 && manualDataPlan.discs[1].startedBecause == .manual,
+                "Manual disc break on second data item must split onto Disc 2 with startedBecause == .manual")
+        DiscSpanningEngine.toggleManualDiscBreak(before: manualEntries[1].id, in: &manualEntries)
+        h.check(DiscSpanningEngine.planDataDiscs(manualEntries, medium: .dvd5Single).discs.count == 1,
+                "Toggling manual disc break off must merge Disc 2 back into Disc 1")
+
+        // 9. KroutonFinderLayoutBlueprint binary .DS_Store serialization
+        var bp = KroutonFinderLayoutBlueprint(displayMode: .gallery, iconSize: 128, labelPosition: .right)
+        bp.itemAnnotations["part1.bin"] = KroutonFinderItemAnnotation(tagColor: .red, spotlightComment: "Archive Vol 1", iconX: 120, iconY: 140)
+        let dsBlob = bp.serializeDSStore(itemNames: ["part1.bin", "part2.bin"])
+        h.check(dsBlob.count > 64 && String(data: dsBlob.subdata(in: 4..<8), encoding: .ascii) == "Bud1",
+                "KroutonFinderLayoutBlueprint.serializeDSStore must emit valid Bud1 header and record payload")
+
+        // 10. Automatic per-disc volume & destination filename resolution (single-disc vs multi-disc D01/D02)
+        let singleLbl = DiscSpanningEngine.resolvedDiscVolumeLabel(baseTitle: "SUMMER_MIX", customTitle: nil, discNumber: 1, totalDiscs: 1)
+        let d1Lbl = DiscSpanningEngine.resolvedDiscVolumeLabel(baseTitle: "SUMMER_MIX", customTitle: nil, discNumber: 1, totalDiscs: 2)
+        let d2Lbl = DiscSpanningEngine.resolvedDiscVolumeLabel(baseTitle: "SUMMER_MIX", customTitle: nil, discNumber: 2, totalDiscs: 2)
+        let customD2 = DiscSpanningEngine.resolvedDiscVolumeLabel(baseTitle: "SUMMER_MIX", customTitle: "DISC_TWO_BONUS", discNumber: 2, totalDiscs: 2)
+        h.check(singleLbl == "SUMMER_MIX" && d1Lbl == "SUMMER_MIX_D01" && d2Lbl == "SUMMER_MIX_D02" && customD2 == "DISC_TWO_BONUS",
+                "DiscSpanningEngine.resolvedDiscVolumeLabel must format single-disc titles cleanly and multi-disc titles as _D01/_D02 unless overridden")
     }
 }

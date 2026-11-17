@@ -142,10 +142,10 @@ struct KroutonRetroConsoleWorkspaceView: View {
                         }
                     }
                     HStack(spacing: 12) {
-                        Picker("Soft-Patch ROM:", selection: $selectedSoftPatch) {
+                        Picker(KroutonL10n.tr("Soft-Patch ROM:"), selection: $selectedSoftPatch) {
                             ForEach(KroutonSoftPatchFormat.allCases) { fmt in Text(fmt.rawValue).tag(fmt) }
                         }.font(.caption).frame(width: 255)
-                        Toggle("Export Compressed .CHD (LZMA+FLAC)", isOn: $exportCompanionCHD)
+                        Toggle(KroutonL10n.tr("Export Compressed .CHD (LZMA+FLAC)"), isOn: $exportCompanionCHD)
                             .toggleStyle(.checkbox).font(.caption.bold())
                         Spacer(minLength: 0)
                     }
@@ -196,7 +196,7 @@ struct KroutonRetroConsoleWorkspaceView: View {
                                     Spacer()
                                     Text("\(entry.sectorsLBA) LBA").font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundStyle(store.activeAccent)
                                     Text(ByteCountFormatter.string(fromByteCount: entry.byteSize, countStyle: .file)).font(.system(size: 11, design: .monospaced)).foregroundStyle(.secondary)
-                                    Button { store.removeStagedFile(id: entry.id) } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.plain)
+                                    Button { store.removeStagedFile(id: entry.id) } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.plain).accessibilityLabel(KroutonL10n.tr("Remove Item")).help(KroutonL10n.tr("Remove Item"))
                                 }
                                 .padding(.horizontal, 14).padding(.vertical, 8)
                                 Divider()

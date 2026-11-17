@@ -235,7 +235,7 @@ public final class KroutonCrashRecoveryController: ObservableObject {
             store.selectedCategory = cat
         }
         store.selectedTaskID = snap.selectedTaskID
-        store.discVolumeTitle = snap.discVolumeTitle
+        store.discVolumeTitle = (snap.discVolumeTitle == "KROUTON_VIDEO" || snap.discVolumeTitle == "KROUTON_DISC") ? "" : snap.discVolumeTitle
         store.discPerformer = snap.discPerformer
         store.discMCNBarcode = snap.discMCNBarcode
         if !snap.destinationQueue.isEmpty {
@@ -323,7 +323,7 @@ public struct KroutonCrashRecoveryBannerView: View {
                     Text("Missing staged file(s) from saved session: \(recovery.missingStagedFilePaths.map { URL(fileURLWithPath: $0).lastPathComponent }.joined(separator: ", "))")
                         .font(.system(size: 11, weight: .medium))
                     Spacer()
-                    Button("Dismiss") {
+                    Button(KroutonL10n.tr("Dismiss")) {
                         recovery.missingStagedFilePaths.removeAll()
                     }
                     .buttonStyle(.bordered)
@@ -341,7 +341,7 @@ public struct KroutonCrashRecoveryBannerView: View {
                     Text("Interrupted burn detected on \(unfinished.deviceName) for '\(unfinished.projectTitle)' (phase: \(unfinished.phase.rawValue)) — that disc is likely unusable.")
                         .font(.system(size: 11, weight: .semibold))
                     Spacer()
-                    Button("Acknowledge") {
+                    Button(KroutonL10n.tr("Acknowledge")) {
                         recovery.acknowledgeInterruptedBurns()
                     }
                     .buttonStyle(.bordered)

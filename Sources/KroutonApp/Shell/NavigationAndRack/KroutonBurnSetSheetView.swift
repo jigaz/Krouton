@@ -56,8 +56,8 @@ struct KroutonBurnSetSheetView: View {
             isPresented: $confirmAbort,
             titleVisibility: .visible
         ) {
-            Button("Abort and Spoil Discs in Progress", role: .destructive) { controller.abortNow() }
-            Button("Keep Burning", role: .cancel) {}
+            Button(KroutonL10n.tr("Abort and Spoil Discs in Progress"), role: .destructive) { controller.abortNow() }
+            Button(KroutonL10n.tr("Keep Burning"), role: .cancel) {}
         } message: {
             Text("A disc that is being written right now cannot be reused if it is write-once media. To stop without losing a disc, use Stop After Current Discs.")
         }
@@ -92,9 +92,9 @@ struct KroutonBurnSetSheetView: View {
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                     HStack {
-                        Button("Resume This Set") { controller.resumeFoundSet() }
+                        Button(KroutonL10n.tr("Resume This Set")) { controller.resumeFoundSet() }
                             .keyboardShortcut(.defaultAction)
-                        Button("Discard Its Staged Images", role: .destructive) { controller.discardFoundSet() }
+                        Button(KroutonL10n.tr("Discard Its Staged Images"), role: .destructive) { controller.discardFoundSet() }
                     }
                 }
                 .padding(10)
@@ -103,7 +103,7 @@ struct KroutonBurnSetSheetView: View {
                 .clipShape(RoundedRectangle(cornerRadius: KroutonDesign.Radius.card))
             }
 
-            Picker("Disc type", selection: $mediumRaw) {
+            Picker(KroutonL10n.tr("Disc type"), selection: $mediumRaw) {
                 ForEach(KroutonSpanningDiscMedium.allCases) { option in
                     Text(option.rawValue).tag(option.rawValue)
                 }
@@ -196,10 +196,10 @@ struct KroutonBurnSetSheetView: View {
         HStack {
             switch controller.phase {
             case .idle:
-                Button("Close") { dismiss() }
+                Button(KroutonL10n.tr("Close")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Spacer()
-                Button("Build Images and Burn") {
+                Button(KroutonL10n.tr("Build Images and Burn")) {
                     controller.start(title: store.discVolumeTitle, entries: store.stagedFiles, discCapacityBytes: medium.maxPayloadBytes)
                 }
                 .keyboardShortcut(controller.resumable == nil ? .defaultAction : nil)
@@ -207,24 +207,24 @@ struct KroutonBurnSetSheetView: View {
             case .preparing:
                 Spacer()
             case .running:
-                Button("Abort Now...", role: .destructive) { confirmAbort = true }
+                Button(KroutonL10n.tr("Abort Now..."), role: .destructive) { confirmAbort = true }
                 Spacer()
                 if controller.isStopping {
                     Text("Stopping...")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
-                Button("Stop After Current Discs") { controller.stopAfterCurrentDiscs() }
+                Button(KroutonL10n.tr("Stop After Current Discs")) { controller.stopAfterCurrentDiscs() }
                     .disabled(controller.isStopping)
             case .finished:
-                Button("Done") {
+                Button(KroutonL10n.tr("Done")) {
                     controller.dismissFinishedSet()
                     dismiss()
                 }
                 .keyboardShortcut(.cancelAction)
                 Spacer()
                 if controller.hasUnfinishedDiscs {
-                    Button("Burn Remaining Discs") { controller.burnRemainingDiscs() }
+                    Button(KroutonL10n.tr("Burn Remaining Discs")) { controller.burnRemainingDiscs() }
                         .keyboardShortcut(.defaultAction)
                 }
             }

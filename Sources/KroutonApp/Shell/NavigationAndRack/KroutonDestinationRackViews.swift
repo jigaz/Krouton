@@ -189,14 +189,22 @@ struct KroutonDiscImagePlaceholderDocument: FileDocument {
 struct KroutonDiscImageTargetRowView: View {
     let defaultVolumeTitle: String
     @Binding var pathText: String
+    var onSaveAsURLSelected: ((URL) -> Void)? = nil
     @State private var isShowingSaveExporter: Bool = false
+
+    private var resolvedDefaultFilename: String {
+        let ext = URL(fileURLWithPath: (pathText as NSString).expandingTildeInPath).pathExtension.lowercased()
+        let activeExt = ["dmg", "iso", "cue"].contains(ext) ? ext : "dmg"
+        let cleanBase = defaultVolumeTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Krouton_Master" : defaultVolumeTitle
+        return "\(cleanBase).\(activeExt)"
+    }
 
     var body: some View {
         HStack(spacing: 6) {
             TextField("~/Desktop/Krouton_Master.dmg", text: $pathText)
                 .textFieldStyle(.roundedBorder)
                 .font(.system(size: 11, design: .monospaced))
-            Button("Save As...") {
+            Button(KroutonL10n.tr("Save As...")) {
                 isShowingSaveExporter = true
             }
             .controlSize(.small)
@@ -204,10 +212,12 @@ struct KroutonDiscImageTargetRowView: View {
                 isPresented: $isShowingSaveExporter,
                 document: KroutonDiscImagePlaceholderDocument(),
                 contentType: .diskImage,
-                defaultFilename: "\(defaultVolumeTitle).dmg"
+                defaultFilename: resolvedDefaultFilename
             ) { result in
                 if case .success(let savedURL) = result {
+                    try? FileManager.default.removeItem(at: savedURL)
                     pathText = savedURL.path
+                    onSaveAsURLSelected?(savedURL)
                 }
             }
         }
@@ -228,7 +238,7 @@ extension KroutonDestinationCardView {
             HStack(spacing: 3) {
                 Image(systemName: "gauge.with.dots.needle.67percent").font(.system(size: 9.5)).foregroundStyle(store.uiSecondaryAccent)
                 Text(shortSpd).font(.system(size: 10.5, weight: .semibold, design: .monospaced)).foregroundStyle(.primary).lineLimit(1)
-                Image(systemName: "chevron.up.chevron.down").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 9, weight: .bold)).foregroundStyle(.secondary)
             }
             .padding(.horizontal, 6).padding(.vertical, 3)
             .background(Color.primary.opacity(0.06)).clipShape(RoundedRectangle(cornerRadius: 6))

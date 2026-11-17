@@ -26,7 +26,7 @@ public enum KroutonDesign {
     }
 
     public enum Typography {
-        public static let microMono = Font.system(size: 8.5, weight: .bold, design: .monospaced)
+        public static let microMono = Font.system(size: 9, weight: .bold, design: .monospaced)
         public static let badgeMono = Font.system(size: 9.5, weight: .semibold, design: .monospaced)
         public static let telemetryMono = Font.system(size: 10.5, weight: .bold, design: .monospaced)
         public static let sectionHeader = Font.system(size: 9.5, weight: .bold, design: .rounded)

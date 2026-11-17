@@ -28,6 +28,8 @@ extension KroutonSettingsWindowView {
                                 Image(systemName: "trash")
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel(KroutonL10n.tr("Delete Label Preset"))
+                            .help(KroutonL10n.tr("Delete Label Preset"))
                         }
                     }
                     Divider()
@@ -272,6 +274,8 @@ extension KroutonSettingsWindowView {
         }
         .buttonStyle(.plain)
         .help(helpText)
+        .accessibilityLabel(helpText)
+        .accessibilityValue(isOn.wrappedValue ? KroutonL10n.tr("Enabled") : KroutonL10n.tr("Disabled"))
     }
 }
 
@@ -294,7 +298,7 @@ struct KroutonDualHarmonySwitch: View {
                         .fill(primaryColor)
                         .frame(width: 8, height: 8)
                     Text("PRIMARY")
-                        .font(.system(size: 8.5, weight: isOn ? .medium : .bold, design: .monospaced))
+                        .font(.system(size: 9, weight: isOn ? .medium : .bold, design: .monospaced))
                         .foregroundStyle(isOn ? Color.secondary : primaryColor)
                 }
 
@@ -345,7 +349,7 @@ struct KroutonDualHarmonySwitch: View {
                 // Right Side: Secondary Harmony Color
                 HStack(spacing: 4) {
                     Text("HARMONY")
-                        .font(.system(size: 8.5, weight: isOn ? .bold : .medium, design: .monospaced))
+                        .font(.system(size: 9, weight: isOn ? .bold : .medium, design: .monospaced))
                         .foregroundStyle(isOn ? secondaryColor : Color.secondary)
                     Circle()
                         .fill(secondaryColor)

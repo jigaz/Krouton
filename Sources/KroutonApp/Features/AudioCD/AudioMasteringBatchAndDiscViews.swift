@@ -31,14 +31,14 @@ struct AudioBatchSelectionActionBarView: View {
             Text("Transitions:")
                 .kroutonReadout()
 
-            Button("Gapless (0s)") {
+            Button(KroutonL10n.tr("Gapless (0s)")) {
                 controller.applyBatchTransition(to: selectedTrackIDs, actionName: "Batch Set Gapless") {
                     $0.switched(to: .gapless)
                 }
             }
             .buttonStyle(KroutonPillButtonStyle(isOn: false))
 
-            Button("2s Pause") {
+            Button(KroutonL10n.tr("2s Pause")) {
                 controller.applyBatchTransition(to: selectedTrackIDs, actionName: "Batch Set 2s Pause") {
                     var s = $0.switched(to: .gap)
                     s.preGapSeconds = 2.0
@@ -47,7 +47,7 @@ struct AudioBatchSelectionActionBarView: View {
             }
             .buttonStyle(KroutonPillButtonStyle(isOn: false))
 
-            Button("2.5s X-Fade") {
+            Button(KroutonL10n.tr("2.5s X-Fade")) {
                 controller.applyBatchTransition(to: selectedTrackIDs, actionName: "Batch Set Crossfade") {
                     $0.switched(to: .crossfade)
                 }
@@ -56,7 +56,7 @@ struct AudioBatchSelectionActionBarView: View {
 
             Divider().frame(height: 14)
 
-            Button("Use Album Artist") {
+            Button(KroutonL10n.tr("Use Album Artist")) {
                 guard !project.albumPerformer.isEmpty else { return }
                 controller.applyBatchPerformer(project.albumPerformer, to: selectedTrackIDs)
             }
@@ -64,7 +64,7 @@ struct AudioBatchSelectionActionBarView: View {
             .disabled(project.albumPerformer.isEmpty)
             .help("Stamp the Album Artist onto all checked tracks")
 
-            Button("Auto-ISRC…") {
+            Button(KroutonL10n.tr("Auto-ISRC…")) {
                 showISRCBatchPopover.toggle()
             }
             .buttonStyle(KroutonPillButtonStyle(isOn: showISRCBatchPopover))
@@ -80,7 +80,7 @@ struct AudioBatchSelectionActionBarView: View {
                             .textFieldStyle(.roundedBorder)
                             .font(.system(size: 11, design: .monospaced))
                             .frame(width: 140)
-                        Button("Apply") {
+                        Button(KroutonL10n.tr("Apply")) {
                             let applied = controller.assignSequentialISRCs(baseISRC: batchISRCSeed, to: selectedTrackIDs)
                             if applied > 0 {
                                 isrcDrafts.removeAll()
@@ -98,7 +98,7 @@ struct AudioBatchSelectionActionBarView: View {
                 .frame(width: 310)
             }
 
-            Button("Clear Sub-Indexes") {
+            Button(KroutonL10n.tr("Clear Sub-Indexes")) {
                 controller.applyBatchTransition(to: selectedTrackIDs, actionName: "Clear Sub-Indexes") {
                     var s = $0
                     s.subIndexRatios.removeAll()
@@ -156,7 +156,7 @@ struct AudioAdditionalDiscHeaderView: View {
                 Spacer()
                 if isProvisional {
                     Text("PROVISIONAL")
-                        .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
                         .padding(.horizontal, 6).padding(.vertical, 2)
                         .background(Color.orange.opacity(0.25))
                         .foregroundStyle(.orange)
@@ -179,18 +179,18 @@ struct AudioAdditionalDiscHeaderView: View {
             }
 
             HStack(spacing: 10) {
-                Text("Disc \(dNum) Album:").font(.caption.bold())
+                Text("Disc \(dNum) Album:").font(.caption.bold()).fixedSize()
                 TextField("Disc \(dNum) Album Title (≤60 Latin-1 chars)", text: controller.discTitleBinding(forDisc: dNum))
                     .textFieldStyle(.roundedBorder)
+                    .frame(minWidth: 110)
 
-                Text("Artist:").font(.caption.bold())
+                Text("Artist:").font(.caption.bold()).fixedSize()
                 TextField("Disc \(dNum) Performer", text: controller.discPerformerBinding(forDisc: dNum))
                     .textFieldStyle(.roundedBorder)
+                    .frame(minWidth: 110)
 
-                Text("UPC/EAN:").font(.caption.bold())
-                TextField("12/13 digits", text: controller.discUPCBinding(forDisc: dNum))
-                    .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 11, design: .monospaced))
+                Text("UPC/EAN:").font(.caption.bold()).fixedSize()
+                KroutonDigitsOnlyTextField(placeholder: "12/13 digits", text: controller.discUPCBinding(forDisc: dNum))
                     .frame(width: 125)
             }
         }
@@ -233,5 +233,37 @@ struct AudioTrackReorderDropDelegate: DropDelegate {
     func performDrop(info: DropInfo) -> Bool {
         draggedTrackID = nil
         return true
+    }
+}
+
+/// Instantaneous pure-SwiftUI digits-only field (max 13 ASCII digits for UPC-A / EAN-13)
+/// that filters non-numeric characters synchronously in `.onChange` without per-keystroke undo lag.
+struct KroutonDigitsOnlyTextField: View {
+    let placeholder: String
+    @Binding var text: String
+    var maxDigits: Int = 13
+    @State private var draft: String = ""
+
+    var body: some View {
+        TextField(placeholder, text: $draft)
+            .textFieldStyle(.roundedBorder)
+            .font(.system(size: 11, design: .monospaced))
+            .onAppear {
+                let clean = sanitize(text)
+                if draft != clean { draft = clean }
+            }
+            .onChange(of: draft) { _, newValue in
+                let clean = sanitize(newValue)
+                if draft != clean { draft = clean }
+                if text != clean { text = clean }
+            }
+            .onChange(of: text) { _, externalValue in
+                let clean = sanitize(externalValue)
+                if draft != clean { draft = clean }
+            }
+    }
+
+    private func sanitize(_ raw: String) -> String {
+        String(raw.filter { $0.isASCII && $0.isNumber }.prefix(maxDigits))
     }
 }

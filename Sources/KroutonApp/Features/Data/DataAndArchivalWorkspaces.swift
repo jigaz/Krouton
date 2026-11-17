@@ -111,7 +111,7 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                                 .lineLimit(1)
                             TextField("Volume Title", text: $store.discVolumeTitle)
                                 .textFieldStyle(.roundedBorder)
-                                .frame(width: 145)
+                                .frame(width: 135)
                         }
                         .fixedSize(horizontal: true, vertical: false)
 
@@ -284,45 +284,13 @@ struct KroutonDataAndArchivalWorkspaceView: View {
         let isRetro83 = (activeSpec.id == "data-retro-iso")
         Group {
             if activeDataWorkspaceTab == 1 && enableCustomFinderLayoutTab {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 20) {
-                        ColorPicker(KroutonL10n.tr("Finder Window Background:"), selection: $finderBgColor)
-                        HStack {
-                            Text("Icon Size: \(Int(finderIconSize)) px")
-                                .font(.caption)
-                            Slider(value: $finderIconSize, in: 64...512, step: 32)
-                                .frame(width: 160)
-                        }
-                    }
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(finderBgColor)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .overlay(
-                            ScrollView {
-                                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120))], spacing: 24) {
-                                    ForEach(store.stagedFiles) { item in
-                                        VStack(spacing: 6) {
-                                            Image(systemName: item.isDirectory ? "folder.fill" : "doc.fill")
-                                                .font(.system(size: min(finderIconSize * 0.25, 84)))
-                                                .foregroundStyle(item.isDirectory ? store.resolvedFolderIconColor : .white)
-                                            Text(item.name)
-                                                .font(.caption.bold())
-                                                .foregroundStyle(.white)
-                                                .lineLimit(1)
-                                        }
-                                        .contextMenu {
-                                            Button(KroutonL10n.tr("Reveal in Finder")) { KroutonOSDesktopBridge.revealURLsInFinder([item.url]) }.keyboardShortcut("f", modifiers: [.command, .shift])
-                                            Button(KroutonL10n.tr("Inspect Hybrid ISO/UDF LBA Layout")) { showHybridLBAMapPopover = true }.keyboardShortcut("l", modifiers: [.command, .control])
-                                            Button(KroutonL10n.tr("Copy Path & Byte Size")) { KroutonOSDesktopBridge.copyTextToClipboard("\(item.url.path) (\(item.byteSize) bytes)") }
-                                            Divider()
-                                            Button(role: .destructive) { store.removeStagedFile(id: item.id) } label: { Text(KroutonL10n.tr("Remove from Stage")) }.keyboardShortcut(.delete, modifiers: .command)
-                                        }
-                                    }
-                                }
-                                .padding(24)
-                            }
-                        )
-                }
+                KroutonFinderDiscStageView(
+                    store: store,
+                    blueprint: $store.finderLayoutBlueprint,
+                    isDropTargeted: $isDropTargeted,
+                    onHandleFinderDrop: onHandleFinderDrop,
+                    onInspectLBA: { showHybridLBAMapPopover = true }
+                )
             } else {
                 ZStack {
                     RoundedRectangle(cornerRadius: 10)
@@ -375,10 +343,27 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                             .background(ZStack { Color.black.opacity(0.18); store.sidebarTintOverlay })
                             Divider()
 
+                            let plan = store.dataDiscPlan(forFormatID: activeSpec.id)
+                            let activeMedium = store.resolvedDataDiscMedium(forFormatID: activeSpec.id)
+                            let oversizeIDs: Set<UUID> = Set(plan.issues.compactMap { issue in
+                                if case .itemExceedsDisc(let id, _, _) = issue { return id }
+                                return nil
+                            })
                             ScrollView {
                                 LazyVStack(spacing: 0) {
-                                    ForEach(store.stagedFiles) { entry in
-                                        stagedFileTableRow(entry: entry, isUniversalHybrid: isUniversalHybrid, isRetro83: isRetro83)
+                                    ForEach(plan.discs) { disc in
+                                        if plan.discs.count > 1 || !oversizeIDs.isEmpty {
+                                            DataDiscHeaderBannerView(
+                                                store: store,
+                                                disc: disc,
+                                                totalDiscs: plan.discs.count,
+                                                medium: activeMedium,
+                                                hasOversizeItem: disc.items.contains { oversizeIDs.contains($0.id) }
+                                            )
+                                        }
+                                        ForEach(disc.items) { entry in
+                                            stagedFileTableRow(entry: entry, isUniversalHybrid: isUniversalHybrid, isRetro83: isRetro83)
+                                        }
                                     }
                                 }
                             }
@@ -472,11 +457,19 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                                                     .foregroundStyle(.secondary)
                                             }
                                             .buttonStyle(.plain)
+                                            .accessibilityLabel(KroutonL10n.tr("Remove Item"))
+                                            .help(KroutonL10n.tr("Remove Item"))
                                             .frame(width: 18, alignment: .center)
                                         }
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 8)
                                         .contextMenu {
+                                            if (store.stagedFiles.firstIndex(where: { $0.id == entry.id }) ?? 0) > 0 {
+                                                Button(entry.startsNewDisc ? KroutonL10n.tr("Merge Back With Previous Disc") : KroutonL10n.tr("Start New Disc Here (Disc Break)")) {
+                                                    store.toggleDataManualDiscBreak(before: entry.id)
+                                                }
+                                                Divider()
+                                            }
                                             Button(KroutonL10n.tr("Reveal in Finder")) { KroutonOSDesktopBridge.revealURLsInFinder([entry.url]) }.keyboardShortcut("f", modifiers: [.command, .shift])
                                             Button(KroutonL10n.tr("Inspect Hybrid ISO/UDF LBA Layout")) { showHybridLBAMapPopover = true }.keyboardShortcut("l", modifiers: [.command, .control])
                                             if isUniversalHybrid {

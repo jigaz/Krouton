@@ -255,6 +255,10 @@ public final class KroutonStateStore: ObservableObject {
     @Published public var allowATIPOverburn: Bool = false
     @Published public var dualLayerBreakSectorLBA: Int64 = 2_086_912
     @Published public var discVolumeTitle: String = ""
+    @Published public var dataTargetDiscMedium: KroutonSpanningDiscMedium = .dvd5Single
+    @Published public var targetDiscMediumByTask: [String: KroutonSpanningDiscMedium] = [:]
+    @Published public var dataDiscVolumeOverrides: [Int: String] = [:]
+    @Published public var finderLayoutBlueprint = KroutonFinderLayoutBlueprint()
     @Published public var discFormats: [KroutonOpticalWorkflowSpec] = KroutonOpticalWorkflowCatalog.defaultFormats
 
     @Published public var notificationMatrix: [KroutonKitchenEventRow] = [

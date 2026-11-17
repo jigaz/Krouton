@@ -1,3 +1,4 @@
+import DiskArbitration
 import OpticalCore
 import os
 import SwiftUI
@@ -100,102 +101,6 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
             let book = isErasable ? "Orange Book Part III (CD-RW High-Speed)" : "Orange Book Part II (CD-R)"
             let dye = isErasable ? "AgInSbTe Phase-Change (1x–12x / 10x–24x)" : "Phthalocyanine / Cyanine Organic Dye"
             return (book, dye, "780 nm Infrared (0.45 NA)", "2,048 Bytes Mode 1 (2,352 Raw)")
-        }
-    }
-
-    // Scans macOS mounted optical volumes to extract Volume Names, File/Track counts, and Filesystem types
-    public static func scanMountedOpticalVolumes(bsdName: String?, isMediaPresent: Bool, isMediaBlank: Bool, usedBytes: Int64) -> [KroutonMountedDiscVolume] {
-        guard isMediaPresent && !isMediaBlank else { return [] }
-        let fm = FileManager.default
-        let keys: [URLResourceKey] = [
-            .volumeNameKey,
-            .volumeLocalizedFormatDescriptionKey,
-            .volumeIsRemovableKey,
-            .volumeIsEjectableKey,
-            .volumeIsReadOnlyKey,
-            .volumeTotalCapacityKey,
-            .volumeAvailableCapacityKey,
-            .volumeCreationDateKey
-        ]
-
-        guard let urls = fm.mountedVolumeURLs(includingResourceValuesForKeys: keys, options: [.skipHiddenVolumes]) else {
-            return []
-        }
-
-        var results: [KroutonMountedDiscVolume] = []
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .medium
-        dateFormatter.timeStyle = .none
-
-        for url in urls {
-            guard url.path != "/",
-                  let vals = try? url.resourceValues(forKeys: Set(keys)) else { continue }
-
-            let isRemovable = vals.volumeIsRemovable ?? false
-            let isEjectable = vals.volumeIsEjectable ?? false
-            let isReadOnly = vals.volumeIsReadOnly ?? false
-            let formatDesc = vals.volumeLocalizedFormatDescription ?? "ISO 9660 / HFS+"
-            let lowerFormat = formatDesc.lowercased()
-
-            // Identify optical volumes (CD-DA, ISO9660, UDF, Joliet, or read-only ejectable discs)
-            let looksLikeOptical = isRemovable || isEjectable || lowerFormat.contains("cd") || lowerFormat.contains("udf") || lowerFormat.contains("iso") || (isReadOnly && url.path.hasPrefix("/Volumes/"))
-            guard looksLikeOptical, url.path.hasPrefix("/Volumes/") else { continue }
-
-            let volName = vals.volumeName ?? url.lastPathComponent
-            let isAudio = lowerFormat.contains("audio") || lowerFormat.contains("cd-da") || lowerFormat.contains("cdda")
-
-            // Fast top-level item count so main thread never blocks during app launch
-            let topItems = (try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
-            let count = topItems.count
-
-            let totalCap = Int64(vals.volumeTotalCapacity ?? Int(max(usedBytes, 0)))
-            let availCap = Int64(vals.volumeAvailableCapacity ?? 0)
-            let usedCap = max(0, totalCap - availCap)
-            let createdStr = vals.volumeCreationDate.map { dateFormatter.string(from: $0) } ?? "Mastered Session"
-
-            results.append(KroutonMountedDiscVolume(
-                id: url.path,
-                volumeName: volName,
-                filesystemFormat: formatDesc,
-                mountPath: url.path,
-                itemCount: count,
-                isAudioCD: isAudio,
-                usedBytes: usedCap > 0 ? usedCap : usedBytes,
-                totalBytes: totalCap > 0 ? totalCap : usedBytes,
-                creationDateText: createdStr
-            ))
-        }
-
-        return results
-    }
-
-    public static func formatHumanBurnState(_ rawState: String, isErase: Bool = false) -> String {
-        switch rawState {
-        case DRStatusStatePreparing:
-            return isErase ? "Preparing Optical Drive & Laser..." : "Calibrating Laser Power (OPC) & Preparing Track..."
-        case DRStatusStateSessionOpen:
-            return "Opening Disc Session & Writing Lead-In TOC..."
-        case DRStatusStateTrackOpen:
-            return "Opening Data Track & Syncing Drive Buffer..."
-        case DRStatusStateTrackWrite:
-            return "Writing Sectors to Optical Media..."
-        case DRStatusStateTrackClose:
-            return "Closing Track & Flushing Hardware Cache..."
-        case DRStatusStateSessionClose:
-            return "Closing Session & Writing Lead-Out..."
-        case DRStatusStateFinishing:
-            return "Finalizing Disc & Updating PMA/TOC..."
-        case DRStatusStateVerifying:
-            return "Verifying Written Sectors Against Source..."
-        case DRStatusStateErasing:
-            return "Erasing Rewritable Phase-Change Layer (PMA/TOC)..."
-        case DRStatusStateDone:
-            return isErase ? "Rewritable Disc Erased & Ready" : "Burn & Verification Complete"
-        case DRStatusStateFailed:
-            return isErase ? "Disc Erase Failed" : "Optical Burn Failed"
-        default:
-            let cleaned = rawState.replacingOccurrences(of: "DRStatusState", with: "")
-            return cleaned.isEmpty ? "Active..." : cleaned
         }
     }
 

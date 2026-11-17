@@ -32,6 +32,15 @@ extension KroutonDestinationCardView {
         let isDriveBusy = driveManager.isExecutingQueue || (scopeTel?.isActive == true)
         let canEject = (cardDrive?.isMediaPresent == true) && !isDriveBusy
         HStack(spacing: 5) {
+                if let discNum = item.spannedDiscNumber {
+                    Text("DISC \(discNum)")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2.5)
+                        .background(store.uiSecondaryAccent.opacity(0.22))
+                        .foregroundStyle(store.uiSecondaryAccent)
+                        .clipShape(Capsule())
+                }
                 Menu {
                     ForEach(store.allowedDestinationsForCurrentCategory) { kind in
                         let isUSBAlreadyExhausted = (kind == .physicalBurner && item.kind != .physicalBurner && !hasUnclaimedPhysicalBurner)
@@ -93,7 +102,7 @@ extension KroutonDestinationCardView {
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                         Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 8.5, weight: .bold))
+                            .font(.system(size: 9, weight: .bold))
                             .foregroundStyle(.secondary)
                     }
                     .padding(.horizontal, 7)
@@ -181,6 +190,8 @@ extension KroutonDestinationCardView {
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(KroutonL10n.tr("Remove Destination Card"))
+                    .help(KroutonL10n.tr("Remove Destination Card"))
                 }
             }
     }
@@ -347,7 +358,7 @@ extension KroutonDestinationCardView {
                         if store.forceDVDROMBookType && !isRightQueueCompact {
                             HStack(spacing: 3) {
                                 Image(systemName: "seal.fill")
-                                    .font(.system(size: 8))
+                                    .font(.system(size: 9))
                                 Text(KroutonL10n.tr("DVD-ROM Bitset")).lineLimit(1)
                                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                             }

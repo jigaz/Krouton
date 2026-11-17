@@ -16,19 +16,23 @@ public struct KroutonHybridImageOptions: Sendable, Equatable {
     public var includeUDF: Bool
     /// Adds an HFS+ tree for classic Mac behaviour (custom icons, resource forks).
     public var includeHFSPlus: Bool
+    /// Optional Finder View blueprint synthesized into `.DS_Store` inside the staged root.
+    public var finderLayout: KroutonFinderLayoutBlueprint?
 
     public init(
         volumeName: String,
         includeISO9660: Bool = true,
         includeJoliet: Bool = true,
         includeUDF: Bool = true,
-        includeHFSPlus: Bool = false
+        includeHFSPlus: Bool = false,
+        finderLayout: KroutonFinderLayoutBlueprint? = nil
     ) {
         self.volumeName = volumeName
         self.includeISO9660 = includeISO9660
         self.includeJoliet = includeJoliet
         self.includeUDF = includeUDF
         self.includeHFSPlus = includeHFSPlus
+        self.finderLayout = finderLayout
     }
 }
 
@@ -156,6 +160,12 @@ public enum KroutonHybridImageBuilder {
         var isDirectory: ObjCBool = false
         guard fm.fileExists(atPath: sourceDirectory.path, isDirectory: &isDirectory), isDirectory.boolValue else {
             throw KroutonHybridImageError.sourceDirectoryMissing(sourceDirectory.path)
+        }
+        if let blueprint = options.finderLayout {
+            let children = (try? fm.contentsOfDirectory(atPath: sourceDirectory.path))?.filter { !$0.hasPrefix(".") } ?? []
+            let dsData = blueprint.serializeDSStore(itemNames: children.sorted())
+            let dsURL = sourceDirectory.appendingPathComponent(".DS_Store")
+            try? dsData.write(to: dsURL, options: .atomic)
         }
         let args = try arguments(sourceDirectory: sourceDirectory, outputURL: outputURL, options: options)
 

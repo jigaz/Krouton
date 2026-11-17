@@ -78,6 +78,24 @@ struct KroutonDestinationRackColumnView: View {
                 .padding(.vertical, 12)
                 .frame(maxWidth: .infinity)
             }
+            .onAppear {
+                store.syncSpannedDestinations(driveManager: driveManager)
+            }
+            .onChange(of: store.activeSpannedDiscLabels()) { _, _ in
+                store.syncSpannedDestinations(driveManager: driveManager)
+            }
+            .onChange(of: store.audioController.project) { _, _ in
+                store.syncSpannedDestinations(driveManager: driveManager)
+            }
+            .onAppear {
+                store.syncSpannedDestinations(driveManager: driveManager)
+            }
+            .onChange(of: store.activeSpannedDiscLabels()) { _, _ in
+                store.syncSpannedDestinations(driveManager: driveManager)
+            }
+            .onChange(of: store.audioController.project) { _, _ in
+                store.syncSpannedDestinations(driveManager: driveManager)
+            }
 
             Divider()
 

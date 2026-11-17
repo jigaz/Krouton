@@ -17,7 +17,7 @@ extension KroutonStateStore {
     /// Format-aware Disc Image extension (.cue/.bin for Red Book & Raw CD Consoles, .dmg for macOS HFS+/APFS, .iso for Hybrid/UDF/Video/DVD)
     public var defaultDiscImageTarget: (path: String, description: String) {
         let cleanTitle = discVolumeTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? "KROUTON_DISC"
+            ? (selectedTaskID == "dvd-video" ? "DVD_VIDEO" : "KROUTON_DISC")
             : discVolumeTitle.replacingOccurrences(of: " ", with: "_")
         if selectedCategory == .copy {
             if selectedTaskID == "copy-rip-audio" {
@@ -257,7 +257,7 @@ extension KroutonStateStore {
                 let baseDir = dir.isEmpty ? "~/Desktop" : dir
                 let ext = (imgTarget.path as NSString).pathExtension
                 let cleanTitle = discVolumeTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    ? "KROUTON_DISC"
+                    ? (selectedTaskID == "dvd-video" ? "DVD_VIDEO" : "KROUTON_DISC")
                     : discVolumeTitle.replacingOccurrences(of: " ", with: "_")
                 restored[i].hardwareOrPath = "\(baseDir)/\(cleanTitle).\(ext)"
                 restored[i].speedOrCodec = imgTarget.description

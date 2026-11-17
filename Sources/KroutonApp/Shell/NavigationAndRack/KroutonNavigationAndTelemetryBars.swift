@@ -315,6 +315,25 @@ struct KroutonCentralWorkspaceCapacityBarView: View {
         }
 
         let spec = store.activeFormatSpec()
+        if KroutonSpanningDiscMedium.supportsTargetDiscSizeSelection(forFormatID: spec.id) {
+            let medium = store.resolvedDataDiscMedium(forFormatID: spec.id)
+            if spec.workspaceKind == .redBookAudio {
+                let plan = store.audioController.project.discPlan()
+                let discCount = max(1, plan.discs.count)
+                let perDiscCap = max(1, medium.maxRedBookFrames * 2352)
+                let totalCap = perDiscCap * Int64(discCount)
+                let usedAudioBytes = plan.discs.reduce(Int64(0)) { $0 + ($1.usedFrames * 2352) }
+                let suffix = discCount > 1 ? "\(discCount) Discs • \(plan.discs.reduce(0) { $0 + $1.usedFrames }) Frames" : "\(store.totalStagedSectorsLBA) LBA"
+                return ("DISC SPACE (\(medium.rawValue))", medium.rawValue, max(usedB, usedAudioBytes), totalCap, suffix)
+            } else {
+                let plan = store.dataDiscPlan(forFormatID: spec.id)
+                let discCount = max(1, plan.discs.count)
+                let perDiscCap = max(1, medium.maxPayloadBytes)
+                let totalCap = perDiscCap * Int64(discCount)
+                let suffix = discCount > 1 ? "\(discCount) Discs • \(store.totalStagedSectorsLBA) LBA" : "\(store.totalStagedSectorsLBA) LBA"
+                return ("DISC SPACE (\(medium.rawValue))", medium.rawValue, usedB, totalCap, suffix)
+            }
+        }
         let gb = spec.capacityGB
         let targetMedium: (full: String, short: String) = {
             if gb <= 0.75 { return ("CD-R (700 MB)", "CD-R") }

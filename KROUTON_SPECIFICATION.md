@@ -37,10 +37,20 @@ All internal models, API payloads, and UI telemetry share a strict culinary doma
 
 ---
 
-## 3. Application Architecture & Module Layout (Swift Package Manager)
-- **`Sources/OpticalDough` (Core Engine & Networking):**
-  - Hardware discovery (`IOKit` / `DiscRecording` / `DADiskClaim`), ATIP/MID media inspection, MMC bitsetting (`0x00` DVD-ROM Book Type stamping), Red Book CD-DA `.toc` generation, ISO9660/UDF/HFS hybrid image staging, and `KrumbKitchenClient` (Port `7420` HTTP + WebSocket + `NWBrowser` mDNS client).
-- **`Sources/KroutonApp` (SwiftUI Studio Interface):**
+## 3. Application Architecture & Module Layout (11-Target Swift 6 Package)
+- **Core & Engine Modules (`Sources/`):**
+  - `OpticalCore`: Domain models, LBA math, Red Book 75-fps math, `KroutonSpanningDiscMedium`.
+  - `DriveKit`: Hardware discovery (`IOKit` / `DiscRecording` / `DiskArbitration` / `hdiutil`), ATIP/MID media inspection, and MMC bitsetting.
+  - `ImageKit`: Hybrid ISO-9660/UDF/El Torito LBA planner, CUE/BIN extractor, SHA-256 & hex inspector.
+  - `AudioKit`: Red Book CUE compiler, 18B CD-TEXT CRC-16 encoder, equal-power crossfade DSP.
+  - `VideoKit`: Optical bitrate budgeter, DVD-9 to DVD-5 shrink engine, IFO relinker, AVCHD muxer.
+  - `BurnKit`: `DiscSpanningEngine`, frozen `BurnSet` state machine, single-read stager.
+  - `RescueKit`: Bad-sector optical rescue engine and archival disc quality grader.
+  - `LabelKit`: Polar 300-DPI disc geometry engine and 1:1 vector PDF print sheet generator.
+  - `NetworkSpool`: Port `7420` remote optical burn server (`Krumb`) and spool telemetry.
+  - `Persistence`: `SessionStore`, `RunLock` crash recovery, and security-scoped bookmark vault.
+  - `KroutonVerify`: Automated 22-suite architectural verification gate (`krouton-verify`).
+- **`Sources/KroutonApp` (SwiftUI Studio Interface, AppIntents & Headless CLI):**
   - `KroutonApp.swift`: Window management (`NSWindow` delegates for main studio, settings, and pop-out floating Phase Scope).
   - `KroutonModels.swift` & `KroutonThemeEngine.swift`: `@Published` state store backed by `UserDefaults` persistence and the 10-preset Display-P3 Color Harmony Look-Up Table (LUT).
   - `KroutonNavigationAndTelemetryBars.swift`: Top status bar, bottom capacity/LBA fuel gauge bar, and 120mm Disc Label Studio canvas.

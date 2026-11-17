@@ -89,6 +89,7 @@ public struct KroutonStagedFileEntry: Identifiable, Hashable, Sendable {
     public let modifiedDate: Date
     public var showOnMac: Bool
     public var showOnPC: Bool
+    public var startsNewDisc: Bool
 
     public init(
         id: UUID = UUID(),
@@ -100,7 +101,8 @@ public struct KroutonStagedFileEntry: Identifiable, Hashable, Sendable {
         posixPermissions: String,
         modifiedDate: Date,
         showOnMac: Bool = true,
-        showOnPC: Bool = true
+        showOnPC: Bool = true,
+        startsNewDisc: Bool = false
     ) {
         self.id = id
         self.url = url
@@ -112,6 +114,7 @@ public struct KroutonStagedFileEntry: Identifiable, Hashable, Sendable {
         self.modifiedDate = modifiedDate
         self.showOnMac = showOnMac
         self.showOnPC = showOnPC
+        self.startsNewDisc = startsNewDisc
     }
 
     public var sectorsLBA: Int64 {

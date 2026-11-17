@@ -286,4 +286,6 @@ public struct KroutonBakeBatchItem: Identifiable, Hashable, Codable, Sendable {
     public var compressAfterCreation: Bool
     public var copiesToBurn: Int = 1
     public var completedCopies: Int = 0
+    /// Non-nil when managed by the multi-disc spanning engine (1 = Disc 1, 2 = Disc 2, etc.)
+    public var spannedDiscNumber: Int? = nil
 }

@@ -223,12 +223,12 @@ struct KroutonCopyAndRipWorkspaceView: View {
         VStack(alignment: .leading, spacing: 10) {
             KroutonMasteringDeckCard(store: store) {
                 HStack(spacing: 14) {
-                    Picker("Mode:", selection: $videoExtractMode) {
+                    Picker(KroutonL10n.tr("Mode:"), selection: $videoExtractMode) {
                         Text("Lossless MKV Remux").tag("Lossless MKV Remux")
                         Text("HEVC 10-Bit (VideoToolbox)").tag("HEVC 10-Bit (VideoToolbox)")
                         Text("H.264 MP4 Hardware").tag("H.264 MP4 Hardware")
                     }.font(.caption.bold())
-                    Toggle("Preserve Chapter Markers & Subtitles", isOn: $videoExtractKeepChapters).toggleStyle(.checkbox).font(.caption)
+                    Toggle(KroutonL10n.tr("Preserve Chapter Markers & Subtitles"), isOn: $videoExtractKeepChapters).toggleStyle(.checkbox).font(.caption)
                     Spacer()
                 }
             }
@@ -262,8 +262,8 @@ struct KroutonCopyAndRipWorkspaceView: View {
             KroutonMasteringDeckCard(store: store) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 14) {
-                        Toggle("Fit Dual-Layer DVD-9 (8.5 GB) onto Single-Layer DVD-5 (4.7 GB)", isOn: $fitToDiscDVD9Shrink).toggleStyle(.checkbox).font(.caption.bold())
-                        Toggle("Preserve Interactive Menus & Subpictures", isOn: $preserveMenusAndExtras).toggleStyle(.checkbox).font(.caption)
+                        Toggle(KroutonL10n.tr("Fit Dual-Layer DVD-9 (8.5 GB) onto Single-Layer DVD-5 (4.7 GB)"), isOn: $fitToDiscDVD9Shrink).toggleStyle(.checkbox).font(.caption.bold())
+                        Toggle(KroutonL10n.tr("Preserve Interactive Menus & Subpictures"), isOn: $preserveMenusAndExtras).toggleStyle(.checkbox).font(.caption)
                         Spacer()
                     }
                     Text(String(format: "VideoKit Requantizer Ratio: %.1f%% • Output: %.2f GB • Requantize: %@", plan.requantizationRatio * 100.0, Double(plan.estimatedOutputBytes) / 1_000_000_000.0, plan.requiresRequantization ? "ACTIVE" : "PASSTHROUGH"))
@@ -289,13 +289,13 @@ struct KroutonCopyAndRipWorkspaceView: View {
                     Text("TRACK RIP RESULTS")
                         .font(.system(size: 9.5, weight: .heavy, design: .monospaced)).foregroundStyle(.secondary).lineLimit(1)
                     Spacer(minLength: 4)
-                    Button("Copy Results") {
+                    Button(KroutonL10n.tr("Copy Results")) {
                         let lines = audioRipTracks.map { String(format: "Track %02d: %@", $0.num, $0.arStatus) }
                         KroutonOSDesktopBridge.copyTextToClipboard(lines.joined(separator: "\n"))
                         copyStatusBanner = "Copied Track Rip Results to Clipboard"
                     }.buttonStyle(.bordered).controlSize(.mini).fixedSize().disabled(audioRipTracks.isEmpty)
                     if showVideoHandoff {
-                        Button("Send to Video Author ->") {
+                        Button(KroutonL10n.tr("Send to Video Author ->")) {
                             store.selectedTaskID = "dvd-video"
                             copyStatusBanner = "Routed Extracted Stream to DVD/BDMV Authoring Deck"
                         }.buttonStyle(.borderedProminent).tint(store.uiSecondaryAccent).controlSize(.mini).fixedSize()

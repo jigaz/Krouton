@@ -120,6 +120,8 @@ struct KroutonRedBookAudioWorkspaceView: View {
                                 .foregroundStyle(selectedTrackIDs.isEmpty ? Color.secondary : store.activeAccent)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(KroutonL10n.tr(allTracksSelected ? "Deselect All Tracks" : "Select All Tracks"))
+                        .help(KroutonL10n.tr(allTracksSelected ? "Deselect All Tracks" : "Select All Tracks"))
                         .frame(width: 20, alignment: .center)
                         .help(allTracksSelected ? "Deselect All Tracks" : "Select All Tracks")
 
@@ -323,6 +325,7 @@ struct KroutonRedBookAudioWorkspaceView: View {
                     .foregroundStyle(isSelected ? store.activeAccent : .secondary)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(KroutonL10n.tr(isSelected ? "Deselect Track" : "Select Track"))
             .frame(width: 20, alignment: .center)
 
             // 2. Drag Grip Handle + Track Number (Replaces up/down arrows)
@@ -345,19 +348,19 @@ struct KroutonRedBookAudioWorkspaceView: View {
                     .help(totalDiscs > 1 ? "End of Disc \(discNumber). Any crossfade on this track is suspended across the disc break and restored if tracks move back onto one disc." : "Disc Lead-Out")
             } else {
                 Menu {
-                    Button("0 sec (Gapless)") {
+                    Button(KroutonL10n.tr("0 sec (Gapless)")) {
                         controller.commitTransition(tr.switched(to: .gapless), after: track.id, actionName: "Set Gapless")
                     }
-                    Button("1 sec Pause") {
+                    Button(KroutonL10n.tr("1 sec Pause")) {
                         var updated = tr.switched(to: .gap); updated.preGapSeconds = 1.0
                         controller.commitTransition(updated, after: track.id, actionName: "Set 1s Pause")
                     }
-                    Button("2 sec Standard Pause") {
+                    Button(KroutonL10n.tr("2 sec Standard Pause")) {
                         var updated = tr.switched(to: .gap); updated.preGapSeconds = 2.0
                         controller.commitTransition(updated, after: track.id, actionName: "Set 2s Pause")
                     }
                     Divider()
-                    Button("2.5s Crossfade") {
+                    Button(KroutonL10n.tr("2.5s Crossfade")) {
                         controller.commitTransition(tr.switched(to: .crossfade), after: track.id, actionName: "Set Crossfade")
                     }
                 } label: {
@@ -376,7 +379,7 @@ struct KroutonRedBookAudioWorkspaceView: View {
                         .font(.system(size: 11.5, weight: .semibold))
                     if track.title.count >= 52 {
                         Text("\(track.title.count)/60")
-                            .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
                             .foregroundStyle(track.title.count >= 60 ? .orange : .secondary)
                     }
                 }
@@ -418,7 +421,7 @@ struct KroutonRedBookAudioWorkspaceView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text(tr.isCrossfading ? String(format: "%.1fs X-Fade", tr.overlapSeconds) : (tr.preGapSeconds <= 0.01 ? "Gapless" : String(format: "%.1fs Gap", tr.preGapSeconds)))
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down").font(.system(size: 8, weight: .bold))
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down").font(.system(size: 9, weight: .bold))
                     }
                 }
                 .buttonStyle(KroutonPillButtonStyle(isOn: isExpanded))
@@ -440,6 +443,8 @@ struct KroutonRedBookAudioWorkspaceView: View {
                         .foregroundStyle(isPlayingThis ? Color.green : .secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(KroutonL10n.tr(isPlayingThis ? "Stop Audition" : "Audition Track Transition"))
+                .help(KroutonL10n.tr(isPlayingThis ? "Stop Audition" : "Audition Track Transition"))
 
                 Button {
                     selectedTrackIDs.remove(track.id)
@@ -449,6 +454,8 @@ struct KroutonRedBookAudioWorkspaceView: View {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(KroutonL10n.tr("Remove Track"))
+                .help(KroutonL10n.tr("Remove Track"))
             }
             .frame(width: 44, alignment: .trailing)
         }
@@ -473,7 +480,7 @@ struct KroutonRedBookAudioWorkspaceView: View {
             Button(isSelected ? "Uncheck Track" : "Check Track") {
                 if isSelected { selectedTrackIDs.remove(track.id) } else { selectedTrackIDs.insert(track.id) }
             }
-            Button("Inspect Compiled Red Book CUE Sheet") { NotificationCenter.default.post(name: .kroutonMenuInspectAudioCue, object: nil) }.keyboardShortcut("u", modifiers: [.command, .control])
+            Button(KroutonL10n.tr("Inspect Compiled Red Book CUE Sheet")) { NotificationCenter.default.post(name: .kroutonMenuInspectAudioCue, object: nil) }.keyboardShortcut("u", modifiers: [.command, .control])
             Button(role: .destructive) {
                 selectedTrackIDs.remove(track.id)
                 controller.remove(track.id)
@@ -551,35 +558,33 @@ struct KroutonRedBookAudioWorkspaceView: View {
                     .onReceive(NotificationCenter.default.publisher(for: .kroutonMenuInspectAudioCue)) { _ in showAudioCuePopover = true }
                 }
 
-                HStack(spacing: 10) {
-                    Text("Album:").font(.caption.bold())
-                    TextField("Album Title (≤60 Latin-1 chars)", text: controller.albumTitleBinding)
-                        .textFieldStyle(.roundedBorder)
-                        .disabled(!project.writeCDText)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 10) {
+                        Text("Album:").font(.caption.bold()).fixedSize()
+                        TextField("Album Title (≤60 Latin-1 chars)", text: controller.albumTitleBinding)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(minWidth: 130)
+                            .disabled(!project.writeCDText)
 
-                    Text("Artist:").font(.caption.bold())
-                    TextField("Album Performer (≤60 Latin-1 chars)", text: controller.albumPerformerBinding)
-                        .textFieldStyle(.roundedBorder)
-                        .disabled(!project.writeCDText)
-
-                    Text("UPC/EAN:").font(.caption.bold())
-                    TextField("12/13 digits", text: controller.upcBinding)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.system(size: 11, design: .monospaced))
-                        .frame(width: 125)
-
-                    Picker("", selection: controller.targetDiscMediumBinding) {
-                        ForEach(KroutonSpanningDiscMedium.allowedMedia(forFormatID: "cd-da")) { med in
-                            Text(med.rawValue).tag(med)
-                        }
+                        Text("Artist:").font(.caption.bold()).fixedSize()
+                        TextField("Album Performer (≤60 Latin-1 chars)", text: controller.albumPerformerBinding)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(minWidth: 130)
+                            .disabled(!project.writeCDText)
                     }
-                    .labelsHidden()
-                    .frame(width: 165)
-                    .help("Target CD-R capacity before spawning Disc 2, Disc 3...")
 
-                    Toggle("Write CD-TEXT", isOn: controller.writeCDTextBinding)
-                        .toggleStyle(.checkbox)
-                        .font(.caption.bold())
+                    HStack(spacing: 10) {
+                        Text("UPC/EAN:").font(.caption.bold()).fixedSize()
+                        KroutonDigitsOnlyTextField(placeholder: "12/13 digits", text: controller.upcBinding)
+                            .frame(width: 125)
+
+                        Toggle(KroutonL10n.tr("Write CD-TEXT"), isOn: controller.writeCDTextBinding)
+                            .toggleStyle(.checkbox)
+                            .font(.caption.bold())
+                            .fixedSize()
+
+                        Spacer(minLength: 0)
+                    }
                 }
             }
         }

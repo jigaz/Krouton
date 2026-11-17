@@ -46,13 +46,13 @@ struct KroutonCarSafeAudioWorkspaceView: View {
                         }
                     }
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 225), alignment: .leading)], spacing: 6) {
-                        Toggle("Zero-Pad Prefixes (001 - Title.mp3)", isOn: $carSafeZeroPadNumbers).toggleStyle(.checkbox).font(.caption.bold())
-                        Toggle("Strip macOS .DS_Store & ._* Forks", isOn: $carSafeStripAppleDouble).toggleStyle(.checkbox).font(.caption.bold())
-                        Toggle("Write Root .M3U Playlist", isOn: $carSafeGenerateM3U).toggleStyle(.checkbox).font(.caption)
-                        Toggle("Enforce ID3v2.3 ISO-8859-1 Tags", isOn: $carSafeEnforceID3v23).toggleStyle(.checkbox).font(.caption)
-                        Toggle("Strip ID3 Cover Art & Lyrics (Max Capacity)", isOn: $carSafeStripArtwork).toggleStyle(.checkbox).font(.caption).foregroundStyle(carSafeTranscodeTarget.contains("112") ? .primary : .secondary)
-                        Toggle("Force Joint Stereo (Phase Correlated)", isOn: $carSafeForceJointStereo).toggleStyle(.checkbox).font(.caption).foregroundStyle(carSafeTranscodeTarget.contains("112") ? .primary : .secondary)
-                        Toggle("19 kHz Lame Low-Pass Filter", isOn: $carSafeLowPassFilter).toggleStyle(.checkbox).font(.caption).foregroundStyle(carSafeTranscodeTarget.contains("112") ? .primary : .secondary)
+                        Toggle(KroutonL10n.tr("Zero-Pad Prefixes (001 - Title.mp3)"), isOn: $carSafeZeroPadNumbers).toggleStyle(.checkbox).font(.caption.bold())
+                        Toggle(KroutonL10n.tr("Strip macOS .DS_Store & ._* Forks"), isOn: $carSafeStripAppleDouble).toggleStyle(.checkbox).font(.caption.bold())
+                        Toggle(KroutonL10n.tr("Write Root .M3U Playlist"), isOn: $carSafeGenerateM3U).toggleStyle(.checkbox).font(.caption)
+                        Toggle(KroutonL10n.tr("Enforce ID3v2.3 ISO-8859-1 Tags"), isOn: $carSafeEnforceID3v23).toggleStyle(.checkbox).font(.caption)
+                        Toggle(KroutonL10n.tr("Strip ID3 Cover Art & Lyrics (Max Capacity)"), isOn: $carSafeStripArtwork).toggleStyle(.checkbox).font(.caption).foregroundStyle(carSafeTranscodeTarget.contains("112") ? .primary : .secondary)
+                        Toggle(KroutonL10n.tr("Force Joint Stereo (Phase Correlated)"), isOn: $carSafeForceJointStereo).toggleStyle(.checkbox).font(.caption).foregroundStyle(carSafeTranscodeTarget.contains("112") ? .primary : .secondary)
+                        Toggle(KroutonL10n.tr("19 kHz Lame Low-Pass Filter"), isOn: $carSafeLowPassFilter).toggleStyle(.checkbox).font(.caption).foregroundStyle(carSafeTranscodeTarget.contains("112") ? .primary : .secondary)
                     }
                 }
             }
@@ -76,9 +76,25 @@ struct KroutonCarSafeAudioWorkspaceView: View {
                         subtitle: "Automatically numbers files in raw FAT/ISO directory order and strips hidden macOS resource forks so car stereos never freeze."
                     )
                 } else {
+                    let plan = store.dataDiscPlan(forFormatID: spec.id)
+                    let activeMedium = store.resolvedDataDiscMedium(forFormatID: spec.id)
+                    let oversizeIDs: Set<UUID> = Set(plan.issues.compactMap { issue in
+                        if case .itemExceedsDisc(let id, _, _) = issue { return id }
+                        return nil
+                    })
                     ScrollView {
                         VStack(spacing: 0) {
-                            ForEach(Array(store.stagedFiles.enumerated()), id: \.element.id) { idx, entry in
+                            ForEach(plan.discs) { disc in
+                                if plan.discs.count > 1 || !oversizeIDs.isEmpty {
+                                    DataDiscHeaderBannerView(
+                                        store: store,
+                                        disc: disc,
+                                        totalDiscs: plan.discs.count,
+                                        medium: activeMedium,
+                                        hasOversizeItem: disc.items.contains { oversizeIDs.contains($0.id) }
+                                    )
+                                }
+                                ForEach(Array(disc.items.enumerated()), id: \.element.id) { idx, entry in
                                 let baseName = entry.url.deletingPathExtension().lastPathComponent
                                 let displayFile = carSafeZeroPadNumbers ? String(format: "%03d - %@.mp3", idx + 1, String(baseName.prefix(48))) : "\(baseName).mp3"
                                 HStack(spacing: 10) {
@@ -90,10 +106,18 @@ struct KroutonCarSafeAudioWorkspaceView: View {
                                     Spacer()
                                     Text("\(entry.sectorsLBA) LBA").font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundStyle(store.activeAccent)
                                     Text(ByteCountFormatter.string(fromByteCount: entry.byteSize, countStyle: .file)).font(.system(size: 11, design: .monospaced)).foregroundStyle(.secondary)
-                                    Button { store.removeStagedFile(id: entry.id) } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.plain)
+                                    Button { store.removeStagedFile(id: entry.id) } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.plain).accessibilityLabel(KroutonL10n.tr("Remove Item")).help(KroutonL10n.tr("Remove Item"))
                                 }
                                 .padding(.horizontal, 14).padding(.vertical, 8)
+                                .contextMenu {
+                                    if (store.stagedFiles.firstIndex(where: { $0.id == entry.id }) ?? 0) > 0 {
+                                        Button(entry.startsNewDisc ? "Merge Back With Previous Disc" : "Start New Disc Here (Disc Break)") {
+                                            store.toggleDataManualDiscBreak(before: entry.id)
+                                        }
+                                    }
+                                }
                                 Divider()
+                            }
                             }
                         }
                     }

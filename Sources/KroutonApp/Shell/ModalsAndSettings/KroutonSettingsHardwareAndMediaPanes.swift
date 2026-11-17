@@ -178,7 +178,7 @@ extension KroutonSettingsWindowView {
                         }
                     }
                     Spacer()
-                    Button("Reset Default") {
+                    Button(KroutonL10n.tr("Reset Default")) {
                         store.namingTokens = ["[Track 01]", " - ", "[Artist]", " - ", "[Title]"]
                     }
                 }

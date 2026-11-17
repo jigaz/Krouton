@@ -126,6 +126,35 @@ struct KroutonBurnStationWorkspaceView: View {
                 .accessibilityValue("Spec: \(activeSpec.bookOrFileSystem), Laser: \(activeSpec.laserType), Source: \(activeSpec.sourceSupport)")
                 Spacer(minLength: 6)
 
+                if KroutonSpanningDiscMedium.supportsTargetDiscSizeSelection(forFormatID: activeSpec.id) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "opticaldisc")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(store.activeAccent)
+                        if !isCenterWorkspaceNarrow {
+                            Text(KroutonL10n.tr("Disc Size:"))
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                                .fixedSize()
+                        }
+                        Picker("", selection: store.targetDiscMediumBinding(forFormatID: activeSpec.id)) {
+                            ForEach(KroutonSpanningDiscMedium.allowedMedia(forFormatID: activeSpec.id)) { med in
+                                Text(med.rawValue).tag(med)
+                            }
+                        }
+                        .labelsHidden()
+                        .controlSize(.small)
+                        .frame(width: isCenterWorkspaceNarrow ? 145 : 190)
+                        .help("Select target optical disc storage size for this task — automatically recalculates multi-disc spanning")
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.kroutonControlSurface)
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Color.primary.opacity(0.10), lineWidth: 1))
+                    .fixedSize(horizontal: true, vertical: false)
+                }
+
                 if !store.stagedFiles.isEmpty {
                     Button {
                         auditioningTrackID = nil

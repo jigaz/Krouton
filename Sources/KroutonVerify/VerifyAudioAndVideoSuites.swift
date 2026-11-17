@@ -183,6 +183,58 @@ func runVerifyAudioAndVideoSuites(_ harness: inout KroutonTestHarness) {
             "Cell 3 relinked start LBA must immediately follow Cell 2 shrunk end LBA")
     h.check(blueprint.relinkedCells.allSatisfy { $0.seamlessPlaybackFlagSet },
             "All relinked cells on DVD-5 must have seamlessPlaybackFlagSet = true")
+
+    // Verify binary NV_PCK DSI patching + VTS_xx_0.IFO / VIDEO_TS.IFO sector relinking
+    var synthVOB = [UInt8](repeating: 0, count: 4 * 2048)
+    for (packIdx, cellID) in [(0, UInt8(1)), (2, UInt8(2))] {
+        let base = packIdx * 2048
+        synthVOB[base] = 0x00; synthVOB[base + 1] = 0x00; synthVOB[base + 2] = 0x01; synthVOB[base + 3] = 0xBA
+        synthVOB[base + 38] = 0x00; synthVOB[base + 39] = 0x00; synthVOB[base + 40] = 0x01; synthVOB[base + 41] = 0xBF
+        synthVOB[base + 0x0400] = 0x00; synthVOB[base + 0x0401] = 0x00; synthVOB[base + 0x0402] = 0x01; synthVOB[base + 0x0403] = 0xBF
+        DVDVideoIFORelinker.writeUInt16BE(1, into: &synthVOB, at: base + 0x041F)
+        synthVOB[base + 0x0422] = cellID
+    }
+    let (patchedVOB, vobuSecs, relinkedRanges) = DVDVideoIFORelinker.scanAndPatchTitleVOBs(Data(synthVOB))
+    let patchedBytes = [UInt8](patchedVOB)
+    h.check(vobuSecs == [0, 2] && relinkedRanges.count == 2,
+            "scanAndPatchTitleVOBs must detect both VOBUs and map Cell 1 (0..1) and Cell 2 (2..3)")
+    h.check(DVDVideoIFORelinker.readUInt32BE(patchedBytes, at: 2 * 2048 + 0x040B) == 2
+            && DVDVideoIFORelinker.readUInt32BE(patchedBytes, at: 2 * 2048 + 0x040F) == 1,
+            "NV_PCK DSI nv_pck_lbn and vobu_ea must be patched in place for Cell 2")
+
+    var synthIFO = [UInt8](repeating: 0, count: 2048)
+    DVDVideoIFORelinker.writeUInt32BE(1, into: &synthIFO, at: 0x00E0) // VTS_C_ADT at sector 1
+    let relinkedIFOData = DVDVideoIFORelinker.relinkVTSIFO(
+        ifoData: Data(synthIFO),
+        menuVobSectors: 50,
+        titleVobSectors: 4,
+        vobuStartSectors: vobuSecs,
+        cells: relinkedRanges
+    )
+    let relinkedIFOBytes = [UInt8](relinkedIFOData)
+    let newIfoSecs = DVDVideoIFORelinker.readUInt32BE(relinkedIFOBytes, at: 0x001C) + 1
+    let newTitleStart = DVDVideoIFORelinker.readUInt32BE(relinkedIFOBytes, at: 0x00C4)
+    h.check(newTitleStart == newIfoSecs + 50,
+            "relinkVTSIFO must place VTSTT_VOBS immediately after VTS_01_0.IFO + VTS_01_0.VOB menu sectors")
+
+    // Verify AVCHD / BD-on-DVD (bd-on-dvd) binary BDMV synthesis (INDX0100, MOBJ0100, MPLS0100, HDMV0100)
+    let avchdClips = [
+        AVCHDClipDescriptor(clipIndex: 0, durationSeconds: 120.0, m2tsByteSize: 192 * 1_400_000, videoBitrateKbps: 18_000, is1080p: true),
+        AVCHDClipDescriptor(clipIndex: 1, durationSeconds: 90.0,  m2tsByteSize: 192 * 1_050_000, videoBitrateKbps: 18_000, is1080p: true)
+    ]
+    let indxBytes = [UInt8](AVCHDOnDVDAuthoringEngine.buildIndexBDMV(isAVCHD: true, is1080p: true))
+    let mobjBytes = [UInt8](AVCHDOnDVDAuthoringEngine.buildMovieObjectBDMV(isAVCHD: true))
+    let mplsBytes = [UInt8](AVCHDOnDVDAuthoringEngine.buildPlaylistMPLS(clips: avchdClips, isAVCHD: true))
+    let clpiBytes = [UInt8](AVCHDOnDVDAuthoringEngine.buildClipInfoCLPI(clip: avchdClips[0], isAVCHD: true))
+    h.check(String(bytes: indxBytes[0..<8], encoding: .ascii) == "INDX0100",
+            "AVCHD index.bdmv must emit valid INDX0100 header")
+    h.check(String(bytes: mobjBytes[0..<8], encoding: .ascii) == "MOBJ0100",
+            "AVCHD MovieObject.bdmv must emit valid MOBJ0100 header with PlayPL 0 auto-start")
+    h.check(String(bytes: mplsBytes[0..<8], encoding: .ascii) == "MPLS0100" && mplsBytes.count > 120,
+            "AVCHD 00000.mpls must emit valid MPLS0100 header with multi-clip PlayItems and chapter marks")
+    h.check(String(bytes: clpiBytes[0..<8], encoding: .ascii) == "HDMV0100"
+            && DVDVideoIFORelinker.readUInt32BE(clpiBytes, at: 0x38) == 1_400_000,
+            "AVCHD 00000.clpi must emit valid HDMV0100 header with exact 192-byte source packet count")
     }
 
     harness.runSuite("14. Multi-Disc Spanning (DiscPlanner, AudioDiscPlan, DiscRepacker & SpanManifest)") { h in

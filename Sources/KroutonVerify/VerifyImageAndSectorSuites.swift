@@ -119,6 +119,26 @@ func runVerifyImageAndSectorSuites(_ harness: inout KroutonTestHarness) {
     h.check(depotClass.isBootable && depotClass.bootStandard == "El Torito x86/EFI", "El Torito boot detection")
     h.check(depotClass.detectedFilesystems.contains("ISO-9660") && depotClass.detectedFilesystems.contains("UDF"), "ISO+UDF bridge detection")
     h.check(depotClass.recommendedMediaBadge == "DVD-5 (4.7 GB SL)", "4.1 GB image must recommend DVD-5")
+
+    // Verify real on-disk 2352B .BIN -> 2048B .ISO extraction and file inspection
+    let tmpDir = FileManager.default.temporaryDirectory.appendingPathComponent("KroutonDepotVerify_\(UUID().uuidString)")
+    try? FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: tmpDir) }
+    let binURL = tmpDir.appendingPathComponent("test_disc.bin")
+    let isoURL = tmpDir.appendingPathComponent("test_disc.iso")
+    var raw2352 = Data(KroutonDiscImageDepot.cdRomSyncPattern)
+    raw2352.append(contentsOf: [0x00, 0x02, 0x00, 0x01])
+    var payload2048 = Data(repeating: 0x00, count: 2048)
+    let sig = Array("CD001_EL TORITO".utf8)
+    for (idx, b) in sig.enumerated() { payload2048[idx] = b }
+    raw2352.append(payload2048)
+    raw2352.append(Data(repeating: 0x00, count: 2352 - raw2352.count))
+    try? raw2352.write(to: binURL)
+
+    let extractedBytes = (try? DiscImageDepotOperations.extractRawBinToISO(sourceURL: binURL, outputISOURL: isoURL)) ?? 0
+    let inspected = DiscImageDepotOperations.inspectImageFile(at: isoURL)
+    h.check(extractedBytes == 2048 && inspected.classification.isBootable && inspected.classification.detectedFilesystems.contains("ISO-9660"),
+            "DiscImageDepotOperations must extract 2048B sectors from 2352B .BIN and classify ISO-9660/El Torito bootability")
     }
 
     harness.runSuite("7. SHA-256 Digest & 2048-Byte Sector Hex Dump Inspector") { h in

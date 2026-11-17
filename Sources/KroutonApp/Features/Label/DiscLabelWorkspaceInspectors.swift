@@ -142,7 +142,7 @@ extension KroutonDiscLabelWorkspaceView {
                                 .help("Randomize the physical glass shards and mirror angle inside the optical chamber")
                             }
 
-                            Picker("Object Chamber", selection: $store.labelGPUSeedPattern) {
+                            Picker(KroutonL10n.tr("Object Chamber"), selection: $store.labelGPUSeedPattern) {
                                 Text("Stained Glass & Gem Shards").tag(KroutonGPUSeedPattern.neonLaserPrism)
                                 Text("Dichroic Neon Filaments").tag(KroutonGPUSeedPattern.cyberSunburst)
                                 Text("Liquid Oil Interference").tag(KroutonGPUSeedPattern.holographicFoil)
@@ -167,7 +167,7 @@ extension KroutonDiscLabelWorkspaceView {
                                     .font(.caption2.bold())
                                     .foregroundStyle(.secondary)
 
-                                Picker("Mirror Rig", selection: $store.labelKaleidoscopeRig) {
+                                Picker(KroutonL10n.tr("Mirror Rig"), selection: $store.labelKaleidoscopeRig) {
                                     ForEach(KroutonKaleidoscopeMirrorRig.allCases) { rig in
                                         Text(rig.rawValue).tag(rig)
                                     }
@@ -317,6 +317,8 @@ extension KroutonDiscLabelWorkspaceView {
                                     .foregroundStyle(isSel ? .white.opacity(0.85) : .secondary)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel(KroutonL10n.tr("Delete Text Layer"))
+                            .help(KroutonL10n.tr("Delete Text Layer"))
                         }
                         .padding(.horizontal, 8)
                         .padding(.vertical, 5)
@@ -382,19 +384,19 @@ extension KroutonDiscLabelWorkspaceView {
                         .labelsHidden()
                         .frame(width: 28)
 
-                    Toggle("Bold", isOn: safeTextElementBinding(index, \.isBold, default: fallbackElem.isBold))
+                    Toggle(KroutonL10n.tr("Bold"), isOn: safeTextElementBinding(index, \.isBold, default: fallbackElem.isBold))
                         .toggleStyle(.checkbox)
                         .font(.caption.bold())
                         .fixedSize()
 
-                    Toggle("Shadow", isOn: safeTextElementBinding(index, \.hasDropShadow, default: fallbackElem.hasDropShadow))
+                    Toggle(KroutonL10n.tr("Shadow"), isOn: safeTextElementBinding(index, \.hasDropShadow, default: fallbackElem.hasDropShadow))
                         .toggleStyle(.checkbox)
                         .font(.caption.bold())
                         .fixedSize()
 
                     Spacer(minLength: 2)
 
-                    Picker("Font", selection: safeTextElementBinding(index, \.fontDesignRaw, default: fallbackElem.fontDesignRaw)) {
+                    Picker(KroutonL10n.tr("Font"), selection: safeTextElementBinding(index, \.fontDesignRaw, default: fallbackElem.fontDesignRaw)) {
                         Text("Sans").tag("Default")
                         Text("Rounded").tag("Rounded")
                         Text("Serif").tag("Serif")
@@ -404,37 +406,37 @@ extension KroutonDiscLabelWorkspaceView {
                     .frame(width: 90)
                 }
 
-                Toggle("Follow Circular Disc Arc", isOn: safeTextElementBinding(index, \.isCurvedArc, default: fallbackElem.isCurvedArc))
+                Toggle(KroutonL10n.tr("Follow Circular Disc Arc"), isOn: safeTextElementBinding(index, \.isCurvedArc, default: fallbackElem.isCurvedArc))
                     .toggleStyle(.checkbox)
                     .font(.caption.bold())
 
                 if currentElem.isCurvedArc {
-                    Toggle("Keep Bottom Arc Text Upright (Readable)", isOn: safeTextElementBinding(index, \.isBottomUpright, default: fallbackElem.isBottomUpright))
+                    Toggle(KroutonL10n.tr("Keep Bottom Arc Text Upright (Readable)"), isOn: safeTextElementBinding(index, \.isBottomUpright, default: fallbackElem.isBottomUpright))
                         .toggleStyle(.checkbox)
                         .font(.caption)
 
                     HStack(spacing: 6) {
-                        Button("Top (0°)") {
+                        Button(KroutonL10n.tr("Top (0°)")) {
                             guard store.labelTextElements.indices.contains(index) else { return }
                             store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
                             store.labelTextElements[index].angleDegrees = 0
                             store.labelTextElements[index].isBottomUpright = false
                         }.buttonStyle(.bordered).controlSize(.mini)
 
-                        Button("Bottom (180°)") {
+                        Button(KroutonL10n.tr("Bottom (180°)")) {
                             guard store.labelTextElements.indices.contains(index) else { return }
                             store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
                             store.labelTextElements[index].angleDegrees = 180
                             store.labelTextElements[index].isBottomUpright = true
                         }.buttonStyle(.bordered).controlSize(.mini)
 
-                        Button("Left (270°)") {
+                        Button(KroutonL10n.tr("Left (270°)")) {
                             guard store.labelTextElements.indices.contains(index) else { return }
                             store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
                             store.labelTextElements[index].angleDegrees = 270
                         }.buttonStyle(.bordered).controlSize(.mini)
 
-                        Button("Right (90°)") {
+                        Button(KroutonL10n.tr("Right (90°)")) {
                             guard store.labelTextElements.indices.contains(index) else { return }
                             store.labelWorkspaceSubStore.recordUndoSnapshot(from: store)
                             store.labelTextElements[index].angleDegrees = 90

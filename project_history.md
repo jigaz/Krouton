@@ -1,6 +1,6 @@
 # Krouton Project History & Architecture Log
 
-## Current Version: `v0.3.0-alpha.1` (Sprint 3 Complete — WaveBurner Audio, Bootable El Torito Inspector & Pre-Flight Sanity Suite)
+## Current Version: `v1.0.1` (11-Target Swift 6 Architecture, Native macOS Appearance Icons & Verification Gate)
 * **Target OS:** macOS 26 (Tahoe) / Apple Silicon (`arm64`)
 * **Domain:** [krouton.app](https://krouton.app)
 
@@ -21,3 +21,9 @@
      - **Joliet 64-Character UTF-16 & ISO9660 Level 2 31-Character Filename Check:** Lists offending filenames and provides a 1-click **Auto-Sanitize Filenames** button.
      - **ATIP Overburn Lead-Out Guard:** Compares staged LBA sectors (both Data `2,048 B` and Red Book Audio `75 fps` frames) against the physical disc's ATIP/ADIP capacity, turns the allocation bar red on overburn, and intercepts `Burn` with an explicit **ATIP Overburn Pre-Flight Confirmation Alert**.
      - **ImgBurn Visual Dual-Layer Break Picker (`DVD±R DL` & `BD-R DL`):** Enforces `Layer 0 >= Layer 1` and `16-sector (32 KB) ECC boundary` alignment.
+  4. **v1.0.0 — 11-Target Swift 6 Modularization & Verification Gate (`2026-11-16`):**
+     - Split monolithic engine into 11 strict Swift 6 targets (`OpticalCore`, `DriveKit`, `ImageKit`, `AudioKit`, `VideoKit`, `BurnKit`, `RescueKit`, `LabelKit`, `NetworkSpool`, `Persistence`, `KroutonApp`) plus the 22-suite `krouton-verify` executable and 9 unit test targets.
+     - Added unified Disc Size header selector (`650 MB CD-R` to `128 GB BDXL`) with live multi-disc spanning, Apple Shortcuts (`AppIntents`), headless CLI (`krouton`), IOKit sleep/App-Nap burn guards, and 10-language localization.
+  5. **v1.0.1 — Native `Assets.car` Appearance Switching & Multi-Agent Sync (`2026-11-17`):**
+     - Generated alpha-masked 1x/2x icon sets (`Color`, `Light`, `Dark`, `Transparent`/`Clear`/`Tinted`), compiled `Assets.car`, and updated `KroutonAppDelegate.swift` so `"default"` delegates to macOS native icon switching while manual tinting uses `.sourceAtop`.
+     - Added `CLAUDE.md`, `AI_HANDOFF.md`, `ai-sync.sh`, and a Git `post-commit` hook for seamless Claude Code / Gemini collaboration.

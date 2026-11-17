@@ -93,7 +93,7 @@ public enum KroutonDiscImageArguments {
             return ["makehybrid", "-o", outputPath, "-hfs", "-iso", "-joliet", "-udf",
                     "-default-volume-name", volumeTitle, sourcePath]
         }
-        return ["create", "-srcfolder", sourcePath, "-volname", volumeTitle, "-fs", "HFS+",
+        return ["create", "-ov", "-srcfolder", sourcePath, "-volname", volumeTitle, "-fs", "HFS+",
                 "-format", compress ? "UDZO" : "UDRW", outputPath]
     }
 }

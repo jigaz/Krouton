@@ -117,8 +117,8 @@ private struct SpliceHandleOverlay: View {
             let idx01Sec = snapshot.mode == .crossfade ? (spec.overlapSeconds * spec.spliceIndex01Ratio) : (snapshot.mode == .gap ? spec.preGapSeconds : 0)
             HStack(spacing: 3) {
                 Text(String(format: "INDEX 01 • %02d • %@", trackNumber + 1, formatMMSSFF(idx01Sec)))
-                    .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
-                Image(systemName: "play.fill").font(.system(size: 6))
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                Image(systemName: "play.fill").font(.system(size: 9))
             }
             .padding(.horizontal, 6).padding(.vertical, 2)
             .background(Color.orange)
@@ -137,7 +137,7 @@ private struct SpliceHandleOverlay: View {
                 .stroke(flagColor.opacity(0.90), style: StrokeStyle(lineWidth: 1.3, dash: [3, 3]))
 
                 Text(String(format: "%02d • IDX %02d", owningTrackNum, desc.redBookIndexNumber))
-                    .font(.system(size: 7.5, weight: .heavy, design: .monospaced))
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
                     .padding(.horizontal, 5).padding(.vertical, 1.5)
                     .background(flagColor)
                     .foregroundStyle(.black)
@@ -187,8 +187,8 @@ private struct SpliceHandleOverlay: View {
 
                 // Center Tension Handle
                 VStack(spacing: 1) {
-                    Image(systemName: "arrowtriangle.up.fill").font(.system(size: 6.5))
-                    Image(systemName: "arrowtriangle.down.fill").font(.system(size: 6.5))
+                    Image(systemName: "arrowtriangle.up.fill").font(.system(size: 9))
+                    Image(systemName: "arrowtriangle.down.fill").font(.system(size: 9))
                 }
                 .padding(.horizontal, 5).padding(.vertical, 3.5)
                 .background(activeTarget == .curveBody ? KroutonPillMetrics.activeFill : Color.white)
@@ -231,7 +231,7 @@ private struct SpliceHandleOverlay: View {
                 .strokeBorder(Color.white, lineWidth: 1.5)
                 .frame(width: isActive ? 15 : 13, height: isActive ? 13 : 13)
             Image(systemName: "arrow.up.and.down")
-                .font(.system(size: 6.5, weight: .black))
+                .font(.system(size: 9, weight: .black))
                 .foregroundStyle(.black)
         }
         .shadow(color: .black.opacity(0.6), radius: 2.5)
@@ -248,7 +248,7 @@ private struct SpliceHandleOverlay: View {
                 .clipShape(Circle())
                 .overlay(Circle().stroke(Color.white, lineWidth: 1))
             Text(formatMMSSFF(seconds))
-                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.9))
                 .padding(.horizontal, 4).padding(.vertical, 1)
                 .background(Color.black.opacity(0.75))
@@ -276,7 +276,7 @@ private struct SpliceHandleOverlay: View {
         let label = String(format: "%@ • Out %@ • In %@%@", formatMMSSFF(abs(relSec)), dbOut, dbIn, hint)
 
         Text(label)
-            .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+            .font(.system(size: 9, weight: .bold, design: .monospaced))
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, 7).padding(.vertical, 3)

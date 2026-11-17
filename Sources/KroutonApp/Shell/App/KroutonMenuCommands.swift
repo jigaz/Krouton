@@ -243,35 +243,35 @@ struct KroutonWorkspaceCommands: Commands {
     private var formatMenuCommands: some Commands {
         CommandMenu(KroutonL10n.tr("Format")) {
             Menu(KroutonL10n.tr("Data & Archival Media")) {
-                Button("Hybrid ISO-9660 + Joliet + UDF") { selectBurnFormat("data-hybrid") }
+                Button(KroutonL10n.tr("Hybrid ISO-9660 + Joliet + UDF")) { selectBurnFormat("data-hybrid") }
                     .keyboardShortcut("1", modifiers: [.command, .control])
-                Button("UDF 2.60 Optical Volume") { selectBurnFormat("udf-260") }
-                Button("M-DISC 1,000-Year Archival Vault") { selectBurnFormat("m-disc") }
+                Button(KroutonL10n.tr("UDF 2.60 Optical Volume")) { selectBurnFormat("udf-260") }
+                Button(KroutonL10n.tr("M-DISC 1,000-Year Archival Vault")) { selectBurnFormat("m-disc") }
                     .keyboardShortcut("5", modifiers: [.command, .control])
-                Button("Burn Disc Image (.iso / .cue / .dmg)") { selectBurnFormat("image-burn") }
+                Button(KroutonL10n.tr("Burn Disc Image (.iso / .cue / .dmg)")) { selectBurnFormat("image-burn") }
                     .keyboardShortcut("6", modifiers: [.command, .control])
             }
             Menu(KroutonL10n.tr("Audio & Music Discs")) {
-                Button("Red Book Audio CD (CD-DA)") { selectBurnFormat("cd-da") }
+                Button(KroutonL10n.tr("Red Book Audio CD (CD-DA)")) { selectBurnFormat("cd-da") }
                     .keyboardShortcut("2", modifiers: [.command, .control])
-                Button("MP3 / FLAC Car Audio CD") { selectBurnFormat("mp3-cd") }
-                Button("Blue Book CD-Extra (Audio + Data)") { selectBurnFormat("cd-extra") }
+                Button(KroutonL10n.tr("MP3 / FLAC Car Audio CD")) { selectBurnFormat("mp3-cd") }
+                Button(KroutonL10n.tr("Blue Book CD-Extra (Audio + Data)")) { selectBurnFormat("cd-extra") }
             }
             Menu(KroutonL10n.tr("Video & Cinema Discs")) {
-                Button("DVD-Video (VIDEO_TS)") { selectBurnFormat("dvd-video") }
+                Button(KroutonL10n.tr("DVD-Video (VIDEO_TS)")) { selectBurnFormat("dvd-video") }
                     .keyboardShortcut("3", modifiers: [.command, .control])
-                Button("AVCHD High-Definition") { selectBurnFormat("avchd") }
-                Button("Blu-ray Disc Single-Layer (BD-R 25 GB)") { selectBurnFormat("bd-r-sl") }
+                Button(KroutonL10n.tr("AVCHD High-Definition")) { selectBurnFormat("avchd") }
+                Button(KroutonL10n.tr("Blu-ray Disc Single-Layer (BD-R 25 GB)")) { selectBurnFormat("bd-r-sl") }
                     .keyboardShortcut("4", modifiers: [.command, .control])
-                Button("Blu-ray Disc Dual-Layer (BD-R 50 GB)") { selectBurnFormat("bd-r-dl") }
-                Button("BDXL Triple/Quad-Layer UHD (100 GB)") { selectBurnFormat("bdxl-uhd") }
+                Button(KroutonL10n.tr("Blu-ray Disc Dual-Layer (BD-R 50 GB)")) { selectBurnFormat("bd-r-dl") }
+                Button(KroutonL10n.tr("BDXL Triple/Quad-Layer UHD (100 GB)")) { selectBurnFormat("bdxl-uhd") }
             }
             Menu(KroutonL10n.tr("Retro Console Optical Media")) {
-                Button("Nintendo Wii Optical Disc") { selectBurnFormat("console-wii") }
-                Button("Nintendo GameCube (MiniDVD)") { selectBurnFormat("console-gc") }
-                Button("Sony PlayStation 2 (DVD-ROM)") { selectBurnFormat("console-ps2") }
-                Button("Sony PlayStation 1 (CD-XA Mode 2)") { selectBurnFormat("console-ps1") }
-                Button("Original Xbox (XDVDFS)") { selectBurnFormat("console-xbox") }
+                Button(KroutonL10n.tr("Nintendo Wii Optical Disc")) { selectBurnFormat("console-wii") }
+                Button(KroutonL10n.tr("Nintendo GameCube (MiniDVD)")) { selectBurnFormat("console-gc") }
+                Button(KroutonL10n.tr("Sony PlayStation 2 (DVD-ROM)")) { selectBurnFormat("console-ps2") }
+                Button(KroutonL10n.tr("Sony PlayStation 1 (CD-XA Mode 2)")) { selectBurnFormat("console-ps1") }
+                Button(KroutonL10n.tr("Original Xbox (XDVDFS)")) { selectBurnFormat("console-xbox") }
             }
 
             Divider()

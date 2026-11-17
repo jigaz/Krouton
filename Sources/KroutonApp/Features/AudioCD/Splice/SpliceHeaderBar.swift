@@ -42,14 +42,14 @@ struct SpliceHeaderBar: View {
                 if isFloatingWindow && totalTransitions > 1 {
                     HStack(spacing: 2) {
                         Button { onStepTransition(-1) } label: {
-                            Image(systemName: "chevron.left").font(.system(size: 8.5, weight: .bold))
+                            Image(systemName: "chevron.left").font(.system(size: 9, weight: .bold))
                         }
                         .buttonStyle(KroutonPillButtonStyle(isOn: false))
                         .disabled(trackNumber <= 1)
                         .help("Previous track transition")
 
                         Button { onStepTransition(1) } label: {
-                            Image(systemName: "chevron.right").font(.system(size: 8.5, weight: .bold))
+                            Image(systemName: "chevron.right").font(.system(size: 9, weight: .bold))
                         }
                         .buttonStyle(KroutonPillButtonStyle(isOn: false))
                         .disabled(trackNumber >= totalTransitions)

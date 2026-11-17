@@ -222,6 +222,19 @@ struct KroutonDepotWorkspaceView: View {
                     }
                 }
 
+                if let notice = store.rejectedDropNotice, !notice.isEmpty {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                        Text(notice).font(.caption).lineLimit(2)
+                        Spacer()
+                        Button(KroutonL10n.tr("Dismiss")) { store.rejectedDropNotice = nil }
+                            .buttonStyle(.bordered).controlSize(.mini)
+                    }
+                    .padding(8)
+                    .background(Color.orange.opacity(0.14))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+
                 // Row 2: Interactive Hero Inspector Zone
                 KroutonDepotHeroBannerView(store: store, item: heroItem, isNarrow: isNarrowWorkspace)
 

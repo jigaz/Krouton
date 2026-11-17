@@ -1,4 +1,4 @@
-name: Krouton macOS CI
+name: Krouton macOS CI & Architecture Gate
 
 on:
   push:
@@ -7,13 +7,17 @@ on:
     branches: [ main ]
 
 jobs:
-  build-and-test:
+  verify-and-package:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Build Krouton Desktop App
+      - name: Build Krouton App & CLI
         run: swift build --product Krouton
-      - name: Run XCTest Unit Suite
-        run: swift test
-      - name: Run Architecture & Invariant Suite
+      - name: Smoke-Test Headless CLI
+        run: |
+          .build/debug/Krouton --version
+          .build/debug/Krouton formats --json | head -n 20
+      - name: Run 22-Suite Invariant Gate (krouton-verify)
         run: swift run krouton-verify
+      - name: Run Unit Test Targets
+        run: swift test

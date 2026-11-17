@@ -270,6 +270,7 @@ public final class AudioProjectController {
     }
 
     public func toggleManualDiscBreak(before trackID: UUID) {
+        guard DiscSpanningEngine.canToggleManualDiscBreak(before: trackID, in: project.tracks) else { return }
         edit("Toggle Disc Break") {
             $0.update(trackID) { $0.startsNewDisc.toggle() }
         }

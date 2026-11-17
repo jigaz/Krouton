@@ -68,32 +68,41 @@ struct KroutonVideoAuthoringWorkspaceView: View {
                         .onReceive(NotificationCenter.default.publisher(for: .kroutonMenuInspectVideoBitrate)) { _ in showVideoBitratePopover = true }
                     }
 
-                    HStack(spacing: 12) {
-                        Text("Disc Title:").font(.caption.bold())
-                        TextField("KROUTON_VIDEO", text: $store.discVolumeTitle).textFieldStyle(.roundedBorder).frame(maxWidth: 165)
-                        Picker("Menu:", selection: $videoMenuTemplate) {
+                    HStack(spacing: 10) {
+                        Text("Disc Title:").font(.caption.bold()).fixedSize()
+                        TextField("DVD_VIDEO", text: $store.discVolumeTitle).textFieldStyle(.roundedBorder).frame(minWidth: 110, maxWidth: 155)
+                        Text("Menu:").font(.caption.bold()).fixedSize()
+                        Picker("", selection: $videoMenuTemplate) {
                             Text("Dark Workspace Chapter Grid").tag("Dark Workspace Chapter Grid")
                             Text("No Menu (Auto-Play Title 1)").tag("No Menu (Auto-Play Title 1 on Insert)")
                             Text("Minimalist Track List").tag("Minimalist Workspace Track List")
-                        }.font(.caption)
-                        Picker("System:", selection: $videoSystemStandard) {
+                        }.labelsHidden().font(.caption)
+                        Text("System:").font(.caption.bold()).fixedSize()
+                        Picker("", selection: $videoSystemStandard) {
                             Text("NTSC 16:9 (29.97/23.976p)").tag("NTSC 16:9 (29.97 / 23.976p)")
                             Text("PAL 16:9 (25 fps)").tag("PAL 16:9 (25 fps)")
                             Text("UHD 2160p HDR10").tag("UHD 2160p HDR10 (HEVC 10-Bit)")
-                        }.font(.caption)
+                        }.labelsHidden().font(.caption)
                     }
 
                     HStack(spacing: 14) {
                         Toggle(shrinkLabel, isOn: $fitToDiscDVD9Shrink).toggleStyle(.checkbox).font(.caption.bold())
                         if isDualLayer {
-                            Picker("Layer Break:", selection: $videoDualLayerBreakSector) {
+                            Picker(KroutonL10n.tr("Layer Break:"), selection: $videoDualLayerBreakSector) {
                                 Text("Auto Cell Boundary (16-Sec ECC)").tag("Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)")
                                 Text("50/50 Balanced Split (L0 >= L1)").tag("50/50 Balanced Split (Layer 0 >= Layer 1 Rule)")
                                 Text("Seamless Layer Break (SPLB)").tag("Seamless Layer Break (SPLB Flag Set)")
                             }.font(.caption)
                         }
+                        if spec.id == "bd-on-dvd" {
+                            Picker(KroutonL10n.tr("AVCHD Cap:"), selection: $avchdBitrateCap) {
+                                Text("18 Mbps (3x DVD-R Safe)").tag("18 Mbps (3x DVD-R Safe)")
+                                Text("14 Mbps (DVD-5 45-Min Fit)").tag("14 Mbps (DVD-5 45-Min Fit)")
+                                Text("10 Mbps (DVD-5 60-Min Fit)").tag("10 Mbps (DVD-5 60-Min Fit)")
+                            }.font(.caption)
+                        }
                         if spec.id == "bd-uhd" {
-                            Toggle("HDR10 / Dolby Vision Metadata", isOn: $uhdPreserveHDR10DolbyVision).toggleStyle(.checkbox).font(.caption.bold())
+                            Toggle(KroutonL10n.tr("HDR10 / Dolby Vision Metadata"), isOn: $uhdPreserveHDR10DolbyVision).toggleStyle(.checkbox).font(.caption.bold())
                         }
                         Spacer(minLength: 0)
                     }
@@ -138,9 +147,25 @@ struct KroutonVideoAuthoringWorkspaceView: View {
                     .padding(.horizontal, 14).padding(.vertical, 6).background(Color.black.opacity(0.18))
                     Divider()
 
+                    let plan = store.dataDiscPlan(forFormatID: spec.id)
+                    let activeMedium = store.resolvedDataDiscMedium(forFormatID: spec.id)
+                    let oversizeIDs: Set<UUID> = Set(plan.issues.compactMap { issue in
+                        if case .itemExceedsDisc(let id, _, _) = issue { return id }
+                        return nil
+                    })
                     ScrollView {
                         VStack(spacing: 0) {
-                            ForEach(Array(store.stagedFiles.enumerated()), id: \.element.id) { idx, entry in
+                            ForEach(plan.discs) { disc in
+                                if plan.discs.count > 1 || !oversizeIDs.isEmpty {
+                                    DataDiscHeaderBannerView(
+                                        store: store,
+                                        disc: disc,
+                                        totalDiscs: plan.discs.count,
+                                        medium: activeMedium,
+                                        hasOversizeItem: disc.items.contains { oversizeIDs.contains($0.id) }
+                                    )
+                                }
+                                ForEach(Array(disc.items.enumerated()), id: \.element.id) { idx, entry in
                                 let mux = muxFor(entry.id)
                                 let isExpanded = (expandedMuxEntryID == entry.id)
                                 let vProbe = KroutonMediaPrepEngine.probeFile(entry.url)
@@ -161,7 +186,7 @@ struct KroutonVideoAuthoringWorkspaceView: View {
                                         HStack(spacing: 4) {
                                             Image(systemName: "slider.horizontal.below.rectangle")
                                             Text(mux.muxBadgeSummary)
-                                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down").font(.system(size: 8, weight: .bold))
+                                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down").font(.system(size: 9, weight: .bold))
                                         }
                                         .font(.system(size: 9.5, weight: .bold, design: .monospaced))
                                         .padding(.horizontal, 8).padding(.vertical, 3.5)
@@ -170,7 +195,7 @@ struct KroutonVideoAuthoringWorkspaceView: View {
 
                                     Text("\(entry.sectorsLBA) LBA").font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundStyle(store.activeAccent).frame(width: 82, alignment: .trailing)
                                     Text(ByteCountFormatter.string(fromByteCount: entry.byteSize, countStyle: .file)).font(.system(size: 11, design: .monospaced)).foregroundStyle(.secondary).frame(width: 68, alignment: .trailing)
-                                    Button { store.removeStagedFile(id: entry.id) } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.plain).frame(width: 18)
+                                    Button { store.removeStagedFile(id: entry.id) } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.plain).accessibilityLabel(KroutonL10n.tr("Remove Item")).help(KroutonL10n.tr("Remove Item")).frame(width: 18)
                                 }
                                 .padding(.horizontal, 14).padding(.vertical, 7)
 
@@ -178,6 +203,7 @@ struct KroutonVideoAuthoringWorkspaceView: View {
                                     inlineStreamMuxDrawer(for: entry)
                                 }
                                 Divider()
+                            }
                             }
                         }
                     }
@@ -198,7 +224,7 @@ struct KroutonVideoAuthoringWorkspaceView: View {
 
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 12) {
-                Picker("Audio Track:", selection: binding.audioLanguageCode) {
+                Picker(KroutonL10n.tr("Audio Track:"), selection: binding.audioLanguageCode) {
                     ForEach(["eng", "jpn", "spa", "fra", "deu"], id: \.self) { code in Text(code.uppercased()).tag(code) }
                 }.font(.caption).frame(width: 135)
 
@@ -210,11 +236,11 @@ struct KroutonVideoAuthoringWorkspaceView: View {
                     step: 25
                 ).frame(width: 120)
 
-                Picker("Subtitles:", selection: binding.subtitleMode) {
+                Picker(KroutonL10n.tr("Subtitles:"), selection: binding.subtitleMode) {
                     ForEach(KroutonSubtitleDeliveryMode.allCases) { m in Text(m.rawValue).tag(m) }
                 }.font(.caption).frame(width: 245)
 
-                Toggle("Forced Flag", isOn: binding.forcedSubtitlesOnly).toggleStyle(.checkbox).font(.caption.bold())
+                Toggle(KroutonL10n.tr("Forced Flag"), isOn: binding.forcedSubtitlesOnly).toggleStyle(.checkbox).font(.caption.bold())
                 Spacer()
             }
 

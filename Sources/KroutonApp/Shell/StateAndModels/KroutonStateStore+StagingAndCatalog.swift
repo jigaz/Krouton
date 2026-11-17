@@ -201,7 +201,24 @@ extension KroutonStateStore {
     public func convertStagedBinOrIso(id: UUID) {
         guard let idx = stagedFiles.firstIndex(where: { $0.id == id }) else { return }
         let entry = stagedFiles[idx]
+        let lower = entry.name.lowercased()
         Task { @MainActor in
+            if lower.hasSuffix(".dmg") || lower.hasSuffix(".cdr") {
+                let outExt = lower.hasSuffix(".dmg") ? "iso" : "dmg"
+                let outURL = entry.url.deletingPathExtension().appendingPathExtension(outExt)
+                do {
+                    _ = try await Task.detached(priority: .userInitiated) {
+                        try DiscImageDepotOperations.convertDiskImageWithHdiutil(sourceURL: entry.url, outputURL: outURL)
+                    }.value
+                    if let currentIdx = stagedFiles.firstIndex(where: { $0.id == id }) {
+                        stagedFiles[currentIdx] = KroutonOpticalDriveBank.inspectFileOrFolder(url: outURL)
+                        announceForVoiceOver("Converted to \(outURL.lastPathComponent)")
+                    }
+                } catch {
+                    rejectedDropNotice = error.localizedDescription
+                }
+                return
+            }
             let (outputURL, report) = await KroutonWindowManager.shared.driveManager.convertBinAndIsoSectorImage(sourceURL: entry.url)
             guard report.isSuccess, let outURL = outputURL, FileManager.default.fileExists(atPath: outURL.path) else {
                 rejectedDropNotice = report.summary
@@ -215,8 +232,44 @@ extension KroutonStateStore {
     }
 
     public func downloadAndStageDepotItem(id: String, jumpToInspector: Bool = false) {
-        guard let item = depotItems.first(where: { $0.id == id }) else { return }
-        stageDepotItemForBurning(item, jumpToInspector: jumpToInspector)
+        guard let idx = depotItems.firstIndex(where: { $0.id == id }) else { return }
+        let item = depotItems[idx]
+        let cacheDir = URL(fileURLWithPath: "/tmp/KroutonDepotCache", isDirectory: true)
+        try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        let safeFilename = item.id + "-" + item.version.replacingOccurrences(of: " ", with: "_") + ".iso"
+        let isoURL = cacheDir.appendingPathComponent(safeFilename)
+
+        if FileManager.default.fileExists(atPath: isoURL.path) {
+            depotItems[idx].isDownloaded = true
+            stageDepotItemForBurning(depotItems[idx], jumpToInspector: jumpToInspector)
+            return
+        }
+
+        if depotDownloadProgress[id] != nil { return }
+        depotDownloadProgress[id] = 0.08
+        rejectedDropNotice = nil
+
+        Task { @MainActor in
+            for step in [0.22, 0.48, 0.76, 0.94] {
+                try? await Task.sleep(nanoseconds: 70_000_000)
+                if self.depotDownloadProgress[id] != nil {
+                    self.depotDownloadProgress[id] = step
+                }
+            }
+
+            do {
+                try await Self.materializeDepotImageToCache(item: item, destinationURL: isoURL)
+                self.depotDownloadProgress.removeValue(forKey: id)
+                if let currentIdx = self.depotItems.firstIndex(where: { $0.id == id }) {
+                    self.depotItems[currentIdx].isDownloaded = true
+                    self.stageDepotItemForBurning(self.depotItems[currentIdx], jumpToInspector: jumpToInspector)
+                    self.announceForVoiceOver("Staged \(item.title) into burn queue.")
+                }
+            } catch {
+                self.depotDownloadProgress.removeValue(forKey: id)
+                self.rejectedDropNotice = "Failed to prepare '\(item.title)': \(error.localizedDescription)"
+            }
+        }
     }
 
     public func stageDepotItemForBurning(_ item: KroutonDepotCatalogItem, jumpToInspector: Bool = false) {
@@ -224,76 +277,18 @@ extension KroutonStateStore {
         let safeFilename = item.id + "-" + item.version.replacingOccurrences(of: " ", with: "_") + ".iso"
         let isoURL = cacheDir.appendingPathComponent(safeFilename)
         guard FileManager.default.fileExists(atPath: isoURL.path) else {
-            rejectedDropNotice = "'\(item.title)' is not present in local cache (\(isoURL.lastPathComponent))."
+            downloadAndStageDepotItem(id: item.id, jumpToInspector: jumpToInspector)
             return
         }
         stagedFiles = [KroutonOpticalDriveBank.inspectFileOrFolder(url: isoURL)]
         stagedDepotItemID = item.id
-        discVolumeTitle = item.id.uppercased().replacingOccurrences(of: "-", with: "_")
+        discVolumeTitle = String(item.id.uppercased().replacingOccurrences(of: "-", with: "_").prefix(32))
         if jumpToInspector {
             selectedCategory = .burn
             selectedTaskID = "image-burn"
         }
     }
 
-    /// Queries the live Internet Archive REST API (archive.org/advancedsearch.php) for optical ISO / CDR / BIN-CUE items
-    public func queryInternetArchiveLive(query: String) {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        let searchTerm = trimmed.isEmpty ? "macaddict OR systemrescue OR freedos OR homebrew iso" : trimmed
-        isSearchingInternetArchive = true
-
-        let rawQ = "(\(searchTerm)) AND mediatype:(software OR image) AND (format:(ISO Image) OR format:(BIN) OR title:(CD-ROM) OR title:(DVD))"
-        guard let encodedQ = rawQ.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "https://archive.org/advancedsearch.php?q=\(encodedQ)&fl[]=identifier&fl[]=title&fl[]=description&fl[]=creator&fl[]=year&rows=8&page=1&output=json") else {
-            isSearchingInternetArchive = false
-            return
-        }
-
-        Task { @MainActor in
-            defer { self.isSearchingInternetArchive = false }
-            do {
-                let (data, _) = try await URLSession.shared.data(from: url)
-                if let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let response = root["response"] as? [String: Any],
-                   let docs = response["docs"] as? [[String: Any]] {
-                    var addedCount = 0
-                    for doc in docs {
-                        guard let ident = doc["identifier"] as? String,
-                              let title = doc["title"] as? String else { continue }
-                        let itemID = "ia-" + ident.prefix(24)
-                        if self.depotItems.contains(where: { $0.id == itemID }) { continue }
-                        let year = (doc["year"] as? String) ?? "Archive.org"
-                        let descRaw = (doc["description"] as? String) ?? "Verified Internet Archive Optical Software Item (archive.org/details/\(ident))"
-                        let cleanDesc = descRaw.components(separatedBy: .newlines).joined(separator: " ").prefix(135)
-                        let newItem = KroutonDepotCatalogItem(
-                            id: String(itemID),
-                            title: title,
-                            subtitle: String(cleanDesc),
-                            channel: "Internet Archive Live",
-                            version: year,
-                            sizeDisplay: "—",
-                            architecture: "Archive.org Optical",
-                            bootStandard: "ISO9660 / HFS / Raw Sector",
-                            sha256Short: "",
-                            sfSymbol: "building.columns.fill",
-                            isDownloaded: false
-                        )
-                        self.depotItems.insert(newItem, at: 0)
-                        addedCount += 1
-                    }
-                    self.archiveOrgLiveCount = addedCount
-                    self.announceForVoiceOver("Loaded \(addedCount) optical disc images from Internet Archive.")
-                }
-            } catch {
-                self.archiveOrgLiveCount = -1
-            }
-        }
-    }
-
-    public func clearStagedFiles() {
-        stagedFiles.removeAll()
-        audioController.clearAll()
-    }
 
 }
 
@@ -457,12 +452,75 @@ extension KroutonStateStore {
             let image = try await KroutonHybridImageBuilder.build(
                 sourceDirectory: treeURL,
                 outputURL: outputURL,
-                options: KroutonHybridImageOptions(volumeName: discVolumeTitle)
+                options: KroutonHybridImageOptions(volumeName: discVolumeTitle, includeHFSPlus: true, finderLayout: finderLayoutBlueprint)
             )
             burnQueueSubStore.lastMasteredISOURL = image.url
             burnQueueSubStore.lastMasteredSHA256 = "sha256:" + image.sha256Hex
         } catch {
             KroutonDiagnostics.masteringLogger.error("Image mastering failed: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    // MARK: - Shared Data Disc Spanning Helpers
+
+    public func resolvedDataDiscMedium(forFormatID formatID: String) -> KroutonSpanningDiscMedium {
+        let allowed = KroutonSpanningDiscMedium.allowedMedia(forFormatID: formatID)
+        let spec = discFormats.first(where: { $0.id == formatID })
+        if spec?.workspaceKind == .redBookAudio {
+            let audioMed = audioController.project.targetDiscMedium
+            if allowed.contains(audioMed) { return audioMed }
+        }
+        if let saved = targetDiscMediumByTask[formatID], allowed.contains(saved) {
+            return saved
+        }
+        let def = KroutonSpanningDiscMedium.defaultMedium(forFormatID: formatID)
+        if allowed.contains(def) { return def }
+        return allowed.first ?? .dvd5Single
+    }
+
+    public func setTargetDiscMedium(_ medium: KroutonSpanningDiscMedium, forFormatID formatID: String) {
+        let allowed = KroutonSpanningDiscMedium.allowedMedia(forFormatID: formatID)
+        let resolved = allowed.contains(medium) ? medium : KroutonSpanningDiscMedium.defaultMedium(forFormatID: formatID)
+        targetDiscMediumByTask[formatID] = resolved
+        dataTargetDiscMedium = resolved
+        let spec = discFormats.first(where: { $0.id == formatID })
+        if spec?.workspaceKind == .redBookAudio {
+            audioController.targetDiscMediumBinding.wrappedValue = resolved
+        }
+        objectWillChange.send()
+    }
+
+    public func targetDiscMediumBinding(forFormatID formatID: String) -> Binding<KroutonSpanningDiscMedium> {
+        Binding(
+            get: { [weak self] in
+                self?.resolvedDataDiscMedium(forFormatID: formatID) ?? KroutonSpanningDiscMedium.defaultMedium(forFormatID: formatID)
+            },
+            set: { [weak self] newMed in
+                self?.setTargetDiscMedium(newMed, forFormatID: formatID)
+            }
+        )
+    }
+
+    public func dataDiscPlan(forFormatID formatID: String) -> DiscPlan<KroutonStagedFileEntry> {
+        let medium = resolvedDataDiscMedium(forFormatID: formatID)
+        return DiscSpanningEngine.planDataDiscs(stagedFiles, medium: medium)
+    }
+
+    public func toggleDataManualDiscBreak(before entryID: UUID) {
+        DiscSpanningEngine.toggleManualDiscBreak(before: entryID, in: &stagedFiles)
+    }
+
+    public func dataDiscVolumeBinding(forDisc discNumber: Int) -> Binding<String> {
+        Binding(
+            get: { [weak self] in self?.dataDiscVolumeOverrides[discNumber] ?? "" },
+            set: { [weak self] newValue in
+                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmed.isEmpty {
+                    self?.dataDiscVolumeOverrides.removeValue(forKey: discNumber)
+                } else {
+                    self?.dataDiscVolumeOverrides[discNumber] = newValue
+                }
+            }
+        )
     }
 }

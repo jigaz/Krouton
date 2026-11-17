@@ -85,7 +85,7 @@ struct KroutonDepotHeroBannerView: View {
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent))
                             Text("DISC CONTENT SCHEMATIC")
-                                .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
+                                .font(.system(size: 9, weight: .heavy, design: .monospaced))
                                 .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent))
                                 .lineLimit(1)
                             Spacer(minLength: 4)
@@ -104,7 +104,7 @@ struct KroutonDepotHeroBannerView: View {
                                     .foregroundStyle(.white.opacity(0.92))
                                     .lineLimit(1)
                             }
-                            .font(.system(size: 8.5, weight: .medium, design: .monospaced))
+                            .font(.system(size: 9, weight: .medium, design: .monospaced))
                         }
                     }
                     .padding(10)
@@ -184,11 +184,11 @@ struct KroutonDepotHeroBannerView: View {
                                     ForEach(Array(segments.enumerated()), id: \.offset) { idx, seg in
                                         VStack(alignment: .leading, spacing: 1) {
                                             Text(seg.label)
-                                                .font(.system(size: 7.5, weight: .bold, design: .monospaced))
+                                                .font(.system(size: 9, weight: .bold, design: .monospaced))
                                                 .foregroundStyle(.white)
                                                 .lineLimit(1)
                                             Text(seg.lbaRange)
-                                                .font(.system(size: 7, design: .monospaced))
+                                                .font(.system(size: 9, design: .monospaced))
                                                 .foregroundStyle(.cyan.opacity(0.9))
                                                 .lineLimit(1)
                                         }
@@ -312,7 +312,7 @@ struct KroutonDepotAppStoreCardView: View {
                         Spacer(minLength: 2)
                         if isSelectedInHero {
                             Text("HERO")
-                                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                                .font(.system(size: 9, weight: .heavy, design: .monospaced))
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 1.5)
                                 .background(pillAccent.opacity(0.20))
@@ -410,9 +410,13 @@ struct KroutonDepotAppStoreCardView: View {
         )
         .clipped()
         .contentShape(RoundedRectangle(cornerRadius: 11))
-        .onTapGesture {
-            store.selectedDepotHeroItemID = item.id
-        }
+        .background(
+            Color.clear
+                .contentShape(RoundedRectangle(cornerRadius: 11))
+                .onTapGesture {
+                    store.selectedDepotHeroItemID = item.id
+                }
+        )
         .contextMenu {
             Button(KroutonL10n.tr("Inspect in Disc Image Depot")) {
                 store.selectedDepotHeroItemID = item.id
