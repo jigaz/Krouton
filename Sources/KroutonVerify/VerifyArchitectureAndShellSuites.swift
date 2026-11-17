@@ -82,12 +82,14 @@ func runVerifyArchitectureAndShellSuites(_ harness: inout KroutonTestHarness) {
         }
     }
 
-    harness.runSuite("2. Shell/ & Features/ Modularization, 600-LOC File Ceiling & 200-LOC Function Gate") { h in
-        let shellDirs = ["App", "StateAndModels", "DesignSystem", "NavigationAndRack", "ModalsAndSettings", "Services"]
+    harness.runSuite("2. Shell/ & Features/ Modularization, 400/500-LOC File Ceilings, +Role Extension Naming & 200-LOC Function Gate") { h in
+        let shellDirs = ["App", "CLI", "StateAndModels", "DesignSystem", "NavigationAndRack", "ModalsAndSettings", "Services", "Workspace"]
         for dir in shellDirs {
             let p = sourcesURL.appendingPathComponent("KroutonApp/Shell/\(dir)").path
             h.lint(fm.fileExists(atPath: p), "Missing KroutonApp/Shell directory: \(dir)")
         }
+        let legacyThemeDir = sourcesURL.appendingPathComponent("KroutonApp/Shell/ThemeAndChrome").path
+        h.lint(!fm.fileExists(atPath: legacyThemeDir), "Legacy KroutonApp/Shell/ThemeAndChrome must remain consolidated into DesignSystem")
 
         let featureFiles = [
             "AudioCD/AudioMasteringWorkspaces.swift",
@@ -115,19 +117,41 @@ func runVerifyArchitectureAndShellSuites(_ harness: inout KroutonTestHarness) {
         ]
         for rel in deckAdopters {
             let p = sourcesURL.appendingPathComponent("KroutonApp/Features/\(rel)")
-            let content = (try? String(contentsOf: p, encoding: .utf8)) ?? ""
-            h.lint(content.contains("KroutonMasteringDeckCard"), "Features/\(rel) must adopt KroutonMasteringDeckCard")
-            h.lint(content.contains("KroutonEmptyDropZoneView"), "Features/\(rel) must adopt KroutonEmptyDropZoneView")
+            let extDeckP = sourcesURL.appendingPathComponent("KroutonApp/Features/\(rel.replacingOccurrences(of: ".swift", with: "+DeckControls.swift"))")
+            let content = ((try? String(contentsOf: p, encoding: .utf8)) ?? "") + ((try? String(contentsOf: extDeckP, encoding: .utf8)) ?? "")
+            h.lint(content.contains("KroutonMasteringDeckCard"), "Features/\(rel) cluster must adopt KroutonMasteringDeckCard")
+            h.lint(content.contains("KroutonEmptyDropZoneView"), "Features/\(rel) cluster must adopt KroutonEmptyDropZoneView")
         }
+
+        let topPrimaryDeclRegex = try! NSRegularExpression(pattern: #"(?m)^(?:@[A-Za-z0-9_().,\s]+\s+)*(?:public\s+|internal\s+|private\s+|fileprivate\s+|final\s+)*(?:struct|class|enum|actor|protocol)\s+[A-Za-z0-9_]+"#)
+        let topExtDeclRegex = try! NSRegularExpression(pattern: #"(?m)^(?:@[A-Za-z0-9_().,\s]+\s+)*(?:public\s+|internal\s+|private\s+|fileprivate\s+)*extension\s+[A-Za-z0-9_.]+"#)
 
         for fileURL in allSwiftFiles {
             let src = (try? String(contentsOf: fileURL, encoding: .utf8)) ?? ""
             let lines = src.components(separatedBy: .newlines)
             let relPath = fileURL.path.replacingOccurrences(of: rootURL.path + "/", with: "")
-            h.lint(lines.count <= 600, "\(relPath) (\(lines.count) LOC) exceeds 600-LOC file ceiling")
+            let fileName = fileURL.lastPathComponent
+
+            // 1. Strict 400-LOC ceiling for KroutonApp, 500-LOC ceiling for all Kit/Core targets
+            let maxLOC = relPath.hasPrefix("Sources/KroutonApp/") ? 400 : 500
+            h.lint(lines.count <= maxLOC, "\(relPath) (\(lines.count) LOC) exceeds strict \(maxLOC)-LOC target ceiling")
+
+            // 2. 200-LOC function gate
             let longFunctions = VerifyFunctionLengthScanner.functions(in: src).filter { $0.lineCount > 200 }
             let described = longFunctions.map { "\($0.name) at line \($0.startLine) (\($0.lineCount) lines)" }.joined(separator: ", ")
             h.lint(longFunctions.isEmpty, "\(relPath) has functions over the 200-line ceiling: \(described)")
+
+            // 3. Canonical <BaseType>+<Role>.swift extension naming gate
+            let fullRange = NSRange(src.startIndex..<src.endIndex, in: src)
+            let hasPrimaryType = topPrimaryDeclRegex.firstMatch(in: src, options: [], range: fullRange) != nil
+            let hasExtension = topExtDeclRegex.firstMatch(in: src, options: [], range: fullRange) != nil
+
+            if !hasPrimaryType && hasExtension {
+                h.lint(fileName.contains("+"), "\(relPath) contains only extensions and must follow <BaseType>+<Role>.swift naming")
+            }
+            if fileName.contains("+") {
+                h.lint(hasExtension, "\(relPath) uses '+' extension naming and must declare at least one extension")
+            }
         }
         verifyMenuAndContextualShortcutParity(&h)
     }
