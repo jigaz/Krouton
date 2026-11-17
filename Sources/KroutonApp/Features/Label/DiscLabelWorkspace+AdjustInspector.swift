@@ -116,7 +116,7 @@ extension KroutonDiscLabelWorkspaceView {
         }
     }
 
-    private func adjustmentSliderRow(
+    func adjustmentSliderRow(
         title: String,
         valueText: String,
         value: Binding<Double>,

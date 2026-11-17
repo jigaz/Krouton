@@ -189,7 +189,7 @@ private func verifyMenuAndContextualShortcutParity(_ h: inout KroutonTestHarness
         h.lint(menuCmdText.contains("\"\(fmtID)\""), "KroutonMenuCommands must route workflow task ID \(fmtID)")
     }
     let popoverBindings: [(String, String, String)] = [
-        ("Sources/KroutonApp/Features/Data/DataAndArchivalWorkspaces.swift", ".kroutonMenuInspectHybridLBA", "showHybridLBAMapPopover = true"),
+        ("Sources/KroutonApp/Features/Data/DataAndArchivalWorkspaces+DeckControls.swift", ".kroutonMenuInspectHybridLBA", "showHybridLBAMapPopover = true"),
         ("Sources/KroutonApp/Features/AudioCD/AudioMasteringWorkspaces.swift", ".kroutonMenuInspectAudioCue", "showAudioCuePopover = true"),
         ("Sources/KroutonApp/Features/Video/VideoAuthoringWorkspaces.swift", ".kroutonMenuInspectVideoBitrate", "showVideoBitratePopover = true")
     ]
@@ -199,12 +199,12 @@ private func verifyMenuAndContextualShortcutParity(_ h: inout KroutonTestHarness
     }
     let contextMenuFiles = [
         "Sources/KroutonApp/Features/Data/DataAndArchivalWorkspaces.swift",
-        "Sources/KroutonApp/Features/AudioCD/AudioMasteringWorkspaces.swift",
+        "Sources/KroutonApp/Features/AudioCD/AudioMasteringWorkspaces+TrackRows.swift",
         "Sources/KroutonApp/Features/Rip/CopyAndRipWorkspaces+AudioUX.swift",
         "Sources/KroutonApp/Shell/NavigationAndRack/KroutonDestinationRackViews.swift",
         "Sources/KroutonApp/Shell/NavigationAndRack/KroutonNavigationAndTelemetryBars.swift",
         "Sources/KroutonApp/Features/Label/DiscLabelWorkspace.swift",
-        "Sources/KroutonApp/Features/Label/DiscLabelWorkspaceShapesInspector.swift",
+        "Sources/KroutonApp/Features/Label/DiscLabelWorkspace+LayerAndGeometryInspectors.swift",
         "Sources/KroutonApp/Features/Depot/KroutonDepotCatalogViews.swift"
     ]
     for relPath in contextMenuFiles {
