@@ -1,8 +1,8 @@
+import Combine
+import Foundation
 import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
-import Foundation
-import Combine
 
 // MARK: - Hero Banner Text Outline & Contrast Halo Modifier
 private struct KroutonHeroTextOutlineModifier: ViewModifier {
@@ -23,7 +23,6 @@ private extension View {
         modifier(KroutonHeroTextOutlineModifier())
     }
 }
-
 
 struct KroutonDepotHeroBannerView: View {
     @ObservedObject var store: KroutonStateStore

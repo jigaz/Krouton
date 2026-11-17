@@ -1,7 +1,7 @@
-import SwiftUI
 import AppKit
 import DriveKit
 import OpticalCore
+import SwiftUI
 
 @MainActor
 final class KroutonWindowManager: ObservableObject {

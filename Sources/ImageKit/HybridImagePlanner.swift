@@ -2,6 +2,8 @@ import CryptoKit
 import Foundation
 import OpticalCore
 
+// MARK: - HybridImagePlanner
+
 public struct KroutonHybridExtent: Sendable, Equatable, Identifiable {
     public let id: UUID
     public let originalName: String

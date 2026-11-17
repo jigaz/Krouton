@@ -1,5 +1,5 @@
-import SwiftUI
 import AudioKit
+import SwiftUI
 
 // The splice canvas as a standalone view fed by an immutable snapshot.
 //
@@ -89,7 +89,7 @@ private struct SpliceCanvasRenderer {
         if snapshot.mode == .crossfade { drawGainCurves(&context) }
     }
 
-    // MARK: Time mapping
+    // MARK: - Time mapping
 
     /// Seconds per point, taken from the zone so bars line up with the rails.
     private var secondsPerPoint: Double {
@@ -105,7 +105,7 @@ private struct SpliceCanvasRenderer {
     private var outgoingEndX: CGFloat { snapshot.mode == .crossfade ? x1 : x0 }
     private var incomingStartX: CGFloat { snapshot.mode == .crossfade ? x0 : x1 }
 
-    // MARK: Layers
+    // MARK: - Layers
 
     private func drawGridAndScales(_ context: inout GraphicsContext) {
         let splitY = rulerHeight + bodyHeight * 0.5

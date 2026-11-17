@@ -1,8 +1,10 @@
+import Foundation
 import ImageKit
+import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
-import Foundation
-import OpticalCore
+
+// MARK: - RetroConsoleWorkspaces
 
 private struct ConsoleDeckDescriptor {
     let narrowTitle: String

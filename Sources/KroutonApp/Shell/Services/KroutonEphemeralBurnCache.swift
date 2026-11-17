@@ -1,3 +1,7 @@
+import Combine
+import Darwin.Mach
+import Foundation
+
 //
 //  KroutonEphemeralBurnCache.swift
 //  Krouton — Optical Media Mastering Package (Optical Media Mastering Workspace)
@@ -9,10 +13,6 @@
 //     Tracks NSApplication active state, window occlusion, and kernel memory
 //     pressure so Krouton idles at ~0.0% CPU when not actively mastering.
 //
-
-import Foundation
-import Combine
-import Darwin.Mach
 
 // MARK: - Ephemeral Kernel Page-Aligned Burn Cache (Zero Idle RAM Overhead)
 public final class KroutonEphemeralBurnCache: @unchecked Sendable {

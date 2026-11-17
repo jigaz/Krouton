@@ -1,6 +1,6 @@
-import SwiftUI
 import Foundation
 import OpticalCore
+import SwiftUI
 
 /// Feature model owning appearance, accent palette, localization, unit, and accessibility preferences.
 /// Consolidates the four previously duplicated colour-scheme resolution blocks into one place.

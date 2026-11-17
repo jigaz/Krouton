@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+
 // Everything Krouton learns by opening an audio file, done once per file, off the
 // main actor.
 //
@@ -103,8 +104,7 @@ public actor AudioAnalysisService {
         return Int64((Double(length) * 75.0 / rate).rounded(.up))
     }
 
-
-    // MARK: Concurrency limit
+    // MARK: - Concurrency limit
 
     private func acquireDecodeSlot() async {
         if activeDecodes < Self.maxConcurrentDecodes {
@@ -127,7 +127,7 @@ public actor AudioAnalysisService {
         return Key(path: url.path, modified: values?.contentModificationDate, size: Int64(values?.fileSize ?? 0))
     }
 
-    // MARK: The work (runs detached)
+    // MARK: - The work (runs detached)
 
     private static func analyse(_ url: URL) async throws -> TrackAnalysis {
         let file: AVAudioFile

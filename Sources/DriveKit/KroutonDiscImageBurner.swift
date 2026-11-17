@@ -1,7 +1,7 @@
 import CryptoKit
+@preconcurrency import DiscRecording
 import Foundation
 import OpticalCore
-@preconcurrency import DiscRecording
 
 // Burns a finished disc image to one drive, then reads the disc back and compares
 // it with the image. Every call takes a drive identifier and keeps its own state,
@@ -289,7 +289,7 @@ public enum KroutonDiscImageBurner {
         if !device.ejectMedia() { _ = device.openTray() }
     }
 
-    // MARK: Helpers
+    // MARK: - Helpers
 
     private static func device(for driveID: String) throws -> DRDevice {
         guard let match = KroutonOpticalDriveBank.identifiedDevices().first(where: { $0.id == driveID }) else {

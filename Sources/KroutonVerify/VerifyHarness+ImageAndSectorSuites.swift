@@ -12,8 +12,12 @@ import Persistence
 import RescueKit
 import VideoKit
 
-func runVerifyImageAndSectorSuites(_ harness: inout KroutonTestHarness) {
-    harness.runSuite("4. ISO-9660 / Joliet / UDF File Entry Limits & 2048-Byte LBA Math") { h in
+// MARK: - VerifyHarness — ImageAndSectorSuites
+
+extension KroutonTestHarness {
+    mutating func runVerifyImageAndSectorSuites() {
+
+    self.runSuite("4. ISO-9660 / Joliet / UDF File Entry Limits & 2048-Byte LBA Math") { h in
     let fiveGiB: Int64 = 5 * 1024 * 1024 * 1024
     let longName = String(repeating: "K", count: 70) + ".iso"
     let entry = KroutonStagedFileEntry(
@@ -32,7 +36,7 @@ func runVerifyImageAndSectorSuites(_ harness: inout KroutonTestHarness) {
     h.check(entry.sectorsLBA == fiveGiB / 2048, "LBA sector math must equal byteSize / 2048")
     }
 
-    harness.runSuite("5. ImageKit Hybrid Data LBA Planner (PVD LBA 16, El Torito LBA 17, UDF LBA 256 & Deduplication)") { h in
+    self.runSuite("5. ImageKit Hybrid Data LBA Planner (PVD LBA 16, El Torito LBA 17, UDF LBA 256 & Deduplication)") { h in
     let vol = KroutonHybridImagePlanner.sanitizeVolumeIdentifier("Krouton Master 2026! (v1.0)")
     h.check(vol == "KROUTON_MASTER_2026___V1_0", "ECMA-119 d-character volume label sanitization")
 
@@ -81,7 +85,7 @@ func runVerifyImageAndSectorSuites(_ harness: inout KroutonTestHarness) {
     h.check(!plan.warnings.isEmpty, ">4GiB file must emit UDF multi-extent advisory")
     }
 
-    harness.runSuite("6. ImageKit Disc Image Depot (.cue Parser, 2352B->2048B BIN Extractor & Boot Classifier)") { h in
+    self.runSuite("6. ImageKit Disc Image Depot (.cue Parser, 2352B->2048B BIN Extractor & Boot Classifier)") { h in
     // 14a. Multi-track Mixed-Mode .cue sheet parsing
     let sampleCue = """
     FILE "KROUTON_MIXED_MASTER.BIN" BINARY
@@ -141,7 +145,7 @@ func runVerifyImageAndSectorSuites(_ harness: inout KroutonTestHarness) {
             "DiscImageDepotOperations must extract 2048B sectors from 2352B .BIN and classify ISO-9660/El Torito bootability")
     }
 
-    harness.runSuite("7. SHA-256 Digest & 2048-Byte Sector Hex Dump Inspector") { h in
+    self.runSuite("7. SHA-256 Digest & 2048-Byte Sector Hex Dump Inspector") { h in
     let tempURL = FileManager.default.temporaryDirectory
         .appendingPathComponent("krouton_test_\(UUID().uuidString).iso")
     defer { try? FileManager.default.removeItem(at: tempURL) }
@@ -157,4 +161,5 @@ func runVerifyImageAndSectorSuites(_ harness: inout KroutonTestHarness) {
     h.check(rows.count == 16, "256-byte sector header window at 16 B/row must yield 16 rows")
     h.check(rows.first?.asciiText.hasPrefix("KROUTON_OPTICAL_") == true, "ASCII column must decode header")
     }
+}
 }

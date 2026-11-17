@@ -1,10 +1,12 @@
-import DriveKit
 import AudioKit
-import SwiftUI
+import DriveKit
 import Foundation
-import OpticalCore
 import LabelKit
+import OpticalCore
 import RescueKit
+import SwiftUI
+
+// MARK: - KroutonCentralWorkspaceCapacityBarView
 
 struct KroutonCentralWorkspaceCapacityBarView: View {
     @ObservedObject var store: KroutonStateStore

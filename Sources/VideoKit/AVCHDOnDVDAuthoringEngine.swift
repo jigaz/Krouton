@@ -47,7 +47,7 @@ public enum AVCHDOnDVDAuthoringEngine {
     public static let clock45kHz: Double = 45_000.0
     public static let defaultInTime45kHz: UInt32 = 9_000 // 0.200 s
 
-    // MARK: Binary BDMV Generators (INDX0100, MOBJ0100, MPLS0100, HDMV0100)
+    // MARK: - Binary BDMV Generators (INDX0100, MOBJ0100, MPLS0100, HDMV0100)
 
     /// Synthesizes a spec-compliant `index.bdmv` (`INDX0100` for AVCHD / BD-on-DVD, `INDX0200` for BD-ROM)
     /// that launches `MovieObject #0` on disc insert (`FirstPlayback`) and Top Menu press.
@@ -302,7 +302,7 @@ public enum AVCHDOnDVDAuthoringEngine {
         return Data(out)
     }
 
-    // MARK: End-to-End AVCHD-on-DVD (18 Mbps H.264 .m2ts + BDMV Tree) Builder
+    // MARK: - End-to-End AVCHD-on-DVD (18 Mbps H.264 .m2ts + BDMV Tree) Builder
 
     /// Transcodes staged video files into 18 Mbps (or custom capped) H.264 + AC-3 192-byte `.m2ts`
     /// streams and generates the complete `BDMV` + `CERTIFICATE` directory tree for DVD-5 / DVD-9 burning.
@@ -418,7 +418,7 @@ public enum AVCHDOnDVDAuthoringEngine {
         )
     }
 
-    // MARK: Private Big-Endian Appenders
+    // MARK: - Private Big-Endian Appenders
 
     private static func appendUInt16BE(_ v: UInt16, to buf: inout [UInt8]) {
         buf.append(UInt8((v >> 8) & 0xFF))

@@ -1,12 +1,11 @@
-import NetworkSpool
-import DriveKit
-import SwiftUI
-import Foundation
 import AudioToolbox
+import DriveKit
+import Foundation
 import ImageIO
-import UniformTypeIdentifiers
+import NetworkSpool
 import OpticalCore
-
+import SwiftUI
+import UniformTypeIdentifiers
 
 struct KroutonMainWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
@@ -266,8 +265,6 @@ struct KroutonMainWorkspaceView: View {
         .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.14) : Color.clear)
         .background(.ultraThinMaterial)
     }
-
-
 
     // MARK: - CENTER COLUMN: ADAPTABLE WORKSPACE + INTEGRATED CAPACITY BAR (Global graph removed)
     var centerAdaptableWorkspace: some View {

@@ -1,6 +1,8 @@
 import Foundation
 import OpticalCore
 
+// MARK: - KroutonStateStore — DepotCache
+
 extension KroutonStateStore {
     /// Downloads live Internet Archive ISO images or builds a spec-compliant ISO-9660 + El Torito bootable master image in `/tmp/KroutonDepotCache`.
     static func materializeDepotImageToCache(item: KroutonDepotCatalogItem, destinationURL: URL) async throws {

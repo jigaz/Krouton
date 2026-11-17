@@ -1,6 +1,6 @@
-import SwiftUI
 import Foundation
 import OpticalCore
+import SwiftUI
 
 public enum KroutonDesign {
     public enum Radius {

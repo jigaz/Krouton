@@ -1,6 +1,6 @@
+import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
-import OpticalCore
 
 // MARK: - Deterministic SwiftUI .fileImporter Coordinator for Optical Payloads & Copy/Rip Paths
 

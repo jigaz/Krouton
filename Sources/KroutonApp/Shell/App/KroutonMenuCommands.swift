@@ -1,9 +1,11 @@
-import SwiftUI
 import Foundation
-import UniformTypeIdentifiers
-import OpticalCore
 import LabelKit
+import OpticalCore
 import RescueKit
+import SwiftUI
+import UniformTypeIdentifiers
+
+// MARK: - KroutonMenuCommands
 
 public extension Notification.Name {
     static let kroutonMenuScanTOC = Notification.Name("krouton.menu.scanTOC")

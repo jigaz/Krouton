@@ -1,8 +1,8 @@
 import CoreImage
-import SwiftUI
-import OpticalCore
 import LabelKit
+import OpticalCore
 import RescueKit
+import SwiftUI
 
 // MARK: - Disc Label Geometry Override, Layer Overview & Vision Trace Inspectors
 
@@ -218,7 +218,6 @@ extension KroutonDiscLabelWorkspaceView {
             }
         }
     }
-
 
     func traceActiveGPUPatternContoursWithVision() {
         let (r1, g1, b1, a1) = KroutonPureColorMath.extractSRGB(store.labelBgPrimaryColor)

@@ -1,5 +1,5 @@
-import Foundation
 import AVFoundation
+import Foundation
 
 // Replacements for the hard-coded placeholders in the slice.
 //

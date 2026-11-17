@@ -1,10 +1,10 @@
-import SwiftUI
-import Foundation
-import Combine
 import AVFoundation
+import Combine
 import CoreMedia
-import VideoToolbox
 import CryptoKit
+import Foundation
+import SwiftUI
+import VideoToolbox
 
 // MARK: - Universal Media Decoder & Hardware Acceleration Engine (Hardware & Software Stream Engine)
 
@@ -357,7 +357,6 @@ extension KroutonElToritoBootInspector {
         return digest.map { String(format: "%02x", $0) }.joined()
     }
 }
-
 
 // MARK: - Pure IEEE-754 RGB <-> HSB & Display-P3 Perceptual Harmony Engine
 public enum KroutonPureColorMath {

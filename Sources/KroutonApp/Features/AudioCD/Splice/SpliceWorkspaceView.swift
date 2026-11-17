@@ -1,5 +1,7 @@
-import SwiftUI
 import AudioKit
+import SwiftUI
+
+// MARK: - SpliceWorkspaceView
 
 struct SpliceWorkspaceView: View {
     let trackNumber: Int

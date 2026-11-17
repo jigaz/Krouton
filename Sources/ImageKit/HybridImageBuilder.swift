@@ -9,6 +9,8 @@ import Foundation
 // `KroutonHybridImagePlanner` remains useful as a size preview; it does not
 // describe the layout of images built here.
 
+// MARK: - HybridImageBuilder
+
 public struct KroutonHybridImageOptions: Sendable, Equatable {
     public var volumeName: String
     public var includeISO9660: Bool

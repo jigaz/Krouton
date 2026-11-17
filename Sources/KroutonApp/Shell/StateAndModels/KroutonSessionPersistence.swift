@@ -1,9 +1,11 @@
-import Persistence
+import AudioKit
 import DriveKit
 import Foundation
-import SwiftUI
-import AudioKit
 import OpticalCore
+import Persistence
+import SwiftUI
+
+// MARK: - KroutonSessionPersistence
 
 public struct KroutonPersistedSessionSnapshot: Codable, Sendable, Equatable {
     public var selectedCategoryRaw: String

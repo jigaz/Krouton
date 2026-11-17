@@ -1,9 +1,9 @@
-import NetworkSpool
 import DriveKit
-import SwiftUI
 import Foundation
-import UniformTypeIdentifiers
+import NetworkSpool
 import OpticalCore
+import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: - Standalone UUID-Safe Destination Rack Card View
 
@@ -42,7 +42,6 @@ struct KroutonDestinationCardView: View {
         let scopeTel = driveManager.telemetryForDrive(activeCardDriveID)
         let isFloatingOpen = scopeTel?.isFloatingWindowOpen ?? false
         let isInlineVisible = ((scopeTel?.isActive ?? false) || (scopeTel?.isManuallyPinnedInline ?? false)) && !isFloatingOpen
-
 
         return VStack(alignment: .leading, spacing: 10) {
             // Top Row: USB Burner / USB Menu + Scope + Icon-Only Eject + Remove Card

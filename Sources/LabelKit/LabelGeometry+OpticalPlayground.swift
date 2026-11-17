@@ -1,9 +1,9 @@
-import RescueKit
-import Foundation
 import CoreGraphics
 import CoreImage
 import CoreImage.CIFilterBuiltins
+import Foundation
 import OpticalCore
+import RescueKit
 
 // MARK: - Stylized Procedural Optical Chamber & CoreImage Kaleidoscope / Tiny Planet Engine
 

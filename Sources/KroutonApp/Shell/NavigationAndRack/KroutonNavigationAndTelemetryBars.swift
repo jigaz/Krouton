@@ -1,10 +1,10 @@
-import DriveKit
 import AudioKit
-import SwiftUI
+import DriveKit
 import Foundation
-import OpticalCore
 import LabelKit
+import OpticalCore
 import RescueKit
+import SwiftUI
 
 // MARK: - Standalone Left Format Chooser Sidebar, Central Capacity Bar & Burn Station Views
 
@@ -12,85 +12,6 @@ struct KroutonLeftFormatChooserColumnView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var driveManager: KroutonOpticalDriveBank
     let isLeftSidebarUltraSkinny: Bool
-
-    func taskRowButton(id: String, category: KroutonMasteringStation, title: String,
-        shortTitle: String? = nil, colloquial: String, badge: String = "", sfSymbol: String) -> some View {
-        let isSelected = (store.selectedTaskID == id)
-        return Button {
-            store.snapshotCurrentDestinationQueue()
-            store.selectedCategory = category
-            store.selectedTaskID = id
-            store.rejectedDropNotice = nil
-            store.purgeIncompatibleStagedFilesForCurrentTask()
-            store.syncDefaultDestinationForCategory(category, taskID: id, driveManager: driveManager)
-        } label: {
-            HStack(spacing: 9) {
-                let rowColor = store.effectiveColorForTask(id: id, category: category)
-                KroutonStyledIconBadge(
-                    sfSymbol: sfSymbol,
-                    tintColor: rowColor,
-                    style: store.iconWidgetStyle,
-                    isSelectedRow: isSelected,
-                    onAccentText: store.activeOnAccentText,
-                    size: store.sidebarIconSize.iconFontSize + 11,
-                    symbolSize: store.sidebarIconSize.iconFontSize - 1
-                )
-
-                VStack(alignment: .leading, spacing: 1) {
-                    ViewThatFits(in: .horizontal) {
-                        Text(KroutonL10n.tr(title))
-                            .font(.system(size: store.sidebarIconSize.titleFontSize, weight: .semibold))
-                            .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
-                            .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
-
-                        Text(KroutonL10n.tr(shortTitle ?? title))
-                            .font(.system(size: store.sidebarIconSize.titleFontSize, weight: .semibold))
-                            .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
-                            .lineLimit(1)
-                    }
-                    if !isLeftSidebarUltraSkinny {
-                        Text(KroutonL10n.tr(colloquial))
-                            .font(.system(size: max(9.5, store.sidebarIconSize.titleFontSize - 2.0)))
-                            .foregroundStyle(isSelected ? store.activeOnAccentText.opacity(0.82) : .secondary)
-                            .lineLimit(1)
-                    }
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, store.sidebarIconSize.rowVerticalPadding)
-            .background(
-                RoundedRectangle(cornerRadius: 7)
-                    .fill(isSelected ? store.activeAccent : Color.clear)
-            )
-            .overlay(RoundedRectangle(cornerRadius: 7).stroke(store.a11yIncreaseContrast && isSelected ? Color.primary : Color.clear, lineWidth: 1.5))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(title), \(colloquial)")
-        .contextMenu {
-            Button(KroutonL10n.tr("Open \(title) Workspace")) {
-                store.snapshotCurrentDestinationQueue()
-                store.selectedCategory = category
-                store.selectedTaskID = id
-                store.syncDefaultDestinationForCategory(category, taskID: id, driveManager: driveManager)
-            }
-            Button(KroutonL10n.tr("Add Destination Output Card")) {
-                store.appendContextAwareDestination(driveManager: driveManager)
-            }.keyboardShortcut("d", modifiers: [.command, .shift])
-            Button(KroutonL10n.tr("Copy Format Specification")) {
-                KroutonOSDesktopBridge.copyTextToClipboard("\(title) — \(colloquial) \(badge)")
-            }
-            if category == .burn {
-                Divider()
-                Button(KroutonL10n.tr("Hide Format from Sidebar")) {
-                    store.toggleFormatVisibility(id: id)
-                }
-            }
-        }
-    }
-
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -269,4 +190,83 @@ struct KroutonLeftFormatChooserColumnView: View {
         .background(Color.kroutonControlSurface)
     }
 
+    // MARK: - Subviews & Helper Methods
+
+    func taskRowButton(id: String, category: KroutonMasteringStation, title: String,
+        shortTitle: String? = nil, colloquial: String, badge: String = "", sfSymbol: String) -> some View {
+        let isSelected = (store.selectedTaskID == id)
+        return Button {
+            store.snapshotCurrentDestinationQueue()
+            store.selectedCategory = category
+            store.selectedTaskID = id
+            store.rejectedDropNotice = nil
+            store.purgeIncompatibleStagedFilesForCurrentTask()
+            store.syncDefaultDestinationForCategory(category, taskID: id, driveManager: driveManager)
+        } label: {
+            HStack(spacing: 9) {
+                let rowColor = store.effectiveColorForTask(id: id, category: category)
+                KroutonStyledIconBadge(
+                    sfSymbol: sfSymbol,
+                    tintColor: rowColor,
+                    style: store.iconWidgetStyle,
+                    isSelectedRow: isSelected,
+                    onAccentText: store.activeOnAccentText,
+                    size: store.sidebarIconSize.iconFontSize + 11,
+                    symbolSize: store.sidebarIconSize.iconFontSize - 1
+                )
+
+                VStack(alignment: .leading, spacing: 1) {
+                    ViewThatFits(in: .horizontal) {
+                        Text(KroutonL10n.tr(title))
+                            .font(.system(size: store.sidebarIconSize.titleFontSize, weight: .semibold))
+                            .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+
+                        Text(KroutonL10n.tr(shortTitle ?? title))
+                            .font(.system(size: store.sidebarIconSize.titleFontSize, weight: .semibold))
+                            .foregroundStyle(isSelected ? store.activeOnAccentText : .primary)
+                            .lineLimit(1)
+                    }
+                    if !isLeftSidebarUltraSkinny {
+                        Text(KroutonL10n.tr(colloquial))
+                            .font(.system(size: max(9.5, store.sidebarIconSize.titleFontSize - 2.0)))
+                            .foregroundStyle(isSelected ? store.activeOnAccentText.opacity(0.82) : .secondary)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, store.sidebarIconSize.rowVerticalPadding)
+            .background(
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(isSelected ? store.activeAccent : Color.clear)
+            )
+            .overlay(RoundedRectangle(cornerRadius: 7).stroke(store.a11yIncreaseContrast && isSelected ? Color.primary : Color.clear, lineWidth: 1.5))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title), \(colloquial)")
+        .contextMenu {
+            Button(KroutonL10n.tr("Open \(title) Workspace")) {
+                store.snapshotCurrentDestinationQueue()
+                store.selectedCategory = category
+                store.selectedTaskID = id
+                store.syncDefaultDestinationForCategory(category, taskID: id, driveManager: driveManager)
+            }
+            Button(KroutonL10n.tr("Add Destination Output Card")) {
+                store.appendContextAwareDestination(driveManager: driveManager)
+            }.keyboardShortcut("d", modifiers: [.command, .shift])
+            Button(KroutonL10n.tr("Copy Format Specification")) {
+                KroutonOSDesktopBridge.copyTextToClipboard("\(title) — \(colloquial) \(badge)")
+            }
+            if category == .burn {
+                Divider()
+                Button(KroutonL10n.tr("Hide Format from Sidebar")) {
+                    store.toggleFormatVisibility(id: id)
+                }
+            }
+        }
+    }
 }

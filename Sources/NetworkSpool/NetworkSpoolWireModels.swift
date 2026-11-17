@@ -1,13 +1,13 @@
-import OpticalCore
+import Combine
 import CryptoKit
+import Foundation
+import Network
+import OpticalCore
+
 //
 //  KrumbWireProtocol.swift
 //  OpticalDough — The Bakery Ecosystem (Krouton Client <-> Krumb Port 7420 Rust Daemon)
 //
-
-import Foundation
-import Combine
-import Network
 
 // MARK: - 1. Canonical Bakery Typealiases (Old Names -> Real Bakery Structs in OpticalDough.swift)
 public typealias DriveManager                = any KroutonDriveTelemetryStore

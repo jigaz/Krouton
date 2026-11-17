@@ -101,7 +101,6 @@ extension KroutonVideoAuthoringEngine {
     }
 }
 
-
 public enum KroutonVideoShrinkError: Error, LocalizedError, Sendable, Equatable {
     case requantizationUnavailable(sourceBytes: Int64, dvd5Bytes: Int64)
     case transcodeFailed(exitCode: Int32)

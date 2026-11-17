@@ -1,5 +1,5 @@
-import SwiftUI
 import OpticalCore
+import SwiftUI
 
 struct KroutonWorkflowBlueprintView: View {
     let item: KroutonDepotCatalogItem

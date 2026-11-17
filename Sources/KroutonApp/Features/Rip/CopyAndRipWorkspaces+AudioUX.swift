@@ -1,11 +1,13 @@
-import VideoKit
-import LabelKit
-import RescueKit
 import AudioKit
-import SwiftUI
 import Foundation
-import UniformTypeIdentifiers
+import LabelKit
 import OpticalCore
+import RescueKit
+import SwiftUI
+import UniformTypeIdentifiers
+import VideoKit
+
+// MARK: - CopyAndRipWorkspaces — AudioUX
 
 extension KroutonCopyAndRipWorkspaceView {
     var cdInfoEditorPopoverView: some View {

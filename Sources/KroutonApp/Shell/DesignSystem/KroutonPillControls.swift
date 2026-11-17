@@ -10,6 +10,8 @@ import SwiftUI
 //
 // Not compiled here (no Swift toolchain in my sandbox).
 
+// MARK: - KroutonPillControls
+
 enum KroutonPillMetrics {
     static let activeFill = Color(white: 0.88)
     static let inactiveFill = Color.white.opacity(0.08)

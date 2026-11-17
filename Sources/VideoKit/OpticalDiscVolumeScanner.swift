@@ -1,6 +1,7 @@
-import Foundation
 import AVFoundation
+import Foundation
 import OpticalCore
+
 public struct ScannedOpticalVideoDisc: Sendable, Equatable {
     public var volumeTitle: String
     public var mountPath: String

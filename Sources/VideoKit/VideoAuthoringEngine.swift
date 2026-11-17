@@ -137,7 +137,6 @@ public struct KroutonVideoAuthoringEngine {
     }
 }
 
-
 // MARK: - Chunk 9: Menu-Preserving DVD-9 -> DVD-5 Shrink, IFO Sector Relinker & Layer-Break Pause Removal
 public struct KroutonDVD9CellDescriptor: Sendable, Equatable, Identifiable {
     public var id: Int { cellID }

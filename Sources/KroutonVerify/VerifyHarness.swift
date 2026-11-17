@@ -60,7 +60,9 @@ struct KroutonTestHarness {
 /// Finds every function and initializer body in a Swift source file and measures it in lines.
 /// It is a line scanner, not a parser: it skips strings and comments, then matches braces.
 /// Computed properties such as a SwiftUI `body` are not functions and are not measured.
-enum VerifyFunctionLengthScanner {
+// MARK: - Function Length Scanner
+
+public enum VerifyFunctionLengthScanner {
     struct Function: Equatable {
         let name: String
         let startLine: Int

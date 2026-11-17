@@ -1,18 +1,18 @@
-import VideoKit
-import ImageKit
 import AudioKit
+import Combine
+import Foundation
+import ImageKit
+import OpticalCore
+import SwiftUI
+import UniformTypeIdentifiers
+import VideoKit
+
 //
 //  KroutonMasteringWorkspaces.swift
 //  Krouton — Optical Media Mastering Package (Optical Media Mastering Workspace)
 //
 //  Format-Specific Mastering Workspaces (Data/Archival, Red Book Audio, Video Authoring, Car-Safe Audio, Retro Console ROMs, and Disc Image Inspector).
 //
-
-import OpticalCore
-import SwiftUI
-import UniformTypeIdentifiers
-import Foundation
-import Combine
 
 // MARK: - Standalone Mastering Telemetry Popover Views
 

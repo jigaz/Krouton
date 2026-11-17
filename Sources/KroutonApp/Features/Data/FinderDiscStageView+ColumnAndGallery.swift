@@ -2,6 +2,8 @@ import ImageKit
 import OpticalCore
 import SwiftUI
 
+// MARK: - FinderDiscStageView — ColumnAndGallery
+
 extension KroutonFinderDiscStageView {
     @ViewBuilder
     var columnCanvasView: some View {

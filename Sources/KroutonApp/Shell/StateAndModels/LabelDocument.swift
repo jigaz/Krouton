@@ -1,8 +1,8 @@
-import SwiftUI
 import Foundation
-import OpticalCore
 import LabelKit
+import OpticalCore
 import RescueKit
+import SwiftUI
 
 /// Feature model owning the Polar Disc Label Workspace document state and printer presets.
 public struct LabelDocument: Equatable, Sendable {

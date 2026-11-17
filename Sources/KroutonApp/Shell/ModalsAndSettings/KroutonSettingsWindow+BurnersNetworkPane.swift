@@ -1,9 +1,9 @@
-import NetworkSpool
 import DriveKit
-import SwiftUI
 import Foundation
-import UniformTypeIdentifiers
+import NetworkSpool
 import OpticalCore
+import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: - Settings Window: Burners & Network Hardware Pane
 

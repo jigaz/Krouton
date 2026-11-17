@@ -1,9 +1,8 @@
-import NetworkSpool
 import DriveKit
+import NetworkSpool
+import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
-import OpticalCore
-
 
 // MARK: - Settings Window: General Pane
 

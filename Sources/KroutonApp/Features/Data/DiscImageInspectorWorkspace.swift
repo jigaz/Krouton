@@ -1,8 +1,10 @@
+import Foundation
+import ImageKit
+import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
-import Foundation
-import OpticalCore
-import ImageKit
+
+// MARK: - DiscImageInspectorWorkspace
 
 struct KroutonDiscImageInspectorWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore

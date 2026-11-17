@@ -1,10 +1,10 @@
-import VideoKit
-import ImageKit
 import AudioKit
+import Foundation
+import ImageKit
 import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
-import Foundation
+import VideoKit
 
 // MARK: - Red Book Audio CD Track Row, ISRC Fields & Crossfade Drawer
 

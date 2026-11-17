@@ -1,9 +1,11 @@
-import DriveKit
 import AppKit
 import Combine
+import DriveKit
 import SwiftUI
 
 @MainActor
+// MARK: - KroutonAppDelegate
+
 final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
     private var cancellables = Set<AnyCancellable>()
     private var appearanceObserver: NSKeyValueObservation?

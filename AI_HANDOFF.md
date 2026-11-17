@@ -275,3 +275,17 @@ This file tracks proposed and completed changes across AI coding sessions (Claud
   - `Sources/NetworkSpool/SpoolRemoteNodeClient.swift` (A)
   - `Sources/VideoKit/VideoAuthoringEngine+SubtitlesAndMuxing.swift` (A)
   - `Sources/VideoKit/VideoAuthoringEngine.swift` (M)
+
+- **2026-11-17 10:05 [commit 8daaa9a]:** Enforce 400/500-LOC file ceilings, <BaseType>+<Role> naming, and pass all 2533 krouton-verify checks  
+  - `AI_HANDOFF.md` (M)
+  - `Sources/KroutonVerify/VerifyArchitectureAndShellSuites.swift` (M)
+
+## 6. Dynamic Structural Discovery & Hygiene Invariants (`krouton-verify`)
+- **Zero Hardcoded File Lists:** `KroutonVerify` dynamically discovers feature domains, authoring workspace clusters (`KroutonMasteringDeckCard` + `KroutonEmptyDropZoneView`), `Notification.Name.kroutonMenu*` publisher/subscriber pairs, and contextual menu clusters.
+- **`<BaseFile>+<Role>.swift` Pairing Law:** Every pure extension file must use `<BaseFile>+<Role>.swift` naming and reside in the same directory as its `<BaseFile>.swift` primary declaration.
+- **Target & Function Ceilings:** Strictly `<= 400 LOC` per file in `KroutonApp` and `KroutonVerify`, `<= 500 LOC` per file in all 10 Kit/Core targets, and `<= 200 LOC` per function across the entire repository.
+- **Deterministic Member Ordering & File Hygiene:**
+  - Reactive property wrappers (`@State`, `@Published`, `@ObservedObject`, `@StateObject`, `@Environment`, `@Binding`, `@AppStorage`) must precede `var body` and methods inside every type.
+  - Inside SwiftUI `View` types, `var body: some View` precedes helper subviews and action methods.
+  - Top-level `import` statements are alphabetical and deduplicated across all files.
+  - Every file over 120 LOC includes canonical `// MARK: - ` section headers, with zero trailing whitespace or 3+ consecutive blank lines.

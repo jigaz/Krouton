@@ -1,6 +1,6 @@
-import SwiftUI
 import Foundation
 import OpticalCore
+import SwiftUI
 
 /// The multi-disc set window: choose a disc size, start, then follow each disc and each drive.
 struct KroutonBurnSetSheetView: View {
@@ -63,7 +63,7 @@ struct KroutonBurnSetSheetView: View {
         }
     }
 
-    // MARK: Sections
+    // MARK: - Sections
 
     private var header: some View {
         HStack(spacing: 10) {
@@ -231,7 +231,7 @@ struct KroutonBurnSetSheetView: View {
         }
     }
 
-    // MARK: Row appearance
+    // MARK: - Row appearance
 
     private func symbol(for status: KroutonBurnSetController.DiscStatus) -> String {
         switch status {

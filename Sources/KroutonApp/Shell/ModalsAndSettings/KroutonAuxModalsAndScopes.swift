@@ -1,9 +1,11 @@
+import Foundation
 import LabelKit
-import RescueKit
 import OpticalCore
+import RescueKit
 import SwiftUI
 import UniformTypeIdentifiers
-import Foundation
+
+// MARK: - KroutonAuxModalsAndScopes
 
 struct KroutonDiscArtworkView: View {
     let mediaType: String

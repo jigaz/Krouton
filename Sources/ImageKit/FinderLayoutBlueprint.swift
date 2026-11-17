@@ -1,6 +1,8 @@
 import Foundation
 
 /// Mirrors macOS Finder's four primary window display modes and their FourCC style codes.
+// MARK: - FinderLayoutBlueprint
+
 public enum KroutonFinderDisplayMode: String, Codable, CaseIterable, Sendable {
     case icon = "Icon"
     case list = "List"

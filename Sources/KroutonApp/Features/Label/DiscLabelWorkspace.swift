@@ -1,8 +1,8 @@
+import LabelKit
+import OpticalCore
+import RescueKit
 import SwiftUI
 import UniformTypeIdentifiers
-import OpticalCore
-import LabelKit
-import RescueKit
 
 // MARK: - Stage 1 Disc Label Designer: Photoshop-Style Left Tool Rail + Blank Disc + Circular Gradient + Curved Text Tool
 
@@ -77,20 +77,6 @@ public struct KroutonDiscLabelWorkspaceView: View {
         }
         return store.labelTextElements.firstIndex(where: { $0.id == id })
     }
-
-
-    func showTransientBanner(_ message: String) {
-        statusBanner = message
-        store.labelWorkspaceSubStore.transientStatusBanner = message
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            if statusBanner == message {
-                statusBanner = ""
-                store.labelWorkspaceSubStore.transientStatusBanner = ""
-            }
-        }
-    }
-
 
     var activeGeometryBinding: Binding<KroutonDiscLabelGeometry> {
         Binding(
@@ -217,6 +203,20 @@ public struct KroutonDiscLabelWorkspaceView: View {
                 }
                 .frame(width: 296)
                 .background(Color.primary.opacity(0.03))
+            }
+        }
+    }
+
+    // MARK: - Subviews & Helper Methods
+
+    func showTransientBanner(_ message: String) {
+        statusBanner = message
+        store.labelWorkspaceSubStore.transientStatusBanner = message
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            if statusBanner == message {
+                statusBanner = ""
+                store.labelWorkspaceSubStore.transientStatusBanner = ""
             }
         }
     }

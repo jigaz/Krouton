@@ -1,8 +1,8 @@
+import LabelKit
+import OpticalCore
+import RescueKit
 import SwiftUI
 import UniformTypeIdentifiers
-import OpticalCore
-import LabelKit
-import RescueKit
 
 // MARK: - Disc Label Studio Header Bar, Tool Rail & Zoom Bar
 

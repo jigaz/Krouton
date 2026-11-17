@@ -91,7 +91,7 @@ public actor BurnSetScheduler {
         return progress
     }
 
-    // MARK: Queue (actor-isolated, so claims are atomic)
+    // MARK: - Queue (actor-isolated, so claims are atomic)
 
     private func claimNextDisc() -> FrozenDisc? {
         let next = progress.remaining.first { job in
@@ -112,7 +112,7 @@ public actor BurnSetScheduler {
         }
     }
 
-    // MARK: One drive's loop
+    // MARK: - One drive's loop
 
     private func work(on drive: any OpticalDrive) async {
         while !Task.isCancelled, let disc = claimNextDisc() {

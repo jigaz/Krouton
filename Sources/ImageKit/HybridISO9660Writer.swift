@@ -1,8 +1,10 @@
-import Foundation
 import CryptoKit
+import Foundation
 import OpticalCore
 
 /// Input file descriptor for writing a multi-extent ECMA-119 ISO-9660 + El Torito optical disc image.
+// MARK: - HybridISO9660Writer
+
 public struct HybridISOFileInput: Sendable, Equatable {
     public let fileName: String
     public let data: Data

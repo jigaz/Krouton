@@ -1,8 +1,8 @@
 import CoreText
-import SwiftUI
-import OpticalCore
 import LabelKit
+import OpticalCore
 import RescueKit
+import SwiftUI
 
 // MARK: - Disc Label Canvas Curved Text Glyphs, Spindle Cutout & Vector Shapes
 

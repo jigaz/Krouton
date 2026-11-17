@@ -1,9 +1,9 @@
 import CoreGraphics
 import CoreImage
 import Foundation
-import Vision
 import OpticalCore
 import RescueKit
+import Vision
 
 public enum KroutonDiscHubGeometry: String, Codable, Sendable, CaseIterable {
     case standard120mmHub41mm     = "Standard 120mm Disc (41mm Clear Hub)"

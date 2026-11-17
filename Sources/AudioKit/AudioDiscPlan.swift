@@ -18,6 +18,8 @@ import OpticalCore
 //   AudioTrack    var probedFrameCount: Int64?      // header probe, may be approximate
 //   AudioProject  var anchoredDiscMetadata: [UUID: KroutonDiscVolumeMetadata] = [:]
 
+// MARK: - AudioDiscPlan
+
 public struct AudioDisc: Identifiable, Sendable, Equatable {
     public let number: Int
     public let metadata: KroutonDiscVolumeMetadata

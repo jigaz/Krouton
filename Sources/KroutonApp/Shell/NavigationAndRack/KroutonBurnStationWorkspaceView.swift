@@ -1,7 +1,7 @@
-import SwiftUI
 import Foundation
-import UniformTypeIdentifiers
 import OpticalCore
+import SwiftUI
+import UniformTypeIdentifiers
 
 struct KroutonBurnStationWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
@@ -17,67 +17,6 @@ struct KroutonBurnStationWorkspaceView: View {
     @Binding var isDropTargeted: Bool
     let onPromptToAddFiles: () -> Void
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
-
-    func addButtonTitle(for spec: KroutonOpticalWorkflowSpec) -> String {
-        switch spec.workspaceKind {
-        case .redBookAudio:       return "Add Audio Tracks..."
-        case .carSafeMP3Audio:    return "Add Audio or Folders..."
-        case .videoAuthoring:     return "Add Video Titles..."
-        case .discImageInspector: return "Select Disc Image..."
-        case .retroConsole:       return "Select Disc Image..."
-        case .dataAndArchival:    return "Add Files or Folders..."
-        }
-    }
-
-    func addButtonSymbol(for spec: KroutonOpticalWorkflowSpec) -> String {
-        if spec.workspaceKind == .redBookAudio || spec.workspaceKind == .carSafeMP3Audio {
-            return "waveform.badge.plus"
-        } else if spec.workspaceKind == .videoAuthoring {
-            return "film.stack.fill"
-        } else if spec.workspaceKind == .discImageInspector {
-            return "opticaldisc.fill"
-        } else if (spec.filterGroup == .console || spec.id.hasPrefix("console-")) {
-            return "gamecontroller.fill"
-        } else {
-            return "plus.rectangle.on.folder.fill"
-        }
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // MARK: - Retro Console ROM Mastering Deck & Pre-Flight Sanity Engine
-
-
-    func currentPreFlightSanityWarning(for spec: KroutonOpticalWorkflowSpec) -> String? {
-        if (spec.filterGroup == .console || spec.id.hasPrefix("console-")), let drive = primarySelectedDrive, drive.isMediaPresent && drive.isMediaErasable {
-            return "Retro Console Pickup Warning: \(drive.displayName) has rewritable \(drive.mediaType) loaded (~20% reflectivity). Vintage PS1/PS2/GameCube/Dreamcast optical pickups require high-reflectivity write-once CD-R or DVD-R media at 4x–8x."
-        }
-        if spec.id == "console-ps1" && !store.stagedFiles.isEmpty {
-            let hasBin = store.stagedFiles.contains { $0.name.lowercased().hasSuffix(".bin") }
-            let hasCue = store.stagedFiles.contains { $0.name.lowercased().hasSuffix(".cue") || $0.name.lowercased().hasSuffix(".ccd") }
-            if hasBin && !hasCue {
-                return "Missing .CUE Descriptor: A raw .BIN track is staged without its companion .CUE sheet. Add the .CUE file to preserve Red Book audio tracks and 2-second pre-gap offsets."
-            }
-        }
-        if let hugeFile = store.stagedFiles.first(where: { $0.exceedsISO9660FourGiBLimit }) {
-            return "4 GiB File Limit Notice: '\(hugeFile.name)' exceeds the 4 GiB ISO9660 Level 2 ceiling. Krouton will bridge this file via UDF 2.60 + HFS+."
-        }
-        if let longFile = store.stagedFiles.first(where: { $0.exceedsJoliet64CharLimit }) {
-            return "Joliet 64-Char Notice: '\(longFile.name)' is \(longFile.name.count) characters long. Full name is preserved on Mac (HFS+) and UDF, and safely truncated in legacy Windows Joliet tables."
-        }
-        return nil
-    }
-
 
     var body: some View {
         let activeSpec = store.discFormats.first(where: { $0.id == store.selectedTaskID }) ?? store.discFormats[0]
@@ -273,5 +212,54 @@ struct KroutonBurnStationWorkspaceView: View {
                 )
             }
         }
+    }
+
+    // MARK: - Subviews & Helper Methods
+
+    func addButtonTitle(for spec: KroutonOpticalWorkflowSpec) -> String {
+        switch spec.workspaceKind {
+        case .redBookAudio:       return "Add Audio Tracks..."
+        case .carSafeMP3Audio:    return "Add Audio or Folders..."
+        case .videoAuthoring:     return "Add Video Titles..."
+        case .discImageInspector: return "Select Disc Image..."
+        case .retroConsole:       return "Select Disc Image..."
+        case .dataAndArchival:    return "Add Files or Folders..."
+        }
+    }
+
+    func addButtonSymbol(for spec: KroutonOpticalWorkflowSpec) -> String {
+        if spec.workspaceKind == .redBookAudio || spec.workspaceKind == .carSafeMP3Audio {
+            return "waveform.badge.plus"
+        } else if spec.workspaceKind == .videoAuthoring {
+            return "film.stack.fill"
+        } else if spec.workspaceKind == .discImageInspector {
+            return "opticaldisc.fill"
+        } else if (spec.filterGroup == .console || spec.id.hasPrefix("console-")) {
+            return "gamecontroller.fill"
+        } else {
+            return "plus.rectangle.on.folder.fill"
+        }
+    }
+
+    // MARK: - Retro Console ROM Mastering Deck & Pre-Flight Sanity Engine
+
+    func currentPreFlightSanityWarning(for spec: KroutonOpticalWorkflowSpec) -> String? {
+        if (spec.filterGroup == .console || spec.id.hasPrefix("console-")), let drive = primarySelectedDrive, drive.isMediaPresent && drive.isMediaErasable {
+            return "Retro Console Pickup Warning: \(drive.displayName) has rewritable \(drive.mediaType) loaded (~20% reflectivity). Vintage PS1/PS2/GameCube/Dreamcast optical pickups require high-reflectivity write-once CD-R or DVD-R media at 4x–8x."
+        }
+        if spec.id == "console-ps1" && !store.stagedFiles.isEmpty {
+            let hasBin = store.stagedFiles.contains { $0.name.lowercased().hasSuffix(".bin") }
+            let hasCue = store.stagedFiles.contains { $0.name.lowercased().hasSuffix(".cue") || $0.name.lowercased().hasSuffix(".ccd") }
+            if hasBin && !hasCue {
+                return "Missing .CUE Descriptor: A raw .BIN track is staged without its companion .CUE sheet. Add the .CUE file to preserve Red Book audio tracks and 2-second pre-gap offsets."
+            }
+        }
+        if let hugeFile = store.stagedFiles.first(where: { $0.exceedsISO9660FourGiBLimit }) {
+            return "4 GiB File Limit Notice: '\(hugeFile.name)' exceeds the 4 GiB ISO9660 Level 2 ceiling. Krouton will bridge this file via UDF 2.60 + HFS+."
+        }
+        if let longFile = store.stagedFiles.first(where: { $0.exceedsJoliet64CharLimit }) {
+            return "Joliet 64-Char Notice: '\(longFile.name)' is \(longFile.name.count) characters long. Full name is preserved on Mac (HFS+) and UDF, and safely truncated in legacy Windows Joliet tables."
+        }
+        return nil
     }
 }

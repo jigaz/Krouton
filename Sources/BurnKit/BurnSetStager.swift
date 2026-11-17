@@ -1,7 +1,8 @@
-import OpticalCore
-import ImageKit
 import CryptoKit
 import Foundation
+import ImageKit
+import OpticalCore
+
 // MARK: - Append-Only JSONL BurnEventJournal (with readAll() for BurnSetProgress.replay)
 
 public actor BurnEventJournal {

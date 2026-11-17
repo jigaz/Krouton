@@ -1,7 +1,9 @@
-import SwiftUI
 import AudioKit
+import SwiftUI
 
 @MainActor
+// MARK: - SpliceDragController
+
 public final class TrackMontageWindowState: ObservableObject {
     public static let shared = TrackMontageWindowState()
     @Published public var isFloatingWindowOpen: Bool = false

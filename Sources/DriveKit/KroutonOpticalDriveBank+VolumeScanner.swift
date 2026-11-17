@@ -1,7 +1,9 @@
 import DiscRecording
-import Foundation
 import DiskArbitration
+import Foundation
 import OpticalCore
+
+// MARK: - KroutonOpticalDriveBank — VolumeScanner
 
 extension KroutonOpticalDriveBank {
     // Resolves the underlying BSD device name (e.g. "disk4" or "disk4s1") for a mounted volume URL via DiskArbitration

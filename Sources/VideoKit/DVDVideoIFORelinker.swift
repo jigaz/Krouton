@@ -24,7 +24,7 @@ public enum DVDVideoIFORelinker {
     /// Spec limit per VOB file: 1 GiB minus 32 KiB (524,272 sectors)
     public static let maxSingleVOBBytes = 524_272 * 2048
 
-    // MARK: Big-Endian Helpers
+    // MARK: - Big-Endian Helpers
 
     public static func readUInt16BE(_ bytes: [UInt8], at offset: Int) -> UInt16 {
         guard offset >= 0, offset + 2 <= bytes.count else { return 0 }
@@ -53,7 +53,7 @@ public enum DVDVideoIFORelinker {
         bytes[offset + 3] = UInt8(value & 0xFF)
     }
 
-    // MARK: NV_PCK (Navigation Pack) Scanner & In-Place DSI Relinker
+    // MARK: - NV_PCK (Navigation Pack) Scanner & In-Place DSI Relinker
 
     /// Returns true if the 2048-byte pack at `packOffset` is a DVD-Video NV_PCK (PCI + DSI).
     public static func isNavigationPack(_ bytes: [UInt8], at packOffset: Int) -> Bool {
@@ -170,7 +170,7 @@ public enum DVDVideoIFORelinker {
         return (Data(bytes), navSectors, cells)
     }
 
-    // MARK: VTS_xx_0.IFO & VIDEO_TS.IFO Binary Sector Table Relinking
+    // MARK: - VTS_xx_0.IFO & VIDEO_TS.IFO Binary Sector Table Relinking
 
     /// Rebuilds `VTS_C_ADT`, `VTS_VOBU_ADMAP`, `VTS_PGCI` cell sector offsets, and `VTSI_MAT` pointers
     /// in a `VTS_xx_0.IFO` buffer (which is then written identically to both `.IFO` and `.BUP`).
@@ -329,7 +329,7 @@ public enum DVDVideoIFORelinker {
         return Data(bytes)
     }
 
-    // MARK: Direct FFmpeg MPEG-2 Requantizer (Zero Shell)
+    // MARK: - Direct FFmpeg MPEG-2 Requantizer (Zero Shell)
 
     public static func locateFFmpegExecutable() -> URL? {
         for candidate in ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg"] {

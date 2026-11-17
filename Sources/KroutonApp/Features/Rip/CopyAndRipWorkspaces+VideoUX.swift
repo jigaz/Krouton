@@ -1,7 +1,9 @@
-import SwiftUI
 import Foundation
 import OpticalCore
+import SwiftUI
 import VideoKit
+
+// MARK: - CopyAndRipWorkspaces — VideoUX
 
 extension KroutonCopyAndRipWorkspaceView {
     func promptForCopySourceOrFolder(isAudioRipTask: Bool, isShrinkTask: Bool) {

@@ -1,6 +1,6 @@
-import SwiftUI
 import Foundation
 import OpticalCore
+import SwiftUI
 
 // MARK: - Step 2B & 2C: Per-Burner Auto-Hiding Inline Mini Phase Scope & High-Detail Floating Window
 // MARK: - Low-Allocation Smooth Spline Helper for 120Hz Oscilloscope Traces

@@ -1,6 +1,12 @@
-import VideoKit
-import ImageKit
 import AudioKit
+import Combine
+import Foundation
+import ImageKit
+import OpticalCore
+import SwiftUI
+import UniformTypeIdentifiers
+import VideoKit
+
 //
 //  KroutonMasteringWorkspaces.swift
 //  Krouton — Optical Media Mastering Package (Optical Media Mastering Workspace)
@@ -8,11 +14,7 @@ import AudioKit
 //  Format-Specific Mastering Workspaces (Data/Archival, Red Book Audio, Video Authoring, Car-Safe Audio, Retro Console ROMs, and Disc Image Inspector).
 //
 
-import OpticalCore
-import SwiftUI
-import UniformTypeIdentifiers
-import Foundation
-import Combine
+// MARK: - DataAndArchivalWorkspaces
 
 struct KroutonDataAndArchivalWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
@@ -141,7 +143,6 @@ struct KroutonDataAndArchivalWorkspaceView: View {
             }
         }
     }
-
 
     @ViewBuilder
     func stagedFileTableRow(entry: KroutonStagedFileEntry, isUniversalHybrid: Bool, isRetro83: Bool) -> some View {

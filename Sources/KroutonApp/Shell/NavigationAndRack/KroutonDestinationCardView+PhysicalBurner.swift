@@ -1,6 +1,6 @@
-import SwiftUI
 import Foundation
 import OpticalCore
+import SwiftUI
 
 // MARK: - Destination Card Physical Burner Drive, Speed & Batch Sections
 
@@ -26,7 +26,6 @@ extension KroutonDestinationCardView {
 
         let activeCardDriveID = (item.kind == .networkBurner) ? "network-spool-drive" : (cardDrive?.id ?? "")
         let validSpeeds = cardDrive?.availableWriteSpeeds ?? ["Max Safe (Auto)"]
-
 
         VStack(alignment: .leading, spacing: 10) {
                 if driveManager.availableDrives.isEmpty {
@@ -158,7 +157,6 @@ extension KroutonDestinationCardView {
         }()
 
         let activeCardDriveID = (item.kind == .networkBurner) ? "network-spool-drive" : (cardDrive?.id ?? "")
-
 
         VStack(alignment: .leading, spacing: 10) {
             if !driveManager.availableDrives.isEmpty {

@@ -1,7 +1,7 @@
+import AVFoundation
 import AudioToolbox
 import CryptoKit
 import Foundation
-import AVFoundation
 import OpticalCore
 
 /// Result of decoding and mastering one or more audio files into a Red Book Audio CD `.bin` + `.cue` pair.

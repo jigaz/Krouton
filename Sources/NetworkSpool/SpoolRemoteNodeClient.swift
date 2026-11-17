@@ -1,8 +1,8 @@
-import OpticalCore
+import Combine
 import CryptoKit
 import Foundation
-import Combine
 import Network
+import OpticalCore
 
 // MARK: - Spool Remote Node Client
 

@@ -1,3 +1,6 @@
+import OpticalCore
+import SwiftUI
+
 //
 //  KroutonThemeEngine.swift
 //  Krouton — Optical Media Mastering Package (Optical Media Mastering Workspace)
@@ -5,9 +8,6 @@
 //  22-Color Display-P3 Perceptual Harmony Engine + Zero-Allocation LUT Cache.
 //  100% Pure SwiftUI & CoreGraphics IEEE-754 Color Math (Zero AppKit Dependency).
 //
-
-import SwiftUI
-import OpticalCore
 
 // MARK: - Zero-Allocation Display-P3 Color Harmony LUT Cache (120Hz ProMotion Optimization)
 fileprivate final class KroutonColorHarmonyLUT: @unchecked Sendable {

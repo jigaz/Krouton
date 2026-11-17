@@ -1,6 +1,6 @@
 @preconcurrency import DiscRecording
-import OpticalCore
 import Foundation
+import OpticalCore
 
 // MARK: - KroutonOpticalDriveBank Burn Session Operations
 

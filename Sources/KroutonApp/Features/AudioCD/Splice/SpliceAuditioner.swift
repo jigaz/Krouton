@@ -1,6 +1,6 @@
-import SwiftUI
 import AVFoundation
 import AudioKit
+import SwiftUI
 
 @MainActor
 public final class SpliceAudioAuditioner: ObservableObject {

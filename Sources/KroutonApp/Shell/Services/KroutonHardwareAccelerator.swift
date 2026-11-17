@@ -1,5 +1,5 @@
-import Foundation
 import CryptoKit
+import Foundation
 
 public actor KroutonHardwareAccelerator {
     public static let shared = KroutonHardwareAccelerator()

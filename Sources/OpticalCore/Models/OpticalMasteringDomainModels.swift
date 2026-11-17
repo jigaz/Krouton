@@ -201,8 +201,6 @@ public enum KroutonVectorBackgroundStyle: String, Codable, CaseIterable, Identif
     public var id: String { rawValue }
 }
 
-
-
 public struct KroutonBackgroundAdjustments: Codable, Hashable, Sendable {
     public var blurRadius: Double = 0.0
     public var brightness: Double = 0.0
@@ -277,7 +275,6 @@ public struct KroutonNormalizedPoint: Codable, Hashable, Sendable {
         self.ny = ny
     }
 }
-
 
 public struct KroutonLabelTextElement: Codable, Hashable, Identifiable, Sendable {
     public var id: UUID

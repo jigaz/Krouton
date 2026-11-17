@@ -1,8 +1,8 @@
-import SwiftUI
-import Foundation
-import Combine
 import AVFoundation
+import Combine
 import CryptoKit
+import Foundation
+import SwiftUI
 
 // MARK: - Sprint 3 Part 2: UltraISO / PowerISO Bootable Sector 17 El Torito & Apple Partition Map Inspector
 public enum KroutonElToritoBootInspector {

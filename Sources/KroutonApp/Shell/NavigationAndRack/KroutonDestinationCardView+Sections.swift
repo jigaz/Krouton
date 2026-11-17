@@ -1,6 +1,8 @@
-import SwiftUI
 import Foundation
 import OpticalCore
+import SwiftUI
+
+// MARK: - KroutonDestinationCardView — Sections
 
 extension KroutonDestinationCardView {
     @ViewBuilder

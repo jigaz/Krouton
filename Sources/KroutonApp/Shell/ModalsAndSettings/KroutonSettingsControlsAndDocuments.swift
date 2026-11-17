@@ -1,8 +1,7 @@
-import NetworkSpool
-import SwiftUI
 import Foundation
-import UniformTypeIdentifiers
+import NetworkSpool
 import OpticalCore
+import SwiftUI
 import UniformTypeIdentifiers
 
 // MARK: - Dual-Swatch Primary / Secondary Harmony Toggle Switch
@@ -100,7 +99,6 @@ struct KroutonDualHarmonySwitch: View {
         .buttonStyle(.plain)
     }
 }
-
 
 // MARK: - Pure SwiftUI FileDocument for Non-Blocking Krumb Artifact Exports
 struct SpoolPlainTextFileDocument: FileDocument {

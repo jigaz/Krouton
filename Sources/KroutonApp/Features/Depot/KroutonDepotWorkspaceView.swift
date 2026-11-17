@@ -1,6 +1,6 @@
-import SwiftUI
 import Foundation
 import OpticalCore
+import SwiftUI
 
 // MARK: - Standalone Disc Image Depot & Sub-Library Browser Workspace View
 
@@ -97,74 +97,6 @@ struct KroutonDepotWorkspaceView: View {
                 "Select any sub-library in the left column or click any title card below to inspect its details in the Hero deck."
             )
         }
-    }
-
-
-
-
-
-
-
-
-
-
-    @ViewBuilder
-    private var depotSearchBarPill: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-            TextField(KroutonL10n.tr(isCenterWorkspaceNarrow ? "Filter or search Archive.org..." : "Filter or search archive.org..."), text: $depotSearchQuery)
-                .textFieldStyle(.plain)
-                .frame(minWidth: isCenterWorkspaceNarrow ? 90 : 140, maxWidth: isCenterWorkspaceNarrow ? .infinity : 210)
-                .accessibilityLabel(KroutonL10n.tr("Filter Depot or Search Internet Archive"))
-                .onSubmit {
-                    store.selectedTaskID = "depot-ia-live"
-                    store.queryInternetArchiveLive(query: depotSearchQuery)
-                }
-            if !depotSearchQuery.isEmpty {
-                Button {
-                    depotSearchQuery = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Clear search query")
-            }
-            Button {
-                store.selectedTaskID = "depot-ia-live"
-                store.queryInternetArchiveLive(query: depotSearchQuery)
-            } label: {
-                HStack(spacing: 4) {
-                    if store.isSearchingInternetArchive {
-                        ProgressView().controlSize(.mini)
-                    } else {
-                        Image(systemName: "building.columns.fill")
-                            .font(.system(size: 9))
-                    }
-                    Text(isCenterWorkspaceNarrow ? "Archive.org" : "Archive.org API")
-                        .font(.system(size: 9.5, weight: .bold))
-                        .lineLimit(1)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(store.activeAccent)
-                .foregroundStyle(store.activeOnAccentText)
-                .clipShape(Capsule())
-                .fixedSize(horizontal: true, vertical: false)
-            }
-            .buttonStyle(.plain)
-            .help("Query live Internet Archive REST API (archive.org/advancedsearch.php) for optical ISO / CD-ROM images")
-        }
-        .padding(.leading, 10)
-        .padding(.trailing, 4)
-        .padding(.vertical, 3)
-        .background(Color.kroutonControlSurface)
-        .clipShape(Capsule())
-        .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 1))
     }
 
     var body: some View {
@@ -332,5 +264,66 @@ struct KroutonDepotWorkspaceView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Subviews & Helper Methods
+
+    @ViewBuilder
+    private var depotSearchBarPill: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            TextField(KroutonL10n.tr(isCenterWorkspaceNarrow ? "Filter or search Archive.org..." : "Filter or search archive.org..."), text: $depotSearchQuery)
+                .textFieldStyle(.plain)
+                .frame(minWidth: isCenterWorkspaceNarrow ? 90 : 140, maxWidth: isCenterWorkspaceNarrow ? .infinity : 210)
+                .accessibilityLabel(KroutonL10n.tr("Filter Depot or Search Internet Archive"))
+                .onSubmit {
+                    store.selectedTaskID = "depot-ia-live"
+                    store.queryInternetArchiveLive(query: depotSearchQuery)
+                }
+            if !depotSearchQuery.isEmpty {
+                Button {
+                    depotSearchQuery = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search query")
+            }
+            Button {
+                store.selectedTaskID = "depot-ia-live"
+                store.queryInternetArchiveLive(query: depotSearchQuery)
+            } label: {
+                HStack(spacing: 4) {
+                    if store.isSearchingInternetArchive {
+                        ProgressView().controlSize(.mini)
+                    } else {
+                        Image(systemName: "building.columns.fill")
+                            .font(.system(size: 9))
+                    }
+                    Text(isCenterWorkspaceNarrow ? "Archive.org" : "Archive.org API")
+                        .font(.system(size: 9.5, weight: .bold))
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(store.activeAccent)
+                .foregroundStyle(store.activeOnAccentText)
+                .clipShape(Capsule())
+                .fixedSize(horizontal: true, vertical: false)
+            }
+            .buttonStyle(.plain)
+            .help("Query live Internet Archive REST API (archive.org/advancedsearch.php) for optical ISO / CD-ROM images")
+        }
+        .padding(.leading, 10)
+        .padding(.trailing, 4)
+        .padding(.vertical, 3)
+        .background(Color.kroutonControlSurface)
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 1))
     }
 }

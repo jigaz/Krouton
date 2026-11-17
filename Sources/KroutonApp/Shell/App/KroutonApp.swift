@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct KroutonApp: App {
     @NSApplicationDelegateAdaptor(KroutonAppDelegate.self) private var appDelegate

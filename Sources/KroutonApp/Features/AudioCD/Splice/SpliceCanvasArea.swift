@@ -1,5 +1,7 @@
-import SwiftUI
 import AudioKit
+import SwiftUI
+
+// MARK: - SpliceCanvasArea
 
 struct SpliceCanvasArea: View {
     let snapshot: SpliceCanvasSnapshot

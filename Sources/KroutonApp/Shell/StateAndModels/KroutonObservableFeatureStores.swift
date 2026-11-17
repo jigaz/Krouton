@@ -1,10 +1,12 @@
 import Foundation
-import SwiftUI
+import ImageKit
 import Observation
 import OpticalCore
-import ImageKit
+import SwiftUI
 
 /// Value-type snapshot of the Polar Disc Label Workspace canvas for 32-level Undo/Redo (`Cmd+Z` / `Cmd+Shift+Z`).
+// MARK: - KroutonObservableFeatureStores
+
 public struct KroutonLabelCanvasSnapshot: Equatable, Sendable {
     public var templateStyle: KroutonCroutonLabelStyle
     public var backgroundStyle: KroutonVectorBackgroundStyle

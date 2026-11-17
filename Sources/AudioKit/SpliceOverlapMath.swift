@@ -1,5 +1,5 @@
-import Foundation
 import CoreGraphics
+import Foundation
 
 public struct FramePeaks: Equatable, Sendable {
     public let id: UUID

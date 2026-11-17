@@ -1,7 +1,7 @@
-import OpticalCore
+import CryptoKit
 import Foundation
 import Network
-import CryptoKit
+import OpticalCore
 
 // MARK: - SpoolRemoteNodeClient Spool-and-Burn, Artifacts, LAN Security & Telemetry Sanitizer
 
@@ -338,7 +338,6 @@ public enum SpoolLANSecurityEngine {
         return rawPayload
     }
 }
-
 
 // MARK: - Chunk 7: Deterministic Telemetry State Machine & Monotonic Progress Filter
 public enum SpoolTelemetryPhase: String, Codable, Sendable, Equatable {

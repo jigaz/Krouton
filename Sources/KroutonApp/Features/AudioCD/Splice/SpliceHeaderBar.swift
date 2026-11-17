@@ -1,5 +1,5 @@
-import SwiftUI
 import AudioKit
+import SwiftUI
 
 struct SpliceHeaderBar: View {
     let trackNumber: Int

@@ -1,6 +1,6 @@
-import SwiftUI
 import Foundation
 import OpticalCore
+import SwiftUI
 
 // MARK: - Static Disc Image Depot Feed Subscriptions & Curated Optical Catalog
 public enum KroutonDepotStaticCatalog {
@@ -182,4 +182,3 @@ extension KroutonDepotCatalogItem {
         }
     }
 }
-

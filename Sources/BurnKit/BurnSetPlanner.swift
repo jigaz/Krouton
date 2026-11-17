@@ -9,6 +9,8 @@ import OpticalCore
 // the caller must still compare each finished image with the disc capacity
 // (`BurnSetPlanError.imageExceedsDisc`) before anything is burned.
 
+// MARK: - BurnSetPlanner
+
 public struct SpanInputFile: Identifiable, Sendable, Equatable {
     /// Path on the disc, "/"-separated. Unique within a set.
     public let relativePath: String

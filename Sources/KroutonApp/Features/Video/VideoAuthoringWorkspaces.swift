@@ -1,10 +1,10 @@
-import VideoKit
-import ImageKit
 import AudioKit
+import Foundation
+import ImageKit
 import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
-import Foundation
+import VideoKit
 
 struct KroutonVideoAuthoringWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
@@ -36,10 +36,6 @@ struct KroutonVideoAuthoringWorkspaceView: View {
         if spec.id == "bd-on-dvd" { return "AVCHD HIGH-DEFINITION ON RED-LASER DVD WORKSPACE (UDF 2.50)" }
         if spec.technicalName.contains("BD") { return "BLU-RAY / BDMV AUTHORING WORKSPACE (UDF 2.50 / 2.60 • H.264 / HEVC)" }
         return "DVD-VIDEO AUTHORING & FIT-TO-DISC WORKSPACE (UDF 1.02 + ISO9660)"
-    }
-
-    private func muxFor(_ id: UUID) -> KroutonStreamMuxDescriptor {
-        streamMuxConfigs[id] ?? KroutonStreamMuxDescriptor()
     }
 
     var body: some View {
@@ -254,5 +250,11 @@ struct KroutonVideoAuthoringWorkspaceView: View {
         }
         .padding(.horizontal, 18).padding(.vertical, 8)
         .background(store.activeAccent.opacity(0.07))
+    }
+
+    // MARK: - Subviews & Helper Methods
+
+    private func muxFor(_ id: UUID) -> KroutonStreamMuxDescriptor {
+        streamMuxConfigs[id] ?? KroutonStreamMuxDescriptor()
     }
 }

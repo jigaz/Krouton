@@ -1,7 +1,7 @@
-import Foundation
-import SwiftUI
-import OpticalCore
 import BurnKit
+import Foundation
+import OpticalCore
+import SwiftUI
 
 // Runs a multi-disc set from the UI: plan -> stage and freeze -> BurnSetScheduler on
 // every connected burner -> per-disc status. Everything shown here is derived from the
@@ -65,7 +65,7 @@ final class KroutonBurnSetController: ObservableObject {
         self.stagingRoot = stagingRoot
     }
 
-    // MARK: Starting
+    // MARK: - Starting
 
     /// Plans the staged items across discs of `discCapacityBytes`, builds one image per disc,
     /// then burns them on every connected burner.
@@ -152,7 +152,7 @@ final class KroutonBurnSetController: ObservableObject {
         resumable = nil
     }
 
-    // MARK: Stopping
+    // MARK: - Stopping
 
     /// Lets discs that are being written finish, then stops. No disc is spoiled.
     func stopAfterCurrentDiscs() {
@@ -179,7 +179,7 @@ final class KroutonBurnSetController: ObservableObject {
         progress = nil
     }
 
-    // MARK: Running
+    // MARK: - Running
 
     private func run(_ startingProgress: BurnSetProgress) async {
         progress = startingProgress
@@ -273,7 +273,7 @@ final class KroutonBurnSetController: ObservableObject {
         }
     }
 
-    // MARK: Text
+    // MARK: - Text
 
     static func phaseText(_ phase: BurnPhase) -> String {
         switch phase {

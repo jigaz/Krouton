@@ -3,6 +3,8 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
+// MARK: - FinderViewOptionsPopover
+
 struct KroutonFinderViewOptionsPopover: View {
     @ObservedObject var store: KroutonStateStore
     @Binding var blueprint: KroutonFinderLayoutBlueprint

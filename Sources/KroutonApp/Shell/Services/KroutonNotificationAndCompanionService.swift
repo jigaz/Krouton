@@ -1,7 +1,9 @@
 import Foundation
+import OpticalCore
 import SwiftUI
 @preconcurrency import UserNotifications
-import OpticalCore
+
+// MARK: - KroutonNotificationAndCompanionService
 
 public struct KroutonCompanionLivePayload: Codable, Sendable, Equatable {
     public var eventID: String

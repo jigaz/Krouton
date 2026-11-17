@@ -1,8 +1,8 @@
-import Foundation
-import SwiftUI
-import OpticalCore
 import AudioKit
+import Foundation
 import LabelKit
+import OpticalCore
+import SwiftUI
 
 @MainActor
 enum AutoLabelEngine {

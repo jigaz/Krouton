@@ -1,5 +1,5 @@
-import OpticalCore
 import Foundation
+import OpticalCore
 
 // The single source of truth for an audio disc.
 //
@@ -133,7 +133,7 @@ public struct AudioProject: Equatable, Codable, Sendable {
         self.tracks = []
     }
 
-    // MARK: Lookup
+    // MARK: - Lookup
 
     public func index(of id: UUID) -> Int? { tracks.firstIndex { $0.id == id } }
     public func track(_ id: UUID) -> AudioTrack? { index(of: id).map { tracks[$0] } }
@@ -142,7 +142,7 @@ public struct AudioProject: Equatable, Codable, Sendable {
         return tracks[i + 1]
     }
 
-    // MARK: Mutation (every edit goes through one of these)
+    // MARK: - Mutation (every edit goes through one of these)
 
     /// Appends files not already present. Returns the new tracks so the caller can analyse them.
     @discardableResult
@@ -256,8 +256,7 @@ public struct AudioProject: Equatable, Codable, Sendable {
         tracks.removeAll { ids.contains($0.id) }
     }
 
-
-    // MARK: Layout
+    // MARK: - Layout
 
     /// Integer frame layout for the cue sheet and the burn stream, plus anything
     /// that had to be adjusted or that blocks burning. `layout` is nil when a

@@ -13,6 +13,8 @@ import Foundation
 // (verifying a disc that never started, finishing one twice) is rejected where
 // it is recorded instead of producing a confusing UI later.
 
+// MARK: - BurnSet
+
 public struct BurnSetID: Hashable, Codable, Sendable {
     public let raw: UUID
     public init(_ raw: UUID = UUID()) { self.raw = raw }

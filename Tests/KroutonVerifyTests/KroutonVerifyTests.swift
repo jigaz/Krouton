@@ -28,13 +28,14 @@ final class KroutonVerifyTests: XCTestCase {
         XCTAssertGreaterThan(harness.passed + harness.lintPassed, 0, "The suites ran no checks", file: file, line: line)
     }
 
-    func testArchitectureAndShellSuites() { runSuites(runVerifyArchitectureAndShellSuites) }
-    func testImageAndSectorSuites() { runSuites(runVerifyImageAndSectorSuites) }
-    func testAudioAndVideoSuites() { runSuites(runVerifyAudioAndVideoSuites) }
-    func testMasteringDomainModelsSuite() { runSuites(runVerifyMasteringDomainModelsSuite) }
-    func testHardwareBurnLabelAndPersistenceSuites() { runSuites(runVerifyHardwareBurnLabelAndPersistenceSuites) }
+    func testArchitectureAndShellSuites() { runSuites { $0.runVerifyArchitectureAndShellSuites() } }
+    func testImageAndSectorSuites() { runSuites { $0.runVerifyImageAndSectorSuites() } }
+    func testAudioAndVideoSuites() { runSuites { $0.runVerifyAudioAndVideoSuites() } }
+    func testMasteringDomainModelsSuite() { runSuites { $0.runVerifyMasteringDomainModelsSuite() } }
+    func testHardwareAndBurnSuites() { runSuites { $0.runVerifyHardwareAndBurnSuites() } }
+    func testLabelAndPersistenceSuites() { runSuites { $0.runVerifyLabelAndPersistenceSuites() } }
 
-    // MARK: The function-length scanner itself
+    // MARK: - The function-length scanner itself
 
     func testScannerMeasuresBodiesAndIgnoresBracesInStringsAndComments() {
         let source = #"""

@@ -23,6 +23,8 @@ import Foundation
 // These builders are pure: they take digests that were computed while the image
 // was being written (one read of each source file), and return text.
 
+// MARK: - SpanManifest
+
 public struct SpanPayloadFile: Codable, Sendable, Equatable {
     /// Path as readers will see it on the mounted disc: UDF or Joliet name,
     /// forward slashes, relative to `data/`.

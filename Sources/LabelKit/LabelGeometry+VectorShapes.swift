@@ -1,10 +1,10 @@
-import RescueKit
-import Foundation
-import Vision
 import CoreGraphics
 import CoreImage
 import CoreImage.CIFilterBuiltins
+import Foundation
 import OpticalCore
+import RescueKit
+import Vision
 
 extension KroutonLabelGeometryEngine {
     // MARK: - Freehand Drawn Shape -> Automatic Crisp Vector Shape Recognizer

@@ -4,6 +4,8 @@ import Foundation
 // DiscRecording, so it is covered by ordinary unit tests without a drive.
 
 /// Builds drive identifiers that stay unique when two identical drives are attached.
+// MARK: - KroutonBurnPreflight
+
 public enum KroutonDriveIdentity {
     public static func baseID(vendor: String, product: String, firmware: String) -> String {
         "\(vendor)-\(product)-\(firmware)"

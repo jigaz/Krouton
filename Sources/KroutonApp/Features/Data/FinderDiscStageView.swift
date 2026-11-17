@@ -3,6 +3,8 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
+// MARK: - FinderDiscStageView
+
 struct KroutonFinderDiscStageView: View {
     @ObservedObject var store: KroutonStateStore
     @Binding var blueprint: KroutonFinderLayoutBlueprint

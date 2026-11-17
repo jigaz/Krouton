@@ -1,6 +1,6 @@
-import OpticalCore
-import Foundation
 @preconcurrency import DiscRecording
+import Foundation
+import OpticalCore
 
 // MARK: - Rewritable disc erase lifecycle
 //

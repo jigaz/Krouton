@@ -1,12 +1,14 @@
-import SwiftUI
+import AudioKit
 import DriveKit
+import Foundation
 import ImageKit
 import OpticalCore
+import SwiftUI
 import VideoKit
-import AudioKit
-import Foundation
 
 /// Headless command-line interface for Krouton (`krouton` / `Krouton`).
+// MARK: - KroutonCLIRunner
+
 public enum KroutonCLIRunner {
     public static let versionString = "1.0.0"
 

@@ -1,8 +1,8 @@
+import LabelKit
+import OpticalCore
+import RescueKit
 import SwiftUI
 import UniformTypeIdentifiers
-import OpticalCore
-import LabelKit
-import RescueKit
 
 // MARK: - Stage 1 Disc Label Contextual Tool Inspectors (Background, Curved Text, Disc Size Override)
 

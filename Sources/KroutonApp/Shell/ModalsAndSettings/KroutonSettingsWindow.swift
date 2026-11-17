@@ -1,8 +1,10 @@
-import NetworkSpool
 import DriveKit
+import NetworkSpool
+import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
-import OpticalCore
+
+// MARK: - KroutonSettingsWindow
 
 public enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendable {
     case general = "General"

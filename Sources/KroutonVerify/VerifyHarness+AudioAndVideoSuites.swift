@@ -12,8 +12,18 @@ import Persistence
 import RescueKit
 import VideoKit
 
-func runVerifyAudioAndVideoSuites(_ harness: inout KroutonTestHarness) {
-    harness.runSuite("8. Hardware Acceleration Codec Matrix & Container Stream Probing") { h in
+// MARK: - VerifyHarness — AudioAndVideoSuites
+
+extension KroutonTestHarness {
+    mutating func runVerifyAudioAndVideoSuites() {
+        runVerifyAudioSuitesPart()
+        runVerifyVideoSuitesPart()
+        runVerifySpanningSuite14Part()
+    }
+
+    private mutating func runVerifyAudioSuitesPart() {
+
+    self.runSuite("8. Hardware Acceleration Codec Matrix & Container Stream Probing") { h in
     let matrix = KroutonMediaPrepEngine.liveHardwareCodecMatrix
     h.check(matrix.count >= 6, "Expected at least 6 codec rows in hardware matrix")
 
@@ -24,7 +34,7 @@ func runVerifyAudioAndVideoSuites(_ harness: inout KroutonTestHarness) {
     h.check(flacProbe.accelerationTier == .accelerateSIMD, "FLAC Accelerate SIMD tier")
     }
 
-    harness.runSuite("9. Red Book CD-Text, ISRC (ISO 3901) & MCN Sanitizer Constraints") { h in
+    self.runSuite("9. Red Book CD-Text, ISRC (ISO 3901) & MCN Sanitizer Constraints") { h in
     let sanitizedText = KroutonCDTextSanitizer.sanitize("Café   Krouton — Live!\n\t")
     h.check(!sanitizedText.isEmpty && sanitizedText.allSatisfy { $0.isASCII }, "CD-Text ASCII sanitization")
 
@@ -37,7 +47,7 @@ func runVerifyAudioAndVideoSuites(_ harness: inout KroutonTestHarness) {
     h.check(defaultTrack.isrcCode.isEmpty, "KroutonRedBookTrack must default isrcCode to empty string instead of a fabricated registrant code")
     }
 
-    harness.runSuite("10. Red Book Audio CD Frame (75 fps) & PCM Byte (2352 B/frame) Math") { h in
+    self.runSuite("10. Red Book Audio CD Frame (75 fps) & PCM Byte (2352 B/frame) Math") { h in
     let cube = KroutonRedBookTrack(
         url: URL(fileURLWithPath: "/tmp/test.wav"),
         title: "Track 01",
@@ -54,7 +64,7 @@ func runVerifyAudioAndVideoSuites(_ harness: inout KroutonTestHarness) {
     h.check(cube.formattedDurationMMSSFF == "00:10:00", "Expected 00:10:00 MM:SS:FF formatting")
     }
 
-    harness.runSuite("11. AudioKit Red Book CUE Sheet Compiler, 18B CD-Text CRC-16 & Equal-Power Crossfade") { h in
+    self.runSuite("11. AudioKit Red Book CUE Sheet Compiler, 18B CD-Text CRC-16 & Equal-Power Crossfade") { h in
     // 11a. Equal-power crossfade energy conservation (fadeOut^2 + fadeIn^2 == 1.0)
     for step in 0...10 {
         let t = Double(step) / 10.0
@@ -117,7 +127,10 @@ func runVerifyAudioAndVideoSuites(_ harness: inout KroutonTestHarness) {
     h.check(cue.contains("INDEX 01 00:12:00"), "Track 2 gapless start at exact cumulative frame 00:12:00")
     }
 
-    harness.runSuite("12. VideoKit Optical Bitrate Budget (DVD-5/DVD-9/BD-25/BD-50) & DVD-9 Shrink Math") { h in
+    }
+
+    private mutating func runVerifyVideoSuitesPart() {
+    self.runSuite("12. VideoKit Optical Bitrate Budget (DVD-5/DVD-9/BD-25/BD-50) & DVD-9 Shrink Math") { h in
     h.check(KroutonVideoTargetMedium.dvd5SingleLayer.capacityBytes == 4_700_372_992, "Exact DVD-5 byte capacity (2,295,104 sectors)")
     h.check(KroutonVideoTargetMedium.dvd9DualLayer.capacityBytes == 8_547_991_552, "Exact DVD-9 byte capacity (4,173,824 sectors)")
     h.check(KroutonVideoTargetMedium.bd25SingleLayer.capacityBytes == 25_025_314_816, "Exact BD-25 byte capacity")
@@ -151,7 +164,7 @@ func runVerifyAudioAndVideoSuites(_ harness: inout KroutonTestHarness) {
             "Stripping extras must yield higher video quality retention ratio for the main feature")
     }
 
-    harness.runSuite("13. VideoKit DVD-9 -> DVD-5 Menu-Preserving Shrink, .IFO Relinking & Layer-Break Removal") { h in
+    self.runSuite("13. VideoKit DVD-9 -> DVD-5 Menu-Preserving Shrink, .IFO Relinking & Layer-Break Removal") { h in
     // Simulate a 7.85 GB Dual-Layer DVD-9 (450 MB interactive motion menus + 3 main feature cells across Layer 0 & Layer 1)
     let dvd9Cells = [
         KroutonDVD9CellDescriptor(cellID: 1, originalStartSectorLBA: 0,         originalSectorCountLBA: 1_200_000, hadDualLayerBreakPause: false),
@@ -237,7 +250,10 @@ func runVerifyAudioAndVideoSuites(_ harness: inout KroutonTestHarness) {
             "AVCHD 00000.clpi must emit valid HDMV0100 header with exact 192-byte source packet count")
     }
 
-    harness.runSuite("14. Multi-Disc Spanning (DiscPlanner, AudioDiscPlan, DiscRepacker & SpanManifest)") { h in
+    }
+
+    private mutating func runVerifySpanningSuite14Part() {
+    self.runSuite("14. Multi-Disc Spanning (DiscPlanner, AudioDiscPlan, DiscRepacker & SpanManifest)") { h in
         var spanProj = AudioProject(albumTitle: "LIVE AT THE FILLMORE", albumPerformer: "THE KROUTONS")
         spanProj.targetDiscMedium = .cd80Min700MB // 359,775 frames (79:57:00)
         let _ = spanProj.append((1...16).map { URL(fileURLWithPath: String(format: "/tmp/trk_%02d.wav", $0)) })
@@ -331,4 +347,5 @@ func runVerifyAudioAndVideoSuites(_ harness: inout KroutonTestHarness) {
         h.check(goodProposal?.discCount == 2 && goodProposal?.order.count == 4,
                 "DiscRepacker.proposal must reduce 3-disc fragmented set to 2 discs while preserving all 4 items")
     }
+}
 }

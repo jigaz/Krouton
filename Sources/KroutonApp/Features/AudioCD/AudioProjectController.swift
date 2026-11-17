@@ -1,6 +1,6 @@
+import AudioKit
 import OpticalCore
 import SwiftUI
-import AudioKit
 
 @MainActor
 @Observable
@@ -37,7 +37,7 @@ public final class AudioProjectController {
         for track in project.tracks { startAnalysis(of: track) }
     }
 
-    // MARK: Reading
+    // MARK: - Reading
 
     public func transition(after trackID: UUID) -> KroutonTrackTransitionSpec {
         if let live = liveTransition, live.trackID == trackID { return live.spec }
@@ -49,7 +49,7 @@ public final class AudioProjectController {
         return nil
     }
 
-    // MARK: Preview (per frame, cheap)
+    // MARK: - Preview (per frame, cheap)
 
     public func preview(_ spec: KroutonTrackTransitionSpec, after trackID: UUID) {
         liveTransition = LiveTransition(trackID: trackID, spec: spec)
@@ -57,7 +57,7 @@ public final class AudioProjectController {
 
     public func cancelPreview() { liveTransition = nil }
 
-    // MARK: Commit (once per gesture or discrete edit)
+    // MARK: - Commit (once per gesture or discrete edit)
 
     public func commitTransition(_ spec: KroutonTrackTransitionSpec, after trackID: UUID, actionName: String = "Edit Transition") {
         edit(actionName) { $0.update(trackID) { $0.transitionToNext = spec } }
@@ -175,7 +175,7 @@ public final class AudioProjectController {
         persist(project)
     }
 
-    // MARK: CD-TEXT Enforced Bindings
+    // MARK: - CD-TEXT Enforced Bindings
 
     public func titleBinding(_ trackID: UUID) -> Binding<String> {
         Binding(
@@ -221,8 +221,7 @@ public final class AudioProjectController {
         )
     }
 
-
-    // MARK: Multi-Disc Spanning & Per-Disc Persistent Metadata Bindings
+    // MARK: - Multi-Disc Spanning & Per-Disc Persistent Metadata Bindings
 
     public var targetDiscMediumBinding: Binding<KroutonSpanningDiscMedium> {
         Binding(
@@ -298,7 +297,7 @@ public final class AudioProjectController {
         project = AudioProject()
     }
 
-    // MARK: Undo
+    // MARK: - Undo
 
     private func registerUndo(restoring snapshot: AudioProject, actionName: String) {
         guard let undoManager else { return }
@@ -312,7 +311,7 @@ public final class AudioProjectController {
         undoManager.setActionName(actionName)
     }
 
-    // MARK: Analysis (off the main actor)
+    // MARK: - Analysis (off the main actor)
 
     public func startAnalysis(of track: AudioTrack) {
         analysis[track.id] = .pending

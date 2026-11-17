@@ -1,7 +1,7 @@
 import DriveKit
-import SwiftUI
 import Foundation
 import OpticalCore
+import SwiftUI
 
 struct KroutonFloatingPhaseScopeView: View {
     let driveID: String
@@ -12,11 +12,6 @@ struct KroutonFloatingPhaseScopeView: View {
     var drive: KroutonOpticalDriveInfo? { driveManager.driveForID(driveID) }
     var telemetry: KroutonDrivePhaseScopeTelemetry {
         driveManager.telemetryForDrive(driveID) ?? KroutonDrivePhaseScopeTelemetry(id: driveID, driveName: drive?.displayName ?? "Optical Burner")
-    }
-
-    private func formatMMSS(_ totalSeconds: Int) -> String {
-        let clamped = max(0, totalSeconds)
-        return String(format: "%02d:%02d", clamped / 60, clamped % 60)
     }
 
     var body: some View {
@@ -127,5 +122,12 @@ struct KroutonFloatingPhaseScopeView: View {
         .preferredColorScheme(store.resolvedColorScheme)
         .environment(\.locale, store.activeLocale)
         .tint(store.activeAccent)
+    }
+
+    // MARK: - Subviews & Helper Methods
+
+    private func formatMMSS(_ totalSeconds: Int) -> String {
+        let clamped = max(0, totalSeconds)
+        return String(format: "%02d:%02d", clamped / 60, clamped % 60)
     }
 }

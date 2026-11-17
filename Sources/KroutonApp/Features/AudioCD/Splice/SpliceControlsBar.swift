@@ -1,5 +1,7 @@
-import SwiftUI
 import AudioKit
+import SwiftUI
+
+// MARK: - SpliceControlsBar
 
 struct SpliceControlsBar: View {
     let snapshot: SpliceCanvasSnapshot

@@ -1,14 +1,14 @@
-import DriveKit
-import CryptoKit
-import SwiftUI
-import Foundation
-import UniformTypeIdentifiers
-import OpticalCore
 import AudioKit
-import VideoKit
+import CryptoKit
+import DriveKit
+import Foundation
 import ImageKit
 import LabelKit
+import OpticalCore
 import RescueKit
+import SwiftUI
+import UniformTypeIdentifiers
+import VideoKit
 
 // MARK: - KroutonStateStore Staging, Depot Catalog & Culinary Module Bridges
 
@@ -186,7 +186,6 @@ extension KroutonStateStore {
         return KroutonL10n.tr(key)
     }
 
-
     public func parseSizeDisplayToBytes(_ sizeDisplay: String) -> Int64 {
         let parts = sizeDisplay.split(separator: " ")
         guard let val = Double(parts.first ?? "0") else { return 0 }
@@ -288,7 +287,6 @@ extension KroutonStateStore {
             selectedTaskID = "image-burn"
         }
     }
-
 
 }
 

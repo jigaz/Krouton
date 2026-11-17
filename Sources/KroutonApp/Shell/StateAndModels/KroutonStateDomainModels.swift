@@ -1,10 +1,12 @@
-import LabelKit
-import RescueKit
-import ImageKit
-import VideoKit
 import AudioKit
-import SwiftUI
+import ImageKit
+import LabelKit
 import OpticalCore
+import RescueKit
+import SwiftUI
+import VideoKit
+
+// MARK: - KroutonStateDomainModels
 
 public struct KroutonAccentColorPreset: Identifiable, Hashable, Sendable {
     public let id: Int
@@ -78,7 +80,6 @@ public enum KroutonBurnFailureSeverity: String, Sendable {
     case warningFilenameLength
     case warningConsoleMedia
 }
-
 
 public enum KroutonGarnishStyleMode: String, CaseIterable, Identifiable, Sendable {
     case defaultStyle = "Default"

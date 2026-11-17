@@ -12,8 +12,17 @@ import Persistence
 import RescueKit
 import VideoKit
 
-func runVerifyMasteringDomainModelsSuite(_ harness: inout KroutonTestHarness) {
-    harness.runSuite("15. Mastering & Extraction Domain Models (TOC, Video Titles, Track Montage & Config Round-Trip)") { h in
+// MARK: - VerifyHarness — MasteringDomainSuites
+
+extension KroutonTestHarness {
+    mutating func runVerifyMasteringDomainModelsSuite() {
+        self.runSuite("15. Mastering & Extraction Domain Models (TOC, Video Titles, Track Montage & Config Round-Trip)") { h in
+            try Self.verifyMasteringDomainPartA(&h)
+            try Self.verifyMasteringDomainPartB(&h)
+        }
+    }
+
+    private static func verifyMasteringDomainPartA(_ h: inout KroutonTestHarness) throws {
     h.check(KroutonRipTrackItem.defaultRedBookTOC.isEmpty, "Default Red Book TOC must be empty (no fake tracks)")
     h.check(KroutonRipTrackItem.musicBrainzMatchedTOC.isEmpty, "MusicBrainz fallback TOC must be empty")
     h.check(KroutonVideoExtractTitleItem.defaultVideoTitles.isEmpty, "Default Video Titles must be empty")
@@ -183,7 +192,9 @@ func runVerifyMasteringDomainModelsSuite(_ harness: inout KroutonTestHarness) {
         let snapTrack2 = proj.track(id2)
         proj.move(id1, by: 1)
         h.check(proj.track(id2) == snapTrack2, "move must never mutate any other track's fields")
+    }
 
+    private static func verifyMasteringDomainPartB(_ h: inout KroutonTestHarness) throws {
         // Verify SpliceOverlapMath Invariants
         var xSpec = KroutonTrackTransitionSpec()
         xSpec.overlapSeconds = 2.0
