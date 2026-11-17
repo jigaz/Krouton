@@ -1,5 +1,6 @@
 import OpticalCore
 import SwiftUI
+import os
 
 //
 //  KroutonThemeEngine.swift
@@ -10,12 +11,14 @@ import SwiftUI
 //
 
 // MARK: - Zero-Allocation Display-P3 Color Harmony LUT Cache (120Hz ProMotion Optimization)
-fileprivate final class KroutonColorHarmonyLUT: @unchecked Sendable {
+fileprivate final class KroutonColorHarmonyLUT: Sendable {
     static let shared = KroutonColorHarmonyLUT()
-    private let lock = NSLock()
-    private var complementCache: [Int: Color] = [:]
-    private var backingCache: [Int: Color] = [:]
-    private var surfaceCache: [Int: Color] = [:]
+    private struct CacheState: Sendable {
+        var complement: [Int: Color] = [:]
+        var backing: [Int: Color] = [:]
+        var surface: [Int: Color] = [:]
+    }
+    private let state = OSAllocatedUnfairLock(initialState: CacheState())
 
     private func quantizedKey(for color: Color) -> Int {
         let (r, g, b, _) = KroutonPureColorMath.extractSRGB(color)
@@ -27,46 +30,25 @@ fileprivate final class KroutonColorHarmonyLUT: @unchecked Sendable {
 
     func cachedComplement(for color: Color, compute: () -> Color) -> Color {
         let key = quantizedKey(for: color)
-        lock.lock()
-        if let hit = complementCache[key] {
-            lock.unlock()
-            return hit
-        }
-        lock.unlock()
+        if let hit = state.withLock({ $0.complement[key] }) { return hit }
         let val = compute()
-        lock.lock()
-        complementCache[key] = val
-        lock.unlock()
+        state.withLock { $0.complement[key] = val }
         return val
     }
 
     func cachedBacking(for color: Color, compute: () -> Color) -> Color {
         let key = quantizedKey(for: color)
-        lock.lock()
-        if let hit = backingCache[key] {
-            lock.unlock()
-            return hit
-        }
-        lock.unlock()
+        if let hit = state.withLock({ $0.backing[key] }) { return hit }
         let val = compute()
-        lock.lock()
-        backingCache[key] = val
-        lock.unlock()
+        state.withLock { $0.backing[key] = val }
         return val
     }
 
     func cachedSurface(for color: Color, isDark: Bool = true, compute: () -> Color) -> Color {
         let key = (quantizedKey(for: color) << 1) | (isDark ? 1 : 0)
-        lock.lock()
-        if let hit = surfaceCache[key] {
-            lock.unlock()
-            return hit
-        }
-        lock.unlock()
+        if let hit = state.withLock({ $0.surface[key] }) { return hit }
         let val = compute()
-        lock.lock()
-        surfaceCache[key] = val
-        lock.unlock()
+        state.withLock { $0.surface[key] = val }
         return val
     }
 }

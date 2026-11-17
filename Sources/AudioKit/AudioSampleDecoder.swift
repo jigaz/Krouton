@@ -3,6 +3,7 @@ import AudioToolbox
 import CryptoKit
 import Foundation
 import OpticalCore
+import os
 
 /// Result of decoding and mastering one or more audio files into a Red Book Audio CD `.bin` + `.cue` pair.
 public struct AudioMasteredDiscResult: Sendable, Equatable {
@@ -18,15 +19,15 @@ extension KroutonAudioEngine {
     /// 44.1 kHz, 16-bit, 2-channel signed little-endian Red Book Audio CD PCM bytes, padded to a 2,352-byte sector multiple.
     @available(macOS, deprecated: 15.0)
         private static func loadFirstAudioTrackSync(from asset: AVURLAsset) -> AVAssetTrack? {
-        final class Box: @unchecked Sendable { var track: AVAssetTrack? }
-        let box = Box()
+        let trackLock = OSAllocatedUnfairLock<AVAssetTrack?>(uncheckedState: nil)
         let sem = DispatchSemaphore(value: 0)
         Task.detached {
-            box.track = try? await asset.loadTracks(withMediaType: .audio).first
+            let loaded = try? await asset.loadTracks(withMediaType: .audio).first
+            trackLock.withLockUnchecked { $0 = loaded }
             sem.signal()
         }
         sem.wait()
-        return box.track
+        return trackLock.withLockUnchecked { $0 }
     }
 
     public static func decodeAudioFileToRedBookPCM(url: URL, maxSeconds: Double = 0.0) throws -> Data {

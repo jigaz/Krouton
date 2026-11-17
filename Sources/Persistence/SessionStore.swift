@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 // Session persistence for Krouton. Replaces the UserDefaults sentinel + atexit
 // design in KroutonSessionPersistence.swift.
@@ -39,10 +40,9 @@ public enum LaunchVerdict: Sendable, Equatable {
     case anotherInstanceRunning
 }
 
-public final class RunLock: @unchecked Sendable {
+public final class RunLock: Sendable {
     private let fd: Int32
-    private var marker: RunMarker
-    private let queue = DispatchQueue(label: "krouton.runlock")
+    private let markerLock: OSAllocatedUnfairLock<RunMarker>
 
     /// Call once, as early in launch as possible.
     public static func acquire(in directory: URL) throws -> (lock: RunLock?, verdict: LaunchVerdict) {
@@ -74,43 +74,43 @@ public final class RunLock: @unchecked Sendable {
             consecutiveUncleanExits: previous.map { $0.consecutiveUncleanExits + 1 } ?? 0
         )
         let lock = RunLock(fd: fd, marker: fresh)
-        lock.write()
+        lock.markerLock.withLock { marker in lock.writeLocked(marker) }
         return (lock, previous.map { .unclean(previous: $0) } ?? .clean)
     }
 
     private init(fd: Int32, marker: RunMarker) {
         self.fd = fd
-        self.marker = marker
+        self.markerLock = OSAllocatedUnfairLock(initialState: marker)
     }
 
     /// Call after the snapshot has been applied and the UI is up. A run that dies
     /// before this point died *during restore*, which is the crash-loop signal.
     public func markRunning() {
-        queue.sync {
+        markerLock.withLock { marker in
             marker.phase = .running
-            write()
+            writeLocked(marker)
         }
     }
 
     /// Call once the app has been usable for a while (say 30 s) to forgive earlier
     /// unclean exits.
     public func markStable() {
-        queue.sync {
+        markerLock.withLock { marker in
             marker.consecutiveUncleanExits = 0
-            write()
+            writeLocked(marker)
         }
     }
 
     /// Call from your will-terminate hook. Erasing the marker is what makes the
     /// next launch `.clean`.
     public func markCleanExit() {
-        queue.sync {
+        markerLock.withLock { _ in
             _ = ftruncate(fd, 0)
             _ = fsync(fd)
         }
     }
 
-    private func write() {
+    private func writeLocked(_ marker: RunMarker) {
         guard let data = try? JSONEncoder().encode(marker) else { return }
         _ = ftruncate(fd, 0)
         _ = data.withUnsafeBytes { pwrite(fd, $0.baseAddress, $0.count, 0) }
@@ -313,15 +313,14 @@ public actor SessionStore<Payload: Codable & Sendable> {
 }
 
 /// Lets exactly one of several racing callers win.
-private final class OnceGate: @unchecked Sendable {
-    private let lock = NSLock()
-    private var claimed = false
+private final class OnceGate: Sendable {
+    private let claimed = OSAllocatedUnfairLock(initialState: false)
     public func claim() -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        if claimed { return false }
-        claimed = true
-        return true
+        claimed.withLock { flag in
+            if flag { return false }
+            flag = true
+            return true
+        }
     }
 }
 

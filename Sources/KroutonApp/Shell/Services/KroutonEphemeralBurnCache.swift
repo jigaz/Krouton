@@ -1,6 +1,7 @@
 import Combine
 import Darwin.Mach
 import Foundation
+import os
 
 //
 //  KroutonEphemeralBurnCache.swift
@@ -15,63 +16,58 @@ import Foundation
 //
 
 // MARK: - Ephemeral Kernel Page-Aligned Burn Cache (Zero Idle RAM Overhead)
-final class KroutonEphemeralBurnCache: @unchecked Sendable {
+final class KroutonEphemeralBurnCache: Sendable {
     static let shared = KroutonEphemeralBurnCache()
 
-    private let lock = NSLock()
-    private var vmAddress: vm_address_t = 0
-    private var allocatedBytes: vm_size_t = 0
-    private var isAcquired: Bool = false
+    private struct BufferState: Sendable {
+        var vmAddress: vm_address_t = 0
+        var allocatedBytes: vm_size_t = 0
+        var isAcquired: Bool = false
+    }
+    private let state = OSAllocatedUnfairLock(initialState: BufferState())
 
     private init() {}
 
     /// Current RAM bytes held by the burn ring-buffer (0 bytes whenever idle!)
     var activeBufferBytes: Int {
-        lock.lock()
-        defer { lock.unlock() }
-        return isAcquired ? Int(allocatedBytes) : 0
+        state.withLock { $0.isAcquired ? Int($0.allocatedBytes) : 0 }
     }
 
     /// Grabs a page-aligned RAM cache from the Mach kernel ONLY when a disc burn begins.
     /// Defaults to a 32 MiB optical underrun protection buffer aligned to 16 KB Apple Silicon pages.
     @discardableResult
     func acquireForActiveBurn(megabytes: Int = 32) -> UnsafeMutableRawPointer? {
-        lock.lock()
-        defer { lock.unlock() }
-
-        if isAcquired, vmAddress != 0 {
-            return UnsafeMutableRawPointer(bitPattern: UInt(vmAddress))
+        let addrUInt: UInt = state.withLock { st in
+            if st.isAcquired, st.vmAddress != 0 {
+                return UInt(st.vmAddress)
+            }
+            let requestedBytes = vm_size_t(max(4, megabytes) * 1024 * 1024)
+            var addr: vm_address_t = 0
+            let kr = vm_allocate(mach_task_self_, &addr, requestedBytes, VM_FLAGS_ANYWHERE)
+            guard kr == KERN_SUCCESS, addr != 0 else {
+                return 0
+            }
+            if let ptr = UnsafeMutableRawPointer(bitPattern: UInt(addr)) {
+                madvise(ptr, Int(requestedBytes), MADV_SEQUENTIAL)
+            }
+            st.vmAddress = addr
+            st.allocatedBytes = requestedBytes
+            st.isAcquired = true
+            return UInt(addr)
         }
-
-        let requestedBytes = vm_size_t(max(4, megabytes) * 1024 * 1024)
-        var addr: vm_address_t = 0
-        let kr = vm_allocate(mach_task_self_, &addr, requestedBytes, VM_FLAGS_ANYWHERE)
-        guard kr == KERN_SUCCESS, addr != 0 else {
-            return nil
-        }
-
-        // Hint sequential read/write to Apple Silicon hardware prefetcher
-        if let ptr = UnsafeMutableRawPointer(bitPattern: UInt(addr)) {
-            madvise(ptr, Int(requestedBytes), MADV_SEQUENTIAL)
-        }
-
-        self.vmAddress = addr
-        self.allocatedBytes = requestedBytes
-        self.isAcquired = true
-        return UnsafeMutableRawPointer(bitPattern: UInt(addr))
+        return addrUInt != 0 ? UnsafeMutableRawPointer(bitPattern: addrUInt) : nil
     }
 
     /// Immediately releases 100% of the burn buffer pages back to the macOS kernel (`vm_deallocate`)
     /// and purges URLCache / autorelease pools so physical RAM drops immediately after a burn.
     func releaseImmediatelyAfterBurn() {
-        lock.lock()
-        let addr = self.vmAddress
-        let size = self.allocatedBytes
-        let wasAcquired = self.isAcquired
-        self.vmAddress = 0
-        self.allocatedBytes = 0
-        self.isAcquired = false
-        lock.unlock()
+        let (addr, size, wasAcquired) = state.withLock { st -> (vm_address_t, vm_size_t, Bool) in
+            let current = (st.vmAddress, st.allocatedBytes, st.isAcquired)
+            st.vmAddress = 0
+            st.allocatedBytes = 0
+            st.isAcquired = false
+            return current
+        }
 
         if wasAcquired, addr != 0, size > 0 {
             if let ptr = UnsafeMutableRawPointer(bitPattern: UInt(addr)) {

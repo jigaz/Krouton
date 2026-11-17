@@ -4,6 +4,7 @@ import CoreImage.CIFilterBuiltins
 import Foundation
 import OpticalCore
 import RescueKit
+import os
 
 // MARK: - Stylized Procedural Optical Chamber & CoreImage Kaleidoscope / Tiny Planet Engine
 
@@ -37,9 +38,8 @@ extension KroutonLabelGeometryEngine {
         let dimensionPixels: Int
     }
 
-    private static let cacheLock = NSLock()
     private static let maxCacheEntries = 4
-    nonisolated(unsafe) private static var renderCacheRing: [(key: OpticalRenderCacheKey, image: CGImage)] = []
+    private static let renderCacheLock = OSAllocatedUnfairLock<[(key: OpticalRenderCacheKey, image: CGImage)]>(initialState: [])
 
     /// Renders stylized procedural chambers (or adjusted vector gradients) with O(1) memoization
     /// so 60Hz foreground text dragging never triggers redundant main-thread GPU->CPU readbacks.
@@ -73,12 +73,9 @@ extension KroutonLabelGeometryEngine {
             dimensionPixels: dimInt
         )
 
-        cacheLock.lock()
-        if let hit = renderCacheRing.first(where: { $0.key == key })?.image {
-            cacheLock.unlock()
+        if let hit = renderCacheLock.withLock({ ring in ring.first(where: { $0.key == key })?.image }) {
             return hit
         }
-        cacheLock.unlock()
 
         let dim = CGFloat(dimInt)
         let rect = CGRect(x: 0, y: 0, width: dim, height: dim)
@@ -134,13 +131,13 @@ extension KroutonLabelGeometryEngine {
             return nil
         }
 
-        cacheLock.lock()
-        renderCacheRing.removeAll(where: { $0.key == key })
-        renderCacheRing.append((key: key, image: cgOut))
-        if renderCacheRing.count > maxCacheEntries {
-            renderCacheRing.removeFirst()
+        renderCacheLock.withLock { ring in
+            ring.removeAll(where: { $0.key == key })
+            ring.append((key: key, image: cgOut))
+            if ring.count > maxCacheEntries {
+                ring.removeFirst()
+            }
         }
-        cacheLock.unlock()
         return cgOut
     }
 

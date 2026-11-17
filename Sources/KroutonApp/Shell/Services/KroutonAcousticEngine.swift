@@ -2,6 +2,7 @@ import AVFoundation
 import AudioToolbox
 import Foundation
 import SwiftUI
+import os
 
 // MARK: - Unified Synthesis & DSP Engine
 
@@ -9,20 +10,25 @@ import SwiftUI
 ///
 /// Unifies procedural waveform generation and macOS system `.aiff` loading into a single
 /// `44.1 kHz` mono `Float32` DSP pipeline with lazy `AVAudioPCMBuffer` memoization.
-final class KroutonAcousticEngine: @unchecked Sendable {
+final class KroutonAcousticEngine: Sendable {
     static let shared = KroutonAcousticEngine()
 
     static let sampleRate: Double = 44_100.0
 
-    private let lock = NSLock()
-    private let engine = AVAudioEngine()
-    private let player = AVAudioPlayerNode()
-    private let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
-    private var cache: [KroutonAcousticCue: AVAudioPCMBuffer] = [:]
+    private struct EngineState {
+        let engine = AVAudioEngine()
+        let player = AVAudioPlayerNode()
+        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
+        var cache: [KroutonAcousticCue: AVAudioPCMBuffer] = [:]
+    }
+
+    private let stateLock: OSAllocatedUnfairLock<EngineState>
 
     private init() {
-        engine.attach(player)
-        engine.connect(player, to: engine.mainMixerNode, format: format)
+        let initial = EngineState()
+        initial.engine.attach(initial.player)
+        initial.engine.connect(initial.player, to: initial.engine.mainMixerNode, format: initial.format)
+        self.stateLock = OSAllocatedUnfairLock(uncheckedState: initial)
     }
 
     /// Plays the specified `KroutonAcousticCue`, lazily synthesizing or loading+augmenting its buffer
@@ -32,37 +38,34 @@ final class KroutonAcousticEngine: @unchecked Sendable {
             AudioServicesPlaySystemSound(kSystemSoundID_UserPreferredAlert)
             return
         }
-        lock.lock()
-        defer { lock.unlock() }
+        stateLock.withLockUnchecked { st in
+            let buffer: AVAudioPCMBuffer
+            if let cached = st.cache[cue] {
+                buffer = cached
+            } else if let built = buildBuffer(for: cue, format: st.format) {
+                st.cache[cue] = built
+                buffer = built
+            } else {
+                return
+            }
 
-        let buffer: AVAudioPCMBuffer
-        if let cached = cache[cue] {
-            buffer = cached
-        } else if let built = buildBuffer(for: cue) {
-            cache[cue] = built
-            buffer = built
-        } else {
-            return
+            if !st.engine.isRunning {
+                try? st.engine.start()
+            }
+            st.player.stop()
+            st.player.scheduleBuffer(buffer, at: nil, options: .interrupts, completionHandler: nil)
+            st.player.play()
         }
-
-        if !engine.isRunning {
-            try? engine.start()
-        }
-        player.stop()
-        player.scheduleBuffer(buffer, at: nil, options: .interrupts, completionHandler: nil)
-        player.play()
     }
 
     /// Clears the in-memory `AVAudioPCMBuffer` cache.
     func purgeCache() {
-        lock.lock()
-        cache.removeAll()
-        lock.unlock()
+        stateLock.withLockUnchecked { $0.cache.removeAll() }
     }
 
     // MARK: - Unified Source Acquisition + Single-Pass DSP Pipeline
 
-    private func buildBuffer(for cue: KroutonAcousticCue) -> AVAudioPCMBuffer? {
+    private func buildBuffer(for cue: KroutonAcousticCue, format: AVAudioFormat) -> AVAudioPCMBuffer? {
         let rawSamples: [Float]
         switch cue.source {
         case .systemAlert:
@@ -164,7 +167,8 @@ final class KroutonAcousticEngine: @unchecked Sendable {
         guard srcCount > 0 else { return nil }
 
         let outFrames = max(1, Int(Double(srcCount) / dsp.rate))
-        guard let outBuf = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(outFrames)),
+        guard let monoFormat = AVAudioFormat(standardFormatWithSampleRate: Self.sampleRate, channels: 1),
+              let outBuf = AVAudioPCMBuffer(pcmFormat: monoFormat, frameCapacity: AVAudioFrameCount(outFrames)),
               let dst = outBuf.floatChannelData?[0] else { return nil }
         outBuf.frameLength = AVAudioFrameCount(outFrames)
 

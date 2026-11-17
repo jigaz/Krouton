@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import os
 
 // Real disc images, built by macOS itself.
 //
@@ -65,34 +66,37 @@ public enum KroutonHybridImageError: Error, LocalizedError, Sendable, Equatable 
 }
 
 /// Lets another task stop a running `hdiutil`. Safe to cancel before, during or after the run.
-public final class KroutonImageBuildCancellation: @unchecked Sendable {
-    private let lock = NSLock()
-    private var process: Process?
-    private var cancelled = false
+public final class KroutonImageBuildCancellation: Sendable {
+    private struct State {
+        var process: Process?
+        var cancelled = false
+    }
+    private let state = OSAllocatedUnfairLock(uncheckedState: State())
 
     public init() {}
 
     public var isCancelled: Bool {
-        lock.lock(); defer { lock.unlock() }
-        return cancelled
+        state.withLockUnchecked { $0.cancelled }
     }
 
     public func cancel() {
-        lock.lock(); defer { lock.unlock() }
-        cancelled = true
-        if let process, process.isRunning { process.terminate() }
+        let proc: Process? = state.withLockUnchecked { st in
+            st.cancelled = true
+            return st.process
+        }
+        if let proc, proc.isRunning { proc.terminate() }
     }
 
     /// Called once the process is running. Returns false if cancellation already happened.
     fileprivate func attach(_ running: Process) -> Bool {
-        lock.lock(); defer { lock.unlock() }
-        process = running
-        return !cancelled
+        state.withLockUnchecked { st in
+            st.process = running
+            return !st.cancelled
+        }
     }
 
     fileprivate func detach() {
-        lock.lock(); defer { lock.unlock() }
-        process = nil
+        state.withLockUnchecked { $0.process = nil }
     }
 }
 

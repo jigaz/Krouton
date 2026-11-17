@@ -1,9 +1,9 @@
 import Foundation
+import os
 
 // MARK: - Global Bundle.module JSON & .lproj Localization Resolver
 enum KroutonL10n {
-    private static let isoCodeLock = NSLock()
-    nonisolated(unsafe) private static var _activeISOCodeStorage: String = "en"
+    private static let isoCodeStorage = OSAllocatedUnfairLock(initialState: "en")
 
     private static let jsonCatalog: [String: [String: String]] = {
         let candidateURLs: [URL?] = [
@@ -20,8 +20,8 @@ enum KroutonL10n {
     }()
 
     static var activeISOCode: String {
-        get { isoCodeLock.lock(); defer { isoCodeLock.unlock() }; return _activeISOCodeStorage }
-        set { isoCodeLock.lock(); _activeISOCodeStorage = newValue; isoCodeLock.unlock() }
+        get { isoCodeStorage.withLock { $0 } }
+        set { isoCodeStorage.withLock { $0 = newValue } }
     }
 
     static func tr(_ key: String) -> String {

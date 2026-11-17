@@ -6,12 +6,27 @@ import RescueKit
 import SwiftUI
 import UniformTypeIdentifiers
 import VideoKit
+import os
 
 // MARK: - CopyAndRipWorkspaces
 
-final class KroutonRipCancelToken: @unchecked Sendable {
-    var isCancelled: Bool = false
-    var cancelledTracks: Set<Int> = []
+final class KroutonRipCancelToken: Sendable {
+    private struct State: Sendable {
+        var isCancelled: Bool = false
+        var cancelledTracks: Set<Int> = []
+    }
+    private let state = OSAllocatedUnfairLock(initialState: State())
+
+    var isCancelled: Bool {
+        get { state.withLock { $0.isCancelled } }
+        set { state.withLock { $0.isCancelled = newValue } }
+    }
+
+    var cancelledTracks: Set<Int> {
+        get { state.withLock { $0.cancelledTracks } }
+        set { state.withLock { $0.cancelledTracks = newValue } }
+    }
+
     init() {}
 }
 

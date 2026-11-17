@@ -68,7 +68,7 @@ extension KroutonTestHarness {
                 h.lint(fm.fileExists(atPath: modDir.path), "Expected functional module target directory: Sources/\(mod.rawValue)")
             }
 
-            let bannedTokens = ["NS" + "Alert", "NS" + "Panel", "NS" + "Window", "NS" + "ViewRepresentable", "WK" + "WebView", "/Users/" + "used", "/usr/bin/" + "pbcopy", "/usr/bin/" + "open", "LSOpen" + "CFURLRef"]
+            let bannedTokens = ["NS" + "Alert", "NS" + "Panel", "NS" + "Window", "NS" + "ViewRepresentable", "WK" + "WebView", "/Users/" + "used", "/usr/bin/" + "pbcopy", "/usr/bin/" + "open", "LSOpen" + "CFURLRef", "@unchecked" + " Sendable", "nonisolated" + "(unsafe)"]
             for fileURL in allSwiftFiles where !fileURL.path.contains("/KroutonVerify/") {
                 let src = (try? String(contentsOf: fileURL, encoding: .utf8)) ?? ""
                 let relPath = fileURL.path.replacingOccurrences(of: rootURL.path + "/", with: "")

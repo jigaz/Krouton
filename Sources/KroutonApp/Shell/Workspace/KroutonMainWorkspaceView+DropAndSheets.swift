@@ -6,6 +6,7 @@ import NetworkSpool
 import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
+import os
 
 // MARK: - Main Workspace File Panel, Drag-and-Drop Collector & Project Sheet Modifier
 
@@ -38,12 +39,8 @@ extension KroutonMainWorkspaceView {
         guard !matching.isEmpty else { return false
 }
 
-final class URLDropCollector: @unchecked Sendable {
-            let lock = NSLock()
-            var urls: [URL] = []
-        }
         let group = DispatchGroup()
-        let collector = URLDropCollector()
+        let collectedURLs = OSAllocatedUnfairLock(initialState: [URL]())
 
         for provider in matching {
             group.enter()
@@ -58,15 +55,13 @@ final class URLDropCollector: @unchecked Sendable {
                     return nil
                 }()
                 if let url = resolvedURL {
-                    collector.lock.lock()
-                    collector.urls.append(url)
-                    collector.lock.unlock()
+                    collectedURLs.withLock { $0.append(url) }
                 }
             }
         }
         group.notify(queue: .main) {
             let beforeReject = store.rejectedDropNotice
-            store.addStagedURLs(collector.urls)
+            store.addStagedURLs(collectedURLs.withLock { $0 })
             if store.rejectedDropNotice != nil && store.rejectedDropNotice != beforeReject {
                 triggerDropRejectShake()
             }

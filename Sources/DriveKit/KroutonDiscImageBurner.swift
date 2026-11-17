@@ -2,6 +2,7 @@ import CryptoKit
 @preconcurrency import DiscRecording
 import Foundation
 import OpticalCore
+import os
 
 // Burns a finished disc image to one drive, then reads the disc back and compares
 // it with the image. Every call takes a drive identifier and keeps its own state,
@@ -12,25 +13,21 @@ import OpticalCore
 
 /// A user-initiated stop. Cancelling a task only stops a drive from taking another
 /// disc; this switch is what interrupts a disc that is already being written.
-public final class KroutonBurnAbortSwitch: @unchecked Sendable {
-    private let lock = NSLock()
-    private var requested = false
+public final class KroutonBurnAbortSwitch: Sendable {
+    private let requested = OSAllocatedUnfairLock(initialState: false)
 
     public init() {}
 
     var isRequested: Bool {
-        lock.lock(); defer { lock.unlock() }
-        return requested
+        requested.withLock { $0 }
     }
 
     public func request() {
-        lock.lock(); defer { lock.unlock() }
-        requested = true
+        requested.withLock { $0 = true }
     }
 
     public func reset() {
-        lock.lock(); defer { lock.unlock() }
-        requested = false
+        requested.withLock { $0 = false }
     }
 }
 

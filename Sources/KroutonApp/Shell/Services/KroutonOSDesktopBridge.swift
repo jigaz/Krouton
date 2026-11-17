@@ -1,17 +1,15 @@
 import Foundation
 import ObjectiveC.runtime
 import SwiftUI
+import os
 
 // MARK: - KroutonOSDesktopBridge (Pure SwiftUI & In-Process Runtime Bridge)
 
 enum KroutonOSDesktopBridge {
-    private static let activeLock = NSLock()
-    nonisolated(unsafe) private static var _isVisiblyActive: Bool = true
+    private static let visiblyActiveLock = OSAllocatedUnfairLock(initialState: true)
 
     static func setApplicationVisiblyActive(_ active: Bool) {
-        activeLock.lock()
-        _isVisiblyActive = active
-        activeLock.unlock()
+        visiblyActiveLock.withLock { $0 = active }
     }
 
     static func playAcousticCue(_ cue: KroutonAcousticCue = .warning) {
@@ -70,8 +68,6 @@ enum KroutonOSDesktopBridge {
     static var didChangeWindowOcclusionNotification: Notification.Name { Notification.Name("KroutonOcclusion") }
 
     static func isApplicationVisiblyActive() -> Bool {
-        activeLock.lock()
-        defer { activeLock.unlock() }
-        return _isVisiblyActive
+        visiblyActiveLock.withLock { $0 }
     }
 }

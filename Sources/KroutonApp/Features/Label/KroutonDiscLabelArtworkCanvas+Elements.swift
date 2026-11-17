@@ -3,6 +3,7 @@ import LabelKit
 import OpticalCore
 import RescueKit
 import SwiftUI
+import os
 
 // MARK: - Disc Label Canvas Curved Text Glyphs, Spindle Cutout & Vector Shapes
 
@@ -152,8 +153,7 @@ extension KroutonDiscLabelArtworkCanvas {
     }
 
     /// Thread-safe cache of CoreText glyph advance factors keyed by `fontKey:char`.
-    private static let glyphCacheLock = NSLock()
-    nonisolated(unsafe) private static var glyphAdvanceCache: [String: CGFloat] = [:]
+    private static let glyphAdvanceCacheLock = OSAllocatedUnfairLock<[String: CGFloat]>(initialState: [:])
 
     static func postScriptFontName(fontDesignRaw: String, isBold: Bool) -> CFString {
         switch fontDesignRaw.lowercased() {
@@ -176,12 +176,9 @@ extension KroutonDiscLabelArtworkCanvas {
         isBold: Bool = true
     ) -> CGFloat {
         let key = "\(fontDesignRaw):\(isBold ? 1 : 0):\(ch)"
-        glyphCacheLock.lock()
-        if let cached = glyphAdvanceCache[key] {
-            glyphCacheLock.unlock()
+        if let cached = glyphAdvanceCacheLock.withLock({ $0[key] }) {
             return cached
         }
-        glyphCacheLock.unlock()
 
         let baseSize: CGFloat = 24.0
         let psName = postScriptFontName(fontDesignRaw: fontDesignRaw, isBold: isBold)
@@ -194,10 +191,10 @@ extension KroutonDiscLabelArtworkCanvas {
         let advance = CGFloat(CTLineGetTypographicBounds(line, nil, nil, nil))
         let factor = max(0.32, min(1.45, advance / (baseSize * 0.62)))
 
-        glyphCacheLock.lock()
-        if glyphAdvanceCache.count > 2048 { glyphAdvanceCache.removeAll(keepingCapacity: true) }
-        glyphAdvanceCache[key] = factor
-        glyphCacheLock.unlock()
+        glyphAdvanceCacheLock.withLock { cache in
+            if cache.count > 2048 { cache.removeAll(keepingCapacity: true) }
+            cache[key] = factor
+        }
         return factor
     }
 
