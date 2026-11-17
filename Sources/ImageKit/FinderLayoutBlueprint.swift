@@ -79,18 +79,6 @@ public enum KroutonFinderTagColor: String, Codable, CaseIterable, Sendable {
     case purple = "Purple"
     case gray = "Gray"
 
-    var finderLabelIndex: Int {
-        switch self {
-        case .none: return 0
-        case .gray: return 1
-        case .green: return 2
-        case .purple: return 3
-        case .blue: return 4
-        case .yellow: return 5
-        case .red: return 6
-        case .orange: return 7
-        }
-    }
 }
 
 public struct KroutonFinderItemAnnotation: Codable, Equatable, Sendable {

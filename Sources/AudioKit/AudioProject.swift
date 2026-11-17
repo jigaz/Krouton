@@ -43,9 +43,7 @@ public struct AudioTrack: DiscBreakableItem, Identifiable, Equatable, Codable, S
     var manualDiscMetadata: KroutonDiscVolumeMetadata? = nil
 
     /// Best known length in Red Book frames (`frameCount ?? probedFrameCount`). Nil if neither pass has completed.
-    var effectiveFrameCount: Int64? { frameCount ?? probedFrameCount }
     /// True when length comes only from the Pass 1 header probe and Pass 2 sample verification is still in flight.
-    var isLengthProvisional: Bool { frameCount == nil && probedFrameCount != nil }
 
     public init(id: UUID = UUID(), source: URL, title: String = "", performer: String = "",
                 frameCount: Int64? = nil, transitionToNext: KroutonTrackTransitionSpec) {
@@ -180,20 +178,6 @@ public struct AudioProject: Equatable, Codable, Sendable {
         var item = tracks.remove(at: fromIndex)
         item.startsNewDisc = false
         tracks.insert(item, at: clampedTo)
-    }
-
-    /// Moves a manual disc break divider from `oldFirstTrackID` to `newFirstTrackID`,
-    /// transferring its `anchoredDiscMetadata` in the same edit so the disc title moves with the break.
-    mutating func moveManualDiscBreak(from oldFirstTrackID: UUID, to newFirstTrackID: UUID) {
-        guard oldFirstTrackID != newFirstTrackID,
-              let oldIdx = index(of: oldFirstTrackID),
-              let newIdx = index(of: newFirstTrackID),
-              newIdx > 0 else { return }
-        tracks[oldIdx].startsNewDisc = false
-        tracks[newIdx].startsNewDisc = true
-        if let meta = anchoredDiscMetadata.removeValue(forKey: oldFirstTrackID) {
-            anchoredDiscMetadata[newFirstTrackID] = meta
-        }
     }
 
     /// Enforces Red Book CD-TEXT constraints (ISO 8859-1 printable, max 60 chars, no control chars).

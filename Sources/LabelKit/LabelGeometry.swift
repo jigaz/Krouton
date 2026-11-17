@@ -83,19 +83,6 @@ public struct KroutonLabelGeometryEngine {
         )
     }
 
-    /// Hit-tests whether a Cartesian point (x, y) relative to disc center lies strictly within the printable ink annulus
-    static func isPointInsidePrintableAnnulus(
-        dxMM: Double,
-        dyMM: Double,
-        geometry: KroutonDiscHubGeometry = .fullFace120mmHub22mm,
-        bleedMarginMM: Double = 1.0
-    ) -> Bool {
-        let r = hypot(dxMM, dyMM)
-        let rMin = (geometry.innerHubDiameterMM / 2.0) + bleedMarginMM
-        let rMax = (geometry.outerPrintDiameterMM / 2.0) - bleedMarginMM
-        return r >= rMin && r <= rMax
-    }
-
     /// Computes polar-to-Cartesian (x, y) coordinates and tangent angles for curved disc label typography
     public static func computePolarArcGlyphLayout(
         text: String,

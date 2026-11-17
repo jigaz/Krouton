@@ -26,7 +26,6 @@ struct KroutonDataAndArchivalWorkspaceView: View {
 
     @State var showHybridLBAMapPopover: Bool = false
     @State var activeDataWorkspaceTab: Int = 0
-    @State var finderBgColor: Color = Color(red: 0.13, green: 0.17, blue: 0.24)
     @State var mdiscPar2RedundancyPct: Double = 15.0
     @State var preserveMacExtendedAttributes: Bool = true
     @State var enforce8Dot3RetroCompatibility: Bool = false

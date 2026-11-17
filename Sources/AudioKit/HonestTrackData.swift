@@ -71,31 +71,6 @@ public struct ISRC: Codable, Sendable, Equatable, CustomStringConvertible {
 
 // MARK: - Reading what the file already says
 
-public enum EmbeddedMetadataReader {
-    /// Reads title, artist and ISRC from the file's own tags. Returns only what is
-    /// actually present.
-    public static func read(from url: URL) async -> TrackMetadata {
-        var result = TrackMetadata()
-        guard let items = try? await AVURLAsset(url: url).load(.metadata) else { return result }
-
-        func string(_ identifier: AVMetadataIdentifier) async -> String? {
-            guard let item = AVMetadataItem.metadataItems(from: items, filteredByIdentifier: identifier).first,
-                  let text = try? await item.load(.stringValue) else { return nil }
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            return trimmed.isEmpty ? nil : trimmed
-        }
-
-        if let title = await string(.commonIdentifierTitle) { result.title = Sourced(title, .embeddedTag) }
-        if let artist = await string(.commonIdentifierArtist) { result.performer = Sourced(artist, .embeddedTag) }
-        if let raw = await string(.id3MetadataInternationalStandardRecordingCode), let isrc = ISRC(raw) {
-            result.isrc = Sourced(isrc, .embeddedTag)
-        }
-        // WAV/BWF files carry ISRC in the `axml` chunk rather than ID3; parse that
-        // chunk separately if your sources are mastering deliverables.
-        return result
-    }
-}
-
 // MARK: - Filename guess (a suggestion, labelled as one)
 
 public enum FilenameTitleGuess {
@@ -220,15 +195,6 @@ public enum LoudnessMeter {
         return lufs(gated.reduce(0, +) / Double(gated.count))
     }
 
-    /// Replaces the fixed +1.2 dB. Measure the last N seconds of the outgoing track
-    /// and the first N seconds of the incoming one; the result is the trim to apply
-    /// to the incoming track so the two sit at the same loudness.
-    /// Returns nil when either side cannot be measured, in which case apply nothing
-    /// and show the toggle as unavailable.
-    static func gainMatchOffsetDB(outgoingTailLUFS: Double?, incomingHeadLUFS: Double?, limit: Double = 6) -> Double? {
-        guard let out = outgoingTailLUFS, let incoming = incomingHeadLUFS else { return nil }
-        return min(limit, max(-limit, out - incoming))
-    }
 }
 
 // In KroutonTrackTransitionSpec, replace

@@ -90,20 +90,6 @@ public actor AudioAnalysisService {
         return result
     }
 
-    func forget(_ url: URL) {
-        cache = cache.filter { $0.key.path != url.path }
-    }
-
-    /// Pass 1 Fast Header Probe: Reads only the container header (sample rate + sample count)
-    /// in < 1 ms without decoding PCM samples so multi-disc spanning has accurate lengths immediately.
-    nonisolated static func probeHeaderDurationFrames(for url: URL) -> Int64? {
-        guard let file = try? AVAudioFile(forReading: url) else { return nil }
-        let rate = file.processingFormat.sampleRate
-        let length = file.length
-        guard rate > 0, length > 0 else { return nil }
-        return Int64((Double(length) * 75.0 / rate).rounded(.up))
-    }
-
     // MARK: - Concurrency limit
 
     private func acquireDecodeSlot() async {

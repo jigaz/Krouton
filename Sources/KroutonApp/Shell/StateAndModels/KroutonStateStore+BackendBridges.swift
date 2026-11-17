@@ -24,19 +24,6 @@ extension KroutonStateStore {
         )
     }
 
-    func computeLiveCDTextPackCount(
-        albumTitle: String = "",
-        albumPerformer: String = "",
-        tracks: [KroutonRedBookTrack] = []
-    ) -> Int {
-        if let compiled = audioController.project.compileCDTextBlock() {
-            return compiled.packs.count
-        }
-        let albumFields: [CDTextField: String] = [.title: albumTitle, .performer: albumPerformer]
-        let trackFields: [[CDTextField: String]] = tracks.map { [.title: $0.title, .performer: $0.performer] }
-        return (try? CDTextBlockCompiler.compile(CDTextInput(album: albumFields, tracks: trackFields)).packs.count) ?? 0
-    }
-
     func planLiveHybridDataLayout(
         volumeLabel: String = "",
         entries: [KroutonStagedFileEntry] = [],

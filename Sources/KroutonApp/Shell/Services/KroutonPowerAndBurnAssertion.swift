@@ -19,12 +19,6 @@ final class KroutonPowerAndBurnAssertion: @unchecked Sendable {
 
     private init() {}
 
-    var hasActiveAssertion: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return isHeld
-    }
-
     /// Acquires IOKit power assertions + ProcessInfo activity lock for an active optical job.
     func acquire(reason: String = "Krouton Optical Laser Mastering Active") {
         lock.lock()

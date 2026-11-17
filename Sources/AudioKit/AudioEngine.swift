@@ -275,24 +275,6 @@ public struct KroutonTrackTransitionSpec: Identifiable, Hashable, Codable, Senda
     public var overlapRedBookFrames: Int64 { Int64((overlapSeconds * 75.0).rounded()) }
     public var preGapRedBookFrames: Int64 { isCrossfading ? 0 : Int64((preGapSeconds * 75.0).rounded()) }
 
-    func predictedPeak(outgoing: [Float], incoming: [Float]) -> Double {
-        predictedOverlapPeak(
-            outgoing: outgoing,
-            incoming: incoming,
-            gainOut: { effectiveGainOut(at: $0) },
-            gainIn: { effectiveGainIn(at: $0) }
-        )
-    }
-
-    var badgeSummary: String {
-        if isCrossfading {
-            return String(format: "%.1fs X-Fade (%@)", overlapSeconds, fadeOutCurve == fadeInCurve ? fadeOutCurve.rawValue.components(separatedBy: " ").first ?? "EqPwr" : "Asym")
-        } else if preGapSeconds <= 0.01 {
-            return "0.0s Gapless (DAO)"
-        } else {
-            return String(format: "%.1fs INDEX 00", preGapSeconds)
-        }
-    }
 }
 
 // MARK: - Sprint 1: 3-Tier Acoustic / AI Track & CD-TEXT Auto-Identifier

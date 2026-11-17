@@ -67,13 +67,6 @@ public struct CDTextBlock: Sendable, Equatable {
     /// Concatenated packs, as the drive expects them.
     var packBytes: [UInt8] { packs.flatMap { $0 } }
 
-    /// `.cdt` layout used by cdrecord's `textfile=`: a 4-byte READ TOC style header
-    /// (big-endian length of everything after the length field, two reserved bytes).
-    var cdtFileBytes: [UInt8] {
-        let body = packBytes
-        let length = body.count + 2
-        return [UInt8((length >> 8) & 0xFF), UInt8(length & 0xFF), 0, 0] + body
-    }
 }
 
 public enum CDTextError: Error, Equatable {

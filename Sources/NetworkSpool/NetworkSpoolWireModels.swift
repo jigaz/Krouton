@@ -10,30 +10,10 @@ import OpticalCore
 //
 
 // MARK: - 1. Canonical Bakery Typealiases (Old Names -> Real Bakery Structs in OpticalDough.swift)
-public typealias DriveManager                = any KroutonDriveTelemetryStore
-public typealias OpticalDriveDevice          = KroutonOpticalDriveInfo
-public typealias DrivePhaseScopeTelemetry    = KroutonDrivePhaseScopeTelemetry
-public typealias NeroTelemetrySample         = KroutonBurnTelemetrySample
-public typealias StagedFileEntry             = KroutonStagedFileEntry
-public typealias RedBookAudioTrack           = KroutonRedBookTrack
-public typealias AudioTransitionStyle        = KroutonTrackPregapStyle
-public typealias CDTextSanitizer             = KroutonCDTextSanitizer
-public typealias RedBookAuditionEngine       = KroutonAudioPreviewEngine
-public typealias BootableImageInspector      = KroutonElToritoBootInspector
-public typealias MountedVolumePartition      = KroutonMountedDiscVolume
-public typealias BatchDuplicationState       = KroutonBatchBurnState
-public typealias BurnCompletionReport        = KroutonBurnSessionReport
-public typealias HardwareAccelerationTier    = KroutonHeatTier
-public typealias MediaStreamProbeResult      = KroutonStreamProbeResult
-public typealias CodecCapabilityRow          = KroutonWorkflowCodecRow
-public typealias UniversalMediaDecoderEngine = KroutonMediaPrepEngine
-public typealias OpticalDriveTelemetry       = KroutonDrivePhaseScopeTelemetry
-public typealias DrivePhaseScopeSample       = KroutonBurnTelemetrySample
 
 // MARK: - 2. Krumb LAN Daemon Constants & `crates/recipe` Wire Structs (Port 7420)
 public enum SpoolNetworkConstants {
     static let mdnsServiceType = "_krouton-spool._tcp"
-    static let mdnsFullDomain  = "_krouton-spool._tcp.local."
     static let defaultPort: UInt16 = 7420
     static let minimumSpoolFreeBytes: UInt64 = 1_073_741_824 // >= 1 GiB free rule
 }

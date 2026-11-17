@@ -150,66 +150,7 @@ extension KroutonOpticalDriveBank {
         }
     }
 
-    static func inspectAudioTrack(url: URL, index: Int) -> KroutonRedBookTrack {
-        let rawTitle = url.deletingPathExtension().lastPathComponent
-        var duration: Double = 212.0
-        var sampleRate: Int = 44100
-        var bits: Int = 16
-
-        if let audioFile = try? AVAudioFile(forReading: url) {
-            let sr = audioFile.processingFormat.sampleRate
-            if sr > 0 {
-                duration = Double(audioFile.length) / sr
-                sampleRate = Int(sr)
-            }
-            bits = Int(audioFile.fileFormat.settings[AVLinearPCMBitDepthKey] as? Int ?? 16)
-        } else if let player = try? AVAudioPlayer(contentsOf: url), player.duration > 0 {
-            duration = player.duration
-        }
-
-        return KroutonRedBookTrack(
-            url: url,
-            title: rawTitle,
-            performer: "",
-            isrcCode: "",
-            durationSeconds: max(4.0, duration),
-            preGapSeconds: index == 1 ? 2.0 : 2.0,
-            crossfadeSeconds: 0.0,
-            transitionStyle: .standard2s,
-            sampleRateHz: sampleRate,
-            bitDepth: bits
-        )
-    }
-
     // Stages a Car-Safe MP3/FLAC Folder Tree (Zero-padded 001_ prefixes + strips .DS_Store & ._AppleDouble files!)
-    static func stageCarSafeAudioDirectory(tracks: [KroutonRedBookTrack], tempRoot: URL) throws -> [KroutonStagedFileEntry] {
-        let fm = FileManager.default
-        try fm.createDirectory(at: tempRoot, withIntermediateDirectories: true)
-        var staged: [KroutonStagedFileEntry] = []
-        var m3uLines: [String] = ["#EXTM3U"]
-
-        for (idx, trk) in tracks.enumerated() {
-            let ext = trk.url.pathExtension.isEmpty ? "mp3" : trk.url.pathExtension.lowercased()
-            let cleanTitle = KroutonCDTextSanitizer.sanitize(trk.title)
-                .replacingOccurrences(of: "/", with: "-")
-                .replacingOccurrences(of: ":", with: "-")
-            let carSafeName = String(format: "%03d - %@.%@", idx + 1, cleanTitle, ext)
-            let destURL = tempRoot.appendingPathComponent(carSafeName)
-            if fm.fileExists(atPath: trk.url.path) {
-                try? fm.copyItem(at: trk.url, to: destURL)
-            } else {
-                try Data("Krouton Car-Safe Audio Stream".utf8).write(to: destURL)
-            }
-            m3uLines.append("#EXTINF:\(Int(trk.durationSeconds)),\(KroutonCDTextSanitizer.sanitize(trk.performer)) - \(cleanTitle)")
-            m3uLines.append(carSafeName)
-            staged.append(Self.inspectFileOrFolder(url: destURL))
-        }
-
-        let m3uURL = tempRoot.appendingPathComponent("000_CAR_PLAYLIST.M3U")
-        try m3uLines.joined(separator: "\r\n").write(to: m3uURL, atomically: true, encoding: .ascii)
-        staged.insert(Self.inspectFileOrFolder(url: m3uURL), at: 0)
-        return staged
-    }
 
     public static func inspectFileOrFolder(url: URL) -> KroutonStagedFileEntry {
         let fm = FileManager.default

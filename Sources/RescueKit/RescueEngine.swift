@@ -47,27 +47,6 @@ public struct KroutonOpticalRescueMapSnapshot: Sendable, Equatable {
     let c2InterpolatedCount: Int
     let zeroPaddedCount: Int
 
-    var recoveryIntegrityPercent: Double {
-        guard !buckets.isEmpty else { return 100.0 }
-        let goodWeight = Double(healthyCount) + Double(retriedCount) * 0.98 + Double(c2InterpolatedCount) * 0.85
-        return min(100.0, max(0.0, (goodWeight / Double(buckets.count)) * 100.0))
-    }
-
-    func exportRescueMapLog(volumeName: String) -> String {
-        let stepLBA = max(1, totalSectorsLBA / Int64(max(1, buckets.count)))
-        var lines = [
-            "# KROUTON OPTICAL RESCUE SECTOR MAP (.MAP v1)",
-            "VOLUME: \(volumeName) | TOTAL_LBA: \(totalSectorsLBA) | INTEGRITY: \(String(format: "%.2f%%", recoveryIntegrityPercent))"
-        ]
-        for (idx, status) in buckets.enumerated() where status != .healthyBurst {
-            let startLBA = Int64(idx) * stepLBA
-            lines.append(String(format: "LBA %07d..%07d : %@", startLBA, startLBA + stepLBA - 1, status.rawValue))
-        }
-        if lines.count == 2 {
-            lines.append("ALL_SECTORS_CLEAN: 0..<(totalSectorsLBA) [100% Bit-Accurate]")
-        }
-        return lines.joined(separator: "\n")
-    }
 }
 
 public struct KroutonArchivalQualityCertificate: Sendable, Equatable {

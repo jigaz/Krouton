@@ -171,15 +171,6 @@ public struct KroutonOpticalDriveInfo: Identifiable, Hashable, Sendable {
         return String(format: "%02d:%02d:%02d (75 fps)", mins, secs, frames)
     }
 
-    var totalCapacityBytes: Int64 {
-        max(1, freeBytes + usedBytes)
-    }
-
-    var usedFraction: Double {
-        if isMediaBlank { return 0.0 }
-        let total = Double(max(1, freeBytes + usedBytes))
-        return min(1.0, max(0.0, Double(usedBytes) / total))
-    }
 }
 
 // MARK: - Sprint 3: WaveBurner Red Book Audio CD & Car-Safe MP3 Models
@@ -291,72 +282,3 @@ public enum KroutonCDTextSanitizer {
 
 // WaveBurner 5-Second Transition Audition Preview Engine
 // Plays the final 2.5s of Track N -> INDEX 00 Pre-Gap (or Jam Crossfade) -> first 2.5s of Track N+1
-@MainActor
-public final class KroutonAudioPreviewEngine: ObservableObject {
-    @Published var isAuditioning: Bool = false
-    @Published var auditionStatusText: String = "Idle"
-    @Published public var auditioningTrackID: UUID? = nil
-    private var playerA: AVAudioPlayer?
-    private var playerB: AVAudioPlayer?
-    private var auditionTimer: Timer?
-
-    public init() {}
-
-    func stopAudition() {
-        auditionTimer?.invalidate()
-        auditionTimer = nil
-        playerA?.stop()
-        playerB?.stop()
-        playerA = nil
-        playerB = nil
-        isAuditioning = false
-        auditioningTrackID = nil
-        auditionStatusText = "Idle"
-    }
-
-    func auditionTransition(from trackA: KroutonRedBookTrack, to trackB: KroutonRedBookTrack?) {
-        stopAudition()
-        isAuditioning = true
-        auditioningTrackID = trackA.id
-
-        let gap = (trackB?.transitionStyle == .gapless0s || trackB?.transitionStyle == .jamCrossfade) ? 0.0 : (trackB?.preGapSeconds ?? 2.0)
-        let xfade = (trackB?.transitionStyle == .jamCrossfade) ? max(1.0, trackB?.crossfadeSeconds ?? 2.0) : 0.0
-
-        if let nextTrack = trackB {
-            auditionStatusText = xfade > 0
-                ? String(format: "Auditioning %.1fs Crossfade: %@ -> %@", xfade, trackA.title, nextTrack.title)
-                : String(format: "Auditioning Splice (%.1fs INDEX 00 Gap): %@ -> %@", gap, trackA.title, nextTrack.title)
-        } else {
-            auditionStatusText = "Auditioning Lead-Out Tail: \(trackA.title)"
-        }
-
-        // Attempt real AVAudioPlayer playback if files exist on disk
-        if let pA = try? AVAudioPlayer(contentsOf: trackA.url) {
-            pA.prepareToPlay()
-            let startOffset = max(0.0, pA.duration - 2.5)
-            pA.currentTime = startOffset
-            pA.play()
-            self.playerA = pA
-        } else {
-            /* Acoustic cue handled by KroutonApp UI layer */
-        }
-
-        // Schedule transition to Track B after 2.5s + gap
-        let switchDelay = max(0.5, 2.5 - (xfade * 0.5) + min(gap, 1.5))
-        DispatchQueue.main.asyncAfter(deadline: .now() + switchDelay) { [weak self] in
-            guard let self = self, self.isAuditioning else { return }
-            if let nextTrack = trackB, let pB = try? AVAudioPlayer(contentsOf: nextTrack.url) {
-                pB.prepareToPlay()
-                pB.currentTime = 0.0
-                pB.play()
-                self.playerB = pB
-            }
-        }
-
-        auditionTimer = Timer.scheduledTimer(withTimeInterval: 5.2, repeats: false) { [weak self] _ in
-            Task { @MainActor in
-                self?.stopAudition()
-            }
-        }
-    }
-}

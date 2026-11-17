@@ -72,11 +72,7 @@ public struct SpliceSubIndexDescriptor: Identifiable, Equatable, Sendable {
 }
 
 public struct SpliceCanvasGeometry: Equatable, Sendable {
-    static let restingLeft = 0.20
-    static let restingRight = 0.80
-    static let railTravel = 0.42
     static let baseTimelineSpanSeconds: Double = 34.0
-    static let timelineSpanSeconds: Double = 34.0
     public static let rulerHeight: CGFloat = 24
     static let handleSlop: CGFloat = 10
 

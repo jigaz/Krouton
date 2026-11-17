@@ -53,10 +53,6 @@ struct KroutonDiscLabelWorkspaceView: View {
         min(max(0, store.selectedLabelPresetIndex), max(0, store.labelPresets.count - 1))
     }
 
-    var liveCanvasSnapshot: KroutonLabelCanvasSnapshot {
-        KroutonLabelCanvasSnapshot(from: store, overrideGeometry: store.labelWorkspaceSubStore.workingGeometryOverride)
-    }
-
     var activePreset: KroutonDiscLabelGeometry {
         if let override = store.labelWorkspaceSubStore.workingGeometryOverride { return override }
         guard !store.labelPresets.isEmpty else {

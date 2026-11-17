@@ -175,7 +175,6 @@ public struct KroutonDVD9MenuShrinkBlueprint: Sendable, Equatable {
 }
 
 extension KroutonVideoAuthoringEngine {
-    static let dvd5SafeUsableSectors: Int64 = 2_260_677 // 98.5% of 2,295,104 DVD-5 sectors (~4.63 GB)
     static let dvdECCBlockSectors: Int64 = 16           // 32 KiB (16 x 2048B) hardware ECC block
 
     /// Compiles a complete DVD-9 -> DVD-5 Menu-Preserving Shrink Blueprint:
@@ -244,28 +243,6 @@ extension KroutonVideoAuthoringEngine {
         )
     }
 
-    /// Not a relinker, and no longer called: offset `0x00C4` means different things in `VIDEO_TS.IFO` and
-    /// `VTS_xx_0.IFO`, and a real relink has to rewrite the cell, VOBU and title tables too.
-    /// Performs in-place binary patching of a DVD-Video `VTS_xx_0.IFO` buffer:
-    /// updates the 32-bit big-endian start sector pointer at `0x00C4` and clears cell layer-break flags (`0x08`).
-    static func patchVTSIFOBinarySectorPointers(
-        ifoData: Data,
-        relocatedStartSectorLBA: UInt32,
-        cellPlaybackFlagOffsets: [Int] = []
-    ) -> Data {
-        var bytes = [UInt8](ifoData)
-        guard bytes.count >= 0x00C8 else { return ifoData }
-        let beSector = relocatedStartSectorLBA.bigEndian
-        withUnsafeBytes(of: beSector) { rawBuf in
-            for i in 0..<4 {
-                bytes[0x00C4 + i] = rawBuf[i]
-            }
-        }
-        for offset in cellPlaybackFlagOffsets where offset >= 0 && offset < bytes.count {
-            bytes[offset] &= ~0x08
-        }
-        return Data(bytes)
-    }
 }
 
 // MARK: - Sprint 2: Audio/Subtitle Muxing Controls, Sync Delay & 90kHz PTS Timestamp Chapter Compiler

@@ -173,11 +173,6 @@ final class KroutonCrashRecoveryController: ObservableObject {
         await sessionStore.flush()
     }
 
-    func markCleanShutdown(store: KroutonStateStore) {
-        saveCurrentState(from: store)
-        runLock?.markCleanExit()
-    }
-
     func startEmptySession(store: KroutonStateStore) {
         showCrashRecoveryPrompt = false
         pendingSnapshot = nil

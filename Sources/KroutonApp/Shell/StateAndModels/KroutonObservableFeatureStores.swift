@@ -114,7 +114,6 @@ final class KroutonLabelWorkspaceSubStore {
     var transientStatusBanner: String = ""
     var isFreehandDrawMode: Bool = false
     var autoSnapFreehandShapes: Bool = true
-    var lastExportedPNGURL: URL? = nil
     public private(set) var timeline: [KroutonLabelCanvasSnapshot] = []
     public private(set) var cursor: Int = -1
     let maxHistoryDepth: Int = 32
@@ -188,45 +187,11 @@ final class KroutonLabelWorkspaceSubStore {
     }
 }
 
-/// Fine-grained `@Observable` sub-store for `Galette` disc image inspection and CUE sheet parsing.
-@Observable
-@MainActor
-final class KroutonDiscImageInspectorSubStore {
-    var lastClassifiedSummary: String = ""
-    var parsedCueTrackCount: Int = 0
-    var bootArchitecture: String = ""
-    var isBootableVerified: Bool = false
-
-    init() {}
-
-    func analyzeImageWithDiscDepot(imageBytes: Data, sampleCueText: String? = nil) {
-        let classification = KroutonDiscImageDepot.classifyBootableImage(headerBytes: imageBytes)
-        self.bootArchitecture = classification.architectureDescription
-        self.isBootableVerified = classification.isBootable
-        let cueSource = sampleCueText ?? "FILE \"KROUTON_MASTER.BIN\" BINARY\n  TRACK 01 MODE1/2352\n    INDEX 01 00:00:00\n"
-        let cueSheet = KroutonDiscImageDepot.parseCueSheet(cueText: cueSource)
-        self.parsedCueTrackCount = cueSheet.tracks.count
-        self.lastClassifiedSummary = "Image Verified: \(classification.formatName) | Bootable: \(classification.isBootable ? "YES" : "NO") (\(classification.architectureDescription)) | CUE Tracks: \(cueSheet.tracks.count)"
-    }
-}
-
 /// Fine-grained `@Observable` sub-store isolating hardware & image destination queue telemetry.
 @Observable
 @MainActor
 final class KroutonBurnQueueSubStore {
-    var activeQueueStatusMessage: String = ""
-    var completedTargetCount: Int = 0
     var lastMasteredISOURL: URL? = nil
     var lastMasteredSHA256: String = ""
-    init() {}
-}
-
-/// Fine-grained `@Observable` sub-store isolating Depot Catalog filtering and verification state.
-@Observable
-@MainActor
-final class KroutonDepotCatalogSubStore {
-    var lastVerifiedItemID: String = ""
-    var lastVerifiedDigest: String = ""
-    var activeCategoryFilter: String = "All"
     init() {}
 }

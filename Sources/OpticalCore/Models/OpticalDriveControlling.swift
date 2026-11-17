@@ -27,31 +27,11 @@ public enum OpticalMediaKind: String, Codable, Sendable, CaseIterable {
         }
     }
 
-    var nominalCapacityBytes: Int64 {
-        switch self {
-        case .cd:                return 737_280_000
-        case .dvdSingleLayer:    return 4_700_372_992
-        case .dvdDualLayer:       return 8_543_666_176
-        case .bluRaySingleLayer: return 25_025_314_816
-        case .bluRayDualLayer:   return 50_050_629_632
-        case .unknown:           return 4_700_372_992
-        }
-    }
-
-    var isDVDClass: Bool {
-        self == .dvdSingleLayer || self == .dvdDualLayer
-    }
-
-    var isBluRayClass: Bool {
-        self == .bluRaySingleLayer || self == .bluRayDualLayer
-    }
 }
 
 /// Centralized `os.Logger` diagnostics for hardware, filesystem, and network operations.
 public enum KroutonDiagnostics {
-    static let hardwareLogger = Logger(subsystem: "app.krouton.optical", category: "HardwareDrive")
     public static let masteringLogger = Logger(subsystem: "app.krouton.optical", category: "MasteringEngine")
-    public static let networkLogger = Logger(subsystem: "app.krouton.optical", category: "NetworkSpool")
 }
 
 /// Protocol abstracting physical optical drive state so domain logic and unit tests

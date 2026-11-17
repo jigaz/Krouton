@@ -61,7 +61,6 @@ public struct PlannedDisc<Item: Identifiable & Sendable>: Identifiable, Sendable
     public let startedBecause: DiscBreakReason
 
     public var id: Int { number }
-    var freeUnits: Int64 { capacityUnits - usedUnits } // negative when an item is oversize
 }
 
 public enum DiscPlanIssue<ID: Hashable & Sendable>: Sendable, Equatable {

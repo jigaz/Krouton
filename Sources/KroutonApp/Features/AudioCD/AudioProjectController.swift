@@ -55,8 +55,6 @@ final class AudioProjectController {
         liveTransition = LiveTransition(trackID: trackID, spec: spec)
     }
 
-    func cancelPreview() { liveTransition = nil }
-
     // MARK: - Commit (once per gesture or discrete edit)
 
     func commitTransition(_ spec: KroutonTrackTransitionSpec, after trackID: UUID, actionName: String = "Edit Transition") {

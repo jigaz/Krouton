@@ -202,38 +202,6 @@ extension KroutonOpticalWorkflowSpec {
         return "Files and folders"
     }
 
-    var shortDisplayName: String {
-        let t = technicalName
-        if t.contains("Audio CD") || id == "audio-cdda" || id == "cd-da" { return "Audio CD" }
-        if t.contains("ISO9660 / UDF Audio") || id == "audio-mp3" || id == "mp3-cd" { return "MP3 / FLAC CD" }
-        if t.contains("CD-Extra") || id == "audio-cdextra" || id == "cd-extra" { return "CD-Extra" }
-        if t.contains("DVD-Video") || id == "video-dvd" || id == "dvd-video" { return "DVD-Video" }
-        if t.contains("AVCHD") || id == "avchd-dvd" || id == "bd-on-dvd" { return "AVCHD" }
-        if t.contains("BD-R DL") || t.contains("Dual-Layer") { return "BD-R DL" }
-        if t.contains("BD-R") || t.contains("BD-RE") { return "BD-R" }
-        if t.contains("BDXL") || t.contains("UHD-BD") { return "UHD-BD" }
-        if t.contains("Super VCD") || t.contains("SVCD") { return "SVCD" }
-        if t.contains("Burn Disc Image") || id == "image-burn" { return "Burn Image" }
-        if t.contains("Universal Hybrid") || id == "data-hybrid" { return "Data" }
-        if t.contains("UDF 2.60") || id == "data-udf-modern" { return "UDF Data" }
-        if t.contains("APFS") || t.contains("HFS+") { return "Mac Volume" }
-        if t.contains("ISO9660 Level 1") || id == "data-retro-iso" { return "Retro ISO" }
-        if t.contains("M-DISC") || id == "mdisc-vault" { return "M-DISC" }
-        if t.contains("Wii") { return "Wii" }
-        if t.contains("GameCube") { return "GameCube" }
-        if t.contains("PlayStation 2") { return "PS2" }
-        if t.contains("PlayStation CD") || t.contains("PS1") { return "PS1" }
-        if t.contains("Xbox") { return "Xbox" }
-        if t.contains("Dreamcast") { return "Dreamcast" }
-        if t.contains("3DO") || t.contains("TurboGrafx") { return "3DO / PCE" }
-        if t.contains("DTS-CD") { return "DTS-CD" }
-        if t.contains("DVD-Audio") { return "DVD-Audio" }
-        if t.contains("DVD-RAM") { return "DVD-RAM" }
-        if t.contains("Mac OS 9") { return "Mac OS 9 HFS" }
-        if t.contains("Photo CD") { return "Photo CD" }
-        return technicalName
-    }
-
     public var exactShortDisplayName: String {
         switch id {
         case "cd-da": return "Audio CD"

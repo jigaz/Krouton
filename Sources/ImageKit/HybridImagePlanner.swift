@@ -148,6 +148,4 @@ public struct KroutonHybridImagePlanner {
     }
 
     /// El Torito Boot Record Volume Descriptor sits at LBA 17 and points to the Boot Catalog sector (LBA 18).
-    static let elToritoBootRecordVolumeDescriptorLBA: Int = 17
-    static let elToritoDefaultBootCatalogLBA: Int = 18
 }

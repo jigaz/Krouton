@@ -7,15 +7,10 @@ public enum KroutonDomainIdentity: Sendable {
     // MARK: - Canonical Domain & Reverse-DNS Prefix
     public static let domainName = "krouton.app"
     public static let reverseDNSPrefix = "app.krouton"
-    static let macAppBundleID = "app.krouton.mac"
-    static let driveHelperBundleID = "app.krouton.helper.drivekit"
-    static let userDefaultsSuiteName = "app.krouton.preferences"
 
     // MARK: - Web Endpoints (krouton.app)
-    static let websiteURL = URL(string: "https://krouton.app")!
     public static let documentationURL = URL(string: "https://krouton.app/docs")!
     public static let archivalVerifyURL = URL(string: "https://krouton.app/verify")!
-    static let sparkleAppcastURL = URL(string: "https://krouton.app/updates/appcast.xml")!
 
     // MARK: - Uniform Type Identifiers (UTIs)
     public enum UTI: String, Sendable, CaseIterable {
@@ -27,8 +22,6 @@ public enum KroutonDomainIdentity: Sendable {
     }
 
     // MARK: - Bonjour & NetworkSpool
-    static let bonjourSpoolServiceType = "_krouton-spool._tcp"
-    static let bonjourSpoolDomain = "local."
 
     // MARK: - 11 Architectural Modules & OSLog Subsystems
     public enum Module: String, Sendable, CaseIterable {

@@ -49,29 +49,15 @@ public struct KroutonConsoleMasteringConfig: Equatable, Codable, Sendable {
     public var romPerformOPCBeforeWrite: Bool = true
     public var xboxLayerBreakPreset: String = "Auto (.dvd / Calculate Optimal)"
     public var ps1AutoMergeMultiBinAndCHD: Bool = true
-    var ps2ApplyESRPatch: Bool = false
-    var gcPadToOuterEdge3GB: Bool = true
     public var wiiLayerMode: String = "Auto-Detect (DVD5 4.7GB / DVD9 LBA 2084960)"
-    var xboxVerifyStealthSectors: Bool = true
 
     public init() {}
 }
 
 public enum KroutonWebEndpoints {
     public static let homeURLString = "https://krouton.app"
-    static let docsURLString = "https://krouton.app/docs"
     public static let krutSchemaURLString = "https://krouton.app/schema/krut/v1.json"
 
-    static let depotManifestURLString = "https://krouton.app/v1/depot/manifest.json"
-    static let driveOffsetsDBURLString = "https://krouton.app/v1/hardware/drives.json"
-    static let mediaMIDDatabaseURLString = "https://krouton.app/v1/media/atip-mid.json"
-    static let printerTrayProfilesURLString = "https://krouton.app/v1/labels/trays.json"
-
-    static let isoMirrorBaseURLString = "https://mirror.krouton.app/depot"
-    static let appReleasesURLString = "https://mirror.krouton.app/releases/appcast.xml"
-
-    static var homeURL: URL { URL(string: homeURLString)! }
-    static var depotManifestURL: URL { URL(string: depotManifestURLString)! }
 }
 
 // MARK: - Unified Hardware-Agnostic .krut Core Mastering Spec (Shared by Local .krut Sidecars & Krumb LAN Wire Protocol)
@@ -317,37 +303,6 @@ public struct KroutonLabelTextElement: Codable, Hashable, Identifiable, Sendable
     }
 }
 
-public struct KroutonPolarArcTextLayer: Codable, Hashable, Identifiable, Sendable {
-    public var id: UUID
-    public var text: String
-    var radiusMillimeters: Double
-    var centerAngleDegrees: Double
-    public var fontSizePoints: Double
-    var letterSpacingMultiplier: Double
-    var isClockwiseTopArc: Bool
-    public var color: KroutonRGBAColor
-
-    public init(
-        id: UUID = UUID(),
-        text: String,
-        radiusMillimeters: Double = 46.0,
-        centerAngleDegrees: Double = -90.0,
-        fontSizePoints: Double = 13.0,
-        letterSpacingMultiplier: Double = 1.0,
-        isClockwiseTopArc: Bool = true,
-        color: KroutonRGBAColor = KroutonRGBAColor(r: 0.96, g: 0.97, b: 0.99, a: 1.0)
-    ) {
-        self.id = id
-        self.text = text
-        self.radiusMillimeters = radiusMillimeters
-        self.centerAngleDegrees = centerAngleDegrees
-        self.fontSizePoints = fontSizePoints
-        self.letterSpacingMultiplier = letterSpacingMultiplier
-        self.isClockwiseTopArc = isClockwiseTopArc
-        self.color = color
-    }
-}
-
 public struct KroutonVectorShapeLayer: Codable, Hashable, Identifiable, Sendable {
     public var id: UUID
     public var name: String
@@ -409,7 +364,6 @@ public struct KroutonEmbeddedLabelSpec: Codable, Hashable, Sendable {
     public var topArcRadiusMM: Double = 47.0
     public var bottomArcRadiusMM: Double = 45.0
     public var arcLetterSpacing: Double = 1.0
-    var customArcTextLayers: [KroutonPolarArcTextLayer] = []
     public var textElements: [KroutonLabelTextElement] = []
     public var gradientMidpointRatio: Double = 0.50
     public var bgAdjustments: KroutonBackgroundAdjustments = KroutonBackgroundAdjustments()

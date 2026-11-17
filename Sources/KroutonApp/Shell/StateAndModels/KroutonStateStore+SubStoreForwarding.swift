@@ -132,15 +132,12 @@ extension KroutonStateStore {
     var labelBottomArcRadiusMM: Double { get { label.bottomArcRadiusMM } set { label.bottomArcRadiusMM = newValue } }
     var labelArcLetterSpacing: Double { get { label.arcLetterSpacing } set { label.arcLetterSpacing = newValue } }
     var labelVectorShapes: [KroutonVectorShapeLayer] { get { label.vectorShapes } set { label.vectorShapes = newValue } }
-    var labelDrawAutoSnap: Bool { get { label.drawAutoSnap } set { label.drawAutoSnap = newValue } }
-    var isLabelVectorDrawMode: Bool { get { label.isVectorDrawMode } set { label.isVectorDrawMode = newValue } }
     var labelGPUSeedPattern: KroutonGPUSeedPattern { get { label.gpuSeedPattern } set { label.gpuSeedPattern = newValue } }
     var labelKaleidoscopeFacets: Int { get { label.kaleidoscopeFacets } set { label.kaleidoscopeFacets = newValue } }
     var labelKaleidoscopeRig: KroutonKaleidoscopeMirrorRig { get { label.kaleidoscopeRig } set { label.kaleidoscopeRig = newValue } }
     var labelChamberTumble: Double { get { label.chamberTumble } set { label.chamberTumble = newValue } }
     var labelTinyPlanetRadius: Double { get { label.tinyPlanetRadius } set { label.tinyPlanetRadius = newValue } }
     var labelUseVisionForeground: Bool { get { label.useVisionForeground } set { label.useVisionForeground = newValue } }
-    var labelPolarSymmetryCount: Int { get { label.polarSymmetryCount } set { label.polarSymmetryCount = newValue } }
     var labelTextElements: [KroutonLabelTextElement] { get { label.textElements } set { label.textElements = newValue } }
     var labelSelectedTextID: UUID? { get { label.selectedTextID } set { label.selectedTextID = newValue } }
     var labelBgAdjustments: KroutonBackgroundAdjustments { get { label.bgAdjustments } set { label.bgAdjustments = newValue } }

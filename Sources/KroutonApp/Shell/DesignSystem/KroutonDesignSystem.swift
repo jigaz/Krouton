@@ -11,20 +11,6 @@ enum KroutonDesign {
         static let panel: CGFloat = 12
     }
 
-    enum Stroke {
-        static let hairline: CGFloat = 0.8
-        static let standard: CGFloat = 1.0
-        static let emphasized: CGFloat = 1.35
-    }
-
-    enum Opacity {
-        static let subtleFill: Double = 0.06
-        static let badgeFill: Double = 0.14
-        static let activeFill: Double = 0.22
-        static let badgeBorder: Double = 0.38
-        static let activeBorder: Double = 0.82
-    }
-
     enum Typography {
         static let microMono = Font.system(size: 9, weight: .bold, design: .monospaced)
         static let badgeMono = Font.system(size: 9.5, weight: .semibold, design: .monospaced)
@@ -47,7 +33,4 @@ enum KroutonViewportTier: String, CaseIterable, Sendable {
         return .ultraWide
     }
 
-    var isCompact: Bool { self == .compact }
-    var isMediumOrWider: Bool { self != .compact }
-    var isWideOrUltraWide: Bool { self == .wideWorkspace || self == .ultraWide }
 }

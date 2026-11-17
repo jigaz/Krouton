@@ -133,10 +133,6 @@ public struct KroutonStagedFileEntry: Identifiable, Hashable, Sendable {
         name.count > 31
     }
 
-    var bootabilityBadge: String? {
-        KroutonElToritoBootInspector.inspectDiscImageBootability(url: url)
-    }
-
     public var isConvertibleBinOrIso: Bool {
         let l = name.lowercased()
         return l.hasSuffix(".bin") || l.hasSuffix(".iso") || l.hasSuffix(".cue")

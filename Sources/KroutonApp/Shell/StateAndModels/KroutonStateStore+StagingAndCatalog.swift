@@ -140,10 +140,6 @@ extension KroutonStateStore {
         audioController.project.totalFrames ?? redBookTracks.reduce(Int64(0)) { $0 + $1.totalRedBookFrames }
     }
 
-    var totalRedBookBytes: Int64 {
-        totalRedBookFramesLBA * 2352
-    }
-
     func removeStagedFile(id: UUID) {
         stagedFiles.removeAll { $0.id == id }
         audioController.remove(id)

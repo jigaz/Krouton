@@ -57,10 +57,6 @@ struct KroutonMainWorkspaceView: View {
         return Int64(gb * 1_000_000_000.0)
     }
 
-    var activeDiscTotalSectorsLBA: Int64 {
-        max(1, activeDiscCapacityBytes / 2048)
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             topProToolbar

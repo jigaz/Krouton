@@ -52,30 +52,6 @@ final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Detects whether macOS itself is configured for Clear, Tinted, or Dark icons in System Settings -> Appearance
-    private static func detectMacOSGlobalIconStyle() -> String {
-        let defaults = UserDefaults.standard
-        for key in [
-            "AppleIconAppearanceTheme",
-            "NSIconAppearanceTheme",
-            "AppleWidgetAppearanceTheme",
-            "AppleIconStyle"
-        ] {
-            if let val = defaults.string(forKey: key)?.lowercased(), !val.isEmpty {
-                return val
-            }
-        }
-        if let globalDict = defaults.persistentDomain(forName: UserDefaults.globalDomain) {
-            for (k, v) in globalDict where k.lowercased().contains("icon") || k.lowercased().contains("appearance") || k.lowercased().contains("tint") {
-                let s = String(describing: v).lowercased()
-                if s.contains("clear") || s.contains("glass") { return "clear" }
-                if s.contains("tint") { return "tinted" }
-            }
-        }
-        let isDarkOS = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        return isDarkOS ? "dark" : "default"
-    }
-
     func applyDynamicDockIcon(for store: KroutonStateStore) {
         let styleRaw = store.iconWidgetStyle.rawValue.lowercased()
 

@@ -74,13 +74,6 @@ enum KroutonRoastAppearanceMode: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-enum KroutonBurnFailureSeverity: String, Sendable {
-    case criticalOverburn
-    case warning4GBNoUDF
-    case warningFilenameLength
-    case warningConsoleMedia
-}
-
 enum KroutonGarnishStyleMode: String, CaseIterable, Identifiable, Sendable {
     case defaultStyle = "Default"
     case dark = "Dark"

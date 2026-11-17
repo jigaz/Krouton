@@ -12,9 +12,7 @@ import VideoKit
 final class KroutonStateStore: ObservableObject {
     // MARK: - Modular Feature Sub-Stores & Domain Models
     let labelWorkspaceSubStore = KroutonLabelWorkspaceSubStore()
-    let discImageInspectorSubStore = KroutonDiscImageInspectorSubStore()
     let burnQueueSubStore = KroutonBurnQueueSubStore()
-    let depotCatalogSubStore = KroutonDepotCatalogSubStore()
 
     @Published var appearance = AppearancePreferences()
     @Published var depot = DepotCatalogue()

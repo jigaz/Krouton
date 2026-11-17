@@ -119,25 +119,6 @@ extension Color {
         }
     }
 
-    var blueprintOccludeBacking: Color {
-        KroutonColorHarmonyLUT.shared.cachedBacking(for: self) {
-            let (r1, g1, b1, _) = KroutonPureColorMath.extractSRGB(self)
-            let (h1, s1, v1) = KroutonPureColorMath.rgbToHSB(r: r1, g: g1, b: b1)
-
-            if s1 < 0.14 {
-                return Color(cgColor: CGColor(srgbRed: 0.08, green: 0.09, blue: 0.11, alpha: 1.0))
-            }
-
-            let hueDeg = h1 * 360.0
-            if hueDeg >= 16.0 && hueDeg < 42.0 && ((s1 < 0.82) || (v1 < 0.88)) {
-                return Color(cgColor: CGColor(srgbRed: 0.09, green: 0.055, blue: 0.035, alpha: 1.0))
-            }
-
-            let (r2, g2, b2, _) = KroutonPureColorMath.extractSRGB(self.perceptualSplitComplement)
-            let (h2, s2, _) = KroutonPureColorMath.rgbToHSB(r: r2, g: g2, b: b2)
-            return KroutonPureColorMath.hsbToColor(h: h2, s: min(s2, 0.68), v: 0.11, a: 1.0)
-        }
-    }
 }
 
 // MARK: - KroutonStateStore Secondary Accent Harmony Extension
@@ -201,36 +182,8 @@ extension KroutonStateStore {
         return Self.secondaryHarmonyForPresetID(pid, scheme: scheme)
     }
 
-    var activeOnSecondaryAccentText: Color {
-        if resolvedColorScheme == .light {
-            return .white
-        }
-        switch selectedAccentIndex {
-        case 1, 2, 4, 7, 8, 9:
-            return Color.black.opacity(0.90)
-        default:
-            return .white
-        }
-    }
-
     var uiSecondaryAccent: Color {
         enableSecondaryAccentUITints ? activeSecondaryAccent : activeAccent
-    }
-
-    var windowSurfaceTint: Color {
-        guard enableSecondaryAccentUITints else {
-            return Color.kroutonWindowSurface
-        }
-        let isDark = (resolvedColorScheme == .dark)
-        return KroutonColorHarmonyLUT.shared.cachedSurface(for: activeAccent, isDark: isDark) {
-            let baseVal: CGFloat = isDark ? 0.12 : 0.95
-            let (tr, tg, tb, _) = KroutonPureColorMath.extractSRGB(activeAccent)
-            let frac: CGFloat = 0.12
-            let br = baseVal * (1.0 - frac) + tr * frac
-            let bg = baseVal * (1.0 - frac) + tg * frac
-            let bb = baseVal * (1.0 - frac) + tb * frac
-            return Color(.sRGB, red: Double(br), green: Double(bg), blue: Double(bb), opacity: 1.0)
-        }
     }
 
     var mainPanelTintOverlay: Color {

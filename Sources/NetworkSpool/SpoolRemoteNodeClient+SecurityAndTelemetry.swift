@@ -423,27 +423,3 @@ public enum SpoolTelemetrySanitizer {
 }
 
 /// Reads a binary sector frame for LAN spooling (from temporary staging payload if present on disk, or big-endian frame header).
-func kroutonReadSpoolChunkBytes(chunkIndex: Int, chunkSize: Int) -> Data {
-    let stagingURL = FileManager.default.temporaryDirectory
-        .appendingPathComponent("KroutonDepotStaging", isDirectory: true)
-        .appendingPathComponent("Krouton_Master_Output.iso")
-    if FileManager.default.fileExists(atPath: stagingURL.path) {
-        do {
-            let handle = try FileHandle(forReadingFrom: stagingURL)
-            defer { try? handle.close() }
-            let offset = UInt64(max(0, chunkIndex) * max(512, chunkSize))
-            try handle.seek(toOffset: offset)
-            if let data = try handle.read(upToCount: max(512, chunkSize)), !data.isEmpty {
-                return data
-            }
-        } catch {
-            KroutonDiagnostics.networkLogger.error("Spool chunk read error at index \(chunkIndex): \(error.localizedDescription, privacy: .public)")
-        }
-    }
-    var sectorHeader = Data(count: max(64, min(4096, chunkSize)))
-    let idxBE = UInt32(max(0, chunkIndex)).bigEndian
-    withUnsafeBytes(of: idxBE) { raw in
-        for i in 0..<4 { sectorHeader[i] = raw[i] }
-    }
-    return sectorHeader
-}

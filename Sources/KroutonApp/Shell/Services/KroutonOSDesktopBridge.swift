@@ -49,23 +49,6 @@ enum KroutonOSDesktopBridge {
         try? p.run()
     }
 
-    @MainActor
-    static func printSwiftUIView<V: View>(_ view: V) {
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = 2.0
-        guard let cg = renderer.cgImage,
-              let data = CFDataCreateMutable(nil, 0),
-              let dst = CGImageDestinationCreateWithData(data, UTType.png.identifier as CFString, 1, nil) else { return }
-        CGImageDestinationAddImage(dst, cg, nil)
-        guard CGImageDestinationFinalize(dst) else { return }
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Krouton-Print.png")
-        try? (data as Data).write(to: url, options: .atomic)
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        p.arguments = ["-a", "Preview", url.path]
-        try? p.run()
-    }
-
     static func isSystemDarkMode() -> Bool {
         UserDefaults.standard.string(forKey: "AppleInterfaceStyle") == "Dark"
     }
