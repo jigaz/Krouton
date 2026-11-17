@@ -7,7 +7,7 @@ import Foundation
 // MARK: - KroutonBurnPreflight
 
 public enum KroutonDriveIdentity {
-    public static func baseID(vendor: String, product: String, firmware: String) -> String {
+    static func baseID(vendor: String, product: String, firmware: String) -> String {
         "\(vendor)-\(product)-\(firmware)"
     }
 

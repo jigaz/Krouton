@@ -9,11 +9,11 @@ public struct AVCHDClipDescriptor: Sendable, Equatable {
     public let videoBitrateKbps: Int
     public let is1080p: Bool
 
-    public var clipName5Chars: String {
+    var clipName5Chars: String {
         String(format: "%05d", max(0, min(99_999, clipIndex)))
     }
 
-    public var sourcePacketCount192B: UInt32 {
+    var sourcePacketCount192B: UInt32 {
         UInt32(max(1, m2tsByteSize / 192))
     }
 
@@ -33,19 +33,19 @@ public struct AVCHDClipDescriptor: Sendable, Equatable {
 }
 
 public struct AVCHDDiscStructureOutput: Sendable, Equatable {
-    public let rootDirectory: URL
-    public let bdmvDirectory: URL
-    public let certificateDirectory: URL
+    let rootDirectory: URL
+    let bdmvDirectory: URL
+    let certificateDirectory: URL
     public let clips: [AVCHDClipDescriptor]
-    public let totalM2TSBytes: Int64
+    let totalM2TSBytes: Int64
 }
 
 public enum AVCHDOnDVDAuthoringEngine {
     /// Red-laser DVD-R / DVD+R maximum safe AVCHD bitrate (18,000 kbps = 18 Mbps)
-    public static let maxAVCHDOnDVDBitrateKbps: Int = 18_000
+    static let maxAVCHDOnDVDBitrateKbps: Int = 18_000
     /// Standard Blu-ray / AVCHD 45 kHz presentation timestamp clock
-    public static let clock45kHz: Double = 45_000.0
-    public static let defaultInTime45kHz: UInt32 = 9_000 // 0.200 s
+    static let clock45kHz: Double = 45_000.0
+    static let defaultInTime45kHz: UInt32 = 9_000 // 0.200 s
 
     // MARK: - Binary BDMV Generators (INDX0100, MOBJ0100, MPLS0100, HDMV0100)
 
@@ -306,7 +306,7 @@ public enum AVCHDOnDVDAuthoringEngine {
 
     /// Transcodes staged video files into 18 Mbps (or custom capped) H.264 + AC-3 192-byte `.m2ts`
     /// streams and generates the complete `BDMV` + `CERTIFICATE` directory tree for DVD-5 / DVD-9 burning.
-    public static func authorAVCHDOnDVDTree(
+    static func authorAVCHDOnDVDTree(
         sourceVideoFiles: [URL],
         outputRootDirectory: URL,
         maxVideoBitrateKbps: Int = maxAVCHDOnDVDBitrateKbps,

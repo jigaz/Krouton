@@ -139,7 +139,7 @@ public enum FilenameTitleGuess {
 }
 
 /// Merge order: later sources only fill gaps left by earlier ones.
-public func mergeMetadata(_ candidates: TrackMetadata...) -> TrackMetadata {
+func mergeMetadata(_ candidates: TrackMetadata...) -> TrackMetadata {
     var merged = TrackMetadata()
     for candidate in candidates {
         merged.title = merged.title ?? candidate.title
@@ -187,7 +187,7 @@ public enum LoudnessMeter {
     /// Plain loops: fine for the 10-30 s windows around a transition. For whole
     /// albums, run it when files are staged, off the main actor, or swap the inner
     /// loop for vDSP biquads.
-    public static func integratedLUFS(channels: [[Float]], sampleRate: Double) -> Double? {
+    static func integratedLUFS(channels: [[Float]], sampleRate: Double) -> Double? {
         guard let frameCount = channels.map(\.count).min(), !channels.isEmpty else { return nil }
         let block = Int((0.4 * sampleRate).rounded()), hop = Int((0.1 * sampleRate).rounded())
         guard frameCount >= block else { return nil }
@@ -225,7 +225,7 @@ public enum LoudnessMeter {
     /// to the incoming track so the two sit at the same loudness.
     /// Returns nil when either side cannot be measured, in which case apply nothing
     /// and show the toggle as unavailable.
-    public static func gainMatchOffsetDB(outgoingTailLUFS: Double?, incomingHeadLUFS: Double?, limit: Double = 6) -> Double? {
+    static func gainMatchOffsetDB(outgoingTailLUFS: Double?, incomingHeadLUFS: Double?, limit: Double = 6) -> Double? {
         guard let out = outgoingTailLUFS, let incoming = incomingHeadLUFS else { return nil }
         return min(limit, max(-limit, out - incoming))
     }
@@ -246,7 +246,7 @@ public enum LoudnessMeter {
 ///
 /// `outgoing` and `incoming` are the overlap region of each track, same length,
 /// one channel. Run per channel and take the maximum.
-public func predictedOverlapPeak(
+func predictedOverlapPeak(
     outgoing: [Float], incoming: [Float],
     gainOut: (Double) -> Double, gainIn: (Double) -> Double
 ) -> Double {
@@ -273,11 +273,11 @@ public func predictedOverlapPeak(
 /// touches about one bucket per horizontal point.
 public struct PeakPyramid: Sendable {
     public struct Level: Sendable {
-        public let framesPerBucket: Int
-        public let minima: [Float]
+        let framesPerBucket: Int
+        let minima: [Float]
         public let maxima: [Float]
     }
-    public static let samplesPerRedBookFrame = 588
+    static let samplesPerRedBookFrame = 588
     public let levels: [Level]
 
     /// `mono` is the channel-averaged signal resampled to 44.1 kHz. Build this once

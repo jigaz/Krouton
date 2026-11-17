@@ -220,10 +220,10 @@ extension SpoolRemoteNodeClient {
 
 // MARK: - Chunk 1: Krumb LAN Security Engine (RFC-1918 Subnet Guard + HMAC-SHA256 + Replay Protection)
 public struct SpoolSignedEnvelope: Codable, Sendable, Equatable {
-    public let timestampEpochSeconds: Int64
-    public let nonce: String
-    public let signatureHex: String
-    public let payloadBase64: String
+    let timestampEpochSeconds: Int64
+    let nonce: String
+    let signatureHex: String
+    let payloadBase64: String
 
     public init(timestampEpochSeconds: Int64, nonce: String, signatureHex: String, payloadBase64: String) {
         self.timestampEpochSeconds = timestampEpochSeconds
@@ -234,7 +234,7 @@ public struct SpoolSignedEnvelope: Codable, Sendable, Equatable {
 }
 
 public enum SpoolLANSecurityEngine {
-    public static let maxClockSkewSeconds: Int64 = 30
+    static let maxClockSkewSeconds: Int64 = 30
 
     /// Validates that an endpoint host belongs strictly to loopback, mDNS (.local), or RFC-1918 / RFC-3927 private LAN ranges.
     public static func isAllowedLANEndpoint(_ rawEndpoint: String) -> Bool {
@@ -287,7 +287,7 @@ public enum SpoolLANSecurityEngine {
     }
 
     /// Computes a deterministic HMAC-SHA256 signature over `timestamp.nonce.payloadBase64`
-    public static func signPayload(
+    static func signPayload(
         _ payload: Data,
         sharedSecret: String,
         timestampEpochSeconds: Int64 = Int64(Date().timeIntervalSince1970),
@@ -307,7 +307,7 @@ public enum SpoolLANSecurityEngine {
     }
 
     /// Verifies HMAC-SHA256 authenticity, clock skew window (+/- 30s), and optional nonce replay set
-    public static func verifyEnvelope(
+    static func verifyEnvelope(
         _ envelope: SpoolSignedEnvelope,
         sharedSecret: String,
         nowEpochSeconds: Int64 = Int64(Date().timeIntervalSince1970),
@@ -423,7 +423,7 @@ public enum SpoolTelemetrySanitizer {
 }
 
 /// Reads a binary sector frame for LAN spooling (from temporary staging payload if present on disk, or big-endian frame header).
-public func kroutonReadSpoolChunkBytes(chunkIndex: Int, chunkSize: Int) -> Data {
+func kroutonReadSpoolChunkBytes(chunkIndex: Int, chunkSize: Int) -> Data {
     let stagingURL = FileManager.default.temporaryDirectory
         .appendingPathComponent("KroutonDepotStaging", isDirectory: true)
         .appendingPathComponent("Krouton_Master_Output.iso")

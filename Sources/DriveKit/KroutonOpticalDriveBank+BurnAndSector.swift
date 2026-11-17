@@ -150,7 +150,7 @@ extension KroutonOpticalDriveBank {
         }
     }
 
-    public static func inspectAudioTrack(url: URL, index: Int) -> KroutonRedBookTrack {
+    static func inspectAudioTrack(url: URL, index: Int) -> KroutonRedBookTrack {
         let rawTitle = url.deletingPathExtension().lastPathComponent
         var duration: Double = 212.0
         var sampleRate: Int = 44100
@@ -182,7 +182,7 @@ extension KroutonOpticalDriveBank {
     }
 
     // Stages a Car-Safe MP3/FLAC Folder Tree (Zero-padded 001_ prefixes + strips .DS_Store & ._AppleDouble files!)
-    public static func stageCarSafeAudioDirectory(tracks: [KroutonRedBookTrack], tempRoot: URL) throws -> [KroutonStagedFileEntry] {
+    static func stageCarSafeAudioDirectory(tracks: [KroutonRedBookTrack], tempRoot: URL) throws -> [KroutonStagedFileEntry] {
         let fm = FileManager.default
         try fm.createDirectory(at: tempRoot, withIntermediateDirectories: true)
         var staged: [KroutonStagedFileEntry] = []

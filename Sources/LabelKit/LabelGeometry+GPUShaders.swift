@@ -49,7 +49,7 @@ extension KroutonLabelGeometryEngine {
         return layers
     }
 
-    public static func simplifyPointsRDP(_ points: [KroutonNormalizedPoint], epsilon: Double) -> [KroutonNormalizedPoint] {
+    static func simplifyPointsRDP(_ points: [KroutonNormalizedPoint], epsilon: Double) -> [KroutonNormalizedPoint] {
         guard points.count > 2 else { return points }
         var maxDist = 0.0
         var index = 0

@@ -4,9 +4,9 @@ import OpticalCore
 public struct KroutonCDTextPack: Sendable, Equatable {
     public let packType: UInt8       // 0x80 = Title, 0x81 = Performer, 0x8E = UPC/ISRC
     public let trackNumber: UInt8    // 0 = Album-level, 1..99 = Track-level
-    public let sequenceNumber: UInt8
-    public let blockAndCharPos: UInt8
-    public let payload12Bytes: [UInt8]
+    let sequenceNumber: UInt8
+    let blockAndCharPos: UInt8
+    let payload12Bytes: [UInt8]
     public let crc16Inverted: UInt16 // Inverted CRC-16 CCITT (poly 0x1021)
 
     public var raw18Bytes: [UInt8] {
@@ -194,13 +194,13 @@ public struct KroutonTrackTransitionSpec: Identifiable, Hashable, Codable, Senda
     public var fadeInCurve: KroutonCrossfadeCurve
     public var curveTension: Double        // -1.0 (Concave Dip) .. 0.0 .. +1.0 (Convex Boost)
     public var spliceIndex01Ratio: Double  // 0.15 .. 0.85 position of Red Book INDEX 01 marker
-    public var outgoingTrimDB: Double      // -12.0 .. +6.0 dB
-    public var incomingTrimDB: Double      // -12.0 .. +6.0 dB
-    public var asymmetricUnlinked: Bool
-    public var fadeOutStartRatio: Double   // 0.0 .. 0.45
-    public var fadeInEndRatio: Double      // 0.55 .. 1.0
-    public var spectralTransientTint: Bool
-    public var gainMatchLUFS: Bool
+    var outgoingTrimDB: Double      // -12.0 .. +6.0 dB
+    var incomingTrimDB: Double      // -12.0 .. +6.0 dB
+    var asymmetricUnlinked: Bool
+    var fadeOutStartRatio: Double   // 0.0 .. 0.45
+    var fadeInEndRatio: Double      // 0.55 .. 1.0
+    var spectralTransientTint: Bool
+    var gainMatchLUFS: Bool
     public var subIndexRatios: [Double]
     public var fadeOutMidTrim: Double?
     public var fadeInMidTrim: Double?
@@ -275,7 +275,7 @@ public struct KroutonTrackTransitionSpec: Identifiable, Hashable, Codable, Senda
     public var overlapRedBookFrames: Int64 { Int64((overlapSeconds * 75.0).rounded()) }
     public var preGapRedBookFrames: Int64 { isCrossfading ? 0 : Int64((preGapSeconds * 75.0).rounded()) }
 
-    public func predictedPeak(outgoing: [Float], incoming: [Float]) -> Double {
+    func predictedPeak(outgoing: [Float], incoming: [Float]) -> Double {
         predictedOverlapPeak(
             outgoing: outgoing,
             incoming: incoming,
@@ -284,7 +284,7 @@ public struct KroutonTrackTransitionSpec: Identifiable, Hashable, Codable, Senda
         )
     }
 
-    public var badgeSummary: String {
+    var badgeSummary: String {
         if isCrossfading {
             return String(format: "%.1fs X-Fade (%@)", overlapSeconds, fadeOutCurve == fadeInCurve ? fadeOutCurve.rawValue.components(separatedBy: " ").first ?? "EqPwr" : "Asym")
         } else if preGapSeconds <= 0.01 {
@@ -301,7 +301,7 @@ public struct KroutonIdentifiedTrackMetadata: Sendable, Equatable {
     public let title: String
     public let performer: String
     public let isrcCode: String
-    public let confidenceSource: String
+    let confidenceSource: String
 }
 
 public enum KroutonTrackAutoIdentifier {

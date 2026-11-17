@@ -10,14 +10,14 @@ public enum KroutonDiscHubGeometry: String, Codable, Sendable, CaseIterable {
     case fullFace120mmHub22mm     = "Full-Face Inkjet 120mm (22mm Micro Hub)"
     case miniDisc80mmHub22mm      = "Mini Optical 80mm Disc (22mm Hub)"
 
-    public var outerPrintDiameterMM: Double {
+    var outerPrintDiameterMM: Double {
         switch self {
         case .standard120mmHub41mm, .fullFace120mmHub22mm: return 118.0
         case .miniDisc80mmHub22mm: return 78.0
         }
     }
 
-    public var innerHubDiameterMM: Double {
+    var innerHubDiameterMM: Double {
         switch self {
         case .standard120mmHub41mm: return 41.0
         case .fullFace120mmHub22mm, .miniDisc80mmHub22mm: return 22.0
@@ -33,10 +33,10 @@ public enum KroutonDiscHubGeometry: String, Codable, Sendable, CaseIterable {
 public struct KroutonPolarArcGlyphPlacement: Sendable, Equatable, Identifiable {
     public let id: Int
     public let character: String
-    public let xPoints: Double
-    public let yPoints: Double
-    public let angleRadians: Double
-    public let tangentRotationRadians: Double
+    let xPoints: Double
+    let yPoints: Double
+    let angleRadians: Double
+    let tangentRotationRadians: Double
 }
 
 public struct KroutonLabelGeometryEngine {
@@ -84,7 +84,7 @@ public struct KroutonLabelGeometryEngine {
     }
 
     /// Hit-tests whether a Cartesian point (x, y) relative to disc center lies strictly within the printable ink annulus
-    public static func isPointInsidePrintableAnnulus(
+    static func isPointInsidePrintableAnnulus(
         dxMM: Double,
         dyMM: Double,
         geometry: KroutonDiscHubGeometry = .fullFace120mmHub22mm,

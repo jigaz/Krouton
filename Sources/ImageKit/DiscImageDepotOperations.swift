@@ -8,7 +8,7 @@ public struct DiscImageInspectionReport: Sendable, Equatable {
     public let fileName: String
     public let byteSize: Int64
     public let classification: KroutonDiscImageClassification
-    public let bootClassification: DiscImageBootClassification
+    let bootClassification: DiscImageBootClassification
     public let cueTracks: [KroutonDiscImageCueTrack]
     public let resolvedBinURL: URL?
 }
@@ -64,7 +64,7 @@ public enum DiscImageDepotOperations {
     }
 
     /// Resolves the `FILE "..." BINARY` path referenced inside a `.cue` sheet (or sibling `.bin`).
-    public static func resolveCompanionBinURL(forCueURL cueURL: URL, cueText: String) -> URL? {
+    static func resolveCompanionBinURL(forCueURL cueURL: URL, cueText: String) -> URL? {
         let dir = cueURL.deletingLastPathComponent()
         for rawLine in cueText.components(separatedBy: .newlines) {
             let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)

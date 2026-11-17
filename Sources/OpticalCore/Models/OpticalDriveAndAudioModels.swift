@@ -171,11 +171,11 @@ public struct KroutonOpticalDriveInfo: Identifiable, Hashable, Sendable {
         return String(format: "%02d:%02d:%02d (75 fps)", mins, secs, frames)
     }
 
-    public var totalCapacityBytes: Int64 {
+    var totalCapacityBytes: Int64 {
         max(1, freeBytes + usedBytes)
     }
 
-    public var usedFraction: Double {
+    var usedFraction: Double {
         if isMediaBlank { return 0.0 }
         let total = Double(max(1, freeBytes + usedBytes))
         return min(1.0, max(0.0, Double(usedBytes) / total))
@@ -293,8 +293,8 @@ public enum KroutonCDTextSanitizer {
 // Plays the final 2.5s of Track N -> INDEX 00 Pre-Gap (or Jam Crossfade) -> first 2.5s of Track N+1
 @MainActor
 public final class KroutonAudioPreviewEngine: ObservableObject {
-    @Published public var isAuditioning: Bool = false
-    @Published public var auditionStatusText: String = "Idle"
+    @Published var isAuditioning: Bool = false
+    @Published var auditionStatusText: String = "Idle"
     @Published public var auditioningTrackID: UUID? = nil
     private var playerA: AVAudioPlayer?
     private var playerB: AVAudioPlayer?
@@ -302,7 +302,7 @@ public final class KroutonAudioPreviewEngine: ObservableObject {
 
     public init() {}
 
-    public func stopAudition() {
+    func stopAudition() {
         auditionTimer?.invalidate()
         auditionTimer = nil
         playerA?.stop()
@@ -314,7 +314,7 @@ public final class KroutonAudioPreviewEngine: ObservableObject {
         auditionStatusText = "Idle"
     }
 
-    public func auditionTransition(from trackA: KroutonRedBookTrack, to trackB: KroutonRedBookTrack?) {
+    func auditionTransition(from trackA: KroutonRedBookTrack, to trackB: KroutonRedBookTrack?) {
         stopAudition()
         isAuditioning = true
         auditioningTrackID = trackA.id

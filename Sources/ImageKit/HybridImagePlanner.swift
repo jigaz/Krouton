@@ -6,9 +6,9 @@ import OpticalCore
 
 public struct KroutonHybridExtent: Sendable, Equatable, Identifiable {
     public let id: UUID
-    public let originalName: String
+    let originalName: String
     public let iso9660Name: String
-    public let jolietName: String
+    let jolietName: String
     public let startLBA: Int64
     public let sectorCountLBA: Int64
     public let byteSize: Int64
@@ -33,7 +33,7 @@ public struct KroutonHybridLayoutPlan: Sendable, Equatable {
 public struct KroutonHybridImagePlanner {
     public static let version = "0.1.0-alpha.1"
     public static let sectorSize: Int64 = 2048
-    public static let iso9660FourGiBLimit: Int64 = 4_294_967_295
+    static let iso9660FourGiBLimit: Int64 = 4_294_967_295
 
     /// Normalizes a volume label to strict 32-char ECMA-119 d-characters (A-Z, 0-9, _)
     public static func sanitizeVolumeIdentifier(_ raw: String) -> String {
@@ -142,12 +142,12 @@ public struct KroutonHybridImagePlanner {
     }
 
     /// Computes an authentic FIPS 180-4 SHA-256 hex digest for a raw 2,048-byte ISO/UDF sector or file payload.
-    public static func computeBlockSHA256Hex(for data: Data) -> String {
+    static func computeBlockSHA256Hex(for data: Data) -> String {
         let digest = SHA256.hash(data: data)
         return "sha256:" + digest.map { String(format: "%02x", $0) }.joined()
     }
 
     /// El Torito Boot Record Volume Descriptor sits at LBA 17 and points to the Boot Catalog sector (LBA 18).
-    public static let elToritoBootRecordVolumeDescriptorLBA: Int = 17
-    public static let elToritoDefaultBootCatalogLBA: Int = 18
+    static let elToritoBootRecordVolumeDescriptorLBA: Int = 17
+    static let elToritoDefaultBootCatalogLBA: Int = 18
 }

@@ -24,13 +24,13 @@ public struct AutoLabelInputItem: Sendable {
 public struct AutoLabelComposition: Sendable {
     public let titleText: String
     public let subtitleText: String
-    public let rimBannerText: String
-    public let tracklistLines: [String]
-    public let artworkPNGData: Data?
-    public let artworkOffsetNormalized: CGSize
-    public let artworkScale: Double
-    public let primaryHex: String
-    public let secondaryHex: String
+    let rimBannerText: String
+    let tracklistLines: [String]
+    let artworkPNGData: Data?
+    let artworkOffsetNormalized: CGSize
+    let artworkScale: Double
+    let primaryHex: String
+    let secondaryHex: String
     public let summary: String
 
     public init(
@@ -119,7 +119,7 @@ public enum AutoLabelComposer {
 
     private static func secondaryHex(from hex: String) -> String { hex }
 
-    public static func harvestBestArtwork(from urls: [URL]) async -> CGImage? {
+    static func harvestBestArtwork(from urls: [URL]) async -> CGImage? {
         for url in urls {
             let ext = url.pathExtension.lowercased()
             if ["jpg", "jpeg", "png", "heic", "tiff", "webp"].contains(ext),
@@ -152,7 +152,7 @@ public enum AutoLabelComposer {
         return nil
     }
 
-    public static func computeCenterHoleSafePlacement(for image: CGImage) -> (offset: CGSize, scale: Double) {
+    static func computeCenterHoleSafePlacement(for image: CGImage) -> (offset: CGSize, scale: Double) {
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
         let req = VNGenerateAttentionBasedSaliencyImageRequest()
         try? handler.perform([req])
@@ -173,7 +173,7 @@ public enum AutoLabelComposer {
         return (.zero, 1.0)
     }
 
-    public static func extractDominantHexPair(from image: CGImage) -> (primary: String, secondary: String) {
+    static func extractDominantHexPair(from image: CGImage) -> (primary: String, secondary: String) {
         let w = 16, h = 16
         var pixels = [UInt8](repeating: 0, count: w * h * 4)
         guard let cs = CGColorSpace(name: CGColorSpace.sRGB),

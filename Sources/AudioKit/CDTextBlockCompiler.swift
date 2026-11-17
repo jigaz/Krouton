@@ -41,9 +41,9 @@ public struct CDTextInput: Sendable {
     public var album: [CDTextField: String]
     /// One dictionary per audio track, in disc order.
     public var tracks: [[CDTextField: String]]
-    public var firstTrackNumber: UInt8
+    var firstTrackNumber: UInt8
     /// 0x09 = English. See the language table in MMC-3 Annex J / EBU Tech 3264.
-    public var languageCode: UInt8
+    var languageCode: UInt8
 
     public init(
         album: [CDTextField: String],
@@ -65,11 +65,11 @@ public struct CDTextBlock: Sendable, Equatable {
     public let warnings: [String]
 
     /// Concatenated packs, as the drive expects them.
-    public var packBytes: [UInt8] { packs.flatMap { $0 } }
+    var packBytes: [UInt8] { packs.flatMap { $0 } }
 
     /// `.cdt` layout used by cdrecord's `textfile=`: a 4-byte READ TOC style header
     /// (big-endian length of everything after the length field, two reserved bytes).
-    public var cdtFileBytes: [UInt8] {
+    var cdtFileBytes: [UInt8] {
         let body = packBytes
         let length = body.count + 2
         return [UInt8((length >> 8) & 0xFF), UInt8(length & 0xFF), 0, 0] + body
@@ -194,7 +194,7 @@ public enum CDTextBlockCompiler {
     /// Note: the CD-TEXT character set differs from true ISO 8859-1 in a handful of
     /// code points. For Western European text they agree; test anything exotic on a
     /// real player.
-    public static func encodeLatin1(_ string: String) -> (bytes: [UInt8], lossy: Bool) {
+    static func encodeLatin1(_ string: String) -> (bytes: [UInt8], lossy: Bool) {
         var bytes: [UInt8] = []
         var lossy = false
         for scalar in string.precomposedStringWithCanonicalMapping.unicodeScalars {

@@ -97,7 +97,7 @@ public final class KroutonImageBuildCancellation: @unchecked Sendable {
 }
 
 public enum KroutonHybridImageBuilder {
-    public static let hdiutilURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
+    static let hdiutilURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
 
     /// Shortens a volume name to `limit` characters. When it has to cut, it keeps the
     /// last four characters so multi-disc suffixes such as "_D02" survive.

@@ -224,10 +224,10 @@ public struct KroutonMountedCDTrackDescriptor: Identifiable, Sendable, Equatable
     public let trackNumber: Int
     public let sourceAIFFURL: URL
     public let startBlockLBA: Int
-    public let frameCount75fps: Int
+    let frameCount75fps: Int
     public let durationMMSSFF: String
     public let byteSize: Int64
-    public let preEmphasis: Bool
+    let preEmphasis: Bool
     public var title: String
     public var performer: String
 }
@@ -236,7 +236,7 @@ public struct KroutonMountedAudioCDSnapshot: Sendable, Equatable {
     public let mountPath: String
     public let volumeName: String
     public let firstTrack: Int
-    public let lastTrack: Int
+    let lastTrack: Int
     public let leadoutBlockLBA: Int
     public let musicBrainzDiscID: String
     public var albumTitle: String

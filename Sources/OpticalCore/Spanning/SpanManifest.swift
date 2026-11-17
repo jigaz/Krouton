@@ -53,7 +53,7 @@ public struct SpanSetIndex: Codable, Sendable, Equatable {
             self.files = files
         }
     }
-    public let formatVersion: Int
+    let formatVersion: Int
     public let setIdentifier: String
     public let title: String
     public let createdAt: Date

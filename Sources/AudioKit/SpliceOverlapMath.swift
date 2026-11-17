@@ -60,7 +60,7 @@ public enum SpliceOverlapMath {
 public struct SpliceSubIndexDescriptor: Identifiable, Equatable, Sendable {
     public var id: Int { arrayIndex }
     /// Index into `spec.subIndexRatios` so drag gestures mutate the exact element
-    public let arrayIndex: Int
+    let arrayIndex: Int
     /// X coordinate in canvas space
     public let x: CGFloat
     /// Normalized canvas ratio (0.05 ... 0.95)
@@ -72,13 +72,13 @@ public struct SpliceSubIndexDescriptor: Identifiable, Equatable, Sendable {
 }
 
 public struct SpliceCanvasGeometry: Equatable, Sendable {
-    public static let restingLeft = 0.20
-    public static let restingRight = 0.80
-    public static let railTravel = 0.42
-    public static let baseTimelineSpanSeconds: Double = 34.0
-    public static let timelineSpanSeconds: Double = 34.0
+    static let restingLeft = 0.20
+    static let restingRight = 0.80
+    static let railTravel = 0.42
+    static let baseTimelineSpanSeconds: Double = 34.0
+    static let timelineSpanSeconds: Double = 34.0
     public static let rulerHeight: CGFloat = 24
-    public static let handleSlop: CGFloat = 10
+    static let handleSlop: CGFloat = 10
 
     public let size: CGSize
     public let horizontalZoom: Double
@@ -86,8 +86,8 @@ public struct SpliceCanvasGeometry: Equatable, Sendable {
     public let zoneX0: CGFloat
     public let zoneX1: CGFloat
     public let index01X: CGFloat
-    public let index01RatioInCanvas: Double
-    public let subIndexXs: [CGFloat]
+    let index01RatioInCanvas: Double
+    let subIndexXs: [CGFloat]
     public let subIndexDescriptors: [SpliceSubIndexDescriptor]
     public let centerHandle: CGPoint
     public let fadeOutMidAnchor: CGPoint
@@ -227,8 +227,8 @@ public struct SpliceDragSession: Equatable, Sendable {
 
     public let target: SpliceDragTarget
     public let startSpec: KroutonTrackTransitionSpec
-    public let startGeometry: SpliceCanvasGeometry
-    public let grabOffsetX: CGFloat
+    let startGeometry: SpliceCanvasGeometry
+    let grabOffsetX: CGFloat
     public private(set) var lockedAxis: Axis?
 
     public init?(start: CGPoint, spec: KroutonTrackTransitionSpec, geometry: SpliceCanvasGeometry) {

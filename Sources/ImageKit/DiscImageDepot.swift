@@ -34,7 +34,7 @@ public struct KroutonDiscImageDepot {
     ]
 
     /// Converts MM:SS:FF string into a Red Book / Yellow Book LBA sector index (75 frames/sec)
-    public static func parseMMSSFFToLBA(_ mmssff: String) -> Int64? {
+    static func parseMMSSFFToLBA(_ mmssff: String) -> Int64? {
         let parts = mmssff.trimmingCharacters(in: .whitespaces).split(separator: ":")
         guard parts.count == 3,
               let mm = Int64(parts[0]),
@@ -223,13 +223,13 @@ public struct KroutonSoftPatchSummary: Sendable, Equatable {
     public let patchFormat: KroutonSoftPatchFormat
     public let patchedSectorCount: Int
     public let edcChecksumHex: String
-    public let eccParityRegenerated: Bool
+    let eccParityRegenerated: Bool
     public let chdCompressionBadge: String
 }
 
 extension KroutonDiscImageDepot {
     /// Computes Yellow Book / CD-ROM XA 32-bit EDC checksum over a slice (polynomial 0xD8018001)
-    public static func computeCDRomEDC32<S: Sequence>(_ bytes: S) -> UInt32 where S.Element == UInt8 {
+    static func computeCDRomEDC32<S: Sequence>(_ bytes: S) -> UInt32 where S.Element == UInt8 {
         var edc: UInt32 = 0
         for b in bytes {
             edc ^= UInt32(b)
@@ -245,7 +245,7 @@ extension KroutonDiscImageDepot {
     }
 
     /// Recomputes Mode 2 Form 1 (2352-byte) 4-byte EDC [2072..<2076] and 276-byte Reed-Solomon P/Q ECC parity [2076..<2352]
-    public static func regenerateMode2Form1SectorEDCECC(_ rawSector2352: Data) -> Data {
+    static func regenerateMode2Form1SectorEDCECC(_ rawSector2352: Data) -> Data {
         var bytes = [UInt8](rawSector2352)
         if bytes.count < 2352 {
             bytes.append(contentsOf: repeatElement(0, count: 2352 - bytes.count))

@@ -82,8 +82,8 @@ public struct KroutonOpticalWorkflowSpec: Identifiable, Hashable, Sendable {
     public var bookOrFileSystem: String
     public var sfSymbol: String
     public var filterGroup: KroutonWorkflowFilterGroup
-    public var isMediaPlaylist: Bool
-    public var isDataDisc: Bool
+    var isMediaPlaylist: Bool
+    var isDataDisc: Bool
 
     public init(
         id: String,
@@ -202,7 +202,7 @@ extension KroutonOpticalWorkflowSpec {
         return "Files and folders"
     }
 
-    public var shortDisplayName: String {
+    var shortDisplayName: String {
         let t = technicalName
         if t.contains("Audio CD") || id == "audio-cdda" || id == "cd-da" { return "Audio CD" }
         if t.contains("ISO9660 / UDF Audio") || id == "audio-mp3" || id == "mp3-cd" { return "MP3 / FLAC CD" }

@@ -26,8 +26,8 @@ public struct TrackAnalysis: Sendable {
     /// Last `windowSeconds` of the track; the last element is the final frame.
     public let tailPeaks: FramePeaks
     /// BS.1770 loudness of each window, for gain matching across a transition.
-    public let headLUFS: Double?
-    public let tailLUFS: Double?
+    let headLUFS: Double?
+    let tailLUFS: Double?
     // Metadata exactly as found. Nil means the file did not say.
     public let title: String?
     public let performer: String?
@@ -51,7 +51,7 @@ public actor AudioAnalysisService {
     public static let shared = AudioAnalysisService()
 
     /// Must cover the longest crossfade (15 s) with margin.
-    public static let windowSeconds: Double = 35
+    static let windowSeconds: Double = 35
     private static let maxConcurrentDecodes = 4
 
     /// A changed file (same path, new size or date) is analysed again.
@@ -90,13 +90,13 @@ public actor AudioAnalysisService {
         return result
     }
 
-    public func forget(_ url: URL) {
+    func forget(_ url: URL) {
         cache = cache.filter { $0.key.path != url.path }
     }
 
     /// Pass 1 Fast Header Probe: Reads only the container header (sample rate + sample count)
     /// in < 1 ms without decoding PCM samples so multi-disc spanning has accurate lengths immediately.
-    public nonisolated static func probeHeaderDurationFrames(for url: URL) -> Int64? {
+    nonisolated static func probeHeaderDurationFrames(for url: URL) -> Int64? {
         guard let file = try? AVAudioFile(forReading: url) else { return nil }
         let rate = file.processingFormat.sampleRate
         let length = file.length

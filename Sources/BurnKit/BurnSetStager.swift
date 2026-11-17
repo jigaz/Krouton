@@ -66,7 +66,7 @@ public enum BurnSetStager {
 
     /// Streams `sourceURL` into `destinationURL` in 256 KiB chunks, updating a `SHA256` hasher
     /// on the exact bytes written so the file is read ONCE and cannot change between hashing and staging.
-    public static func copyAndHashSinglePass(from sourceURL: URL, to destinationURL: URL) throws -> (byteCount: Int64, sha256Hex: String) {
+    static func copyAndHashSinglePass(from sourceURL: URL, to destinationURL: URL) throws -> (byteCount: Int64, sha256Hex: String) {
         let fm = FileManager.default
         try fm.createDirectory(at: destinationURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         if fm.fileExists(atPath: destinationURL.path) {

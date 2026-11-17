@@ -23,10 +23,10 @@ import Foundation
 public struct RunMarker: Codable, Sendable, Equatable {
     public enum Phase: String, Codable, Sendable { case restoring, running }
     public var pid: Int32
-    public var launchedAt: Date
+    var launchedAt: Date
     public var phase: Phase
     /// Unclean exits in a row before this run started (0 after a clean quit).
-    public var consecutiveUncleanExits: Int
+    var consecutiveUncleanExits: Int
 }
 
 public enum LaunchVerdict: Sendable, Equatable {
@@ -150,8 +150,8 @@ public func restoreDecision(verdict: LaunchVerdict, hasSnapshot: Bool, rememberS
 // MARK: - FileReference
 
 public struct FileReference: Codable, Sendable, Equatable {
-    public var bookmark: Data?
-    public var lastKnownPath: String
+    var bookmark: Data?
+    var lastKnownPath: String
 
     public enum Resolution: Sendable, Equatable {
         case found(URL)
@@ -334,7 +334,7 @@ public struct BurnJournalRecord: Codable, Sendable, Equatable {
 
         var isTerminal: Bool { self == .succeeded || self == .failed || self == .cancelled }
     }
-    public var jobID: UUID
+    var jobID: UUID
     public var at: Date
     public var phase: Phase
     public var deviceName: String     // e.g. "ASUS SBW-06D5H-U"

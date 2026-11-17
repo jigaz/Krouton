@@ -16,14 +16,14 @@ public final class SpoolRemoteNodeClient: ObservableObject {
         SpoolDiscoveredNode(id: "localhost", name: "Localhost (Port 7420)", hostPort: "localhost:7420", isSimulatedFallback: false)
     ]
     @Published public var remoteDrives: [SpoolRemoteDriveInfo] = []
-    @Published public var lastCalibration: SpoolDriveCalibrationResult? = nil
+    @Published var lastCalibration: SpoolDriveCalibrationResult? = nil
     @Published public var statusBannerText: String = "Spool Daemon Offline (Port 7420)"
-    @Published public var isDaemonReachable: Bool = false
-    @Published public var isWebSocketConnected: Bool = false
+    @Published var isDaemonReachable: Bool = false
+    @Published var isWebSocketConnected: Bool = false
     @Published public var isSpoolingImage: Bool = false
     @Published public var spoolProgressFraction: Double = 0.0
-    @Published public var lastBatchID: UUID = UUID()
-    @Published public var recentKitchenEvents: [String] = [
+    @Published var lastBatchID: UUID = UUID()
+    @Published var recentKitchenEvents: [String] = [
         "[mDNS] Listening for _krouton-spool._tcp.local. on Port 7420",
         "[SpoolCache] 1.0 GiB minimum free space rule armed",
         "[DriveBank] 2500ms staggered spin-up breaker active"
@@ -175,7 +175,7 @@ public final class SpoolRemoteNodeClient: ObservableObject {
         appendEventLog("POST /api/v1/spool/calibrate failed on \(normalizedHostPort(from: target))")
     }
 
-    public func connectKitchenWebSocket(endpoint: String? = nil, driveManager: (any KroutonDriveTelemetryStore)? = nil, targetDriveKey: String = "network-spool-drive") {
+    func connectKitchenWebSocket(endpoint: String? = nil, driveManager: (any KroutonDriveTelemetryStore)? = nil, targetDriveKey: String = "network-spool-drive") {
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         let hostPort = normalizedHostPort(from: endpoint ?? activeEndpointHost)
         guard let wsURL = URL(string: "ws://\(hostPort)/api/v1/spool/events") else { return }
@@ -214,7 +214,7 @@ public final class SpoolRemoteNodeClient: ObservableObject {
         }
     }
 
-    public func applySpoolEventToTelemetry(
+    func applySpoolEventToTelemetry(
         _ evt: SpoolNodeEventMessage,
         driveManager: (any KroutonDriveTelemetryStore)?,
         targetDriveKey: String

@@ -18,7 +18,7 @@ public final class KroutonBurnAbortSwitch: @unchecked Sendable {
 
     public init() {}
 
-    public var isRequested: Bool {
+    var isRequested: Bool {
         lock.lock(); defer { lock.unlock() }
         return requested
     }

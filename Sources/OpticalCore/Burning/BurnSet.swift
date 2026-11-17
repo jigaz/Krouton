@@ -96,8 +96,8 @@ public enum DiscJobState: Sendable, Equatable {
     case done(attempt: Int, drive: DriveID, mediaID: String)
     case failed(attempt: Int, failure: BurnFailure)
 
-    public var isFinished: Bool { if case .done = self { true } else { false } }
-    public var canStart: Bool {
+    var isFinished: Bool { if case .done = self { true } else { false } }
+    var canStart: Bool {
         switch self {
         case .pending, .failed: true
         case .inProgress, .done: false

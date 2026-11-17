@@ -79,7 +79,7 @@ public enum KroutonFinderTagColor: String, Codable, CaseIterable, Sendable {
     case purple = "Purple"
     case gray = "Gray"
 
-    public var finderLabelIndex: Int {
+    var finderLabelIndex: Int {
         switch self {
         case .none: return 0
         case .gray: return 1
@@ -134,11 +134,11 @@ public struct KroutonFinderLayoutBlueprint: Codable, Equatable, Sendable {
     // List view visible columns & options
     public var showDateModified: Bool
     public var showDateCreated: Bool
-    public var showDateLastOpened: Bool
-    public var showDateAdded: Bool
+    var showDateLastOpened: Bool
+    var showDateAdded: Bool
     public var showSize: Bool
     public var showKind: Bool
-    public var showVersion: Bool
+    var showVersion: Bool
     public var showComments: Bool
     public var showTags: Bool
     public var useRelativeDates: Bool
@@ -220,7 +220,7 @@ public struct KroutonFinderLayoutBlueprint: Codable, Equatable, Sendable {
 
     /// Computes deterministic icon grid `(x, y)` coordinates (or uses user-dragged positions)
     /// for every item in the disc root.
-    public func resolvedIconPositions(for itemNames: [String], canvasWidth: Int = 760) -> [(name: String, x: Int, y: Int)] {
+    func resolvedIconPositions(for itemNames: [String], canvasWidth: Int = 760) -> [(name: String, x: Int, y: Int)] {
         let cellW = max(90, Int(iconSize + gridSpacing))
         let cellH = max(84, Int(iconSize + (labelPosition == .bottom ? 46 : 26)))
         let cols = max(1, (canvasWidth - 64) / cellW)

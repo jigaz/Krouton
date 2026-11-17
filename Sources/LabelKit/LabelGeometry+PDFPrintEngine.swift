@@ -10,10 +10,10 @@ import UniformTypeIdentifiers
 
 extension KroutonLabelGeometryEngine {
     /// Exact PostScript/PDF points per physical millimeter (72 points/inch / 25.4 mm/inch)
-    public static let pointsPerMillimeter: CGFloat = 72.0 / 25.4
+    static let pointsPerMillimeter: CGFloat = 72.0 / 25.4
 
     /// Encodes a CGImage into 300-DPI PNG data with embedded DPI metadata.
-    public static func encodeCGImageToPNGData(_ cgImage: CGImage, dpi: Double = 300.0) -> Data? {
+    static func encodeCGImageToPNGData(_ cgImage: CGImage, dpi: Double = 300.0) -> Data? {
         guard let mutableData = CFDataCreateMutable(nil, 0),
               let dest = CGImageDestinationCreateWithData(
                   mutableData,
@@ -34,7 +34,7 @@ extension KroutonLabelGeometryEngine {
 
     /// Renders a 1:1 millimeter-calibrated US Letter (215.9 x 279.4 mm) PDF print sheet
     /// with outer rim clipping, inner hub hole punch-out, X/Y tray offsets, and crop crosshairs.
-    public static func renderCalibratedPrintSheetPDFData(
+    static func renderCalibratedPrintSheetPDFData(
         discCGImage: CGImage,
         presetName: String,
         outerDiameterMM: Double,

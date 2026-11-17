@@ -25,30 +25,30 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
     @Published public var activeJobDetail: String = ""
     @Published public var driveTelemetry: [String: KroutonDrivePhaseScopeTelemetry] = [:]
     @Published public var batchStates: [String: KroutonBatchBurnState] = [:]
-    @Published public var driveBookTypeOverrides: [String: String] = [:]
+    @Published var driveBookTypeOverrides: [String: String] = [:]
     var batchCountdownTimers: [String: Timer] = [:]
     var perDriveTimers: [String: Timer] = [:]
 
-    @Published public var neroSamples: [KroutonBurnTelemetrySample] = []
+    @Published var neroSamples: [KroutonBurnTelemetrySample] = []
     @Published public var currentSpeedX: Double = 0.0
     @Published public var currentSpeedKBs: Double = 0.0
     @Published public var peakSpeedX: Double = 0.0
     @Published public var averageSpeedX: Double = 0.0
     @Published public var currentSpindleRPM: Int = 0
     @Published public var currentSectorLBA: Int64 = 0
-    @Published public var totalTargetSectorsLBA: Int64 = 0
-    @Published public var driveBufferFillPercent: Double = 0.0
+    @Published var totalTargetSectorsLBA: Int64 = 0
+    @Published var driveBufferFillPercent: Double = 0.0
     @Published public var laserWavelengthText: String = "780 nm IR (CD)"
     @Published public var writeStrategyText: String = "P-CAV / CLV"
-    @Published public var activeTrackNumber: Int = 1
+    @Published var activeTrackNumber: Int = 1
     @Published public var elapsedSeconds: Int = 0
     @Published public var completionReport: KroutonBurnSessionReport? = nil
 
     var pollTimer: Timer?
     var activeBurnSession: KroutonActiveBurnSession?
     var activeEraseSession: KroutonActiveEraseSession?
-    public var burnMonitorTimer: Timer?
-    public var eraseMonitorTimer: Timer?
+    var burnMonitorTimer: Timer?
+    var eraseMonitorTimer: Timer?
     var jobStartTime: Date = Date()
 
     public init() {
@@ -67,7 +67,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
         }
     }
 
-    public static func formatHumanMediaType(_ raw: String) -> String {
+    static func formatHumanMediaType(_ raw: String) -> String {
         let u = raw.uppercased()
         if u.contains("CDRW") { return "CD-RW" }
         if u.contains("CDR") { return "CD-R" }
@@ -88,7 +88,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
         return stripped.isEmpty ? "Optical Media" : stripped
     }
 
-    public static func deduceMediaPhysics(mediaType: String, isErasable: Bool) -> (book: String, dye: String, laser: String, block: String) {
+    static func deduceMediaPhysics(mediaType: String, isErasable: Bool) -> (book: String, dye: String, laser: String, block: String) {
         if mediaType.contains("BD") {
             let book = isErasable ? "Blu-ray System Description BD-RE Part 1" : "Blu-ray System Description BD-R Part 1"
             let dye = isErasable ? "GeSbTe Phase-Change Recording Layer" : "HTL Inorganic / M-DISC Rock-Like Layer"
@@ -291,7 +291,7 @@ public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveContro
         }
     }
 
-    public func beginNewPhaseScopeEvent(
+    func beginNewPhaseScopeEvent(
         for driveID: String,
         driveName: String,
         eventTitle: String,

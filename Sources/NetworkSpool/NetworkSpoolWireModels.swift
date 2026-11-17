@@ -32,10 +32,10 @@ public typealias DrivePhaseScopeSample       = KroutonBurnTelemetrySample
 
 // MARK: - 2. Krumb LAN Daemon Constants & `crates/recipe` Wire Structs (Port 7420)
 public enum SpoolNetworkConstants {
-    public static let mdnsServiceType = "_krouton-spool._tcp"
-    public static let mdnsFullDomain  = "_krouton-spool._tcp.local."
-    public static let defaultPort: UInt16 = 7420
-    public static let minimumSpoolFreeBytes: UInt64 = 1_073_741_824 // >= 1 GiB free rule
+    static let mdnsServiceType = "_krouton-spool._tcp"
+    static let mdnsFullDomain  = "_krouton-spool._tcp.local."
+    static let defaultPort: UInt16 = 7420
+    static let minimumSpoolFreeBytes: UInt64 = 1_073_741_824 // >= 1 GiB free rule
 }
 
 public enum SpoolRackState: String, Codable, Sendable {
@@ -69,7 +69,7 @@ public struct SpoolDiscoveredNode: Identifiable, Hashable, Sendable {
     public let id: String
     public let name: String
     public let hostPort: String
-    public let isSimulatedFallback: Bool
+    let isSimulatedFallback: Bool
 
     public init(id: String, name: String, hostPort: String, isSimulatedFallback: Bool = false) {
         self.id = id
@@ -107,7 +107,7 @@ public struct SpoolMasteringOptions: Codable, Sendable {
     public var albumTitle: String
     public var performer: String
     public var songwriter: String?
-    public var upcEan: String?
+    var upcEan: String?
 
     enum CodingKeys: String, CodingKey {
         case albumTitle = "album_title"
@@ -130,7 +130,7 @@ public struct SpoolTrackPayload: Codable, Sendable {
     public var title: String
     public var performer: String
     public var isrc: String?
-    public var pregapMs: UInt32
+    var pregapMs: UInt32
 
     enum CodingKeys: String, CodingKey {
         case trackNumber = "track_number"
@@ -153,10 +153,10 @@ public struct SpoolTrackPayload: Codable, Sendable {
 
 public struct SpoolDriveCalibrationResult: Codable, Sendable {
     public let freeBytes: UInt64
-    public let maxSafeCdHeatX: UInt8
-    public let maxSafeDvdHeatX: UInt8
-    public let maxSafeBdHeatX: UInt8
-    public let canSustain16xDvd: Bool
+    let maxSafeCdHeatX: UInt8
+    let maxSafeDvdHeatX: UInt8
+    let maxSafeBdHeatX: UInt8
+    let canSustain16xDvd: Bool
 
     enum CodingKeys: String, CodingKey {
         case freeBytes        = "free_bytes"
@@ -176,8 +176,8 @@ public struct SpoolDriveCalibrationResult: Codable, Sendable {
 }
 
 public struct SpoolDriveSlotResponse: Codable, Sendable {
-    public let spoolJobId: UUID
-    public let spoolPath: String
+    let spoolJobId: UUID
+    let spoolPath: String
     public let freeBytes: UInt64
 
     enum CodingKeys: String, CodingKey {
@@ -189,14 +189,14 @@ public struct SpoolDriveSlotResponse: Codable, Sendable {
 
 public struct SpoolBurnRequest: Codable, Sendable {
     public let batchId: UUID
-    public let spoolJobId: UUID
-    public let driveIds: [String]
-    public let heatX: UInt8
+    let spoolJobId: UUID
+    let driveIds: [String]
+    let heatX: UInt8
     public let mode: SpoolBurnMode
     public let retentionPolicy: SpoolArtifactRetentionPolicy
-    public let masteringOptions: SpoolMasteringOptions?
-    public let cubes: [SpoolTrackPayload]
-    public let krutCoreSpec: KroutonKrutCoreSpec?
+    let masteringOptions: SpoolMasteringOptions?
+    let cubes: [SpoolTrackPayload]
+    let krutCoreSpec: KroutonKrutCoreSpec?
 
     enum CodingKeys: String, CodingKey {
         case batchId = "batch_id"
@@ -237,10 +237,10 @@ public struct SpoolNodeEventMessage: Codable, Sendable {
     public let event: String
     public let batchId: UUID?
     public let driveId: String?
-    public let currentCube: UInt8?
-    public let crispnessPct: Double?
-    public let butterBufferPct: Double?
-    public let heatX: Double?
+    let currentCube: UInt8?
+    let crispnessPct: Double?
+    let butterBufferPct: Double?
+    let heatX: Double?
     public let reason: String?
 
     enum CodingKeys: String, CodingKey {

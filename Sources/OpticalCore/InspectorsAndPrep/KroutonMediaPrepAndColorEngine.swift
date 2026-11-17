@@ -19,14 +19,14 @@ public enum KroutonHeatTier: String, Sendable {
 public struct KroutonStreamProbeResult: Identifiable, Hashable, Sendable {
     public let id = UUID()
     public let fileExtension: String
-    public let containerFormat: String
-    public let videoCodecName: String?
-    public let audioCodecName: String
-    public let subtitleSummary: String?
+    let containerFormat: String
+    let videoCodecName: String?
+    let audioCodecName: String
+    let subtitleSummary: String?
     public let accelerationTier: KroutonHeatTier
     public let shortHardwareBadge: String
     public let isHardwareAccelerated: Bool
-    public let targetMasteringPipeline: String
+    let targetMasteringPipeline: String
 
     public init(
         fileExtension: String,
@@ -393,7 +393,7 @@ public enum KroutonPureColorMath {
         return (h, s, v)
     }
 
-    public static func hsbToRGB(h: CGFloat, s: CGFloat, v: CGFloat) -> (r: CGFloat, g: CGFloat, b: CGFloat) {
+    static func hsbToRGB(h: CGFloat, s: CGFloat, v: CGFloat) -> (r: CGFloat, g: CGFloat, b: CGFloat) {
         let clampedS = max(0.0, min(1.0, s))
         let clampedV = max(0.0, min(1.0, v))
         if clampedS <= 0.00001 {

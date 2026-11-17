@@ -40,20 +40,20 @@ public enum KroutonRescueSectorStatus: String, Codable, Sendable, CaseIterable {
 }
 
 public struct KroutonOpticalRescueMapSnapshot: Sendable, Equatable {
-    public let buckets: [KroutonRescueSectorStatus]
+    let buckets: [KroutonRescueSectorStatus]
     public let totalSectorsLBA: Int64
-    public let healthyCount: Int
-    public let retriedCount: Int
-    public let c2InterpolatedCount: Int
-    public let zeroPaddedCount: Int
+    let healthyCount: Int
+    let retriedCount: Int
+    let c2InterpolatedCount: Int
+    let zeroPaddedCount: Int
 
-    public var recoveryIntegrityPercent: Double {
+    var recoveryIntegrityPercent: Double {
         guard !buckets.isEmpty else { return 100.0 }
         let goodWeight = Double(healthyCount) + Double(retriedCount) * 0.98 + Double(c2InterpolatedCount) * 0.85
         return min(100.0, max(0.0, (goodWeight / Double(buckets.count)) * 100.0))
     }
 
-    public func exportRescueMapLog(volumeName: String) -> String {
+    func exportRescueMapLog(volumeName: String) -> String {
         let stepLBA = max(1, totalSectorsLBA / Int64(max(1, buckets.count)))
         var lines = [
             "# KROUTON OPTICAL RESCUE SECTOR MAP (.MAP v1)",
@@ -72,10 +72,10 @@ public struct KroutonOpticalRescueMapSnapshot: Sendable, Equatable {
 
 public struct KroutonArchivalQualityCertificate: Sendable, Equatable {
     public let gradeBadge: String          // e.g. "A+ ARCHIVAL MASTER"
-    public let c1BlockErrorRate: Double    // BLER errors/sec (Red Book limit < 220)
-    public let c2UncorrectableCount: Int
-    public let servoJitterPercent: Double  // Ideal 4.2% .. 6.5%
-    public let radialStabilityScore: Double
+    let c1BlockErrorRate: Double    // BLER errors/sec (Red Book limit < 220)
+    let c2UncorrectableCount: Int
+    let servoJitterPercent: Double  // Ideal 4.2% .. 6.5%
+    let radialStabilityScore: Double
     public let summaryLine: String
     public let certificateText: String
 }

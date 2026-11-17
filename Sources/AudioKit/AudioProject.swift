@@ -40,12 +40,12 @@ public struct AudioTrack: DiscBreakableItem, Identifiable, Equatable, Codable, S
     public var startsNewDisc: Bool = false
     /// Metadata attached directly to a manual break (`startsNewDisc == true`) so inserting an earlier manual break
     /// never shifts or steals this disc's title onto different music!
-    public var manualDiscMetadata: KroutonDiscVolumeMetadata? = nil
+    var manualDiscMetadata: KroutonDiscVolumeMetadata? = nil
 
     /// Best known length in Red Book frames (`frameCount ?? probedFrameCount`). Nil if neither pass has completed.
-    public var effectiveFrameCount: Int64? { frameCount ?? probedFrameCount }
+    var effectiveFrameCount: Int64? { frameCount ?? probedFrameCount }
     /// True when length comes only from the Pass 1 header probe and Pass 2 sample verification is still in flight.
-    public var isLengthProvisional: Bool { frameCount == nil && probedFrameCount != nil }
+    var isLengthProvisional: Bool { frameCount == nil && probedFrameCount != nil }
 
     public init(id: UUID = UUID(), source: URL, title: String = "", performer: String = "",
                 frameCount: Int64? = nil, transitionToNext: KroutonTrackTransitionSpec) {
@@ -105,8 +105,8 @@ public enum AudioProjectIssue: Equatable, Sendable {
 }
 
 public struct AudioProject: Equatable, Codable, Sendable {
-    public static let minimumTrackFrames: Int64 = 300
-    public static let maximumTracks = 99
+    static let minimumTrackFrames: Int64 = 300
+    static let maximumTracks = 99
 
     public var albumTitle: String
     public var albumPerformer: String
@@ -184,7 +184,7 @@ public struct AudioProject: Equatable, Codable, Sendable {
 
     /// Moves a manual disc break divider from `oldFirstTrackID` to `newFirstTrackID`,
     /// transferring its `anchoredDiscMetadata` in the same edit so the disc title moves with the break.
-    public mutating func moveManualDiscBreak(from oldFirstTrackID: UUID, to newFirstTrackID: UUID) {
+    mutating func moveManualDiscBreak(from oldFirstTrackID: UUID, to newFirstTrackID: UUID) {
         guard oldFirstTrackID != newFirstTrackID,
               let oldIdx = index(of: oldFirstTrackID),
               let newIdx = index(of: newFirstTrackID),

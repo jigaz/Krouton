@@ -17,7 +17,7 @@ extension KroutonOpticalDriveBank {
     }
 
     // Scans ONLY the mounted volumes residing on the selected optical drive's BSD device (e.g. /dev/disk4 -> disk4 / disk4s1)
-    public static func scanMountedOpticalVolumes(bsdName: String?, isMediaPresent: Bool, isMediaBlank: Bool, usedBytes: Int64) -> [KroutonMountedDiscVolume] {
+    static func scanMountedOpticalVolumes(bsdName: String?, isMediaPresent: Bool, isMediaBlank: Bool, usedBytes: Int64) -> [KroutonMountedDiscVolume] {
         guard isMediaPresent && !isMediaBlank,
               let rawTargetBSD = bsdName?.trimmingCharacters(in: .whitespacesAndNewlines),
               !rawTargetBSD.isEmpty,
@@ -94,7 +94,7 @@ extension KroutonOpticalDriveBank {
         return results
     }
 
-    public static func formatHumanBurnState(_ rawState: String, isErase: Bool = false) -> String {
+    static func formatHumanBurnState(_ rawState: String, isErase: Bool = false) -> String {
         switch rawState {
         case DRStatusStatePreparing:
             return isErase ? "Preparing Optical Drive & Laser..." : "Calibrating Laser Power (OPC) & Preparing Track..."

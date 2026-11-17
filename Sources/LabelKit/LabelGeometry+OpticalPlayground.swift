@@ -146,7 +146,7 @@ extension KroutonLabelGeometryEngine {
 
     // MARK: - Stylized Procedural Object Chamber Dispatcher
 
-    public static func makePhysicalObjectChamberCIImage(
+    static func makePhysicalObjectChamberCIImage(
         pattern: KroutonGPUSeedPattern,
         primaryColor: KroutonRGBAColor,
         secondaryColor: KroutonRGBAColor,

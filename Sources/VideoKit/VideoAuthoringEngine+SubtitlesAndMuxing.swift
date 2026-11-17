@@ -14,7 +14,7 @@ public struct KroutonVideoChapterMarker: Identifiable, Hashable, Codable, Sendab
     public var id: Int { index }
     public let index: Int
     public let timestampText: String
-    public let startSeconds: Double
+    let startSeconds: Double
     public let pts90kHz: Int64
     public let title: String
 }
@@ -23,7 +23,7 @@ public struct KroutonStreamMuxDescriptor: Identifiable, Hashable, Codable, Senda
     public var id: UUID
     public var audioLanguageCode: String      // ISO 639-2: "eng", "jpn", "spa", "fra", "deu"
     public var audioDelayMs: Int              // -2000 ms .. +2000 ms PTS lip-sync offset
-    public var subtitleLanguageCode: String   // ISO 639-2
+    var subtitleLanguageCode: String   // ISO 639-2
     public var subtitleMode: KroutonSubtitleDeliveryMode
     public var forcedSubtitlesOnly: Bool
     public var chapterTimestampsRaw: String   // Pipe or newline separated "00:00:00 Intro | 00:05:30 Act I"
@@ -59,7 +59,7 @@ public struct KroutonStreamMuxDescriptor: Identifiable, Hashable, Codable, Senda
 
 extension KroutonVideoAuthoringEngine {
     /// Parses timestamp strings ("00:00:00 Opening | 00:05:30 Act I" or newline-separated) into 90 kHz PTS chapter markers
-    public static func compileTimestampChapters(_ raw: String) -> [KroutonVideoChapterMarker] {
+    static func compileTimestampChapters(_ raw: String) -> [KroutonVideoChapterMarker] {
         let chunks = raw
             .replacingOccurrences(of: "|", with: "\n")
             .split(whereSeparator: \.isNewline)

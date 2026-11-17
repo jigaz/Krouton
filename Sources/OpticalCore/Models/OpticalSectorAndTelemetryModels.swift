@@ -6,7 +6,7 @@ import SwiftUI
 
 // MARK: - Sprint 3 Part 2: UltraISO / PowerISO Bootable Sector 17 El Torito & Apple Partition Map Inspector
 public enum KroutonElToritoBootInspector {
-    public static func inspectDiscImageBootability(url: URL) -> String? {
+    static func inspectDiscImageBootability(url: URL) -> String? {
         let lower = url.lastPathComponent.lowercased()
         let isImage = lower.hasSuffix(".iso") || lower.hasSuffix(".img") || lower.hasSuffix(".dmg") || lower.hasSuffix(".cdr") || lower.hasSuffix(".toast") || lower.hasSuffix(".bin") || lower.hasSuffix(".rvz") || lower.hasSuffix(".gcm")
         guard isImage else { return nil }
@@ -133,7 +133,7 @@ public struct KroutonStagedFileEntry: Identifiable, Hashable, Sendable {
         name.count > 31
     }
 
-    public var bootabilityBadge: String? {
+    var bootabilityBadge: String? {
         KroutonElToritoBootInspector.inspectDiscImageBootability(url: url)
     }
 

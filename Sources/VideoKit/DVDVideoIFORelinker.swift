@@ -3,30 +3,30 @@ import Foundation
 // MARK: - DVD-Video Binary NV_PCK (DSI) & .IFO / .BUP Sector Table Relinker
 
 public struct DVDVideoRelinkedCellRange: Sendable, Equatable {
-    public let vobID: UInt16
+    let vobID: UInt16
     public let cellID: UInt8
-    public let startSector: UInt32
-    public let endSector: UInt32
+    let startSector: UInt32
+    let endSector: UInt32
 }
 
 public struct DVDVideoVTSLayout: Sendable, Equatable {
-    public let vtsNumber: Int
-    public let ifoSectors: UInt32
+    let vtsNumber: Int
+    let ifoSectors: UInt32
     public let menuVobSectors: UInt32
     public let titleVobSectors: UInt32
-    public var totalVTSSectors: UInt32 {
+    var totalVTSSectors: UInt32 {
         (ifoSectors * 2) + menuVobSectors + titleVobSectors
     }
 }
 
 public enum DVDVideoIFORelinker {
-    public static let sectorBytes = 2048
+    static let sectorBytes = 2048
     /// Spec limit per VOB file: 1 GiB minus 32 KiB (524,272 sectors)
-    public static let maxSingleVOBBytes = 524_272 * 2048
+    static let maxSingleVOBBytes = 524_272 * 2048
 
     // MARK: - Big-Endian Helpers
 
-    public static func readUInt16BE(_ bytes: [UInt8], at offset: Int) -> UInt16 {
+    static func readUInt16BE(_ bytes: [UInt8], at offset: Int) -> UInt16 {
         guard offset >= 0, offset + 2 <= bytes.count else { return 0 }
         return (UInt16(bytes[offset]) << 8) | UInt16(bytes[offset + 1])
     }
@@ -56,7 +56,7 @@ public enum DVDVideoIFORelinker {
     // MARK: - NV_PCK (Navigation Pack) Scanner & In-Place DSI Relinker
 
     /// Returns true if the 2048-byte pack at `packOffset` is a DVD-Video NV_PCK (PCI + DSI).
-    public static func isNavigationPack(_ bytes: [UInt8], at packOffset: Int) -> Bool {
+    static func isNavigationPack(_ bytes: [UInt8], at packOffset: Int) -> Bool {
         guard packOffset + sectorBytes <= bytes.count else { return false }
         // MPEG-2 Pack start code 0x000001BA + System header 0x000001BB at +14 + Private Stream 2 (PCI) 0x000001BF at +38
         return bytes[packOffset] == 0x00 && bytes[packOffset + 1] == 0x00
@@ -291,7 +291,7 @@ public enum DVDVideoIFORelinker {
     }
 
     /// Updates `VIDEO_TS.IFO` (`VMG_EA` and `TT_SRPT` `VTS_N_SA` start sectors) to match the relinked VTS sizes.
-    public static func relinkVideoManagerIFO(
+    static func relinkVideoManagerIFO(
         vmgIfoData: Data,
         vmgMenuVobSectors: UInt32,
         vtsLayouts: [DVDVideoVTSLayout]
@@ -331,7 +331,7 @@ public enum DVDVideoIFORelinker {
 
     // MARK: - Direct FFmpeg MPEG-2 Requantizer (Zero Shell)
 
-    public static func locateFFmpegExecutable() -> URL? {
+    static func locateFFmpegExecutable() -> URL? {
         for candidate in ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg"] {
             if FileManager.default.isExecutableFile(atPath: candidate) {
                 return URL(fileURLWithPath: candidate)
@@ -342,7 +342,7 @@ public enum DVDVideoIFORelinker {
 
     /// Re-encodes concatenated title VOBs to `targetVideoKbps` MPEG-2 (`-f vob`) while stream-copying
     /// all audio (`AC-3`, `DTS`, `LPCM`) and subpicture (`dvd_subtitle`) streams untouched.
-    public static func transcodeTitleVOBsToDVD5Bitrate(
+    static func transcodeTitleVOBsToDVD5Bitrate(
         ffmpegURL: URL,
         inputVOBFiles: [URL],
         outputCombinedVOBURL: URL,

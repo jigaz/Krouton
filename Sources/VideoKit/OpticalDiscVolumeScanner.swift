@@ -87,7 +87,7 @@ public enum OpticalDiscVolumeScanner {
 
     // MARK: - DVD-Video VIDEO_TS Title Set Scanner (VTS_XX_0.IFO + VTS_XX_1..9.VOB)
 
-    public static func scanVideoTSDirectory(videoTSDir: URL, volumeRoot: URL) -> ScannedOpticalVideoDisc {
+    static func scanVideoTSDirectory(videoTSDir: URL, volumeRoot: URL) -> ScannedOpticalVideoDisc {
         let fm = FileManager.default
         let children = (try? fm.contentsOfDirectory(at: videoTSDir, includingPropertiesForKeys: [.fileSizeKey], options: [.skipsHiddenFiles])) ?? []
 
@@ -160,7 +160,7 @@ public enum OpticalDiscVolumeScanner {
     }
 
     /// Reads the BCD-encoded playback time (`HH:MM:SS:FF`) from a DVD-Video `VTS_XX_0.IFO` PGC header when present.
-    public static func parseIFOPGCDurationSeconds(ifoURL: URL) -> Int? {
+    static func parseIFOPGCDurationSeconds(ifoURL: URL) -> Int? {
         guard let data = try? Data(contentsOf: ifoURL), data.count >= 12,
               String(decoding: data.prefix(12), as: UTF8.self) == "DVDVIDEO-VTS" else {
             return nil
@@ -187,7 +187,7 @@ public enum OpticalDiscVolumeScanner {
 
     // MARK: - Blu-ray BDMV/STREAM Scanner (*.m2ts)
 
-    public static func scanBDMVStreamDirectory(streamDir: URL, volumeRoot: URL) -> ScannedOpticalVideoDisc {
+    static func scanBDMVStreamDirectory(streamDir: URL, volumeRoot: URL) -> ScannedOpticalVideoDisc {
         let fm = FileManager.default
         let children = (try? fm.contentsOfDirectory(at: streamDir, includingPropertiesForKeys: [.fileSizeKey], options: [.skipsHiddenFiles])) ?? []
         let m2tsFiles = children
@@ -229,7 +229,7 @@ public enum OpticalDiscVolumeScanner {
 
     // MARK: - Generic Mounted Optical / Video Folder Scanner
 
-    public static func scanGenericOpticalVolume(volumeRoot: URL) -> ScannedOpticalVideoDisc {
+    static func scanGenericOpticalVolume(volumeRoot: URL) -> ScannedOpticalVideoDisc {
         let fm = FileManager.default
         let videoExts: Set<String> = ["mp4", "mov", "m4v", "mkv", "mpg", "mpeg", "vob", "m2ts", "ts", "avi"]
         var totalBytes: Int64 = 0
@@ -272,7 +272,7 @@ public enum OpticalDiscVolumeScanner {
         )
     }
 
-    public static func formatSecondsToHHMMSS(_ totalSeconds: Int) -> String {
+    static func formatSecondsToHHMMSS(_ totalSeconds: Int) -> String {
         let clamped = max(0, totalSeconds)
         let hh = clamped / 3600
         let mm = (clamped % 3600) / 60

@@ -22,7 +22,7 @@ public enum KroutonVideoTargetMedium: String, Codable, Sendable, CaseIterable {
     }
 
     /// Spec-mandated maximum elementary video stream bitrate in kbps
-    public var maxSpecVideoKbps: Int {
+    var maxSpecVideoKbps: Int {
         switch self {
         case .dvd5SingleLayer, .dvd9DualLayer: return 9_800
         case .bd25SingleLayer, .bd50DualLayer: return 40_000
@@ -40,7 +40,7 @@ public enum KroutonVideoTargetMedium: String, Codable, Sendable, CaseIterable {
 
 public struct KroutonVideoBitrateBudget: Sendable, Equatable {
     public let medium: KroutonVideoTargetMedium
-    public let totalDurationSeconds: Double
+    let totalDurationSeconds: Double
     public let audioBitrateKbps: Int
     public let usableVideoBytes: Int64
     public let targetVideoKbps: Int
@@ -51,7 +51,7 @@ public struct KroutonVideoBitrateBudget: Sendable, Equatable {
 }
 
 public struct KroutonDVD9ShrinkPlan: Sendable, Equatable {
-    public let sourceMainFeatureBytes: Int64
+    let sourceMainFeatureBytes: Int64
     public let sourceMenusAndExtrasBytes: Int64
     public let preserveMenusAndExtras: Bool
     public let targetUsableDVD5Bytes: Int64
@@ -158,7 +158,7 @@ public struct KroutonShrunkDVD5CellEntry: Sendable, Equatable, Identifiable {
     public let cellID: Int
     public let relinkedStartSectorLBA: Int64
     public let relinkedEndSectorLBA: Int64
-    public let shrunkSectorCountLBA: Int64
+    let shrunkSectorCountLBA: Int64
     public let seamlessPlaybackFlagSet: Bool // Always true on DVD-5 (removes the old DVD-9 layer-break freeze!)
 }
 
@@ -167,16 +167,16 @@ public struct KroutonDVD9MenuShrinkBlueprint: Sendable, Equatable {
     public let shrunkTotalBytes: Int64
     public let fitsStrictlyOnDVD5: Bool
     public let menuVobRetentionRatio: Double        // 0.92..1.00 (NAV packs & SPU button highlights 100% untouched)
-    public let mainFeatureDCTRatio: Double          // Exact MPEG-2 DCT requantization factor for VTS_01_1..N.VOB
+    let mainFeatureDCTRatio: Double          // Exact MPEG-2 DCT requantization factor for VTS_01_1..N.VOB
     public let navPacksAndButtonHighlightsIntact: Bool
-    public let ifoBup32KECCPaddingSectors: Int64    // >= 16 sectors (32 KiB) between IFO and BUP
+    let ifoBup32KECCPaddingSectors: Int64    // >= 16 sectors (32 KiB) between IFO and BUP
     public let layerBreakPauseRemoved: Bool         // Clears DVD-9 OTP layer-break freeze for single-layer DVD-5
     public let relinkedCells: [KroutonShrunkDVD5CellEntry]
 }
 
 extension KroutonVideoAuthoringEngine {
-    public static let dvd5SafeUsableSectors: Int64 = 2_260_677 // 98.5% of 2,295,104 DVD-5 sectors (~4.63 GB)
-    public static let dvdECCBlockSectors: Int64 = 16           // 32 KiB (16 x 2048B) hardware ECC block
+    static let dvd5SafeUsableSectors: Int64 = 2_260_677 // 98.5% of 2,295,104 DVD-5 sectors (~4.63 GB)
+    static let dvdECCBlockSectors: Int64 = 16           // 32 KiB (16 x 2048B) hardware ECC block
 
     /// Compiles a complete DVD-9 -> DVD-5 Menu-Preserving Shrink Blueprint:
     /// 1. Keeps all NV_PCK button highlight packets & SPU subpictures 100% intact.
@@ -248,7 +248,7 @@ extension KroutonVideoAuthoringEngine {
     /// `VTS_xx_0.IFO`, and a real relink has to rewrite the cell, VOBU and title tables too.
     /// Performs in-place binary patching of a DVD-Video `VTS_xx_0.IFO` buffer:
     /// updates the 32-bit big-endian start sector pointer at `0x00C4` and clears cell layer-break flags (`0x08`).
-    public static func patchVTSIFOBinarySectorPointers(
+    static func patchVTSIFOBinarySectorPointers(
         ifoData: Data,
         relocatedStartSectorLBA: UInt32,
         cellPlaybackFlagOffsets: [Int] = []
