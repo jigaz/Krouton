@@ -17,11 +17,11 @@ extension KroutonCopyAndRipWorkspaceView {
         if isAudioRipTask {
             if let liveCD = KroutonRealCDExtractor.scanMountedAudioCD(preferredMountPath: copySourceOverrideLabel) {
                 mountedCDSnapshot = liveCD
-                if cdTextAlbumTitle.isEmpty || cdTextAlbumTitle.hasPrefix("Audio CD") {
-                    cdTextAlbumTitle = liveCD.albumTitle
+                if store.cdTextAlbumTitle.isEmpty || store.cdTextAlbumTitle.hasPrefix("Audio CD") {
+                    store.cdTextAlbumTitle = liveCD.albumTitle
                 }
                 if !liveCD.albumPerformer.isEmpty {
-                    cdTextAlbumPerformer = liveCD.albumPerformer
+                    store.cdTextAlbumPerformer = liveCD.albumPerformer
                 }
                 audioRipTracks = liveCD.tracks.map { t in
                     KroutonRipTrackItem(
@@ -89,14 +89,14 @@ extension KroutonCopyAndRipWorkspaceView {
                     return
                 }
                 if let title = firstRel["title"] as? String, !title.isEmpty {
-                    self.cdTextAlbumTitle = title
+                    self.store.cdTextAlbumTitle = title
                 }
                 if let dateStr = firstRel["date"] as? String, !dateStr.isEmpty {
                     self.cdInfoYear = String(dateStr.prefix(4))
                 }
                 if let credits = firstRel["artist-credit"] as? [[String: Any]],
                    let firstArtist = credits.first?["name"] as? String {
-                    self.cdTextAlbumPerformer = firstArtist
+                    self.store.cdTextAlbumPerformer = firstArtist
                 }
                 if let media = firstRel["media"] as? [[String: Any]],
                    let tracks = media.first?["tracks"] as? [[String: Any]] {
@@ -108,7 +108,7 @@ extension KroutonCopyAndRipWorkspaceView {
                         }
                     }
                 }
-                self.copyStatusBanner = "Matched MusicBrainz Release: \(self.cdTextAlbumPerformer) — \(self.cdTextAlbumTitle)"
+                self.copyStatusBanner = "Matched MusicBrainz Release: \(self.store.cdTextAlbumPerformer) — \(self.store.cdTextAlbumTitle)"
             }
         }.resume()
     }
@@ -134,12 +134,12 @@ extension KroutonCopyAndRipWorkspaceView {
         }
         let expandedBase = (copyOutputFolderPath as NSString).expandingTildeInPath
         let baseRoot = expandedBase.hasPrefix("/Volumes/Audio CD") ? ("~/Music/Krouton Rips" as NSString).expandingTildeInPath : expandedBase
-        let safeAlbum = cdTextAlbumTitle.replacingOccurrences(of: "/", with: "-").trimmingCharacters(in: .whitespacesAndNewlines)
+        let safeAlbum = store.cdTextAlbumTitle.replacingOccurrences(of: "/", with: "-").trimmingCharacters(in: .whitespacesAndNewlines)
         let outDir = URL(fileURLWithPath: baseRoot).appendingPathComponent(safeAlbum.isEmpty ? "Audio CD Rip" : safeAlbum)
         let chosenCodec = audioRipCodec
         let writeCueLog = audioRipGenerateCueLog
-        let albTitle = cdTextAlbumTitle
-        let albPerf = cdTextAlbumPerformer
+        let albTitle = store.cdTextAlbumTitle
+        let albPerf = store.cdTextAlbumPerformer
         let token = KroutonRipCancelToken()
         ripCancelToken = token
         isRippingCD = true

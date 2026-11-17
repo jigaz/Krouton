@@ -239,9 +239,7 @@ struct KroutonWorkspaceCommands: Commands {
                     wm.store.executeSingleDestination(
                         item,
                         driveManager: wm.driveManager,
-                        primarySelectedDrive: primaryDrive,
-                        enableCustomFinderLayoutTab: false,
-                        finderIconSize: 96.0
+                        primarySelectedDrive: primaryDrive
                     )
                 }
             }

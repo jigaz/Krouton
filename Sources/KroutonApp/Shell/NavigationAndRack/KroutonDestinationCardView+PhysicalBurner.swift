@@ -213,7 +213,7 @@ extension KroutonDestinationCardView {
                                         driveID: activeCardDriveID,
                                         countdownSeconds: store.autoLoadCountdownSeconds
                                     ) {
-                                        store.executeSingleDestination(item, driveManager: driveManager, primarySelectedDrive: primarySelectedDrive, enableCustomFinderLayoutTab: enableCustomFinderLayoutTab, finderIconSize: finderIconSize)
+                                        store.executeSingleDestination(item, driveManager: driveManager, primarySelectedDrive: primarySelectedDrive)
                                     }
                                 } label: {
                                     Text("Simulate Blank Disc Insert (\(store.autoLoadCountdownSeconds)s)")

@@ -19,10 +19,6 @@ struct KroutonCopyAndRipWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
     let primarySelectedDrive: KroutonOpticalDriveInfo?
     let isCenterWorkspaceNarrow: Bool
-    @Binding var fitToDiscDVD9Shrink: Bool
-    @Binding var preserveMenusAndExtras: Bool
-    @Binding var cdTextAlbumTitle: String
-    @Binding var cdTextAlbumPerformer: String
 
     @State var audioRipCodec: String = "FLAC (Lossless)"
     @State var audioRipAccurateRip: Bool = true
@@ -259,13 +255,13 @@ struct KroutonCopyAndRipWorkspaceView: View {
 
     var shrinkDVDVideoWorkspaceDeck: some View {
         let sourceBytes = max(store.totalStagedBytes, scannedVideoDisc?.totalBytes ?? 0)
-        let plan = KroutonVideoAuthoringEngine.planDVD9ToDVD5Shrink(mainFeatureBytes: sourceBytes, menusAndExtrasBytes: 0, preserveMenusAndExtras: preserveMenusAndExtras)
+        let plan = KroutonVideoAuthoringEngine.planDVD9ToDVD5Shrink(mainFeatureBytes: sourceBytes, menusAndExtrasBytes: 0, preserveMenusAndExtras: store.preserveMenusAndExtras)
         return VStack(alignment: .leading, spacing: 10) {
             KroutonMasteringDeckCard(store: store) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 14) {
-                        Toggle(KroutonL10n.tr("Fit Dual-Layer DVD-9 (8.5 GB) onto Single-Layer DVD-5 (4.7 GB)"), isOn: $fitToDiscDVD9Shrink).toggleStyle(.checkbox).font(.caption.bold())
-                        Toggle(KroutonL10n.tr("Preserve Interactive Menus & Subpictures"), isOn: $preserveMenusAndExtras).toggleStyle(.checkbox).font(.caption)
+                        Toggle(KroutonL10n.tr("Fit Dual-Layer DVD-9 (8.5 GB) onto Single-Layer DVD-5 (4.7 GB)"), isOn: $store.fitToDiscDVD9Shrink).toggleStyle(.checkbox).font(.caption.bold())
+                        Toggle(KroutonL10n.tr("Preserve Interactive Menus & Subpictures"), isOn: $store.preserveMenusAndExtras).toggleStyle(.checkbox).font(.caption)
                         Spacer()
                     }
                     Text(String(format: "VideoKit Requantizer Ratio: %.1f%% • Output: %.2f GB • Requantize: %@", plan.requantizationRatio * 100.0, Double(plan.estimatedOutputBytes) / 1_000_000_000.0, plan.requiresRequantization ? "ACTIVE" : "PASSTHROUGH"))

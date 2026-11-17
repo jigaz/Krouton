@@ -66,6 +66,12 @@ final class KroutonStateStore: ObservableObject {
     @Published var includeJolietNames: Bool = true
     @Published var allowATIPOverburn: Bool = false
     @Published var dualLayerBreakSectorLBA: Int64 = 2_086_912
+    @Published var enableCustomFinderLayoutTab: Bool = false
+    @Published var finderIconSize: Double = 256
+    @Published var fitToDiscDVD9Shrink: Bool = true
+    @Published var preserveMenusAndExtras: Bool = true
+    @Published var cdTextAlbumTitle: String = ""
+    @Published var cdTextAlbumPerformer: String = ""
     @Published var discVolumeTitle: String = ""
     @Published var dataTargetDiscMedium: KroutonSpanningDiscMedium = .dvd5Single
     @Published var targetDiscMediumByTask: [String: KroutonSpanningDiscMedium] = [:]

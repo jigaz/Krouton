@@ -19,8 +19,6 @@ import VideoKit
 struct KroutonDataAndArchivalWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
     let activeSpec: KroutonOpticalWorkflowSpec
-    @Binding var enableCustomFinderLayoutTab: Bool
-    @Binding var finderIconSize: Double
     @Binding var isDropTargeted: Bool
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 
@@ -49,7 +47,7 @@ struct KroutonDataAndArchivalWorkspaceView: View {
         let isUniversalHybrid = (activeSpec.id == "data-hybrid" || activeSpec.id == "mdisc-vault")
         let isRetro83 = (activeSpec.id == "data-retro-iso")
         Group {
-            if activeDataWorkspaceTab == 1 && enableCustomFinderLayoutTab {
+            if activeDataWorkspaceTab == 1 && store.enableCustomFinderLayoutTab {
                 KroutonFinderDiscStageView(
                     store: store,
                     blueprint: $store.finderLayoutBlueprint,

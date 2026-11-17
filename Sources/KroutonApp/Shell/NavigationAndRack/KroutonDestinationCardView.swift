@@ -13,8 +13,6 @@ struct KroutonDestinationCardView: View {
     @ObservedObject var spoolClient: SpoolRemoteNodeClient = .shared
     let item: KroutonBakeBatchItem
     let isRightQueueCompact: Bool
-    let enableCustomFinderLayoutTab: Bool
-    let finderIconSize: Double
     let primarySelectedDrive: KroutonOpticalDriveInfo?
 
     @State var activeDiscPopoverCardID: UUID? = nil
@@ -93,7 +91,7 @@ struct KroutonDestinationCardView: View {
                 // (avoids duplicating the primary green action button at the bottom of the column!)
                 if store.destinationQueue.count > 1 {
                     Button {
-                        store.executeSingleDestination(item, driveManager: driveManager, primarySelectedDrive: primarySelectedDrive, enableCustomFinderLayoutTab: enableCustomFinderLayoutTab, finderIconSize: finderIconSize)
+                        store.executeSingleDestination(item, driveManager: driveManager, primarySelectedDrive: primarySelectedDrive)
                     } label: {
                         HStack(spacing: 5) {
                             Image(systemName: store.cardActionSymbol(for: item.kind))
@@ -134,7 +132,7 @@ struct KroutonDestinationCardView: View {
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(store.uiSecondaryAccent.opacity(0.35), lineWidth: 1))
         .contextMenu {
             Button(KroutonL10n.tr("Execute Only This Destination")) {
-                store.executeSingleDestination(item, driveManager: driveManager, primarySelectedDrive: primarySelectedDrive, enableCustomFinderLayoutTab: enableCustomFinderLayoutTab, finderIconSize: finderIconSize)
+                store.executeSingleDestination(item, driveManager: driveManager, primarySelectedDrive: primarySelectedDrive)
             }
             .keyboardShortcut("b", modifiers: .command)
             .disabled(driveManager.isExecutingQueue)

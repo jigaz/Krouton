@@ -14,9 +14,6 @@ struct KroutonRedBookAudioWorkspaceView: View {
 
     let spec: KroutonOpticalWorkflowSpec
     let isCenterWorkspaceNarrow: Bool
-    @Binding var cdTextAlbumTitle: String
-    @Binding var cdTextAlbumPerformer: String
-    @Binding var auditioningTrackID: UUID?
     @Binding var isDropTargeted: Bool
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 
@@ -72,13 +69,13 @@ struct KroutonRedBookAudioWorkspaceView: View {
         }
         .onChange(of: project.albumTitle) { _, newValue in
             if !newValue.isEmpty {
-                cdTextAlbumTitle = newValue
+                store.cdTextAlbumTitle = newValue
                 store.discVolumeTitle = newValue
             }
         }
         .onChange(of: project.albumPerformer) { _, newValue in
             if !newValue.isEmpty {
-                cdTextAlbumPerformer = newValue
+                store.cdTextAlbumPerformer = newValue
                 store.discPerformer = newValue
             }
         }

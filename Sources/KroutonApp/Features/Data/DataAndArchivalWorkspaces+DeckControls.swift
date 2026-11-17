@@ -139,12 +139,12 @@ extension KroutonDataAndArchivalWorkspaceView {
                         .onReceive(NotificationCenter.default.publisher(for: .kroutonMenuInspectHybridLBA)) { _ in showHybridLBAMapPopover = true }
 
                         if !isRetro83 {
-                            Toggle(KroutonL10n.tr("Customize Finder Layout"), isOn: $enableCustomFinderLayoutTab)
+                            Toggle(KroutonL10n.tr("Customize Finder Layout"), isOn: $store.enableCustomFinderLayoutTab)
                                 .toggleStyle(.checkbox)
                                 .font(.caption)
                                 .lineLimit(1)
                                 .fixedSize(horizontal: true, vertical: false)
-                                .onChange(of: enableCustomFinderLayoutTab) { _, enabled in
+                                .onChange(of: store.enableCustomFinderLayoutTab) { _, enabled in
                                     activeDataWorkspaceTab = enabled ? 1 : 0
                                 }
                         }
@@ -229,12 +229,12 @@ extension KroutonDataAndArchivalWorkspaceView {
                             }
                             Spacer(minLength: 4)
                             if !isRetro83 {
-                                Toggle(KroutonL10n.tr("Finder View"), isOn: $enableCustomFinderLayoutTab)
+                                Toggle(KroutonL10n.tr("Finder View"), isOn: $store.enableCustomFinderLayoutTab)
                                     .toggleStyle(.checkbox)
                                     .font(.caption)
                                     .lineLimit(1)
                                     .fixedSize(horizontal: true, vertical: false)
-                                    .onChange(of: enableCustomFinderLayoutTab) { _, enabled in
+                                    .onChange(of: store.enableCustomFinderLayoutTab) { _, enabled in
                                         activeDataWorkspaceTab = enabled ? 1 : 0
                                     }
                             }

@@ -673,3 +673,25 @@ This file tracks proposed and completed changes across AI coding sessions (Claud
   - `Sources/VideoKit/VideoAuthoringEngine.swift` (M)
 
 - **2026-11-17 11:12 [commit 5227428]:** Prune dead code across all 12 targets and configure clean self-amending Git hooks 
+
+- **2026-11-17 11:35 [commit 3da3723]:** Eliminate pbcopy/open subprocesses, hardcoded developer paths, and 14-parameter view prop-drilling 
+  - `Sources/KroutonApp/Features/AudioCD/AudioMasteringWorkspaces.swift` (M)
+  - `Sources/KroutonApp/Features/Data/DataAndArchivalWorkspaces+DeckControls.swift` (M)
+  - `Sources/KroutonApp/Features/Data/DataAndArchivalWorkspaces.swift` (M)
+  - `Sources/KroutonApp/Features/Data/MasteringTelemetryPopovers.swift` (M)
+  - `Sources/KroutonApp/Features/Rip/CopyAndRipWorkspaces+AudioExtraction.swift` (M)
+  - `Sources/KroutonApp/Features/Rip/CopyAndRipWorkspaces+AudioUX.swift` (M)
+  - `Sources/KroutonApp/Features/Rip/CopyAndRipWorkspaces+VideoUX.swift` (M)
+  - `Sources/KroutonApp/Features/Rip/CopyAndRipWorkspaces.swift` (M)
+  - `Sources/KroutonApp/Features/Video/VideoAuthoringWorkspaces.swift` (M)
+  - `Sources/KroutonApp/Shell/App/KroutonAppDelegate.swift` (M)
+  - `Sources/KroutonApp/Shell/App/KroutonMenuCommands.swift` (M)
+  - `Sources/KroutonApp/Shell/NavigationAndRack/KroutonBurnStationWorkspaceView.swift` (M)
+  - `Sources/KroutonApp/Shell/NavigationAndRack/KroutonDestinationCardView+PhysicalBurner.swift` (M)
+  - `Sources/KroutonApp/Shell/NavigationAndRack/KroutonDestinationCardView.swift` (M)
+  - `Sources/KroutonApp/Shell/NavigationAndRack/KroutonDestinationSubViews.swift` (M)
+  - `Sources/KroutonApp/Shell/Services/KroutonOSDesktopBridge.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+DestinationExecution.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore.swift` (M)
+  - `Sources/KroutonApp/Shell/Workspace/KroutonMainWorkspaceView.swift` (M)
+  - `Sources/KroutonVerify/VerifyHarness+ArchitectureSuites.swift` (M)

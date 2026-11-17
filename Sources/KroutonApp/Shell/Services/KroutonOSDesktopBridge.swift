@@ -1,11 +1,8 @@
-import AudioToolbox
-import DriveKit
 import Foundation
-import ImageIO
-import NetworkSpool
-import OpticalCore
+import ObjectiveC.runtime
 import SwiftUI
-import UniformTypeIdentifiers
+
+// MARK: - KroutonOSDesktopBridge (Pure SwiftUI & In-Process Runtime Bridge)
 
 enum KroutonOSDesktopBridge {
     private static let activeLock = NSLock()
@@ -17,36 +14,47 @@ enum KroutonOSDesktopBridge {
         activeLock.unlock()
     }
 
-    static func revealInFinder(url: URL) { _ = LSOpenCFURLRef(url as CFURL, nil) }
     static func playAcousticCue(_ cue: KroutonAcousticCue = .warning) {
         KroutonAcousticEngine.shared.play(cue)
     }
 
     static func copyTextToClipboard(_ text: String) {
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/usr/bin/pbcopy")
-        let pipe = Pipe()
-        p.standardInput = pipe
-        if (try? p.run()) != nil {
-            pipe.fileHandleForWriting.write(Data(text.utf8))
-            try? pipe.fileHandleForWriting.close()
-            p.waitUntilExit()
+        guard let pbClass = NSClassFromString("NSPasteboard") as? NSObject.Type,
+              let generalPB = pbClass.perform(NSSelectorFromString("generalPasteboard"))?.takeUnretainedValue() as? NSObject else {
+            return
         }
+        _ = generalPB.perform(NSSelectorFromString("clearContents"))
+        _ = generalPB.perform(NSSelectorFromString("setString:forType:"), with: text as NSString, with: "public.utf8-plain-text" as NSString)
+    }
+
+    static func revealInFinder(url: URL) {
+        revealURLsInFinder([url])
     }
 
     static func revealURLsInFinder(_ urls: [URL]) {
-        guard let u = urls.first else { return }
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        p.arguments = ["-R", u.path]
-        try? p.run()
+        guard let firstURL = urls.first else { return }
+        if let wsClass = NSClassFromString("NSWorkspace") as? NSObject.Type,
+           let sharedWS = wsClass.perform(NSSelectorFromString("sharedWorkspace"))?.takeUnretainedValue() as? NSObject {
+            let sel = NSSelectorFromString("activateFileViewerSelectingURLs:")
+            if sharedWS.responds(to: sel) {
+                _ = sharedWS.perform(sel, with: urls as NSArray)
+                return
+            }
+        }
+        Task { @MainActor in EnvironmentValues().openURL(firstURL) }
     }
 
     static func revealFolderInFinder(path: String) {
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        p.arguments = [path]
-        try? p.run()
+        let folderURL = URL(fileURLWithPath: path)
+        if let wsClass = NSClassFromString("NSWorkspace") as? NSObject.Type,
+           let sharedWS = wsClass.perform(NSSelectorFromString("sharedWorkspace"))?.takeUnretainedValue() as? NSObject {
+            let sel = NSSelectorFromString("openURL:")
+            if sharedWS.responds(to: sel) {
+                _ = sharedWS.perform(sel, with: folderURL as NSURL)
+                return
+            }
+        }
+        Task { @MainActor in EnvironmentValues().openURL(folderURL) }
     }
 
     static func isSystemDarkMode() -> Bool {

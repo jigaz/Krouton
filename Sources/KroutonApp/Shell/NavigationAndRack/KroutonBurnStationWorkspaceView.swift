@@ -7,13 +7,6 @@ struct KroutonBurnStationWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
     let primarySelectedDrive: KroutonOpticalDriveInfo?
     let isCenterWorkspaceNarrow: Bool
-    @Binding var enableCustomFinderLayoutTab: Bool
-    @Binding var finderIconSize: Double
-    @Binding var fitToDiscDVD9Shrink: Bool
-    let preserveMenusAndExtras: Bool
-    @Binding var cdTextAlbumTitle: String
-    @Binding var cdTextAlbumPerformer: String
-    @Binding var auditioningTrackID: UUID?
     @Binding var isDropTargeted: Bool
     let onPromptToAddFiles: () -> Void
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
@@ -96,7 +89,6 @@ struct KroutonBurnStationWorkspaceView: View {
 
                 if !store.stagedFiles.isEmpty {
                     Button {
-                        auditioningTrackID = nil
                         store.clearStagedFiles()
                     } label: {
                         HStack(spacing: 5) {
@@ -161,9 +153,6 @@ struct KroutonBurnStationWorkspaceView: View {
                     store: store,
                     spec: activeSpec,
                     isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
-                    cdTextAlbumTitle: $cdTextAlbumTitle,
-                    cdTextAlbumPerformer: $cdTextAlbumPerformer,
-                    auditioningTrackID: $auditioningTrackID,
                     isDropTargeted: $isDropTargeted,
                     onHandleFinderDrop: onHandleFinderDrop
                 )
@@ -180,8 +169,6 @@ struct KroutonBurnStationWorkspaceView: View {
                     store: store,
                     spec: activeSpec,
                     isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
-                    fitToDiscDVD9Shrink: $fitToDiscDVD9Shrink,
-                    preserveMenusAndExtras: preserveMenusAndExtras,
                     isDropTargeted: $isDropTargeted,
                     onHandleFinderDrop: onHandleFinderDrop
                 )
@@ -205,8 +192,6 @@ struct KroutonBurnStationWorkspaceView: View {
                 KroutonDataAndArchivalWorkspaceView(
                     store: store,
                     activeSpec: activeSpec,
-                    enableCustomFinderLayoutTab: $enableCustomFinderLayoutTab,
-                    finderIconSize: $finderIconSize,
                     isDropTargeted: $isDropTargeted,
                     onHandleFinderDrop: onHandleFinderDrop
                 )

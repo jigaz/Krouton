@@ -10,8 +10,6 @@ struct KroutonVideoAuthoringWorkspaceView: View {
     @ObservedObject var store: KroutonStateStore
     let spec: KroutonOpticalWorkflowSpec
     let isCenterWorkspaceNarrow: Bool
-    @Binding var fitToDiscDVD9Shrink: Bool
-    let preserveMenusAndExtras: Bool
     @Binding var isDropTargeted: Bool
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 
@@ -59,7 +57,7 @@ struct KroutonVideoAuthoringWorkspaceView: View {
                         }
                         .buttonStyle(.bordered).controlSize(.small)
                         .popover(isPresented: $showVideoBitratePopover, arrowEdge: .bottom) {
-                            KroutonVideoBitratePopoverView(store: store, spec: spec, isBluRay: isBluRay, isDualLayer: isDualLayer, fitToDiscDVD9Shrink: fitToDiscDVD9Shrink, preserveMenusAndExtras: preserveMenusAndExtras)
+                            KroutonVideoBitratePopoverView(store: store, spec: spec, isBluRay: isBluRay, isDualLayer: isDualLayer)
                         }
                         .onReceive(NotificationCenter.default.publisher(for: .kroutonMenuInspectVideoBitrate)) { _ in showVideoBitratePopover = true }
                     }
@@ -82,7 +80,7 @@ struct KroutonVideoAuthoringWorkspaceView: View {
                     }
 
                     HStack(spacing: 14) {
-                        Toggle(shrinkLabel, isOn: $fitToDiscDVD9Shrink).toggleStyle(.checkbox).font(.caption.bold())
+                        Toggle(shrinkLabel, isOn: $store.fitToDiscDVD9Shrink).toggleStyle(.checkbox).font(.caption.bold())
                         if isDualLayer {
                             Picker(KroutonL10n.tr("Layer Break:"), selection: $videoDualLayerBreakSector) {
                                 Text("Auto Cell Boundary (16-Sec ECC)").tag("Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)")

@@ -12,10 +12,6 @@ struct KroutonMainWorkspaceView: View {
     @ObservedObject var driveManager: KroutonOpticalDriveBank
     @ObservedObject var spoolClient: SpoolRemoteNodeClient = .shared
 
-    @State var enableCustomFinderLayoutTab: Bool = false
-    @State var finderIconSize: Double = 256
-    @State var fitToDiscDVD9Shrink: Bool = true
-    @State var preserveMenusAndExtras: Bool = true
     @State var leftColumnLiveWidth: CGFloat = 196
     @State var rightColumnLiveWidth: CGFloat = 315
     @State var leftSidebarDragStartWidth: CGFloat? = nil
@@ -28,9 +24,6 @@ struct KroutonMainWorkspaceView: View {
     @State var isCenterWorkspaceUltraCompact: Bool = false
     @State var isDropTargeted: Bool = false
     // Red Book Audio CD & CD-Extra Mastering State
-    @State var cdTextAlbumTitle: String = ""
-    @State var cdTextAlbumPerformer: String = ""
-    @State var auditioningTrackID: UUID? = nil
     // Car-Safe MP3 / FLAC CD Mastering State
     // Video Disc Authoring & Dual-Layer Break State
     // M-DISC Archival PAR2 State
@@ -149,8 +142,6 @@ struct KroutonMainWorkspaceView: View {
                         store: store,
                         driveManager: driveManager,
                         isRightQueueCompact: isRightQueueCompact,
-                        enableCustomFinderLayoutTab: enableCustomFinderLayoutTab,
-                        finderIconSize: finderIconSize,
                         primarySelectedDrive: primarySelectedDrive
                     )
                         .frame(width: clampedRight)
@@ -272,13 +263,6 @@ struct KroutonMainWorkspaceView: View {
                         store: store,
                         primarySelectedDrive: primarySelectedDrive,
                         isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
-                        enableCustomFinderLayoutTab: $enableCustomFinderLayoutTab,
-                        finderIconSize: $finderIconSize,
-                        fitToDiscDVD9Shrink: $fitToDiscDVD9Shrink,
-                        preserveMenusAndExtras: preserveMenusAndExtras,
-                        cdTextAlbumTitle: $cdTextAlbumTitle,
-                        cdTextAlbumPerformer: $cdTextAlbumPerformer,
-                        auditioningTrackID: $auditioningTrackID,
                         isDropTargeted: $isDropTargeted,
                         onPromptToAddFiles: promptToAddFiles,
                         onHandleFinderDrop: handleFinderDrop(providers:)
@@ -290,11 +274,7 @@ struct KroutonMainWorkspaceView: View {
                     KroutonCopyAndRipWorkspaceView(
                         store: store,
                         primarySelectedDrive: primarySelectedDrive,
-                        isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
-                        fitToDiscDVD9Shrink: $fitToDiscDVD9Shrink,
-                        preserveMenusAndExtras: $preserveMenusAndExtras,
-                        cdTextAlbumTitle: $cdTextAlbumTitle,
-                        cdTextAlbumPerformer: $cdTextAlbumPerformer
+                        isCenterWorkspaceNarrow: isCenterWorkspaceNarrow
                     )
                 case .label:
                     KroutonDiscLabelWorkspaceView(store: store)

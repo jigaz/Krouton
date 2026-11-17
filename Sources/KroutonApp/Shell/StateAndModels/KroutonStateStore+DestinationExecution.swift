@@ -14,8 +14,6 @@ extension KroutonStateStore {
         _ target: KroutonBakeBatchItem,
         driveManager: KroutonOpticalDriveBank,
         primarySelectedDrive: KroutonOpticalDriveInfo?,
-        enableCustomFinderLayoutTab: Bool,
-        finderIconSize: Double,
         isAutoLoadedCopy: Bool = false
     ) {
         if driveManager.isExecutingQueue {
@@ -45,17 +43,13 @@ extension KroutonStateStore {
                 target,
                 driveManager: driveManager,
                 primarySelectedDrive: primarySelectedDrive,
-                enableCustomFinderLayoutTab: enableCustomFinderLayoutTab,
-                finderIconSize: finderIconSize,
                 isAutoLoadedCopy: isAutoLoadedCopy
             )
         }
     }
     func executeDestinationQueue(
         driveManager: KroutonOpticalDriveBank,
-        primarySelectedDrive: KroutonOpticalDriveInfo?,
-        enableCustomFinderLayoutTab: Bool,
-        finderIconSize: Double
+        primarySelectedDrive: KroutonOpticalDriveInfo?
     ) {
         if driveManager.isExecutingQueue {
             driveManager.abortActiveBurn()
@@ -84,9 +78,7 @@ extension KroutonStateStore {
                 await runTargetDestination(
                     target,
                     driveManager: driveManager,
-                    primarySelectedDrive: primarySelectedDrive,
-                    enableCustomFinderLayoutTab: enableCustomFinderLayoutTab,
-                    finderIconSize: finderIconSize
+                    primarySelectedDrive: primarySelectedDrive
                 )
             }
         }
@@ -95,8 +87,6 @@ extension KroutonStateStore {
         _ target: KroutonBakeBatchItem,
         driveManager: KroutonOpticalDriveBank,
         primarySelectedDrive: KroutonOpticalDriveInfo?,
-        enableCustomFinderLayoutTab: Bool,
-        finderIconSize: Double,
         isAutoLoadedCopy: Bool = false
     ) async {
         let drvName = primarySelectedDrive?.displayName ?? "Optical Drive"
@@ -164,8 +154,6 @@ extension KroutonStateStore {
                                 updatedItem,
                                 driveManager: driveManager,
                                 primarySelectedDrive: primarySelectedDrive,
-                                enableCustomFinderLayoutTab: enableCustomFinderLayoutTab,
-                                finderIconSize: finderIconSize,
                                 isAutoLoadedCopy: true
                             )
                         }

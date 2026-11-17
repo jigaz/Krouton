@@ -11,8 +11,6 @@ struct KroutonDestinationRackColumnView: View {
     @ObservedObject var store: KroutonStateStore
     @ObservedObject var driveManager: KroutonOpticalDriveBank
     let isRightQueueCompact: Bool
-    let enableCustomFinderLayoutTab: Bool
-    let finderIconSize: Double
     let primarySelectedDrive: KroutonOpticalDriveInfo?
     @ObservedObject var burnSet: KroutonBurnSetController = .shared
     @State private var showBurnSetSheet = false
@@ -68,8 +66,6 @@ struct KroutonDestinationRackColumnView: View {
                             driveManager: driveManager,
                             item: item,
                             isRightQueueCompact: isRightQueueCompact,
-                            enableCustomFinderLayoutTab: enableCustomFinderLayoutTab,
-                            finderIconSize: finderIconSize,
                             primarySelectedDrive: primarySelectedDrive
                         )
                     }
@@ -124,7 +120,7 @@ struct KroutonDestinationRackColumnView: View {
 
             VStack(spacing: 8) {
                 Button {
-                    store.executeDestinationQueue(driveManager: driveManager, primarySelectedDrive: primarySelectedDrive, enableCustomFinderLayoutTab: enableCustomFinderLayoutTab, finderIconSize: finderIconSize)
+                    store.executeDestinationQueue(driveManager: driveManager, primarySelectedDrive: primarySelectedDrive)
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: driveManager.isExecutingQueue ? "stop.circle.fill" : store.primaryActionSymbol)

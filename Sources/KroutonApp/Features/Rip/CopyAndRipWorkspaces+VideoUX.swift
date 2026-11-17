@@ -47,8 +47,8 @@ extension KroutonCopyAndRipWorkspaceView {
             let destDir = URL(fileURLWithPath: ("~/Desktop" as NSString).expandingTildeInPath)
             let safeName = activeDisc.volumeTitle.replacingOccurrences(of: " ", with: "_")
             let isoURL = destDir.appendingPathComponent("\(safeName).iso")
-            let shouldShrink = fitToDiscDVD9Shrink && activeDisc.totalBytes > 4_700_000_000 && activeDisc.discKind.contains("VIDEO_TS")
-            let preserveMenus = preserveMenusAndExtras
+            let shouldShrink = store.fitToDiscDVD9Shrink && activeDisc.totalBytes > 4_700_000_000 && activeDisc.discKind.contains("VIDEO_TS")
+            let preserveMenus = store.preserveMenusAndExtras
             copyStatusBanner = shouldShrink
                 ? "Requantizing DVD-9 -> DVD-5 and building \(isoURL.lastPathComponent)..."
                 : "Building 1:1 Hybrid UDF/ISO image \(isoURL.lastPathComponent)..."

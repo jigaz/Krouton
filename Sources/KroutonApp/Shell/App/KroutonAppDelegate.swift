@@ -83,8 +83,8 @@ final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
         let candidates: [URL] = [
             Bundle.main.url(forResource: iconStem, withExtension: "icns"),
             Bundle.module.url(forResource: iconStem, withExtension: "icns"),
-            URL(fileURLWithPath: "/Users/used/Developer/krouton/Resources/\(iconStem).icns"),
-            URL(fileURLWithPath: "/Users/used/Developer/krouton/Resources/AppIcon.icns")
+            Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+            Bundle.module.url(forResource: "AppIcon", withExtension: "icns")
         ].compactMap { $0 }
 
         guard let icnsURL = candidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }),

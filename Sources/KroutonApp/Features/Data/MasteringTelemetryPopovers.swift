@@ -201,8 +201,6 @@ struct KroutonVideoBitratePopoverView: View {
     let spec: KroutonOpticalWorkflowSpec
     let isBluRay: Bool
     let isDualLayer: Bool
-    let fitToDiscDVD9Shrink: Bool
-    let preserveMenusAndExtras: Bool
 
     var body: some View {
         let medium: KroutonVideoTargetMedium = {
@@ -276,7 +274,7 @@ struct KroutonVideoBitratePopoverView: View {
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .foregroundStyle(.orange)
                 }
-                Text(String(format: "• Main Feature DCT Retention : %.1f%% (%@)", shrinkPlan.requantizationRatio * 100.0, fitToDiscDVD9Shrink ? "ACTIVE" : "STANDBY"))
+                Text(String(format: "• Main Feature DCT Retention : %.1f%% (%@)", shrinkPlan.requantizationRatio * 100.0, store.fitToDiscDVD9Shrink ? "ACTIVE" : "STANDBY"))
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
                 Text(String(format: "• Menus & Bonus Features     : %@ (%.2f GB source)", shrinkPlan.preserveMenusAndExtras ? "Preserved at 90% Fidelity" : "Stripped (Main Movie Only)", Double(shrinkPlan.sourceMenusAndExtrasBytes) / 1_000_000_000.0))
                     .font(.system(size: 10, design: .monospaced))
