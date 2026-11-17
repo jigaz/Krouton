@@ -695,3 +695,8 @@ This file tracks proposed and completed changes across AI coding sessions (Claud
   - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore.swift` (M)
   - `Sources/KroutonApp/Shell/Workspace/KroutonMainWorkspaceView.swift` (M)
   - `Sources/KroutonVerify/VerifyHarness+ArchitectureSuites.swift` (M)
+
+- **2026-11-17 15:31 [commit 2b5f352]:** Extract hardcoded L10n extended catalog into bundled LocalizableCatalog.json resource 
+  - `Sources/KroutonApp/Resources/LocalizableCatalog.json` (A)
+  - `Sources/KroutonApp/Shell/Services/KroutonL10n+ExtendedCatalog.swift` (D)
+  - `Sources/KroutonApp/Shell/Services/KroutonL10n.swift` (M)
