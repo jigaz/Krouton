@@ -43,12 +43,21 @@ extension KroutonTestHarness {
                 "KroutonLabelGeometryEngine.layoutPolarArcText must position one polar glyph per character")
     }
 
-    self.runSuite("21. Persistence SessionStore, RunLock Crash Recovery & Security-Scoped Bookmark Vault") { h in
+    self.runSuite("21. Persistence SessionStore, RunLock Crash Recovery, L10n Catalog & @dynamicMemberLookup") { h in
+        Self.verifyPersistenceL10nAndDynamicMemberSuite(&h)
+    }
+
+    }
+
+
+    private static func verifyPersistenceL10nAndDynamicMemberSuite(_ h: inout KroutonTestHarness) {
         let tmpDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("KroutonPersistVerify_\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: tmpDir) }
         if let res1 = try? RunLock.acquire(in: tmpDir) {
             h.check(res1.verdict == .clean, "First RunLock acquisition on clean directory must return .clean verdict")
+            res1.lock?.markRunning()
+            res1.lock?.markStable()
             res1.lock?.markCleanExit()
         } else {
             h.check(false, "RunLock.acquire must succeed in temporary directory")
@@ -57,8 +66,120 @@ extension KroutonTestHarness {
             h.check(res2.verdict == .clean, "Acquiring RunLock after markCleanExit() must return .clean verdict")
             res2.lock?.markCleanExit()
         }
-    }
 
+        // FileReference bookmark resolution (.found when present, .missing when deleted)
+        let bookmarkFile = tmpDir.appendingPathComponent("staged_track.wav")
+        try? Data("RIFF_WAVE".utf8).write(to: bookmarkFile)
+        let fileRef = FileReference(url: bookmarkFile)
+        if case .found(let resolvedURL) = fileRef.resolve() {
+            h.check(resolvedURL.resolvingSymlinksInPath() == bookmarkFile.resolvingSymlinksInPath(), "FileReference must resolve .found for existing file")
+        } else {
+            h.check(false, "FileReference must resolve .found for existing file")
+        }
+        try? FileManager.default.removeItem(at: bookmarkFile)
+        h.check(fileRef.resolve() == .missing(lastKnownPath: bookmarkFile.path), "FileReference must return .missing when file is removed")
+
+        // RestoreDecision matrix
+        h.check(restoreDecision(verdict: .clean, hasSnapshot: true, rememberSession: true) == .restoreSilently, "Clean launch with snapshot must restoreSilently")
+        h.check(restoreDecision(verdict: .anotherInstanceRunning, hasSnapshot: true, rememberSession: true) == .startFresh, "Secondary instance must startFresh")
+
+        // LocalizableCatalog.json schema & locale fallback resolution
+        let catalogURL = KroutonTestHarness.repositoryRoot
+            .appendingPathComponent("Sources/KroutonApp/Resources/LocalizableCatalog.json")
+        let catalogData = (try? Data(contentsOf: catalogURL)) ?? Data()
+        let catalog = (try? JSONDecoder().decode([String: [String: String]].self, from: catalogData)) ?? [:]
+        let expectedLocales: Set<String> = ["de", "es", "fr", "it", "ja", "ko", "nl", "pt", "zh-Hans"]
+        h.check(catalog.count == 17, "LocalizableCatalog.json must contain all 17 canonical localized phrase keys")
+        let allLocalesComplete = !catalog.isEmpty && catalog.values.allSatisfy { map in
+            expectedLocales.isSubset(of: Set(map.keys)) && expectedLocales.allSatisfy { !(map[$0]?.isEmpty ?? true) }
+        }
+        h.check(allLocalesComplete, "Every key in LocalizableCatalog.json must provide non-empty translations for all 9 supported locales")
+
+        func resolveL10n(_ key: String, code: String) -> String {
+            if code == "en" || code.isEmpty { return key }
+            let shortCode = String(code.prefix(2))
+            if let map = catalog[key] {
+                if let exact = map[code] { return exact }
+                if let prefix = map[shortCode] { return prefix }
+            }
+            return key
+        }
+        h.check(resolveL10n("2.5s X-Fade", code: "en") == "2.5s X-Fade", "English locale must return canonical key")
+        h.check(resolveL10n("2.5s X-Fade", code: "zh-Hans") != "2.5s X-Fade", "Exact regional locale zh-Hans must resolve translated string")
+        h.check(resolveL10n("2.5s X-Fade", code: "es-MX") == catalog["2.5s X-Fade"]?["es"], "Regional code es-MX must fall back to 2-char 'es' translation")
+
+        // @dynamicMemberLookup persistence side-effect & isHydratingPreferences suppression verification
+        @dynamicMemberLookup
+        final class SubStoreRoutingHarness {
+            struct Appearance {
+                var enableSecondaryAccentUITints = true
+                var tintWindowWithWallpaper = true
+                var appLanguage = "en"
+                var rememberLastTaskOnLaunch = true
+            }
+            struct Label { var selectedLabelTemplate = "minimal" }
+            var appearance = Appearance()
+            var label = Label()
+            var isHydratingPreferences = false
+            var activeISOCode = "en"
+            var persistedKeys: [String: String] = [:]
+
+            subscript<T>(dynamicMember keyPath: WritableKeyPath<Appearance, T>) -> T {
+                get { appearance[keyPath: keyPath] }
+                set {
+                    let old = appearance
+                    appearance[keyPath: keyPath] = newValue
+                    if appearance.enableSecondaryAccentUITints != old.enableSecondaryAccentUITints {
+                        appearance.tintWindowWithWallpaper = appearance.enableSecondaryAccentUITints
+                        if !isHydratingPreferences { persistedKeys["krouton.pref.harmonyEnabled"] = "\(appearance.enableSecondaryAccentUITints)" }
+                    }
+                    if appearance.appLanguage != old.appLanguage {
+                        activeISOCode = appearance.appLanguage
+                        if !isHydratingPreferences { persistedKeys["krouton.pref.appLanguage"] = appearance.appLanguage }
+                    }
+                    if !isHydratingPreferences, appearance.rememberLastTaskOnLaunch != old.rememberLastTaskOnLaunch {
+                        persistedKeys["krouton.pref.rememberLastTask"] = "\(appearance.rememberLastTaskOnLaunch)"
+                    }
+                }
+            }
+            subscript<T>(dynamicMember keyPath: WritableKeyPath<Label, T>) -> T {
+                get { label[keyPath: keyPath] }
+                set {
+                    let oldTpl = label.selectedLabelTemplate
+                    label[keyPath: keyPath] = newValue
+                    if label.selectedLabelTemplate != oldTpl && !isHydratingPreferences {
+                        persistedKeys["krouton.pref.labelTemplate"] = label.selectedLabelTemplate
+                    }
+                }
+            }
+        }
+
+        let router = SubStoreRoutingHarness()
+        router.isHydratingPreferences = true
+        router.enableSecondaryAccentUITints = false
+        router.selectedLabelTemplate = "archival"
+        h.check(!router.tintWindowWithWallpaper && router.persistedKeys.isEmpty, "Hydrating mutations via @dynamicMemberLookup must sync derived fields without writing to UserDefaults")
+
+        router.isHydratingPreferences = false
+        router.enableSecondaryAccentUITints = true
+        router.appLanguage = "ja"
+        router.rememberLastTaskOnLaunch = false
+        router.selectedLabelTemplate = "vinyl"
+        h.check(router.tintWindowWithWallpaper && router.activeISOCode == "ja", "@dynamicMemberLookup mutation must update tintWindowWithWallpaper and activeISOCode")
+        h.check(router.persistedKeys["krouton.pref.harmonyEnabled"] == "true"
+                && router.persistedKeys["krouton.pref.appLanguage"] == "ja"
+                && router.persistedKeys["krouton.pref.rememberLastTask"] == "false"
+                && router.persistedKeys["krouton.pref.labelTemplate"] == "vinyl",
+                "@dynamicMemberLookup mutations must persist harmonyEnabled, appLanguage, rememberLastTask, and labelTemplate")
+
+        let forwardingURL = KroutonTestHarness.repositoryRoot
+            .appendingPathComponent("Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+SubStoreForwarding.swift")
+        let forwardingSrc = (try? String(contentsOf: forwardingURL, encoding: .utf8)) ?? ""
+        h.lint(forwardingSrc.contains("WritableKeyPath<AppearancePreferences, T>")
+               && forwardingSrc.contains("WritableKeyPath<LabelDocument, T>")
+               && forwardingSrc.contains("WritableKeyPath<DepotCatalogue, T>")
+               && forwardingSrc.contains("WritableKeyPath<RipSettings, T>"),
+               "KroutonStateStore+SubStoreForwarding.swift must route all 4 sub-stores via @dynamicMemberLookup key-path subscripts")
     }
 
     private mutating func runVerifyMultiDiscSpanningSuitePart() {

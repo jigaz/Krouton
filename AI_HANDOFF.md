@@ -730,3 +730,6 @@ This file tracks proposed and completed changes across AI coding sessions (Claud
   - `Sources/KroutonVerify/VerifyHarness+ArchitectureSuites.swift` (M)
   - `Sources/LabelKit/LabelGeometry+OpticalPlayground.swift` (M)
   - `Sources/Persistence/SessionStore.swift` (M)
+
+- **2026-11-17 16:38 [commit 5c38d3d]:** Add Suite 21 assertions for LocalizableCatalog.json and @dynamicMemberLookup persistence 
+  - `Sources/KroutonVerify/VerifyHarness+LabelAndPersistenceSuites.swift` (M)
