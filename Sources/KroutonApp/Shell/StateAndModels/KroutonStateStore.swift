@@ -1,5 +1,4 @@
 import AudioKit
-import Combine
 import Foundation
 import ImageKit
 import LabelKit
@@ -17,10 +16,10 @@ final class KroutonStateStore {
     let labelWorkspaceSubStore = KroutonLabelWorkspaceSubStore()
     let burnQueueSubStore = KroutonBurnQueueSubStore()
 
-    var appearance = AppearancePreferences()
-    var depot = DepotCatalogue()
-    var label = LabelDocument()
-    var rip = RipSettings()
+    let appearance = AppearancePreferences()
+    let depot = DepotCatalogue()
+    let label = LabelDocument()
+    let rip = RipSettings()
 
     public static weak var shared: KroutonStateStore?
     var isHydratingPreferences: Bool = false

@@ -1,4 +1,5 @@
 import CryptoKit
+import Darwin
 import Foundation
 import ImageKit
 import OpticalCore
@@ -66,6 +67,79 @@ public enum BurnSetStager {
 
     /// Streams `sourceURL` into `destinationURL` in 256 KiB chunks, updating a `SHA256` hasher
     /// on the exact bytes written so the file is read ONCE and cannot change between hashing and staging.
+    public enum StageMethod: Sendable, Equatable {
+        case clonedOnAPFS
+        case streamedCopy
+    }
+
+    struct SourceFileStamp: Equatable {
+        let dev: dev_t
+        let ino: ino_t
+        let size: off_t
+        let mtimeSec: Int
+        let mtimeNsec: Int
+        let ctimeSec: Int
+        let ctimeNsec: Int
+
+        init?(fd: Int32) {
+            var s = stat()
+            guard fstat(fd, &s) == 0 else { return nil }
+            dev = s.st_dev
+            ino = s.st_ino
+            size = s.st_size
+            mtimeSec = s.st_mtimespec.tv_sec
+            mtimeNsec = s.st_mtimespec.tv_nsec
+            ctimeSec = s.st_ctimespec.tv_sec
+            ctimeNsec = s.st_ctimespec.tv_nsec
+        }
+    }
+
+    /// Stages a source file using descriptor-pinned APFS copy-on-write (`fclonefileat`) when supported,
+    /// falling back to `copyAndHashSinglePass` across volumes, and verifies via `fstat` that the source
+    /// did not mutate mid-clone. Always hashes the staged file so the digest matches the frozen bytes.
+    public static func stageAndHash(
+        from sourceURL: URL,
+        to destinationURL: URL
+    ) throws -> (byteCount: Int64, sha256Hex: String, method: StageMethod) {
+        let fm = FileManager.default
+        try fm.createDirectory(at: destinationURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        for _ in 0..<3 {
+            if fm.fileExists(atPath: destinationURL.path) {
+                try fm.removeItem(at: destinationURL)
+            }
+            let fd = open(sourceURL.path, O_RDONLY)
+            guard fd >= 0 else { break }
+            defer { close(fd) }
+            guard let before = SourceFileStamp(fd: fd) else { break }
+
+            if fclonefileat(fd, AT_FDCWD, destinationURL.path, 0) == 0 {
+                let (bytes, sha) = try hashStagedFile(at: destinationURL)
+                if SourceFileStamp(fd: fd) == before && bytes == Int64(before.size) {
+                    return (bytes, sha, .clonedOnAPFS)
+                }
+            } else {
+                let code = errno
+                if code == EXDEV || code == ENOTSUP || code == ENOTTY {
+                    break
+                }
+            }
+        }
+        let copied = try copyAndHashSinglePass(from: sourceURL, to: destinationURL)
+        return (copied.byteCount, copied.sha256Hex, .streamedCopy)
+    }
+
+    static func hashStagedFile(at url: URL) throws -> (byteCount: Int64, sha256Hex: String) {
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        var hasher = SHA256()
+        var total: Int64 = 0
+        while let chunk = try handle.read(upToCount: 512 * 1024), !chunk.isEmpty {
+            hasher.update(data: chunk)
+            total += Int64(chunk.count)
+        }
+        return (total, hasher.finalize().map { String(format: "%02x", $0) }.joined())
+    }
+
     static func copyAndHashSinglePass(from sourceURL: URL, to destinationURL: URL) throws -> (byteCount: Int64, sha256Hex: String) {
         let fm = FileManager.default
         try fm.createDirectory(at: destinationURL.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -130,7 +204,7 @@ public enum BurnSetStager {
                     ? "data/\(item.relativePathOnDisc)"
                     : item.relativePathOnDisc
                 let dstURL = discDir.appendingPathComponent(relSubpath)
-                let (bytes, sha) = try copyAndHashSinglePass(from: item.sourceURL, to: dstURL)
+                let (bytes, sha, _) = try stageAndHash(from: item.sourceURL, to: dstURL)
                 payloadRecords.append(SpanPayloadFile(path: item.relativePathOnDisc, byteCount: bytes, sha256: sha))
             }
             indexDiscs.append(SpanSetIndex.Disc(index: discIndex, volumeLabel: volLabel, files: payloadRecords))
@@ -162,6 +236,7 @@ public enum BurnSetStager {
 
             let imageURL = setDir.appendingPathComponent(String(format: "%@.iso", discEntry.volumeLabel))
             let (imageBytes, imageSHA256) = try buildFrozenDiscImage(fromDirectory: discDir, volumeLabel: discEntry.volumeLabel, outputURL: imageURL)
+            try? fm.removeItem(at: discDir)
             frozenDiscs.append(FrozenDisc(
                 index: discEntry.index,
                 volumeLabel: discEntry.volumeLabel,

@@ -278,3 +278,128 @@ extension KroutonOpticalDriveInfo {
         return best > 0 ? best : 16.0
     }
 }
+
+// MARK: - Capacity-Aware Claim Policy & Late-Binding BurnClaimLedger
+
+public enum BurnClaimPolicy {
+    /// Selects the next FrozenDisc for `drive`: pinned discs for `drive` come first, then unpinned discs
+    /// in ascending disc order. When `capacityBytes` is provided (after a blank disc is loaded), only discs
+    /// whose image fits on the blank are eligible—allowing a slightly smaller blank to bind a smaller tail disc.
+    public static func select(
+        from candidates: [FrozenDisc],
+        pins: [Int: DriveID],
+        for drive: DriveID,
+        capacityBytes: Int64? = nil
+    ) -> FrozenDisc? {
+        func fits(_ disc: FrozenDisc) -> Bool {
+            capacityBytes.map { disc.imageBytes <= $0 } ?? true
+        }
+        if let pinned = candidates.first(where: { pins[$0.index] == drive && fits($0) }) {
+            return pinned
+        }
+        return candidates.first { pins[$0.index] == nil && fits($0) }
+    }
+}
+
+public struct BurnPoolSnapshot: Sendable, Equatable {
+    public struct Slot: Sendable, Equatable {
+        public let drive: DriveID
+        public let discIndex: Int
+        public let isCommitted: Bool
+        public let awaitingOperator: Bool
+
+        public init(drive: DriveID, discIndex: Int, isCommitted: Bool, awaitingOperator: Bool) {
+            self.drive = drive
+            self.discIndex = discIndex
+            self.isCommitted = isCommitted
+            self.awaitingOperator = awaitingOperator
+        }
+    }
+
+    public let active: [Slot]
+    public let waiting: [Int]
+    public let finished: [Int]
+
+    public init(active: [Slot] = [], waiting: [Int] = [], finished: [Int] = []) {
+        self.active = active
+        self.waiting = waiting
+        self.finished = finished
+    }
+}
+
+public struct BurnClaimLedger: Sendable, Equatable {
+    public private(set) var waiting: [Int]
+    public private(set) var offered: [DriveID: Int] = [:]
+    public private(set) var committed: [DriveID: Int] = [:]
+    public private(set) var awaitingOperator: Set<DriveID> = []
+    public private(set) var finished: [Int] = []
+    private let driveOrder: [DriveID]
+
+    public init(discs: [Int], drivesFastestFirst: [DriveID]) {
+        self.waiting = discs
+        self.driveOrder = drivesFastestFirst
+    }
+
+    /// Non-exclusive soft peek: prefers a disc no other idle tray is currently offering, else shares the first waiting disc.
+    public mutating func offer(to drive: DriveID) -> Int? {
+        if let current = committed[drive] { return current }
+        let shown = Set(offered.values)
+        let pick = waiting.first { !shown.contains($0) } ?? waiting.first
+        offered[drive] = pick
+        return pick
+    }
+
+    /// Atomic claim once a usable blank is confirmed in the tray.
+    public mutating func commit(drive: DriveID) -> Int? {
+        let peeked = offered.removeValue(forKey: drive)
+        let chosen = peeked.flatMap { p in waiting.contains(p) ? p : nil } ?? waiting.first
+        guard let disc = chosen, let pos = waiting.firstIndex(of: disc) else { return nil }
+        waiting.remove(at: pos)
+        committed[drive] = disc
+        awaitingOperator.remove(drive)
+        return disc
+    }
+
+    public mutating func markAwaitingOperator(_ drive: DriveID) {
+        awaitingOperator.insert(drive)
+    }
+
+    public mutating func release(drive: DriveID, succeeded: Bool, requeue: Bool) {
+        offered.removeValue(forKey: drive)
+        awaitingOperator.remove(drive)
+        guard let disc = committed.removeValue(forKey: drive) else { return }
+        if requeue {
+            waiting.append(disc)
+            waiting.sort()
+        } else if succeeded {
+            finished.append(disc)
+        }
+    }
+
+    public mutating func withdraw(drive: DriveID) {
+        offered.removeValue(forKey: drive)
+        awaitingOperator.remove(drive)
+    }
+
+    public var isDrained: Bool {
+        waiting.isEmpty && committed.isEmpty
+    }
+
+    public var snapshot: BurnPoolSnapshot {
+        let slots: [BurnPoolSnapshot.Slot] = driveOrder.compactMap { d in
+            if let c = committed[d] {
+                return .init(drive: d, discIndex: c, isCommitted: true, awaitingOperator: false)
+            }
+            if let o = offered[d] {
+                return .init(drive: d, discIndex: o, isCommitted: false, awaitingOperator: awaitingOperator.contains(d))
+            }
+            return nil
+        }
+        let offeredSet = Set(offered.values)
+        return BurnPoolSnapshot(
+            active: slots,
+            waiting: waiting.filter { !offeredSet.contains($0) },
+            finished: finished
+        )
+    }
+}

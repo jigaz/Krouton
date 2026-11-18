@@ -170,9 +170,9 @@ public actor BurnSetScheduler {
             if started {
                 try? await record(.attemptFailed(set: setID, disc: disc.index, attempt: attempt,
                                                  failure: failure, at: .now), disc: disc.index)
-            } else if failure == .cancelledByUser || failure == .driveDisconnected {
-                // If an idle/secondary drive was cancelled or unplugged before laser ignition,
-                // release its claim so remaining active drives in the pool can burn this disc.
+            } else {
+                // Nothing was written (rejected blank, dismissed prompt, or unplugged before laser ignition):
+                // release the claim so this drive or another pooled burner can burn the disc.
                 claimed.remove(disc.index)
             }
             return failure

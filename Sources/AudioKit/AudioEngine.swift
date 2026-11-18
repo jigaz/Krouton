@@ -194,11 +194,11 @@ public struct KroutonTrackTransitionSpec: Identifiable, Hashable, Codable, Senda
     public var fadeInCurve: KroutonCrossfadeCurve
     public var curveTension: Double        // -1.0 (Concave Dip) .. 0.0 .. +1.0 (Convex Boost)
     public var spliceIndex01Ratio: Double  // 0.15 .. 0.85 position of Red Book INDEX 01 marker
-    var outgoingTrimDB: Double      // -12.0 .. +6.0 dB
-    var incomingTrimDB: Double      // -12.0 .. +6.0 dB
-    var asymmetricUnlinked: Bool
-    var fadeOutStartRatio: Double   // 0.0 .. 0.45
-    var fadeInEndRatio: Double      // 0.55 .. 1.0
+    public var outgoingTrimDB: Double      // -12.0 .. +6.0 dB
+    public var incomingTrimDB: Double      // -12.0 .. +6.0 dB
+    public var asymmetricUnlinked: Bool
+    public var fadeOutStartRatio: Double   // 0.0 .. 0.45
+    public var fadeInEndRatio: Double      // 0.55 .. 1.0
     var spectralTransientTint: Bool
     var gainMatchLUFS: Bool
     public var subIndexRatios: [Double]

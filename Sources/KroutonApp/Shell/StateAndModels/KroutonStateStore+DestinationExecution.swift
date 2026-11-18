@@ -17,6 +17,7 @@ extension KroutonStateStore {
         isAutoLoadedCopy: Bool = false
     ) {
         if driveManager.isExecutingQueue {
+            guard !isAutoLoadedCopy else { return }
             driveManager.abortActiveBurn()
             return
         }

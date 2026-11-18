@@ -61,9 +61,14 @@ public actor DiscRecordingOpticalDrive: OpticalDrive {
         } else {
             forward = nil
         }
+        let abort = abortSwitch
         do {
-            let disc = try await KroutonDiscImageBurner.waitForBlank(driveID: id.raw, abort: abortSwitch, onStatus: forward)
-            // DiscRecording does not expose the manufacturer ID, so the journal records the media type.
+            let disc = try await withTaskCancellationHandler {
+                try await KroutonDiscImageBurner.waitForBlank(driveID: driveID.raw, abort: abort, onStatus: forward)
+            } onCancel: {
+                abort.request()
+            }
+            if Task.isCancelled { throw BurnFailure.cancelledByUser }
             return BlankMedia(mediaID: disc.mediaType, capacityBytes: disc.capacityBytes)
         } catch {
             throw Self.burnFailure(from: error)

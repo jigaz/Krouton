@@ -6,7 +6,7 @@ import SwiftUI
 
 @MainActor
 extension KroutonStateStore {
-    subscript<T>(dynamicMember keyPath: WritableKeyPath<AppearancePreferences, T>) -> T {
+    subscript<T>(dynamicMember keyPath: ReferenceWritableKeyPath<AppearancePreferences, T>) -> T {
         get { appearance[keyPath: keyPath] }
         set {
             let oldHarmony = appearance.enableSecondaryAccentUITints
@@ -16,7 +16,7 @@ extension KroutonStateStore {
         }
     }
 
-    subscript<T>(dynamicMember keyPath: WritableKeyPath<LabelDocument, T>) -> T {
+    subscript<T>(dynamicMember keyPath: ReferenceWritableKeyPath<LabelDocument, T>) -> T {
         get { label[keyPath: keyPath] }
         set {
             let oldTemplate = label.selectedLabelTemplate
@@ -27,12 +27,12 @@ extension KroutonStateStore {
         }
     }
 
-    subscript<T>(dynamicMember keyPath: WritableKeyPath<DepotCatalogue, T>) -> T {
+    subscript<T>(dynamicMember keyPath: ReferenceWritableKeyPath<DepotCatalogue, T>) -> T {
         get { depot[keyPath: keyPath] }
         set { depot[keyPath: keyPath] = newValue }
     }
 
-    subscript<T>(dynamicMember keyPath: WritableKeyPath<RipSettings, T>) -> T {
+    subscript<T>(dynamicMember keyPath: ReferenceWritableKeyPath<RipSettings, T>) -> T {
         get { rip[keyPath: keyPath] }
         set { rip[keyPath: keyPath] = newValue }
     }

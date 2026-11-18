@@ -305,7 +305,11 @@ extension KroutonStateStore {
         destinationQueue[idx].spannedDiscNumber = nil
 
         guard !waitingBurnPool.isEmpty else { return nil }
-        let nextTicket = waitingBurnPool.removeFirst()
+        let driveID = destinationQueue[idx].targetDriveID
+        let nextIdx = waitingBurnPool.firstIndex(where: { $0.preferredDriveID == driveID })
+            ?? waitingBurnPool.firstIndex(where: { $0.preferredDriveID == nil })
+            ?? 0
+        let nextTicket = waitingBurnPool.remove(at: nextIdx)
         switch poolDispatchMode {
         case .autoAssign:
             destinationQueue[idx].assignedPoolTicket = nextTicket

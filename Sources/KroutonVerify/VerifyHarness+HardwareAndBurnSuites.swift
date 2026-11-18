@@ -166,6 +166,7 @@ extension KroutonTestHarness {
     }
 
     runVerifyShellAndTelemetrySuite()
+    runVerifyPeerAgentSynthesisSuites()
     }
 
     private mutating func runVerifyShellAndTelemetrySuite() {
