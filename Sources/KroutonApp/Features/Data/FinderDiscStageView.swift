@@ -1,3 +1,4 @@
+import ImageIO
 import ImageKit
 import OpticalCore
 import SwiftUI
@@ -202,8 +203,9 @@ struct KroutonFinderDiscStageView: View {
         case .solidColor(let r, let g, let b):
             Color(red: r, green: g, blue: b)
         case .picture(let path):
-            if let nsImg = NSImage(contentsOfFile: path) {
-                Image(nsImage: nsImg)
+            if let src = CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil),
+               let cgImg = CGImageSourceCreateImageAtIndex(src, 0, nil) {
+                Image(decorative: cgImg, scale: 1.0)
                     .resizable()
                     .scaledToFill()
                     .overlay(Color.black.opacity(0.22))

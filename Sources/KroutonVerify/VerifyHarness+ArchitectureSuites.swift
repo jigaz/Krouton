@@ -123,6 +123,14 @@ extension KroutonTestHarness {
                 let dirFiles = filesByDir[fDir.path] ?? []
                 h.lint(dirFiles.contains { $0.contains("Workspace") }, "Feature domain \(fDir.lastPathComponent) must contain at least one primary *Workspace*.swift file")
             }
+            // Pure-SwiftUI Feature Gate: Features/ views must use pure SwiftUI (zero AppKit / NSColor / NSView / NSImage)
+            for (relPath, src) in clusterSourceByPrefix where relPath.contains("/KroutonApp/Features/") {
+                h.check(
+                    !src.contains("import AppKit") && !src.contains("NSColor") && !src.contains("NSView") && !src.contains("NSImage"),
+                    "\(relPath) must use pure SwiftUI (no import AppKit, NSColor, NSView, or NSImage in Features/)"
+                )
+            }
+
             for (clusterKey, combinedSrc) in clusterSourceByPrefix where clusterKey.contains("/KroutonApp/Features/") {
                 let shortCluster = URL(fileURLWithPath: clusterKey).lastPathComponent
                 let isAuthoringWorkspaceCluster = shortCluster.contains("Workspace")

@@ -1,27 +1,14 @@
 import AudioKit
 import SwiftUI
 
-// The splice canvas as a standalone view fed by an immutable snapshot.
-//
-// Replaces the four `draw…` methods in AudioCrossfadeCanvasView+Drawing.swift.
-// Because the renderer owns no state and reads nothing from the parent view, the
-// parent's @State can go back to `private`, and this file can be read, tested
-// and previewed on its own.
-//
-// Per-frame cost: no file access, no PeakPyramid construction, no sample scans.
-// The peak arrays were built once by AudioAnalysisService; drawing reads a few
-// values per bar and builds five paths.
-//
+// MARK: - SpliceCanvasSnapshot & SplicePalette
 
 struct SpliceCanvasSnapshot: Equatable, Sendable {
     var spec: KroutonTrackTransitionSpec
-    /// Nil while the file is still being analysed or could not be read.
     var outgoingTail: FramePeaks?
     var incomingHead: FramePeaks?
     var superimposed: Bool
     var showSum: Bool
-    /// Tints frames near the window's loudest peak. This is an amplitude
-    /// highlight, not transient detection; label the control accordingly.
     var highlightLoudFrames: Bool
     var horizontalZoom: Double = 1.0
     var isMiniGhostMode: Bool = false
@@ -33,12 +20,96 @@ struct SpliceCanvasSnapshot: Equatable, Sendable {
 }
 
 struct SplicePalette: Equatable, Sendable {
-    var outgoing = Color(red: 0.95, green: 0.38, blue: 0.28)
-    var incoming = Color(red: 0.36, green: 0.68, blue: 0.98)
-    var highlight = Color.yellow
-    var outgoingHighlight = Color(red: 0.74, green: 0.98, blue: 0.24)
-    var incomingHighlight = Color(red: 1.00, green: 0.76, blue: 0.12)
+    var outgoing: Color
+    var incoming: Color
+    var highlight: Color
+    var outgoingHighlight: Color
+    var incomingHighlight: Color
+
+    init(
+        outgoing: Color = Color(red: 0.95, green: 0.38, blue: 0.28),
+        incoming: Color = Color(red: 0.36, green: 0.68, blue: 0.98),
+        highlight: Color = .yellow
+    ) {
+        self.outgoing = outgoing
+        self.incoming = incoming
+        self.highlight = highlight
+        self.outgoingHighlight = Self.themePeakOffshoot(from: outgoing, hueShift: -0.055)
+        self.incomingHighlight = Self.themePeakOffshoot(from: incoming, hueShift: 0.055)
+    }
+
+    /// Pure-SwiftUI color resolver that derives a luminous, high-contrast off-shoot of a track's theme color.
+    static func themePeakOffshoot(from base: Color, hueShift: Double) -> Color {
+        let resolved = base.resolve(in: EnvironmentValues())
+        let r = Double(min(1, max(0, resolved.red)))
+        let g = Double(min(1, max(0, resolved.green)))
+        let b = Double(min(1, max(0, resolved.blue)))
+        let (h, s, _) = rgbToHSB(r: r, g: g, b: b)
+
+        var shiftedH = (h + hueShift).truncatingRemainder(dividingBy: 1.0)
+        if shiftedH < 0 { shiftedH += 1.0 }
+        let offshootS = min(0.76, max(0.38, s * 0.64))
+        let (or, og, ob) = hsbToRGB(h: shiftedH, s: offshootS, b: 1.0)
+
+        return Color(
+            red: min(1.0, or * 0.86 + 0.14),
+            green: min(1.0, og * 0.86 + 0.13),
+            blue: min(1.0, ob * 0.86 + 0.09)
+        )
+    }
+
+    static func interpolate(from a: Color, to b: Color, t: Double) -> Color {
+        let clamped = min(1.0, max(0.0, t))
+        guard clamped > 0.001 else { return a }
+        guard clamped < 0.999 else { return b }
+        let ra = a.resolve(in: EnvironmentValues())
+        let rb = b.resolve(in: EnvironmentValues())
+        return Color(
+            red: Double(ra.red) + (Double(rb.red) - Double(ra.red)) * clamped,
+            green: Double(ra.green) + (Double(rb.green) - Double(ra.green)) * clamped,
+            blue: Double(ra.blue) + (Double(rb.blue) - Double(ra.blue)) * clamped
+        )
+    }
+
+    private static func rgbToHSB(r: Double, g: Double, b: Double) -> (h: Double, s: Double, b: Double) {
+        let maxV = max(r, g, b)
+        let minV = min(r, g, b)
+        let delta = maxV - minV
+        var hue = 0.0
+        if delta > 0.00001 {
+            if maxV == r {
+                hue = ((g - b) / delta).truncatingRemainder(dividingBy: 6.0)
+            } else if maxV == g {
+                hue = ((b - r) / delta) + 2.0
+            } else {
+                hue = ((r - g) / delta) + 4.0
+            }
+            hue /= 6.0
+            if hue < 0 { hue += 1.0 }
+        }
+        let sat = maxV <= 0.00001 ? 0.0 : (delta / maxV)
+        return (hue, sat, maxV)
+    }
+
+    private static func hsbToRGB(h: Double, s: Double, b: Double) -> (r: Double, g: Double, b: Double) {
+        let c = b * s
+        let x = c * (1.0 - abs(((h * 6.0).truncatingRemainder(dividingBy: 2.0)) - 1.0))
+        let m = b - c
+        let sector = Int(floor(h * 6.0)) % 6
+        let (r1, g1, b1): (Double, Double, Double)
+        switch sector {
+        case 0: (r1, g1, b1) = (c, x, 0)
+        case 1: (r1, g1, b1) = (x, c, 0)
+        case 2: (r1, g1, b1) = (0, c, x)
+        case 3: (r1, g1, b1) = (0, x, c)
+        case 4: (r1, g1, b1) = (x, 0, c)
+        default: (r1, g1, b1) = (c, 0, x)
+        }
+        return (r1 + m, g1 + m, b1 + m)
+    }
 }
+
+// MARK: - SpliceWaveformCanvas
 
 struct SpliceWaveformCanvas: View, Equatable {
     let snapshot: SpliceCanvasSnapshot
@@ -51,7 +122,6 @@ struct SpliceWaveformCanvas: View, Equatable {
         self.palette = palette
     }
 
-    // Views are main-actor types in Swift 6; Equatable is not, so == is spelled out.
     nonisolated static func == (lhs: SpliceWaveformCanvas, rhs: SpliceWaveformCanvas) -> Bool {
         lhs.snapshot == rhs.snapshot && lhs.geometry == rhs.geometry && lhs.palette == rhs.palette
     }
@@ -63,8 +133,8 @@ struct SpliceWaveformCanvas: View, Equatable {
         }
     }
 }
-// Use it as `SpliceWaveformCanvas(...).equatable()` so SwiftUI skips the redraw
-// when neither the snapshot nor the geometry changed (hover moves, for example).
+
+// MARK: - SpliceCanvasRenderer
 
 private struct SpliceCanvasRenderer {
     let snapshot: SpliceCanvasSnapshot
@@ -90,9 +160,6 @@ private struct SpliceCanvasRenderer {
         if snapshot.mode == .crossfade { drawGainCurves(&context) }
     }
 
-    // MARK: - Time mapping
-
-    /// Seconds per point, taken from the zone so bars line up with the rails.
     private var secondsPerPoint: Double {
         let zoneWidth = Double(x1 - x0)
         switch snapshot.mode {
@@ -102,11 +169,8 @@ private struct SpliceCanvasRenderer {
         }
     }
 
-    /// The outgoing track's last sample sits here; the incoming track's first sits at `incomingStartX`.
     private var outgoingEndX: CGFloat { snapshot.mode == .crossfade ? x1 : x0 }
     private var incomingStartX: CGFloat { snapshot.mode == .crossfade ? x0 : x1 }
-
-    // MARK: - Layers
 
     private func drawGridAndScales(_ context: inout GraphicsContext) {
         let splitY = rulerHeight + bodyHeight * 0.5
@@ -174,6 +238,51 @@ private struct SpliceCanvasRenderer {
         context.stroke(rails, with: .color(.white.opacity(0.32)), lineWidth: 1.1)
     }
 
+    /// Anti-aliased continuous envelope sampler over floating-point frame coordinates [startFrame, endFrame].
+    /// Eliminates integer-truncation skipping and bar-hopping when adjusting overlapSeconds or rails.
+    private func sampleSmoothPeak(from peaks: FramePeaks, startFrame: Double, endFrame: Double) -> Float? {
+        let count = peaks.values.count
+        guard count > 0 else { return nil }
+        let lo = min(startFrame, endFrame)
+        let hi = max(startFrame, endFrame)
+        let center = (lo + hi) * 0.5
+        let halfSpan = max(0.75, (hi - lo) * 0.5)
+        let kLo = center - halfSpan
+        let kHi = center + halfSpan
+
+        if kHi < 0.0 || kLo >= Double(count) { return nil }
+
+        let iStart = max(0, Int(floor(kLo)))
+        let iEnd = min(count - 1, Int(ceil(kHi)))
+        guard iStart <= iEnd else { return nil }
+
+        var weightedMax: Double = 0.0
+        var weightSum: Double = 0.0
+        var weightedAvg: Double = 0.0
+
+        for idx in iStart...iEnd {
+            let dist = abs(Double(idx) + 0.5 - center) / max(0.75, halfSpan + 0.5)
+            guard dist < 1.0 else { continue }
+            // Smooth raised-cosine window so frames entering/leaving a bar's span ramp smoothly without popping
+            let w = 0.5 * (1.0 + cos(dist * .pi))
+            let val = Double(peaks.values[idx])
+            weightedMax = max(weightedMax, val * pow(w, 0.28))
+            weightedAvg += val * w
+            weightSum += w
+        }
+        guard weightSum > 0.0001 else { return nil }
+        let avg = weightedAvg / weightSum
+        return Float(weightedMax * 0.78 + avg * 0.22)
+    }
+
+    private func smoothPeakProminence(peak: Float, loudest: Float) -> Double {
+        let floorT = Double(loudest) * 0.70
+        let ceilT = Double(loudest) * 0.88
+        guard ceilT > floorT else { return 0.0 }
+        let u = min(1.0, max(0.0, (Double(peak) - floorT) / (ceilT - floorT)))
+        return u * u * (3.0 - 2.0 * u)
+    }
+
     private func drawWaveforms(_ context: inout GraphicsContext) {
         let outMidY = rulerHeight + bodyHeight * (snapshot.superimposed ? 0.5 : 0.25)
         let inMidY = rulerHeight + bodyHeight * (snapshot.superimposed ? 0.5 : 0.75)
@@ -183,55 +292,59 @@ private struct SpliceCanvasRenderer {
         let framesPerPoint = secondsPerPoint * 75.0
         let isCrossfade = snapshot.mode == .crossfade
 
-        // One shared display scale keeps the two tracks' relative loudness honest.
-        // It affects drawing only; the peak readout uses the unscaled values.
         let loudest = max(snapshot.outgoingTail?.maximum ?? 0, snapshot.incomingHead?.maximum ?? 0, 0.05)
         let displayScale = CGFloat(1 / loudest)
-        let highlightThreshold = loudest * 0.8
-
-        var outOutside = Path(), outInside = Path(), inOutside = Path(), inInside = Path(), outHighlighted = Path(), inHighlighted = Path()
+        let baseOutsideAlpha = snapshot.superimposed ? 0.68 : 0.80
+        let baseInsideAlpha = snapshot.superimposed ? 0.54 : 0.66
 
         for bar in 0..<Self.barCount {
             let x = CGFloat(bar) * step
-            let progress = max(0, min(1, Double((x - x0) / max(1, x1 - x0))))
+            let barCenter = x + step * 0.5
+            let progress = max(0, min(1, Double((barCenter - x0) / max(1, x1 - x0))))
 
             if let tail = snapshot.outgoingTail, x <= outgoingEndX {
-                // Frames counted back from the end of the outgoing track.
-                let last = tail.values.count - Int(Double(outgoingEndX - x - step) * framesPerPoint)
-                let first = tail.values.count - Int(Double(outgoingEndX - x) * framesPerPoint)
-                if let peak = tail.peak(in: first..<max(first + 1, last)) {
-                    let inZone = isCrossfade && x >= x0
-                    let gain = inZone ? spec.effectiveGainOut(at: progress) : 1
+                let total = Double(tail.values.count)
+                let f0 = total - Double(outgoingEndX - x) * framesPerPoint
+                let f1 = total - Double(outgoingEndX - (x + step)) * framesPerPoint
+                if let peak = sampleSmoothPeak(from: tail, startFrame: f0, endFrame: f1) {
+                    let inZone = isCrossfade && barCenter >= x0
+                    let gain = inZone ? spec.effectiveGainOut(at: progress) : 1.0
                     let height = min(maxAmplitude * 1.05, maxAmplitude * CGFloat(peak) * displayScale * CGFloat(gain))
                     let rect = CGRect(x: x, y: outMidY - height, width: barWidth, height: max(1.5, height * 2))
-                    if snapshot.highlightLoudFrames, peak > highlightThreshold { outHighlighted.addRect(rect) }
-                    else if inZone { outInside.addRect(rect) } else { outOutside.addRect(rect) }
+
+                    let rawProminence = snapshot.highlightLoudFrames ? smoothPeakProminence(peak: peak, loudest: loudest) : 0.0
+                    // Fade peak highlight intensity & opacity smoothly along the outgoing gain curve
+                    let gainEnvelope = inZone ? pow(max(0.0, min(1.0, gain)), 0.65) : 1.0
+                    let effectivePeakMix = rawProminence * (0.25 + 0.75 * gainEnvelope)
+                    let barColor = SplicePalette.interpolate(from: palette.outgoing, to: palette.outgoingHighlight, t: effectivePeakMix)
+                    let baseAlpha = inZone ? (baseInsideAlpha * (0.22 + 0.78 * gainEnvelope)) : baseOutsideAlpha
+                    let finalAlpha = min(0.96, baseAlpha + effectivePeakMix * 0.34 * gainEnvelope)
+
+                    context.fill(Path(rect), with: .color(barColor.opacity(finalAlpha)))
                 }
             }
 
             if let head = snapshot.incomingHead, x + step >= incomingStartX {
-                // Frames counted forward from the start of the incoming track.
-                let first = Int(Double(x - incomingStartX) * framesPerPoint)
-                let last = Int(Double(x + step - incomingStartX) * framesPerPoint)
-                if let peak = head.peak(in: first..<max(first + 1, last)) {
-                    let inZone = isCrossfade && x <= x1
-                    let gain = inZone ? spec.effectiveGainIn(at: progress) : 1
+                let f0 = Double(x - incomingStartX) * framesPerPoint
+                let f1 = Double(x + step - incomingStartX) * framesPerPoint
+                if let peak = sampleSmoothPeak(from: head, startFrame: f0, endFrame: f1) {
+                    let inZone = isCrossfade && barCenter <= x1
+                    let gain = inZone ? spec.effectiveGainIn(at: progress) : 1.0
                     let height = min(maxAmplitude * 1.05, maxAmplitude * CGFloat(peak) * displayScale * CGFloat(gain))
                     let rect = CGRect(x: x, y: inMidY - height, width: barWidth, height: max(1.5, height * 2))
-                    if snapshot.highlightLoudFrames, peak > highlightThreshold { inHighlighted.addRect(rect) }
-                    else if inZone { inInside.addRect(rect) } else { inOutside.addRect(rect) }
+
+                    let rawProminence = snapshot.highlightLoudFrames ? smoothPeakProminence(peak: peak, loudest: loudest) : 0.0
+                    // Fade peak highlight intensity & opacity smoothly along the incoming gain curve
+                    let gainEnvelope = inZone ? pow(max(0.0, min(1.0, gain)), 0.65) : 1.0
+                    let effectivePeakMix = rawProminence * (0.25 + 0.75 * gainEnvelope)
+                    let barColor = SplicePalette.interpolate(from: palette.incoming, to: palette.incomingHighlight, t: effectivePeakMix)
+                    let baseAlpha = inZone ? (baseInsideAlpha * (0.22 + 0.78 * gainEnvelope)) : baseOutsideAlpha
+                    let finalAlpha = min(0.96, baseAlpha + effectivePeakMix * 0.34 * gainEnvelope)
+
+                    context.fill(Path(rect), with: .color(barColor.opacity(finalAlpha)))
                 }
             }
         }
-
-        let outside = snapshot.superimposed ? 0.65 : 0.78
-        let inside = snapshot.superimposed ? 0.46 : 0.58
-        context.fill(outOutside, with: .color(palette.outgoing.opacity(outside)))
-        context.fill(outInside, with: .color(palette.outgoing.opacity(inside)))
-        context.fill(inOutside, with: .color(palette.incoming.opacity(outside)))
-        context.fill(inInside, with: .color(palette.incoming.opacity(inside)))
-        context.fill(outHighlighted, with: .color(palette.outgoingHighlight))
-        context.fill(inHighlighted, with: .color(palette.incomingHighlight))
     }
 
     private func drawGainCurves(_ context: inout GraphicsContext) {
@@ -249,7 +362,6 @@ private struct SpliceCanvasRenderer {
             let gainOut = spec.effectiveGainOut(at: t), gainIn = spec.effectiveGainIn(at: t)
             let outPoint = CGPoint(x: x, y: y(for: gainOut))
             let inPoint = CGPoint(x: x, y: y(for: gainIn))
-            // Power sum: flat at 1.0 for an equal-power fade of unrelated material.
             let sumPoint = CGPoint(x: x, y: y(for: (gainOut * gainOut + gainIn * gainIn).squareRoot()))
             if step == 0 {
                 outCurve.move(to: outPoint); inCurve.move(to: inPoint); sumCurve.move(to: sumPoint)

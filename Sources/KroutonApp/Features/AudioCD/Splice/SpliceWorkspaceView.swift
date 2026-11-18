@@ -208,6 +208,7 @@ struct SpliceWorkspaceView: View {
 
                 SpliceControlsBar(
                     snapshot: snapshot,
+                    palette: palette,
                     superimposed: $superimposed,
                     showSum: $showSum,
                     highlightLoudFrames: $highlightLoudFrames,

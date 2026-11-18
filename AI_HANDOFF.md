@@ -911,3 +911,11 @@ This file tracks proposed and completed changes across AI coding sessions (Claud
   - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceHeaderBar.swift` (M)
   - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceWaveformCanvas.swift` (M)
   - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceWorkspaceView.swift` (M)
+
+- **2026-11-18 06:21 [commit 7d052a6]:** Derive pure-SwiftUI peak off-shoot colors from active theme, add anti-aliased gain-blended peak fading, and enforce standing Pure-SwiftUI Feature Gate in Suite 2 
+  - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceControlsBar.swift` (M)
+  - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceWaveformCanvas.swift` (M)
+  - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceWorkspaceView.swift` (M)
+  - `Sources/KroutonApp/Features/Data/FinderDiscStageView+CellsAndMenus.swift` (M)
+  - `Sources/KroutonApp/Features/Data/FinderDiscStageView.swift` (M)
+  - `Sources/KroutonVerify/VerifyHarness+ArchitectureSuites.swift` (M)

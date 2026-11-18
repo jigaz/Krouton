@@ -5,6 +5,7 @@ import SwiftUI
 
 struct SpliceControlsBar: View {
     let snapshot: SpliceCanvasSnapshot
+    var palette: SplicePalette = SplicePalette()
     @Binding var superimposed: Bool
     @Binding var showSum: Bool
     @Binding var highlightLoudFrames: Bool
@@ -65,10 +66,10 @@ struct SpliceControlsBar: View {
                     HStack(spacing: 4) {
                         HStack(spacing: 2) {
                             Circle()
-                                .fill(Color(red: 0.74, green: 0.98, blue: 0.24))
+                                .fill(palette.outgoingHighlight)
                                 .frame(width: 5.5, height: 5.5)
                             Circle()
-                                .fill(Color(red: 1.00, green: 0.76, blue: 0.12))
+                                .fill(palette.incomingHighlight)
                                 .frame(width: 5.5, height: 5.5)
                         }
                         .opacity(highlightLoudFrames ? 1.0 : 0.55)

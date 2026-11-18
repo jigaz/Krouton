@@ -1,3 +1,4 @@
+import ImageIO
 import ImageKit
 import OpticalCore
 import SwiftUI
@@ -163,8 +164,10 @@ extension KroutonFinderDiscStageView {
 
     @ViewBuilder
     func itemThumbnail(for entry: KroutonStagedFileEntry, size: CGFloat) -> some View {
-        if blueprint.showIconPreview, !entry.isDirectory, let nsImg = NSImage(contentsOf: entry.url) {
-            Image(nsImage: nsImg)
+        if blueprint.showIconPreview, !entry.isDirectory,
+           let src = CGImageSourceCreateWithURL(entry.url as CFURL, nil),
+           let cgImg = CGImageSourceCreateImageAtIndex(src, 0, nil) {
+            Image(decorative: cgImg, scale: 1.0)
                 .resizable()
                 .scaledToFit()
                 .frame(width: size, height: size)
