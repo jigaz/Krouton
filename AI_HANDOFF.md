@@ -900,3 +900,8 @@ This file tracks proposed and completed changes across AI coding sessions (Claud
   - `Sources/KroutonApp/Shell/DesignSystem/KroutonBrandLogoView.swift` (A)
   - `Sources/KroutonApp/Shell/Workspace/KroutonMainWorkspaceView+DropAndSheets.swift` (M)
   - `Sources/KroutonApp/Shell/Workspace/KroutonMainWorkspaceView.swift` (M)
+
+- **2026-11-18 05:48 [commit 8fada9c]:** Group Track Montage controls into 4 logical pods, link X-Fade slider to live canvas rubber-banding, fix OUT badge collision, and add collapsible sidebars + Krouton SVG logo 
+  - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceCanvasArea.swift` (M)
+  - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceControlsBar.swift` (M)
+  - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceWorkspaceView.swift` (M)

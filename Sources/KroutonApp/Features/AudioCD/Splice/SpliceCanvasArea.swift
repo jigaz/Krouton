@@ -11,6 +11,7 @@ struct SpliceCanvasArea: View {
     let incomingTitle: String
     var outgoingBPM: Double? = nil
     var incomingBPM: Double? = nil
+    @Binding var rubberBandSpan: Double?
     let onPreview: (KroutonTrackTransitionSpec) -> Void
     let onCommit: (KroutonTrackTransitionSpec) -> Void
 
@@ -19,7 +20,6 @@ struct SpliceCanvasArea: View {
     @State private var hoverPoint: CGPoint?
     @State private var activeTarget: SpliceDragTarget?
     @State private var hoveredHiddenMidTarget: SpliceDragTarget?
-    @State private var rubberBandSpan: Double? = nil
 
     var body: some View {
         GeometryReader { proxy in
@@ -120,7 +120,10 @@ private struct SpliceHandleOverlay: View {
             .padding(.horizontal, 7).padding(.vertical, 2.5)
             .background(Color.black.opacity(0.68))
             .clipShape(Capsule())
-            .padding(.leading, 40).padding(.top, topY + 14)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: snapshot.superimposed ? .bottomLeading : .topLeading)
+            .padding(.leading, 42)
+            .padding(.top, snapshot.superimposed ? 0 : topY + 28)
+            .padding(.bottom, snapshot.superimposed ? 6 : 0)
 
             HStack(spacing: 5) {
                 Circle().fill(palette.incoming).frame(width: 6, height: 6)
@@ -186,7 +189,7 @@ private struct SpliceHandleOverlay: View {
                 if isRubberBanding {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.left.and.right")
-                        Text(String(format: "%.2fs", spec.overlapSeconds))
+                        Text(String(format: "X-FADE %.2fs • %df", spec.overlapSeconds, spec.overlapRedBookFrames))
                     }
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
                     .padding(.horizontal, 8).padding(.vertical, 4)

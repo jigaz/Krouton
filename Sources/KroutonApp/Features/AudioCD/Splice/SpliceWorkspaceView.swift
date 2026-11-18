@@ -28,6 +28,7 @@ struct SpliceWorkspaceView: View {
     @State private var superimposed = true
     @State private var highlightLoudFrames = false
     @State private var dragStartHeightScale: Double? = nil
+    @State private var rubberBandSpan: Double? = nil
 
     private var palette: SplicePalette {
         SplicePalette(outgoing: primaryColor, incoming: harmonyColor, highlight: .yellow)
@@ -141,6 +142,7 @@ struct SpliceWorkspaceView: View {
                         incomingTitle: incomingTitle,
                         outgoingBPM: outgoing?.estimatedBPM,
                         incomingBPM: incoming?.estimatedBPM,
+                        rubberBandSpan: $rubberBandSpan,
                         onPreview: onPreview,
                         onCommit: onCommit
                     )
@@ -155,6 +157,7 @@ struct SpliceWorkspaceView: View {
                         incomingTitle: incomingTitle,
                         outgoingBPM: outgoing?.estimatedBPM,
                         incomingBPM: incoming?.estimatedBPM,
+                        rubberBandSpan: $rubberBandSpan,
                         onPreview: onPreview,
                         onCommit: onCommit
                     )
@@ -192,6 +195,7 @@ struct SpliceWorkspaceView: View {
                     superimposed: $superimposed,
                     showSum: $showSum,
                     highlightLoudFrames: $highlightLoudFrames,
+                    rubberBandSpan: $rubberBandSpan,
                     onPreview: onPreview,
                     onCommit: onCommit,
                     onAudition: onAudition
