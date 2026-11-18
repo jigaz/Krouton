@@ -919,3 +919,6 @@ This file tracks proposed and completed changes across AI coding sessions (Claud
   - `Sources/KroutonApp/Features/Data/FinderDiscStageView+CellsAndMenus.swift` (M)
   - `Sources/KroutonApp/Features/Data/FinderDiscStageView.swift` (M)
   - `Sources/KroutonVerify/VerifyHarness+ArchitectureSuites.swift` (M)
+
+- **2026-11-18 09:04 [commit c59beea]:** Use per-track adaptive peak thresholds and stronger theme off-shoot contrast for waveform peaks 
+  - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceWaveformCanvas.swift` (M)

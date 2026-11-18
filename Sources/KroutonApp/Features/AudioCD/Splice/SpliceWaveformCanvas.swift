@@ -34,8 +34,8 @@ struct SplicePalette: Equatable, Sendable {
         self.outgoing = outgoing
         self.incoming = incoming
         self.highlight = highlight
-        self.outgoingHighlight = Self.themePeakOffshoot(from: outgoing, hueShift: -0.055)
-        self.incomingHighlight = Self.themePeakOffshoot(from: incoming, hueShift: 0.055)
+        self.outgoingHighlight = Self.themePeakOffshoot(from: outgoing, hueShift: -0.095)
+        self.incomingHighlight = Self.themePeakOffshoot(from: incoming, hueShift: 0.095)
     }
 
     /// Pure-SwiftUI color resolver that derives a luminous, high-contrast off-shoot of a track's theme color.
@@ -48,13 +48,13 @@ struct SplicePalette: Equatable, Sendable {
 
         var shiftedH = (h + hueShift).truncatingRemainder(dividingBy: 1.0)
         if shiftedH < 0 { shiftedH += 1.0 }
-        let offshootS = min(0.76, max(0.38, s * 0.64))
+        let offshootS = min(0.82, max(0.42, s * 0.68))
         let (or, og, ob) = hsbToRGB(h: shiftedH, s: offshootS, b: 1.0)
 
         return Color(
-            red: min(1.0, or * 0.86 + 0.14),
-            green: min(1.0, og * 0.86 + 0.13),
-            blue: min(1.0, ob * 0.86 + 0.09)
+            red: min(1.0, or * 0.78 + 0.22),
+            green: min(1.0, og * 0.78 + 0.20),
+            blue: min(1.0, ob * 0.78 + 0.12)
         )
     }
 
@@ -261,26 +261,27 @@ private struct SpliceCanvasRenderer {
         var weightedAvg: Double = 0.0
 
         for idx in iStart...iEnd {
-            let dist = abs(Double(idx) + 0.5 - center) / max(0.75, halfSpan + 0.5)
+            let dist = abs(Double(idx) + 0.5 - center) / max(0.75, halfSpan + 0.45)
             guard dist < 1.0 else { continue }
-            // Smooth raised-cosine window so frames entering/leaving a bar's span ramp smoothly without popping
+            // Smooth raised-cosine window that preserves true peak crests while feathering bar edges
             let w = 0.5 * (1.0 + cos(dist * .pi))
             let val = Double(peaks.values[idx])
-            weightedMax = max(weightedMax, val * pow(w, 0.28))
+            weightedMax = max(weightedMax, val * pow(w, 0.16))
             weightedAvg += val * w
             weightSum += w
         }
         guard weightSum > 0.0001 else { return nil }
         let avg = weightedAvg / weightSum
-        return Float(weightedMax * 0.78 + avg * 0.22)
+        return Float(weightedMax * 0.92 + avg * 0.08)
     }
 
-    private func smoothPeakProminence(peak: Float, loudest: Float) -> Double {
-        let floorT = Double(loudest) * 0.70
-        let ceilT = Double(loudest) * 0.88
+    private func smoothPeakProminence(peak: Float, trackReference: Float) -> Double {
+        let floorT = Double(trackReference) * 0.50
+        let ceilT = Double(trackReference) * 0.76
         guard ceilT > floorT else { return 0.0 }
         let u = min(1.0, max(0.0, (Double(peak) - floorT) / (ceilT - floorT)))
-        return u * u * (3.0 - 2.0 * u)
+        let smooth = u * u * (3.0 - 2.0 * u)
+        return pow(smooth, 0.75)
     }
 
     private func drawWaveforms(_ context: inout GraphicsContext) {
@@ -292,7 +293,11 @@ private struct SpliceCanvasRenderer {
         let framesPerPoint = secondsPerPoint * 75.0
         let isCrossfade = snapshot.mode == .crossfade
 
-        let loudest = max(snapshot.outgoingTail?.maximum ?? 0, snapshot.incomingHead?.maximum ?? 0, 0.05)
+        let outMax = snapshot.outgoingTail?.maximum ?? 0
+        let inMax = snapshot.incomingHead?.maximum ?? 0
+        let loudest = max(outMax, inMax, 0.05)
+        let outRef = max(outMax, loudest * 0.35, 0.05)
+        let inRef = max(inMax, loudest * 0.35, 0.05)
         let displayScale = CGFloat(1 / loudest)
         let baseOutsideAlpha = snapshot.superimposed ? 0.68 : 0.80
         let baseInsideAlpha = snapshot.superimposed ? 0.54 : 0.66
@@ -312,10 +317,10 @@ private struct SpliceCanvasRenderer {
                     let height = min(maxAmplitude * 1.05, maxAmplitude * CGFloat(peak) * displayScale * CGFloat(gain))
                     let rect = CGRect(x: x, y: outMidY - height, width: barWidth, height: max(1.5, height * 2))
 
-                    let rawProminence = snapshot.highlightLoudFrames ? smoothPeakProminence(peak: peak, loudest: loudest) : 0.0
+                    let rawProminence = snapshot.highlightLoudFrames ? smoothPeakProminence(peak: peak, trackReference: outRef) : 0.0
                     // Fade peak highlight intensity & opacity smoothly along the outgoing gain curve
                     let gainEnvelope = inZone ? pow(max(0.0, min(1.0, gain)), 0.65) : 1.0
-                    let effectivePeakMix = rawProminence * (0.25 + 0.75 * gainEnvelope)
+                    let effectivePeakMix = min(1.0, rawProminence * (0.38 + 0.72 * gainEnvelope))
                     let barColor = SplicePalette.interpolate(from: palette.outgoing, to: palette.outgoingHighlight, t: effectivePeakMix)
                     let baseAlpha = inZone ? (baseInsideAlpha * (0.22 + 0.78 * gainEnvelope)) : baseOutsideAlpha
                     let finalAlpha = min(0.96, baseAlpha + effectivePeakMix * 0.34 * gainEnvelope)
@@ -333,10 +338,10 @@ private struct SpliceCanvasRenderer {
                     let height = min(maxAmplitude * 1.05, maxAmplitude * CGFloat(peak) * displayScale * CGFloat(gain))
                     let rect = CGRect(x: x, y: inMidY - height, width: barWidth, height: max(1.5, height * 2))
 
-                    let rawProminence = snapshot.highlightLoudFrames ? smoothPeakProminence(peak: peak, loudest: loudest) : 0.0
+                    let rawProminence = snapshot.highlightLoudFrames ? smoothPeakProminence(peak: peak, trackReference: inRef) : 0.0
                     // Fade peak highlight intensity & opacity smoothly along the incoming gain curve
                     let gainEnvelope = inZone ? pow(max(0.0, min(1.0, gain)), 0.65) : 1.0
-                    let effectivePeakMix = rawProminence * (0.25 + 0.75 * gainEnvelope)
+                    let effectivePeakMix = min(1.0, rawProminence * (0.38 + 0.72 * gainEnvelope))
                     let barColor = SplicePalette.interpolate(from: palette.incoming, to: palette.incomingHighlight, t: effectivePeakMix)
                     let baseAlpha = inZone ? (baseInsideAlpha * (0.22 + 0.78 * gainEnvelope)) : baseOutsideAlpha
                     let finalAlpha = min(0.96, baseAlpha + effectivePeakMix * 0.34 * gainEnvelope)
