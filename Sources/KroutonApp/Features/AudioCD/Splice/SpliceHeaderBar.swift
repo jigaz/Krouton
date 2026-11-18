@@ -1,6 +1,8 @@
 import AudioKit
 import SwiftUI
 
+// MARK: - SpliceHeaderBar
+
 struct SpliceHeaderBar: View {
     let trackNumber: Int
     let totalTransitions: Int
@@ -11,6 +13,7 @@ struct SpliceHeaderBar: View {
     let primaryColor: Color
     let isFloatingWindow: Bool
     let onSelectMode: (SpliceTransitionMode) -> Void
+    let onReset: () -> Void
     let onSelectSlot: (ABComparison.Slot) -> Void
     let onAddSubIndex: () -> Void
     let onStepTransition: (Int) -> Void
@@ -18,6 +21,27 @@ struct SpliceHeaderBar: View {
 
     @State private var montageState = TrackMontageWindowState.shared
     private var spec: KroutonTrackTransitionSpec { snapshot.spec }
+
+    private var isModifiedFromDefault: Bool {
+        if !spec.subIndexRatios.isEmpty { return true }
+        switch snapshot.mode {
+        case .crossfade:
+            let hasQuarterHandles = spec.fadeOutMidTrim != nil
+                || spec.fadeOutThreeQuarterTrim != nil
+                || spec.fadeInQuarterTrim != nil
+                || spec.fadeInMidTrim != nil
+            return hasQuarterHandles
+                || abs(spec.overlapSeconds - 2.5) > 0.015
+                || spec.fadeOutCurve != .equalPower
+                || spec.fadeInCurve != .equalPower
+                || abs(spec.curveTension) > 0.005
+                || abs(spec.spliceIndex01Ratio - 0.5) > 0.005
+        case .gap:
+            return abs(spec.preGapSeconds - 2.0) > 0.015
+        case .gapless:
+            return spec.overlapSeconds > 0.005 || spec.preGapSeconds > 0.005
+        }
+    }
 
     private var statusSummary: String {
         switch snapshot.mode {
@@ -65,6 +89,17 @@ struct SpliceHeaderBar: View {
                 selection: snapshot.mode,
                 onSelect: onSelectMode
             )
+
+            Button(action: onReset) {
+                HStack(spacing: 3) {
+                    Image(systemName: "arrow.counterclockwise")
+                    Text("Reset")
+                }
+            }
+            .buttonStyle(KroutonPillButtonStyle(isOn: false))
+            .disabled(!isModifiedFromDefault)
+            .opacity(isModifiedFromDefault ? 1.0 : 0.38)
+            .help(isModifiedFromDefault ? "Reset transition to default settings" : "Transition is currently at default settings")
 
             ViewThatFits(in: .horizontal) {
                 Text(statusSummary)

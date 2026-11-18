@@ -59,9 +59,24 @@ struct SpliceControlsBar: View {
                     }
                 }
 
-                KroutonTogglePill(title: "Peaks", isOn: highlightLoudFrames) {
+                Button {
                     highlightLoudFrames.toggle()
+                } label: {
+                    HStack(spacing: 4) {
+                        HStack(spacing: 2) {
+                            Circle()
+                                .fill(Color(red: 0.74, green: 0.98, blue: 0.24))
+                                .frame(width: 5.5, height: 5.5)
+                            Circle()
+                                .fill(Color(red: 1.00, green: 0.76, blue: 0.12))
+                                .frame(width: 5.5, height: 5.5)
+                        }
+                        .opacity(highlightLoudFrames ? 1.0 : 0.55)
+                        Text("Peaks")
+                    }
                 }
+                .buttonStyle(KroutonPillButtonStyle(isOn: highlightLoudFrames))
+                .help("Highlight loudest frames with distinct colors for Outgoing (chartreuse-gold) and Incoming (amber-gold) tracks")
             }
 
             if snapshot.mode == .crossfade {
@@ -184,19 +199,8 @@ struct SpliceControlsBar: View {
 
             Spacer(minLength: 4)
 
-            // POD 4: Reset & Audition Transport
+            // POD 4: Audition Pre/Post-Roll & Preview Transport
             controlPod {
-                Button {
-                    onCommit(resetSpec(from: spec, mode: snapshot.mode))
-                } label: {
-                    HStack(spacing: 3) {
-                        Image(systemName: "arrow.counterclockwise")
-                        Text("Reset")
-                    }
-                }
-                .buttonStyle(KroutonPillButtonStyle(isOn: false))
-                .help("Reset transition to factory defaults and hide all 1/4 and 3/4 curve handles")
-
                 ViewThatFits(in: .horizontal) {
                     KroutonPillPicker(
                         options: [
@@ -246,23 +250,6 @@ struct SpliceControlsBar: View {
             RoundedRectangle(cornerRadius: 8)
                 .strokeBorder(highlighted ? Color.orange.opacity(0.65) : Color.white.opacity(0.08), lineWidth: 1)
         )
-    }
-
-    private func resetSpec(from current: KroutonTrackTransitionSpec, mode: SpliceTransitionMode) -> KroutonTrackTransitionSpec {
-        var updated = KroutonTrackTransitionSpec()
-        updated.id = current.id
-        switch mode {
-        case .crossfade:
-            updated.overlapSeconds = 2.5
-            updated.preGapSeconds = 0
-        case .gap:
-            updated.overlapSeconds = 0
-            updated.preGapSeconds = 2.0
-        case .gapless:
-            updated.overlapSeconds = 0
-            updated.preGapSeconds = 0
-        }
-        return updated
     }
 
     private func glyph(for curve: KroutonCrossfadeCurve) -> String {

@@ -36,6 +36,8 @@ struct SplicePalette: Equatable, Sendable {
     var outgoing = Color(red: 0.95, green: 0.38, blue: 0.28)
     var incoming = Color(red: 0.36, green: 0.68, blue: 0.98)
     var highlight = Color.yellow
+    var outgoingHighlight = Color(red: 0.74, green: 0.98, blue: 0.24)
+    var incomingHighlight = Color(red: 1.00, green: 0.76, blue: 0.12)
 }
 
 struct SpliceWaveformCanvas: View, Equatable {
@@ -187,7 +189,7 @@ private struct SpliceCanvasRenderer {
         let displayScale = CGFloat(1 / loudest)
         let highlightThreshold = loudest * 0.8
 
-        var outOutside = Path(), outInside = Path(), inOutside = Path(), inInside = Path(), highlighted = Path()
+        var outOutside = Path(), outInside = Path(), inOutside = Path(), inInside = Path(), outHighlighted = Path(), inHighlighted = Path()
 
         for bar in 0..<Self.barCount {
             let x = CGFloat(bar) * step
@@ -202,7 +204,7 @@ private struct SpliceCanvasRenderer {
                     let gain = inZone ? spec.effectiveGainOut(at: progress) : 1
                     let height = min(maxAmplitude * 1.05, maxAmplitude * CGFloat(peak) * displayScale * CGFloat(gain))
                     let rect = CGRect(x: x, y: outMidY - height, width: barWidth, height: max(1.5, height * 2))
-                    if snapshot.highlightLoudFrames, peak > highlightThreshold { highlighted.addRect(rect) }
+                    if snapshot.highlightLoudFrames, peak > highlightThreshold { outHighlighted.addRect(rect) }
                     else if inZone { outInside.addRect(rect) } else { outOutside.addRect(rect) }
                 }
             }
@@ -216,7 +218,7 @@ private struct SpliceCanvasRenderer {
                     let gain = inZone ? spec.effectiveGainIn(at: progress) : 1
                     let height = min(maxAmplitude * 1.05, maxAmplitude * CGFloat(peak) * displayScale * CGFloat(gain))
                     let rect = CGRect(x: x, y: inMidY - height, width: barWidth, height: max(1.5, height * 2))
-                    if snapshot.highlightLoudFrames, peak > highlightThreshold { highlighted.addRect(rect) }
+                    if snapshot.highlightLoudFrames, peak > highlightThreshold { inHighlighted.addRect(rect) }
                     else if inZone { inInside.addRect(rect) } else { inOutside.addRect(rect) }
                 }
             }
@@ -228,7 +230,8 @@ private struct SpliceCanvasRenderer {
         context.fill(outInside, with: .color(palette.outgoing.opacity(inside)))
         context.fill(inOutside, with: .color(palette.incoming.opacity(outside)))
         context.fill(inInside, with: .color(palette.incoming.opacity(inside)))
-        context.fill(highlighted, with: .color(palette.highlight))
+        context.fill(outHighlighted, with: .color(palette.outgoingHighlight))
+        context.fill(inHighlighted, with: .color(palette.incomingHighlight))
     }
 
     private func drawGainCurves(_ context: inout GraphicsContext) {

@@ -905,3 +905,9 @@ This file tracks proposed and completed changes across AI coding sessions (Claud
   - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceCanvasArea.swift` (M)
   - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceControlsBar.swift` (M)
   - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceWorkspaceView.swift` (M)
+
+- **2026-11-18 06:01 [commit f62040d]:** Move smart edit-aware Reset button next to Gap/Gapless/Crossfade, add per-track peak highlight colors, and group Track Montage controls into 4 pods with live rubber-band X-Fade slider 
+  - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceControlsBar.swift` (M)
+  - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceHeaderBar.swift` (M)
+  - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceWaveformCanvas.swift` (M)
+  - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceWorkspaceView.swift` (M)

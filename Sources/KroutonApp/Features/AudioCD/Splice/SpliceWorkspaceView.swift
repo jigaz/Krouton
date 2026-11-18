@@ -108,6 +108,22 @@ struct SpliceWorkspaceView: View {
                         }
                         onCommit(spec.switched(to: mode))
                     },
+                    onReset: {
+                        var reset = KroutonTrackTransitionSpec()
+                        reset.id = spec.id
+                        switch snapshot.mode {
+                        case .crossfade:
+                            reset.overlapSeconds = 2.5
+                            reset.preGapSeconds = 0
+                        case .gap:
+                            reset.overlapSeconds = 0
+                            reset.preGapSeconds = 2.0
+                        case .gapless:
+                            reset.overlapSeconds = 0
+                            reset.preGapSeconds = 0
+                        }
+                        onCommit(reset)
+                    },
                     onSelectSlot: { onCommit(comparison.switchSlot(to: $0, current: spec)) },
                     onAddSubIndex: {
                         var updated = spec
