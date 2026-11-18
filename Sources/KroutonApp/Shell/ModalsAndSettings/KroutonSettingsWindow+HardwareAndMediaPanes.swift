@@ -32,7 +32,7 @@ extension KroutonSettingsWindowView {
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Toggle("", isOn: $store.depotChannels[idx].isEnabled)
+                            Toggle("", isOn: Bindable(store).depotChannels[idx].isEnabled)
                                 .labelsHidden()
                                 .toggleStyle(.switch)
                         }
@@ -44,14 +44,14 @@ extension KroutonSettingsWindowView {
             }
 
             settingsCard(title: "Verification, Virtualization Test-Boot & Custom Feeds") {
-                Toggle(KroutonL10n.tr("Automatically verify SHA-256 / PGP signatures on downloaded Depot images before burning"), isOn: $store.autoVerifyDepotSHA256)
+                Toggle(KroutonL10n.tr("Automatically verify SHA-256 / PGP signatures on downloaded Depot images before burning"), isOn: Bindable(store).autoVerifyDepotSHA256)
                 Divider()
-                Toggle(KroutonL10n.tr("Enable Apple Virtualization.framework 'Test-Boot in VM' button for El Torito / UEFI images"), isOn: $store.enableVMTestBootInDepot)
+                Toggle(KroutonL10n.tr("Enable Apple Virtualization.framework 'Test-Boot in VM' button for El Torito / UEFI images"), isOn: Bindable(store).enableVMTestBootInDepot)
                 Divider()
                 HStack {
                     Text(KroutonL10n.tr("Custom Community Depot Manifest URL"))
                     Spacer()
-                    TextField("https://...", text: $store.customDepotFeedURL)
+                    TextField("https://...", text: Bindable(store).customDepotFeedURL)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 320)
                 }
@@ -62,28 +62,28 @@ extension KroutonSettingsWindowView {
     var audioVideoPane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "Red Book Audio CD & Crossfade Defaults") {
-                Toggle(KroutonL10n.tr("Analyze BPM & Beat Grid automatically via Apple SoundAnalysis on import"), isOn: $store.autoBeatmatchSoundAnalysis)
+                Toggle(KroutonL10n.tr("Analyze BPM & Beat Grid automatically via Apple SoundAnalysis on import"), isOn: Bindable(store).autoBeatmatchSoundAnalysis)
                 Divider()
                 HStack {
                     Text(String(format: "Default Equal-Power Crossfade Overlap: %.1f seconds", store.defaultCrossfadeSec))
                     Spacer()
-                    Slider(value: $store.defaultCrossfadeSec, in: 0.0...8.0, step: 0.5)
+                    Slider(value: Bindable(store).defaultCrossfadeSec, in: 0.0...8.0, step: 0.5)
                         .frame(width: 220)
                 }
                 Divider()
-                Toggle(KroutonL10n.tr("Car-Stereo Safe MP3 Mode (Enforce ID3v2.3 & strip hidden macOS ._* files)"), isOn: $store.carSafeMP3Mode)
+                Toggle(KroutonL10n.tr("Car-Stereo Safe MP3 Mode (Enforce ID3v2.3 & strip hidden macOS ._* files)"), isOn: Bindable(store).carSafeMP3Mode)
             }
 
             settingsCard(title: "Video Authoring & Menu Defaults") {
-                Toggle(KroutonL10n.tr("Single Video Track: Play immediately on disc insert (skip menu)"), isOn: $store.singleVideoFirstPlay)
+                Toggle(KroutonL10n.tr("Single Video Track: Play immediately on disc insert (skip menu)"), isOn: Bindable(store).singleVideoFirstPlay)
                 Divider()
-                Toggle(KroutonL10n.tr("Use Apple Silicon VideoToolbox 2-Pass Hardware VBR for Blu-ray & DVD encoding"), isOn: $store.videoToolboxTwoPassVBR)
+                Toggle(KroutonL10n.tr("Use Apple Silicon VideoToolbox 2-Pass Hardware VBR for Blu-ray & DVD encoding"), isOn: Bindable(store).videoToolboxTwoPassVBR)
             }
 
             settingsCard(title: "Fit-to-Disc Compression Defaults (DVD-9 to 4.7 GB DVD-5 & BD-50 to BD-25)") {
-                Toggle(KroutonL10n.tr("Always preserve interactive Menus, Chapter Tables & Bonus Featurettes when shrinking"), isOn: $store.fitToDiscPreserveMenus)
+                Toggle(KroutonL10n.tr("Always preserve interactive Menus, Chapter Tables & Bonus Featurettes when shrinking"), isOn: Bindable(store).fitToDiscPreserveMenus)
                 Divider()
-                Toggle(KroutonL10n.tr("Automatically strip foreign audio dubs (retain Original Language + English) to maximize video bitrate"), isOn: $store.fitToDiscStripForeignDubs)
+                Toggle(KroutonL10n.tr("Automatically strip foreign audio dubs (retain Original Language + English) to maximize video bitrate"), isOn: Bindable(store).fitToDiscStripForeignDubs)
             }
 
             settingsCard(title: "Universal Hardware & Software Decoder Matrix") {
@@ -142,7 +142,7 @@ extension KroutonSettingsWindowView {
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    TextField("Offset", value: $store.driveReadOffsetSamples, format: .number)
+                    TextField("Offset", value: Bindable(store).driveReadOffsetSamples, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 80)
                     Text(KroutonL10n.tr("samples"))
@@ -152,18 +152,18 @@ extension KroutonSettingsWindowView {
                 HStack {
                     Text(KroutonL10n.tr("Paranoia Scratched Sector Re-Read Retries"))
                     Spacer()
-                    Stepper("\(store.paranoiaErrorRetries) passes", value: $store.paranoiaErrorRetries, in: 1...64)
+                    Stepper("\(store.paranoiaErrorRetries) passes", value: Bindable(store).paranoiaErrorRetries, in: 1...64)
                 }
                 Divider()
-                Toggle(KroutonL10n.tr("Verify ripped audio tracks against AccurateRip & MusicBrainz database"), isOn: $store.verifyAccurateRip)
+                Toggle(KroutonL10n.tr("Verify ripped audio tracks against AccurateRip & MusicBrainz database"), isOn: Bindable(store).verifyAccurateRip)
                 Divider()
-                Toggle(KroutonL10n.tr("Generate archival .cue sheet and extraction .log alongside ALAC / FLAC rips"), isOn: $store.writeCueSheetLog)
+                Toggle(KroutonL10n.tr("Generate archival .cue sheet and extraction .log alongside ALAC / FLAC rips"), isOn: Bindable(store).writeCueSheetLog)
             }
 
             settingsCard(title: "Video Disc Extraction & Hardware VideoToolbox") {
-                Toggle(KroutonL10n.tr("Hardware Motion-Compensated Deinterlacing (480i / 1080i -> Progressive H.265)"), isOn: $store.hardwareDeinterlaceVideo)
+                Toggle(KroutonL10n.tr("Hardware Motion-Compensated Deinterlacing (480i / 1080i -> Progressive H.265)"), isOn: Bindable(store).hardwareDeinterlaceVideo)
                 Divider()
-                Toggle(KroutonL10n.tr("Passthrough lossless Dolby Atmos / TrueHD / DTS-HD Master Audio bitstreams"), isOn: $store.passthroughAtmosTrueHD)
+                Toggle(KroutonL10n.tr("Passthrough lossless Dolby Atmos / TrueHD / DTS-HD Master Audio bitstreams"), isOn: Bindable(store).passthroughAtmosTrueHD)
             }
 
             settingsCard(title: "Smart File & Track Naming Pattern (Zero-Script Token Builder)") {

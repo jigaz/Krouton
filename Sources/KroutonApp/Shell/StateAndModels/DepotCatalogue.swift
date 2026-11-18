@@ -1,8 +1,11 @@
 import Foundation
+import Observation
 import OpticalCore
 
 /// Feature model owning Disc Image Depot subscriptions, curated items, and Internet Archive search state.
-struct DepotCatalogue: Equatable, Sendable {
+@Observable
+@MainActor
+final class DepotCatalogue {
     var depotChannels: [KroutonDepotFeedSubscription] = KroutonDepotStaticCatalog.defaultChannels
     var depotItems: [KroutonDepotCatalogItem] = KroutonDepotStaticCatalog.defaultItems
     var customDepotFeedURL: String = "https://depot.krouton.app/v1/manifest.json"

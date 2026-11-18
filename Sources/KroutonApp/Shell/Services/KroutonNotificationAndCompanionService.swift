@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import OpticalCore
 import SwiftUI
 @preconcurrency import UserNotifications
@@ -39,11 +40,12 @@ struct KroutonCompanionLivePayload: Codable, Sendable, Equatable {
     }
 }
 
+@Observable
 @MainActor
-final class KroutonNotificationAndCompanionService: ObservableObject {
+final class KroutonNotificationAndCompanionService {
     static let shared = KroutonNotificationAndCompanionService()
 
-    @Published var latestCompanionPayload = KroutonCompanionLivePayload(
+    var latestCompanionPayload = KroutonCompanionLivePayload(
         eventID: "idle",
         title: "Optical Workspace Ready",
         subtitle: "Standing by for Burn, Rip, or Verification",
@@ -55,7 +57,7 @@ final class KroutonNotificationAndCompanionService: ObservableObject {
         timestampISO8601: ISO8601DateFormatter().string(from: Date())
     )
 
-    @Published var lastDispatchedBannerText: String = "No notifications dispatched in this session."
+    var lastDispatchedBannerText: String = "No notifications dispatched in this session."
 
     private init() {}
 

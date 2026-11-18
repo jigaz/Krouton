@@ -4,7 +4,7 @@ import SwiftUI
 // MARK: - Phase 4: Reusable Mastering Hardware Deck Card & Drop-Zone Primitives
 
 struct KroutonMasteringDeckCard<Content: View>: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let paddingAmount: CGFloat
     let cornerRadius: CGFloat
     let content: Content
@@ -35,7 +35,7 @@ struct KroutonMasteringDeckCard<Content: View>: View {
 }
 
 struct KroutonEmptyDropZoneView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let isDropTargeted: Bool
     let sfSymbol: String
     let symbolSize: CGFloat

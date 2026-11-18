@@ -1,14 +1,16 @@
 import AVFoundation
 import AudioKit
+import Observation
 import SwiftUI
 
+@Observable
 @MainActor
-final class SpliceAudioAuditioner: ObservableObject {
+final class SpliceAudioAuditioner {
     static let shared = SpliceAudioAuditioner()
-    @Published var isPlaying: Bool = false
-    @Published var playheadProgress: Double = 0.0
-    @Published var activeTrackID: UUID? = nil
-    @Published var leadLagSeconds: Double = 3.0 // ±3s, ±5s, ±10s pre/post-roll
+    var isPlaying: Bool = false
+    var playheadProgress: Double = 0.0
+    var activeTrackID: UUID? = nil
+    var leadLagSeconds: Double = 3.0 // ±3s, ±5s, ±10s pre/post-roll
 
     private var playerOut: AVAudioPlayer?
     private var playerIn: AVAudioPlayer?

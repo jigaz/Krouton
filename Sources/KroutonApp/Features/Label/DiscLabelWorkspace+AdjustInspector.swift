@@ -45,7 +45,7 @@ extension KroutonDiscLabelWorkspaceView {
             adjustmentSliderRow(
                 title: "Blur",
                 valueText: String(format: "%.1f px", store.labelBgAdjustments.blurRadius),
-                value: $store.labelBgAdjustments.blurRadius,
+                value: Bindable(store).labelBgAdjustments.blurRadius,
                 range: 0.0...35.0,
                 defaultValue: 0.0
             )
@@ -56,7 +56,7 @@ extension KroutonDiscLabelWorkspaceView {
             adjustmentSliderRow(
                 title: "Brightness",
                 valueText: String(format: "%+.0f%%", store.labelBgAdjustments.brightness * 200.0),
-                value: $store.labelBgAdjustments.brightness,
+                value: Bindable(store).labelBgAdjustments.brightness,
                 range: -0.45...0.45,
                 defaultValue: 0.0
             )
@@ -64,7 +64,7 @@ extension KroutonDiscLabelWorkspaceView {
             adjustmentSliderRow(
                 title: "Contrast",
                 valueText: String(format: "%.2f×", store.labelBgAdjustments.contrast),
-                value: $store.labelBgAdjustments.contrast,
+                value: Bindable(store).labelBgAdjustments.contrast,
                 range: 0.50...1.80,
                 defaultValue: 1.0
             )
@@ -75,7 +75,7 @@ extension KroutonDiscLabelWorkspaceView {
             adjustmentSliderRow(
                 title: "Hue Shift",
                 valueText: String(format: "%+.0f°", store.labelBgAdjustments.hueDegrees),
-                value: $store.labelBgAdjustments.hueDegrees,
+                value: Bindable(store).labelBgAdjustments.hueDegrees,
                 range: -180.0...180.0,
                 defaultValue: 0.0
             )
@@ -83,7 +83,7 @@ extension KroutonDiscLabelWorkspaceView {
             adjustmentSliderRow(
                 title: "Saturation",
                 valueText: String(format: "%.2f×", store.labelBgAdjustments.saturation),
-                value: $store.labelBgAdjustments.saturation,
+                value: Bindable(store).labelBgAdjustments.saturation,
                 range: 0.0...2.0,
                 defaultValue: 1.0
             )

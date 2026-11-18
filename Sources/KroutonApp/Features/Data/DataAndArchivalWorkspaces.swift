@@ -17,7 +17,7 @@ import VideoKit
 // MARK: - DataAndArchivalWorkspaces
 
 struct KroutonDataAndArchivalWorkspaceView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let activeSpec: KroutonOpticalWorkflowSpec
     @Binding var isDropTargeted: Bool
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
@@ -50,7 +50,7 @@ struct KroutonDataAndArchivalWorkspaceView: View {
             if activeDataWorkspaceTab == 1 && store.enableCustomFinderLayoutTab {
                 KroutonFinderDiscStageView(
                     store: store,
-                    blueprint: $store.finderLayoutBlueprint,
+                    blueprint: Bindable(store).finderLayoutBlueprint,
                     isDropTargeted: $isDropTargeted,
                     onHandleFinderDrop: onHandleFinderDrop,
                     onInspectLBA: { showHybridLBAMapPopover = true }

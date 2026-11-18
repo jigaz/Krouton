@@ -8,11 +8,11 @@ import UniformTypeIdentifiers
 // MARK: - Standalone Right Destination Rack Column View
 
 struct KroutonDestinationRackColumnView: View {
-    @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonOpticalDriveBank
+    var store: KroutonStateStore
+    var driveManager: KroutonOpticalDriveBank
     let isRightQueueCompact: Bool
     let primarySelectedDrive: KroutonOpticalDriveInfo?
-    @ObservedObject var burnSet: KroutonBurnSetController = .shared
+    var burnSet: KroutonBurnSetController = .shared
     @State private var showBurnSetSheet = false
 
     /// Multi-disc sets are built from the staged file list, so they are offered for data workflows only.
@@ -173,9 +173,9 @@ struct KroutonDestinationRackColumnView: View {
 
 // MARK: - Dedicated Reactive Subview for Krumb Port 7420 Network Toaster Cards
 struct NetworkSpoolDriveCardSectionView: View {
-    @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonOpticalDriveBank
-    @ObservedObject var spoolClient: SpoolRemoteNodeClient = .shared
+    var store: KroutonStateStore
+    var driveManager: KroutonOpticalDriveBank
+    var spoolClient: SpoolRemoteNodeClient = .shared
 
     let item: KroutonBakeBatchItem
     let activeCardDriveID: String

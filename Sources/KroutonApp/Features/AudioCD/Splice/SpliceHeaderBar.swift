@@ -15,7 +15,7 @@ struct SpliceHeaderBar: View {
     let onStepTransition: (Int) -> Void
     let onToggleFloatingWindow: () -> Void
 
-    @ObservedObject private var montageState = TrackMontageWindowState.shared
+    @State private var montageState = TrackMontageWindowState.shared
     private var spec: KroutonTrackTransitionSpec { snapshot.spec }
 
     private var statusSummary: String {

@@ -32,11 +32,11 @@ extension KroutonCopyAndRipWorkspaceView {
             Grid(alignment: .trailing, horizontalSpacing: 10, verticalSpacing: 8) {
                 GridRow {
                     Text("Artist:").font(.caption.bold()).foregroundStyle(.secondary)
-                    TextField("Artist", text: $store.cdTextAlbumPerformer).textFieldStyle(.roundedBorder)
+                    TextField("Artist", text: Bindable(store).cdTextAlbumPerformer).textFieldStyle(.roundedBorder)
                 }
                 GridRow {
                     Text("Album:").font(.caption.bold()).foregroundStyle(.secondary)
-                    TextField("Album", text: $store.cdTextAlbumTitle).textFieldStyle(.roundedBorder)
+                    TextField("Album", text: Bindable(store).cdTextAlbumTitle).textFieldStyle(.roundedBorder)
                 }
                 GridRow {
                     Text("Composer:").font(.caption.bold()).foregroundStyle(.secondary)
@@ -78,11 +78,11 @@ extension KroutonCopyAndRipWorkspaceView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 195), alignment: .leading)], spacing: 8) {
                         HStack(spacing: 6) {
                             Text("Album:").font(.caption.bold()).frame(width: 44, alignment: .leading)
-                            TextField("Album Title", text: $store.cdTextAlbumTitle).textFieldStyle(.roundedBorder)
+                            TextField("Album Title", text: Bindable(store).cdTextAlbumTitle).textFieldStyle(.roundedBorder)
                         }
                         HStack(spacing: 6) {
                             Text("Artist:").font(.caption.bold()).frame(width: 44, alignment: .leading)
-                            TextField("Artist", text: $store.cdTextAlbumPerformer).textFieldStyle(.roundedBorder)
+                            TextField("Artist", text: Bindable(store).cdTextAlbumPerformer).textFieldStyle(.roundedBorder)
                         }
                         HStack(spacing: 6) {
                             Text("Codec:").font(.caption.bold()).frame(width: 44, alignment: .leading)

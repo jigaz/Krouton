@@ -5,8 +5,8 @@ import SwiftUI
 
 struct KroutonFloatingPhaseScopeView: View {
     let driveID: String
-    @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonOpticalDriveBank
+    var store: KroutonStateStore
+    var driveManager: KroutonOpticalDriveBank
     let onDockInline: () -> Void
 
     var drive: KroutonOpticalDriveInfo? { driveManager.driveForID(driveID) }

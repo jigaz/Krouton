@@ -3,7 +3,7 @@ import SwiftUI
 
 struct KroutonApp: App {
     @NSApplicationDelegateAdaptor(KroutonAppDelegate.self) private var appDelegate
-    @StateObject private var wm = KroutonWindowManager.shared
+    @State private var wm = KroutonWindowManager.shared
 
     init() {
         NSApplication.shared.setActivationPolicy(.regular)

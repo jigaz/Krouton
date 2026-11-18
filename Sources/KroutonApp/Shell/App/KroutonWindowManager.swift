@@ -1,10 +1,12 @@
 import AppKit
 import DriveKit
+import Observation
 import OpticalCore
 import SwiftUI
 
+@Observable
 @MainActor
-final class KroutonWindowManager: ObservableObject {
+final class KroutonWindowManager {
     static let shared = KroutonWindowManager()
     let store = KroutonStateStore()
     let driveManager = KroutonOpticalDriveBank()

@@ -14,7 +14,7 @@ import UniformTypeIdentifiers
 // MARK: - Standalone Depot Hero Banner & App-Store Card Views
 
 struct KroutonDepotAppStoreCardView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let item: KroutonDepotCatalogItem
     let isSelectedInHero: Bool
 

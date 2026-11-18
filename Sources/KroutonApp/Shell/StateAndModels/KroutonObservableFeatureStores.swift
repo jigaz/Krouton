@@ -155,7 +155,6 @@ final class KroutonLabelWorkspaceSubStore {
             cursor = timeline.count - 1
         }
         lastEditTimestamp = now
-        store.objectWillChange.send()
     }
 
     func undo(into store: KroutonStateStore) {
@@ -174,7 +173,6 @@ final class KroutonLabelWorkspaceSubStore {
         suppressRecordingUntil = ProcessInfo.processInfo.systemUptime + 0.35
         lastEditTimestamp = 0
         workingGeometryOverride = timeline[cursor].apply(to: store)
-        store.objectWillChange.send()
     }
 
     func redo(into store: KroutonStateStore) {
@@ -183,7 +181,6 @@ final class KroutonLabelWorkspaceSubStore {
         suppressRecordingUntil = ProcessInfo.processInfo.systemUptime + 0.35
         lastEditTimestamp = 0
         workingGeometryOverride = timeline[cursor].apply(to: store)
-        store.objectWillChange.send()
     }
 }
 

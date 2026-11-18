@@ -4,7 +4,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct KroutonBurnStationWorkspaceView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let primarySelectedDrive: KroutonOpticalDriveInfo?
     let isCenterWorkspaceNarrow: Bool
     @Binding var isDropTargeted: Bool

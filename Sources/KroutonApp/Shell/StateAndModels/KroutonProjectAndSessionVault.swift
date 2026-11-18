@@ -2,6 +2,7 @@ import CryptoKit
 import DriveKit
 import Foundation
 import ImageIO
+import Observation
 import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
@@ -176,13 +177,14 @@ struct KroutonProjectFileDocument: FileDocument {
     }
 }
 
+@Observable
 @MainActor
-final class KroutonProjectDialogBridge: ObservableObject {
+final class KroutonProjectDialogBridge {
     static let shared = KroutonProjectDialogBridge()
-    @Published var isShowingExporter: Bool = false
-    @Published var isShowingImporter: Bool = false
-    @Published var exportDocument: KroutonProjectFileDocument = KroutonProjectFileDocument()
-    @Published var defaultFilename: String = "Krouton_Master.krut"
+    var isShowingExporter: Bool = false
+    var isShowingImporter: Bool = false
+    var exportDocument: KroutonProjectFileDocument = KroutonProjectFileDocument()
+    var defaultFilename: String = "Krouton_Master.krut"
 }
 
 @MainActor

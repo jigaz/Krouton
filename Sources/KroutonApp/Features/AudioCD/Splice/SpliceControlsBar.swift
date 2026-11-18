@@ -12,7 +12,7 @@ struct SpliceControlsBar: View {
     let onCommit: (KroutonTrackTransitionSpec) -> Void
     let onAudition: () -> Void
 
-    @ObservedObject private var auditioner = SpliceAudioAuditioner.shared
+    @State private var auditioner = SpliceAudioAuditioner.shared
     private var spec: KroutonTrackTransitionSpec { snapshot.spec }
 
     var body: some View {

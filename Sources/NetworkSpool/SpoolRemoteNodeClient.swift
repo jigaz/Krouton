@@ -2,28 +2,30 @@ import Combine
 import CryptoKit
 import Foundation
 import Network
+import Observation
 import OpticalCore
 
 // MARK: - Spool Remote Node Client
 
+@Observable
 @MainActor
-public final class SpoolRemoteNodeClient: ObservableObject {
+public final class SpoolRemoteNodeClient {
     public static let shared = SpoolRemoteNodeClient()
 
-    @Published public var activeEndpointHost: String = "localhost:7420"
-    @Published public var retentionPolicy: SpoolArtifactRetentionPolicy = .notesOnlyOnFailure
-    @Published public var discoveredNodes: [SpoolDiscoveredNode] = [
+    public var activeEndpointHost: String = "localhost:7420"
+    public var retentionPolicy: SpoolArtifactRetentionPolicy = .notesOnlyOnFailure
+    public var discoveredNodes: [SpoolDiscoveredNode] = [
         SpoolDiscoveredNode(id: "localhost", name: "Localhost (Port 7420)", hostPort: "localhost:7420", isSimulatedFallback: false)
     ]
-    @Published public var remoteDrives: [SpoolRemoteDriveInfo] = []
-    @Published var lastCalibration: SpoolDriveCalibrationResult? = nil
-    @Published public var statusBannerText: String = "Spool Daemon Offline (Port 7420)"
-    @Published var isDaemonReachable: Bool = false
-    @Published var isWebSocketConnected: Bool = false
-    @Published public var isSpoolingImage: Bool = false
-    @Published public var spoolProgressFraction: Double = 0.0
-    @Published var lastBatchID: UUID = UUID()
-    @Published var recentKitchenEvents: [String] = [
+    public var remoteDrives: [SpoolRemoteDriveInfo] = []
+    var lastCalibration: SpoolDriveCalibrationResult? = nil
+    public var statusBannerText: String = "Spool Daemon Offline (Port 7420)"
+    var isDaemonReachable: Bool = false
+    var isWebSocketConnected: Bool = false
+    public var isSpoolingImage: Bool = false
+    public var spoolProgressFraction: Double = 0.0
+    var lastBatchID: UUID = UUID()
+    var recentKitchenEvents: [String] = [
         "[mDNS] Listening for _krouton-spool._tcp.local. on Port 7420",
         "[SpoolCache] 1.0 GiB minimum free space rule armed",
         "[DriveBank] 2500ms staggered spin-up breaker active"

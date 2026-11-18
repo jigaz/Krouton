@@ -118,7 +118,6 @@ extension KroutonStateStore {
                 driveManager: driveManager,
                 targetDriveKey: "network-spool-drive"
             )
-            objectWillChange.send()
         case .physicalBurner:
             if self.forceDVDROMBookType, !target.targetDriveID.isEmpty {
                 driveManager.stampDVDROMBookType(for: target.targetDriveID, vendorProfile: bitsetVendorProfile)

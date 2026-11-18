@@ -1,7 +1,10 @@
 import Foundation
+import Observation
 
 /// Feature model owning optical rip/extraction parameters, VideoOven fit-to-disc options, and LAN server settings.
-struct RipSettings: Equatable, Sendable {
+@Observable
+@MainActor
+final class RipSettings {
     var defaultCrossfadeSec: Double = 3.5
     var autoBeatmatchSoundAnalysis: Bool = true
     var carSafeMP3Mode: Bool = true

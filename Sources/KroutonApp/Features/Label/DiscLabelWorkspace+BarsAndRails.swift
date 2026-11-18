@@ -30,7 +30,7 @@ extension KroutonDiscLabelWorkspaceView {
                 .font(.caption.bold())
                 .foregroundStyle(.secondary)
 
-            Picker(KroutonL10n.tr("Preset"), selection: $store.selectedLabelPresetIndex) {
+            Picker(KroutonL10n.tr("Preset"), selection: Bindable(store).selectedLabelPresetIndex) {
                 ForEach(store.labelPresets.indices, id: \.self) { idx in
                     Text(store.labelPresets[idx].name).tag(idx)
                 }
@@ -187,7 +187,7 @@ extension KroutonDiscLabelWorkspaceView {
                 Image(systemName: "minus.magnifyingglass").font(.caption.bold())
             }.buttonStyle(.plain).accessibilityLabel(KroutonL10n.tr("Zoom Out Canvas")).help(KroutonL10n.tr("Zoom Out Canvas"))
 
-            Slider(value: $store.labelCanvasZoom, in: 0.65...1.35)
+            Slider(value: Bindable(store).labelCanvasZoom, in: 0.65...1.35)
                 .frame(width: 90)
                 .accessibilityLabel(KroutonL10n.tr("Label Canvas Zoom"))
                 .accessibilityValue("\(Int((store.labelCanvasZoom * 100).rounded()))%")
@@ -203,7 +203,7 @@ extension KroutonDiscLabelWorkspaceView {
 
             Divider().frame(height: 14)
 
-            Toggle(isOn: $store.labelShowAlignmentGrid) {
+            Toggle(isOn: Bindable(store).labelShowAlignmentGrid) {
                 Label("10mm Grid", systemImage: "squareshape.split.3x3")
                     .font(.caption2.bold())
             }

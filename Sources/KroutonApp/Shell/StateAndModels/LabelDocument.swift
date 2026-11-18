@@ -1,11 +1,14 @@
 import Foundation
 import LabelKit
+import Observation
 import OpticalCore
 import RescueKit
 import SwiftUI
 
 /// Feature model owning the Polar Disc Label Workspace document state and printer presets.
-struct LabelDocument: Equatable, Sendable {
+@Observable
+@MainActor
+final class LabelDocument {
     var selectedLabelTemplate: KroutonCroutonLabelStyle = .synthGrid
     var labelShowTracklistOnDisc: Bool = true
     var labelDiscTitle: String = ""

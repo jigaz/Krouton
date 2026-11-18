@@ -1,3 +1,4 @@
+import Observation
 import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
@@ -9,13 +10,14 @@ enum KroutonImporterIntent: Sendable {
     case customCallback
 }
 
+@Observable
 @MainActor
-final class KroutonStageImporterBridge: ObservableObject {
+final class KroutonStageImporterBridge {
     static let shared = KroutonStageImporterBridge()
-    @Published var isShowingImporter: Bool = false
-    @Published var allowedTypes: [UTType] = [.item, .folder]
-    @Published var allowsMultipleSelection: Bool = true
-    @Published var activeIntent: KroutonImporterIntent = .stageOpticalPayload
+    var isShowingImporter: Bool = false
+    var allowedTypes: [UTType] = [.item, .folder]
+    var allowsMultipleSelection: Bool = true
+    var activeIntent: KroutonImporterIntent = .stageOpticalPayload
     var customCompletion: (([URL]) -> Void)? = nil
 
     func presentImporter(allowedTypes: [UTType], allowsMultiple: Bool, onPick: (([URL]) -> Void)? = nil) {
@@ -28,12 +30,12 @@ final class KroutonStageImporterBridge: ObservableObject {
 }
 
 struct KroutonStageImporterModifier: ViewModifier {
-    @ObservedObject var store: KroutonStateStore
-    @ObservedObject private var bridge = KroutonStageImporterBridge.shared
+    var store: KroutonStateStore
+    @State private var bridge = KroutonStageImporterBridge.shared
 
     func body(content: Content) -> some View {
         content.fileImporter(
-            isPresented: $bridge.isShowingImporter,
+            isPresented: Bindable(bridge).isShowingImporter,
             allowedContentTypes: bridge.allowedTypes,
             allowsMultipleSelection: bridge.allowsMultipleSelection
         ) { result in

@@ -75,15 +75,15 @@ extension KroutonSettingsWindowView {
             }
 
             settingsCard(title: "Automatic Label Artwork Lookup & Vision Hole-Avoidance") {
-                Toggle(KroutonL10n.tr("Use Apple Vision Subject Detection to keep faces/logos out of the 18mm center hole"), isOn: $store.visionHoleAvoidance)
+                Toggle(KroutonL10n.tr("Use Apple Vision Subject Detection to keep faces/logos out of the 18mm center hole"), isOn: Bindable(store).visionHoleAvoidance)
                 Divider()
                 Text(KroutonL10n.tr("Zero-Key Databases Enabled: MusicBrainz / Cover Art Archive, Apple iTunes, TVMaze, GameTDB"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 HStack(spacing: 12) {
-                    TextField("Optional TMDB API Key (Movies & TV)", text: $store.customTMDBKey)
+                    TextField("Optional TMDB API Key (Movies & TV)", text: Bindable(store).customTMDBKey)
                         .textFieldStyle(.roundedBorder)
-                    TextField("Optional Fanart.tv Key (Transparent Circular Disc Art)", text: $store.customFanartKey)
+                    TextField("Optional Fanart.tv Key (Transparent Circular Disc Art)", text: Bindable(store).customFanartKey)
                         .textFieldStyle(.roundedBorder)
                 }
             }
@@ -108,22 +108,22 @@ extension KroutonSettingsWindowView {
                                 iconCircleToggle(
                                     sfSymbol: "bell.fill",
                                     helpText: "macOS Notification Banner",
-                                    isOn: $store.notificationMatrix[idx].bannerEnabled
+                                    isOn: Bindable(store).notificationMatrix[idx].bannerEnabled
                                 )
                                 iconCircleToggle(
                                     sfSymbol: "iphone",
                                     helpText: "iPhone Live Activity",
-                                    isOn: $store.notificationMatrix[idx].iPhoneEnabled
+                                    isOn: Bindable(store).notificationMatrix[idx].iPhoneEnabled
                                 )
                                 iconCircleToggle(
                                     sfSymbol: "applewatch",
                                     helpText: "Apple Watch Smart Stack & Wrist Tap",
-                                    isOn: $store.notificationMatrix[idx].watchEnabled
+                                    isOn: Bindable(store).notificationMatrix[idx].watchEnabled
                                 )
                                 iconCircleToggle(
                                     sfSymbol: "speaker.wave.2.fill",
                                     helpText: "Play Audio Alert Sound",
-                                    isOn: $store.notificationMatrix[idx].soundEnabled
+                                    isOn: Bindable(store).notificationMatrix[idx].soundEnabled
                                 )
                             }
                         }
@@ -180,7 +180,7 @@ extension KroutonSettingsWindowView {
     var accessibilityLanguagePane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "VoiceOver & Spoken Hardware Telemetry") {
-                Toggle(KroutonL10n.tr("Announce optical drive events, disc insertions, and burn phase changes via macOS VoiceOver"), isOn: $store.voiceOverSpokenTelemetry)
+                Toggle(KroutonL10n.tr("Announce optical drive events, disc insertions, and burn phase changes via macOS VoiceOver"), isOn: Bindable(store).voiceOverSpokenTelemetry)
                     .fontWeight(.semibold)
                 Text(KroutonL10n.tr("Posts priority VoiceOver Accessibility announcements when blank media is locked, when the 5-second Auto-Load timer counts down, and when verification completes."))
                     .font(.caption)
@@ -202,11 +202,11 @@ extension KroutonSettingsWindowView {
             }
 
             settingsCard(title: "Display, Contrast & Motion Accessibility") {
-                Toggle(KroutonL10n.tr("Increase Contrast (High-contrast borders on Format Chooser, Tracklists & Phase Scope)"), isOn: $store.a11yIncreaseContrast)
+                Toggle(KroutonL10n.tr("Increase Contrast (High-contrast borders on Format Chooser, Tracklists & Phase Scope)"), isOn: Bindable(store).a11yIncreaseContrast)
                 Divider()
-                Toggle(KroutonL10n.tr("Differentiate Without Color (Show explicit status symbols alongside green/amber/red LEDs)"), isOn: $store.a11yDifferentiateWithoutColor)
+                Toggle(KroutonL10n.tr("Differentiate Without Color (Show explicit status symbols alongside green/amber/red LEDs)"), isOn: Bindable(store).a11yDifferentiateWithoutColor)
                 Divider()
-                Toggle(KroutonL10n.tr("Reduce Motion (Disable continuous disc rotation & smooth Phase Scope sweeps)"), isOn: $store.a11yReduceMotion)
+                Toggle(KroutonL10n.tr("Reduce Motion (Disable continuous disc rotation & smooth Phase Scope sweeps)"), isOn: Bindable(store).a11yReduceMotion)
 
             }
 
@@ -215,7 +215,7 @@ extension KroutonSettingsWindowView {
                     Text(KroutonL10n.tr("Active Interface Language"))
                         .fontWeight(.semibold)
                     Spacer()
-                    Picker("", selection: $store.appLanguage) {
+                    Picker("", selection: Bindable(store).appLanguage) {
                         ForEach(KroutonLanguage.allCases) { lang in
                             Text(lang.rawValue).tag(lang)
                         }

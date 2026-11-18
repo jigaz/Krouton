@@ -1,6 +1,7 @@
 import Combine
 import Darwin.Mach
 import Foundation
+import Observation
 import os
 
 //
@@ -92,16 +93,17 @@ extension Notification.Name {
 }
 
 // MARK: - Zero-Idle CPU Power & App-Nap Governor
+@Observable
 @MainActor
-final class KroutonIdlePowerMonitor: ObservableObject {
+final class KroutonIdlePowerMonitor {
     static let shared = KroutonIdlePowerMonitor()
 
     /// True ONLY when the Krouton app is foregrounded AND at least one window is visible on screen.
     /// Views & scopes bind to this to pause TimelineViews and animations at 0.0% CPU when backgrounded.
-    @Published public private(set) var isAppVisiblyActive: Bool = true
+    public private(set) var isAppVisiblyActive: Bool = true
 
     /// True when a hardware burn, rip, or verification task requires sustained background execution.
-    @Published public private(set) var isPerformingHardwareIO: Bool = false
+    public private(set) var isPerformingHardwareIO: Bool = false
 
     private var cancellables = Set<AnyCancellable>()
     private var memoryPressureSource: DispatchSourceMemoryPressure?

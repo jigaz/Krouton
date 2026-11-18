@@ -31,7 +31,7 @@ final class KroutonRipCancelToken: Sendable {
 }
 
 struct KroutonCopyAndRipWorkspaceView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let primarySelectedDrive: KroutonOpticalDriveInfo?
     let isCenterWorkspaceNarrow: Bool
 
@@ -275,8 +275,8 @@ struct KroutonCopyAndRipWorkspaceView: View {
             KroutonMasteringDeckCard(store: store) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 14) {
-                        Toggle(KroutonL10n.tr("Fit Dual-Layer DVD-9 (8.5 GB) onto Single-Layer DVD-5 (4.7 GB)"), isOn: $store.fitToDiscDVD9Shrink).toggleStyle(.checkbox).font(.caption.bold())
-                        Toggle(KroutonL10n.tr("Preserve Interactive Menus & Subpictures"), isOn: $store.preserveMenusAndExtras).toggleStyle(.checkbox).font(.caption)
+                        Toggle(KroutonL10n.tr("Fit Dual-Layer DVD-9 (8.5 GB) onto Single-Layer DVD-5 (4.7 GB)"), isOn: Bindable(store).fitToDiscDVD9Shrink).toggleStyle(.checkbox).font(.caption.bold())
+                        Toggle(KroutonL10n.tr("Preserve Interactive Menus & Subpictures"), isOn: Bindable(store).preserveMenusAndExtras).toggleStyle(.checkbox).font(.caption)
                         Spacer()
                     }
                     Text(String(format: "VideoKit Requantizer Ratio: %.1f%% • Output: %.2f GB • Requantize: %@", plan.requantizationRatio * 100.0, Double(plan.estimatedOutputBytes) / 1_000_000_000.0, plan.requiresRequantization ? "ACTIVE" : "PASSTHROUGH"))

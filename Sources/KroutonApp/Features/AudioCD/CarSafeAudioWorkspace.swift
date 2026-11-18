@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 // MARK: - CarSafeAudioWorkspace
 
 struct KroutonCarSafeAudioWorkspaceView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let spec: KroutonOpticalWorkflowSpec
     let isCenterWorkspaceNarrow: Bool
     @Binding var isDropTargeted: Bool
@@ -35,7 +35,7 @@ struct KroutonCarSafeAudioWorkspaceView: View {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 230), alignment: .leading)], spacing: 8) {
                         HStack(spacing: 6) {
                             Text("Disc Title:").font(.caption.bold())
-                            TextField("CAR_MP3_DISC", text: $store.discVolumeTitle).textFieldStyle(.roundedBorder)
+                            TextField("CAR_MP3_DISC", text: Bindable(store).discVolumeTitle).textFieldStyle(.roundedBorder)
                         }
                         HStack(spacing: 6) {
                             Text("Profile:").font(.caption.bold())

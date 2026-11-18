@@ -232,6 +232,19 @@ extension KroutonTestHarness {
                     h.lint(!hasRawDefaults, "\(relPath) must route preferences through typed KroutonPreferences")
                 }
 
+                // 11. Modern @Observable Gate (zero legacy ObservableObject / @Published / @ObservedObject / @StateObject regressions)
+                if relPath.hasPrefix("Sources/") && !relPath.hasPrefix("Sources/KroutonVerify/") {
+                    let hasLegacyObs = lines.contains { line in
+                        let trimmed = line.trimmingCharacters(in: .whitespaces)
+                        guard !trimmed.hasPrefix("//") else { return false }
+                        return trimmed.contains("ObservableObject")
+                            || trimmed.contains("@Published")
+                            || trimmed.contains("@ObservedObject")
+                            || trimmed.contains("@StateObject")
+                    }
+                    h.lint(!hasLegacyObs, "\(relPath) must use Swift @Observable instead of legacy ObservableObject/@Published/@ObservedObject")
+                }
+
                 // 10. Boundary check: UI target must delegate ISO-9660 synthesis to ImageKit
                 if relPath == "Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+DepotCache.swift" {
                     h.lint(!src.contains("Primary Volume Descriptor"), "KroutonStateStore+DepotCache must delegate raw ISO synthesis to ImageKit")

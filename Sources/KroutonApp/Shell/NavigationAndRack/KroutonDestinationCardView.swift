@@ -8,9 +8,9 @@ import UniformTypeIdentifiers
 // MARK: - Standalone UUID-Safe Destination Rack Card View
 
 struct KroutonDestinationCardView: View {
-    @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonOpticalDriveBank
-    @ObservedObject var spoolClient: SpoolRemoteNodeClient = .shared
+    var store: KroutonStateStore
+    var driveManager: KroutonOpticalDriveBank
+    var spoolClient: SpoolRemoteNodeClient = .shared
     let item: KroutonBakeBatchItem
     let isRightQueueCompact: Bool
     let primarySelectedDrive: KroutonOpticalDriveInfo?

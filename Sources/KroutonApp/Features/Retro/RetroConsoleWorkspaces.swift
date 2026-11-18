@@ -18,7 +18,7 @@ private struct ConsoleDeckDescriptor {
 }
 
 struct KroutonRetroConsoleWorkspaceView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let spec: KroutonOpticalWorkflowSpec
     let isCenterWorkspaceNarrow: Bool
     @Binding var isDropTargeted: Bool

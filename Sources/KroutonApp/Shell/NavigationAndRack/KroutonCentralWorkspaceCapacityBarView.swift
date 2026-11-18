@@ -9,7 +9,7 @@ import SwiftUI
 // MARK: - KroutonCentralWorkspaceCapacityBarView
 
 struct KroutonCentralWorkspaceCapacityBarView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let activeDiscCapacityBytes: Int64
     let primarySelectedDrive: KroutonOpticalDriveInfo?
 

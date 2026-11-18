@@ -1,6 +1,7 @@
 import AudioKit
 import DriveKit
 import Foundation
+import Observation
 import OpticalCore
 import Persistence
 import SwiftUI
@@ -44,8 +45,9 @@ struct KroutonPersistedSessionSnapshot: Codable, Sendable, Equatable {
     }
 }
 
+@Observable
 @MainActor
-final class KroutonCrashRecoveryController: ObservableObject {
+final class KroutonCrashRecoveryController {
     static let shared = KroutonCrashRecoveryController()
 
     private let sessionDirectory: URL = {
@@ -55,19 +57,19 @@ final class KroutonCrashRecoveryController: ObservableObject {
     }()
 
     private var runLock: RunLock?
-    private lazy var sessionStore = SessionStore<KroutonPersistedSessionSnapshot>(
+    @ObservationIgnored private lazy var sessionStore = SessionStore<KroutonPersistedSessionSnapshot>(
         directory: sessionDirectory,
         schemaVersion: 3
     )
-    public lazy var burnJournal = BurnJournal(directory: sessionDirectory)
+    @ObservationIgnored public lazy var burnJournal = BurnJournal(directory: sessionDirectory)
 
     private var didEvaluateLaunch: Bool = false
 
-    @Published var showCrashRecoveryPrompt: Bool = false
-    @Published var crashReasonText: String = ""
-    @Published var pendingSnapshot: KroutonPersistedSessionSnapshot? = nil
-    @Published var missingStagedFilePaths: [String] = []
-    @Published var interruptedBurns: [BurnJournalRecord] = []
+    var showCrashRecoveryPrompt: Bool = false
+    var crashReasonText: String = ""
+    var pendingSnapshot: KroutonPersistedSessionSnapshot? = nil
+    var missingStagedFilePaths: [String] = []
+    var interruptedBurns: [BurnJournalRecord] = []
 
     private init() {
         NotificationCenter.default.addObserver(
@@ -264,8 +266,8 @@ final class KroutonCrashRecoveryController: ObservableObject {
 }
 
 struct KroutonCrashRecoveryBannerView: View {
-    @ObservedObject var store: KroutonStateStore
-    @ObservedObject var recovery = KroutonCrashRecoveryController.shared
+    var store: KroutonStateStore
+    var recovery = KroutonCrashRecoveryController.shared
 
     init(store: KroutonStateStore) {
         self.store = store

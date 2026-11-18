@@ -18,7 +18,7 @@ extension Notification.Name {
 
 /// Modular macOS Menu Bar Commands (`Krouton`, `File`, `Edit`, `View`, `Format`, `Copy & Rip`, `Disc`, `Window`, `Help`).
 struct KroutonWorkspaceCommands: Commands {
-    @ObservedObject var wm: KroutonWindowManager
+    var wm: KroutonWindowManager
 
     init(wm: KroutonWindowManager) {
         self.wm = wm

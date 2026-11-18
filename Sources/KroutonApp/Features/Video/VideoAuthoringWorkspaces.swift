@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 import VideoKit
 
 struct KroutonVideoAuthoringWorkspaceView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let spec: KroutonOpticalWorkflowSpec
     let isCenterWorkspaceNarrow: Bool
     @Binding var isDropTargeted: Bool
@@ -64,7 +64,7 @@ struct KroutonVideoAuthoringWorkspaceView: View {
 
                     HStack(spacing: 10) {
                         Text("Disc Title:").font(.caption.bold()).fixedSize()
-                        TextField("DVD_VIDEO", text: $store.discVolumeTitle).textFieldStyle(.roundedBorder).frame(minWidth: 110, maxWidth: 155)
+                        TextField("DVD_VIDEO", text: Bindable(store).discVolumeTitle).textFieldStyle(.roundedBorder).frame(minWidth: 110, maxWidth: 155)
                         Text("Menu:").font(.caption.bold()).fixedSize()
                         Picker("", selection: $videoMenuTemplate) {
                             Text("Dark Workspace Chapter Grid").tag("Dark Workspace Chapter Grid")
@@ -80,7 +80,7 @@ struct KroutonVideoAuthoringWorkspaceView: View {
                     }
 
                     HStack(spacing: 14) {
-                        Toggle(shrinkLabel, isOn: $store.fitToDiscDVD9Shrink).toggleStyle(.checkbox).font(.caption.bold())
+                        Toggle(shrinkLabel, isOn: Bindable(store).fitToDiscDVD9Shrink).toggleStyle(.checkbox).font(.caption.bold())
                         if isDualLayer {
                             Picker(KroutonL10n.tr("Layer Break:"), selection: $videoDualLayerBreakSector) {
                                 Text("Auto Cell Boundary (16-Sec ECC)").tag("Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)")

@@ -5,7 +5,7 @@ import SwiftUI
 // MARK: - Standalone Disc Image Depot & Sub-Library Browser Workspace View
 
 struct KroutonDepotWorkspaceView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let isCenterWorkspaceNarrow: Bool
 
     @State private var depotSearchQuery: String = ""

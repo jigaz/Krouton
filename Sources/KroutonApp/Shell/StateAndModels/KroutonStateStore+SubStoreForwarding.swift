@@ -9,9 +9,10 @@ extension KroutonStateStore {
     subscript<T>(dynamicMember keyPath: WritableKeyPath<AppearancePreferences, T>) -> T {
         get { appearance[keyPath: keyPath] }
         set {
-            let old = appearance
+            let oldHarmony = appearance.enableSecondaryAccentUITints
+            let oldLanguage = appearance.appLanguage
             appearance[keyPath: keyPath] = newValue
-            syncAppearanceSideEffects(from: old, to: appearance)
+            syncAppearanceSideEffects(oldHarmony: oldHarmony, oldLanguage: oldLanguage)
         }
     }
 
@@ -40,40 +41,26 @@ extension KroutonStateStore {
         rip[keyPath: keyPath]
     }
 
-    private func syncAppearanceSideEffects(from old: AppearancePreferences, to updated: AppearancePreferences) {
-        if updated.enableSecondaryAccentUITints != old.enableSecondaryAccentUITints {
-            appearance.tintWindowWithWallpaper = updated.enableSecondaryAccentUITints
+    private func syncAppearanceSideEffects(oldHarmony: Bool, oldLanguage: KroutonLanguage) {
+        if appearance.enableSecondaryAccentUITints != oldHarmony {
+            appearance.tintWindowWithWallpaper = appearance.enableSecondaryAccentUITints
             if !isHydratingPreferences {
-                KroutonPreferences.set(updated.enableSecondaryAccentUITints, for: .harmonyEnabled)
+                KroutonPreferences.set(appearance.enableSecondaryAccentUITints, for: .harmonyEnabled)
             }
         }
-        if updated.appLanguage != old.appLanguage {
-            KroutonL10n.activeISOCode = updated.appLanguage.isoCode
+        if appearance.appLanguage != oldLanguage {
+            KroutonL10n.activeISOCode = appearance.appLanguage.isoCode
             if !isHydratingPreferences {
-                KroutonPreferences.set(updated.appLanguage.rawValue, for: .appLanguage)
+                KroutonPreferences.set(appearance.appLanguage.rawValue, for: .appLanguage)
             }
         }
         guard !isHydratingPreferences else { return }
-        if updated.appearanceMode != old.appearanceMode {
-            KroutonPreferences.set(updated.appearanceMode.rawValue, for: .appearanceMode)
-        }
-        if updated.selectedAccentIndex != old.selectedAccentIndex {
-            KroutonPreferences.set(updated.selectedAccentIndex, for: .selectedAccentIndex)
-        }
-        if updated.iconWidgetStyle != old.iconWidgetStyle {
-            KroutonPreferences.set(updated.iconWidgetStyle.rawValue, for: .iconWidgetStyle)
-        }
-        if updated.folderColorMode != old.folderColorMode {
-            KroutonPreferences.set(updated.folderColorMode.rawValue, for: .folderColorMode)
-        }
-        if updated.sidebarIconSize != old.sidebarIconSize {
-            KroutonPreferences.set(updated.sidebarIconSize.rawValue, for: .sidebarIconSize)
-        }
-        if updated.rememberLastTaskOnLaunch != old.rememberLastTaskOnLaunch {
-            KroutonPreferences.set(updated.rememberLastTaskOnLaunch, for: .rememberLastTask)
-        }
-        if updated.useBase10Units != old.useBase10Units {
-            KroutonPreferences.set(updated.useBase10Units, for: .useBase10Units)
-        }
+        KroutonPreferences.set(appearance.appearanceMode.rawValue, for: .appearanceMode)
+        KroutonPreferences.set(appearance.selectedAccentIndex, for: .selectedAccentIndex)
+        KroutonPreferences.set(appearance.iconWidgetStyle.rawValue, for: .iconWidgetStyle)
+        KroutonPreferences.set(appearance.folderColorMode.rawValue, for: .folderColorMode)
+        KroutonPreferences.set(appearance.sidebarIconSize.rawValue, for: .sidebarIconSize)
+        KroutonPreferences.set(appearance.rememberLastTaskOnLaunch, for: .rememberLastTask)
+        KroutonPreferences.set(appearance.useBase10Units, for: .useBase10Units)
     }
 }

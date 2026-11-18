@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 // MARK: - Multi-Track Batch Selection Bar & Inline Disc 2+ Spanning Header Card
 
 struct AudioBatchSelectionActionBarView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let controller: AudioProjectController
     @Binding var selectedTrackIDs: Set<UUID>
     @Binding var isrcDrafts: [UUID: String]
@@ -134,7 +134,7 @@ struct AudioBatchSelectionActionBarView: View {
 }
 
 struct AudioAdditionalDiscHeaderView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let controller: AudioProjectController
     let disc: AudioDisc
     let totalDiscs: Int

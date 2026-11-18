@@ -39,7 +39,7 @@ enum KroutonStage1Tool: String, CaseIterable, Identifiable {
 }
 
 struct KroutonDiscLabelWorkspaceView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     @State var activeTool: KroutonStage1Tool = .background
     @State var newPresetName: String = ""
     @State var workingGeometryOverride: KroutonDiscLabelGeometry? = nil

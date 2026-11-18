@@ -75,7 +75,7 @@ extension KroutonSettingsWindowView {
                             }
                             Spacer()
                             KroutonDualHarmonySwitch(
-                                isOn: $store.enableSecondaryAccentUITints,
+                                isOn: Bindable(store).enableSecondaryAccentUITints,
                                 primaryColor: store.activeAccent,
                                 secondaryColor: store.activeSecondaryAccent
                             )
@@ -168,7 +168,7 @@ extension KroutonSettingsWindowView {
                     HStack(spacing: 6) {
                         Image(systemName: "folder.fill")
                             .foregroundStyle(store.resolvedFolderIconColor)
-                        Picker("", selection: $store.folderColorMode) {
+                        Picker("", selection: Bindable(store).folderColorMode) {
                             ForEach(KroutonStageFolderColorMode.allCases) { fMode in
                                 Text(KroutonL10n.tr(fMode.rawValue)).tag(fMode)
                             }
@@ -191,7 +191,7 @@ extension KroutonSettingsWindowView {
                     Text(KroutonL10n.tr("Sidebar icon size"))
                         .fontWeight(.medium)
                     Spacer()
-                    Picker("", selection: $store.sidebarIconSize) {
+                    Picker("", selection: Bindable(store).sidebarIconSize) {
                         ForEach(KroutonTrackIconSizeMode.allCases) { sz in
                             Text(KroutonL10n.tr(sz.rawValue)).tag(sz)
                         }
@@ -209,7 +209,7 @@ extension KroutonSettingsWindowView {
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Picker("", selection: $store.appLanguage) {
+                    Picker("", selection: Bindable(store).appLanguage) {
                         ForEach(KroutonLanguage.allCases) { lang in
                             Text(lang.rawValue).tag(lang)
                         }
@@ -221,7 +221,7 @@ extension KroutonSettingsWindowView {
 
             settingsCard(title: "Startup & Units") {
                 HStack {
-                    Toggle(KroutonL10n.tr("Automatically remember application state, staged files, and active task on launch (offers to start empty if a crash is detected)"), isOn: $store.rememberLastTaskOnLaunch)
+                    Toggle(KroutonL10n.tr("Automatically remember application state, staged files, and active task on launch (offers to start empty if a crash is detected)"), isOn: Bindable(store).rememberLastTaskOnLaunch)
                     Spacer()
                     Button(KroutonL10n.tr("Test Crash Prompt")) {
                         KroutonCrashRecoveryController.shared.simulateUncleanCrashFlagForTesting(store: store)
@@ -253,7 +253,7 @@ extension KroutonSettingsWindowView {
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    TextField("Path", text: $store.scratchDiskPath)
+                    TextField("Path", text: Bindable(store).scratchDiskPath)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 260)
                     pillToggleButton(title: "Choose...", sfSymbol: "folder.fill", isSelected: false) {
@@ -270,7 +270,7 @@ extension KroutonSettingsWindowView {
                     }
                 }
                 Divider()
-                Toggle(KroutonL10n.tr("Automatically purge temporary muxing files after verified burn"), isOn: $store.autoPurgeScratch)
+                Toggle(KroutonL10n.tr("Automatically purge temporary muxing files after verified burn"), isOn: Bindable(store).autoPurgeScratch)
                 Divider()
                 HStack(spacing: 18) {
                     Label(KroutonL10n.tr("Optical MMC Access: Granted"), systemImage: "checkmark.circle.fill")

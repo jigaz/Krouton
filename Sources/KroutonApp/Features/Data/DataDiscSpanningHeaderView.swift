@@ -4,7 +4,7 @@ import SwiftUI
 /// Reusable disc boundary header banner for Data & Archival multi-disc spanning,
 /// mirroring Audio CD's `AudioDiscHeaderBannerView` visual language.
 struct DataDiscHeaderBannerView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let disc: PlannedDisc<KroutonStagedFileEntry>
     let totalDiscs: Int
     let medium: KroutonSpanningDiscMedium

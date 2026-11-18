@@ -9,8 +9,8 @@ import SwiftUI
 // MARK: - Standalone Left Format Chooser Sidebar, Central Capacity Bar & Burn Station Views
 
 struct KroutonLeftFormatChooserColumnView: View {
-    @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonOpticalDriveBank
+    var store: KroutonStateStore
+    var driveManager: KroutonOpticalDriveBank
     let isLeftSidebarUltraSkinny: Bool
 
     var body: some View {

@@ -13,7 +13,7 @@ struct SpliceCanvasArea: View {
     let onCommit: (KroutonTrackTransitionSpec) -> Void
 
     @Environment(\.colorSchemeContrast) private var contrast
-    @ObservedObject private var auditioner = SpliceAudioAuditioner.shared
+    @State private var auditioner = SpliceAudioAuditioner.shared
     @State private var hoverPoint: CGPoint?
     @State private var activeTarget: SpliceDragTarget?
     @State private var hoveredHiddenMidTarget: SpliceDragTarget?

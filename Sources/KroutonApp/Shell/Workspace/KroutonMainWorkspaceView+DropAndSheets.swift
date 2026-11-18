@@ -71,20 +71,20 @@ extension KroutonMainWorkspaceView {
 }
 
 struct KroutonProjectSheetModifier: ViewModifier {
-    @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonOpticalDriveBank
-    @ObservedObject var bridge = KroutonProjectDialogBridge.shared
+    var store: KroutonStateStore
+    var driveManager: KroutonOpticalDriveBank
+    var bridge = KroutonProjectDialogBridge.shared
 
     func body(content: Content) -> some View {
         content
             .fileExporter(
-                isPresented: $bridge.isShowingExporter,
+                isPresented: Bindable(bridge).isShowingExporter,
                 document: bridge.exportDocument,
                 contentType: .kroutonProject,
                 defaultFilename: bridge.defaultFilename
             ) { _ in }
             .fileImporter(
-                isPresented: $bridge.isShowingImporter,
+                isPresented: Bindable(bridge).isShowingImporter,
                 allowedContentTypes: [.kroutonProject, .json],
                 allowsMultipleSelection: false
             ) { result in

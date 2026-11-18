@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 // MARK: - FinderViewOptionsPopover
 
 struct KroutonFinderViewOptionsPopover: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     @Binding var blueprint: KroutonFinderLayoutBlueprint
     let onResetPositions: () -> Void
     @State private var showBackgroundImporter: Bool = false

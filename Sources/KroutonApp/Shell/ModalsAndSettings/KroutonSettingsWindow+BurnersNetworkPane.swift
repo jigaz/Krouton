@@ -92,13 +92,11 @@ extension KroutonSettingsWindowView {
                         spoolClient.startZeroConfDiscovery()
                         Task {
                             await spoolClient.refreshRemoteDrives()
-                            store.objectWillChange.send()
                         }
                     }
                     pillToggleButton(title: "Calibrate Spool Cache", sfSymbol: "gauge.with.dots.needle.67percent", isSelected: false) {
                         Task {
                             await spoolClient.runSpoolCalibration()
-                            store.objectWillChange.send()
                         }
                     }
                 }
@@ -123,7 +121,6 @@ extension KroutonSettingsWindowView {
                         ) {
                             Task {
                                 await spoolClient.toggleDriveTray(driveID: remoteDrive.id)
-                                store.objectWillChange.send()
                             }
                         }
                     }
@@ -138,7 +135,6 @@ extension KroutonSettingsWindowView {
                         get: { spoolClient.retentionPolicy },
                         set: { newPol in
                             spoolClient.retentionPolicy = newPol
-                            store.objectWillChange.send()
                         }
                     )) {
                         ForEach(SpoolArtifactRetentionPolicy.allCases) { pol in
@@ -169,8 +165,8 @@ extension KroutonSettingsWindowView {
                 }
 
                 Divider()
-                Toggle(KroutonL10n.tr("Share this Mac's connected optical drives on the local network"), isOn: $store.enableNetworkServerSharing)
-                Toggle(KroutonL10n.tr("Pre-stage full compiled disc image to remote Spool Cache before igniting laser"), isOn: $store.preStageImageToServerSSD)
+                Toggle(KroutonL10n.tr("Share this Mac's connected optical drives on the local network"), isOn: Bindable(store).enableNetworkServerSharing)
+                Toggle(KroutonL10n.tr("Pre-stage full compiled disc image to remote Spool Cache before igniting laser"), isOn: Bindable(store).preStageImageToServerSSD)
             }
             .fileExporter(
                 isPresented: $isShowingSpoolFileExporter,
@@ -191,7 +187,7 @@ extension KroutonSettingsWindowView {
         VStack(alignment: .leading, spacing: 14) {
 
             settingsCard(title: "Optical Drive Hardware & MMC Bitsetting (Retro Console & Set-Top DVD Compatibility)") {
-                Toggle(KroutonL10n.tr("Stamp Book Type as DVD-ROM (0x00) on DVD+R & DVD+R DL Media (Required by vintage DVD players, early PS2 & Xbox)"), isOn: $store.forceDVDROMBookType)
+                Toggle(KroutonL10n.tr("Stamp Book Type as DVD-ROM (0x00) on DVD+R & DVD+R DL Media (Required by vintage DVD players, early PS2 & Xbox)"), isOn: Bindable(store).forceDVDROMBookType)
                     .fontWeight(.semibold)
                 Text(KroutonL10n.tr("When enabled, Krouton sends the vendor MMC Mode Select / Set Compatibility bitsetting command before lead-in write so DVD+R and DVD+R DL discs identify as pressed factory DVD-ROMs."))
                     .font(.caption)
@@ -200,7 +196,7 @@ extension KroutonSettingsWindowView {
                 HStack {
                     Text(KroutonL10n.tr("MMC Bitsetting Command Profile"))
                     Spacer()
-                    Picker("", selection: $store.bitsetVendorProfile) {
+                    Picker("", selection: Bindable(store).bitsetVendorProfile) {
                         Text(KroutonL10n.tr("Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)")).tag("Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)")
                         Text(KroutonL10n.tr("Pioneer DVR / BDR Extended (0x3B Mode Select)")).tag("Pioneer DVR / BDR Extended (0x3B Mode Select)")
                         Text(KroutonL10n.tr("Lite-On / MediaTek SmartBurn (0xF9 / 0xFF)")).tag("Lite-On / MediaTek SmartBurn (0xF9 / 0xFF)")
@@ -229,11 +225,11 @@ extension KroutonSettingsWindowView {
                     }
                 }
                 Divider()
-                Toggle(KroutonL10n.tr("Disable BD-R Defect Management Spare Area on Video Blu-rays (Enables full rated write speed)"), isOn: $store.disableBDDefectManagementForVideo)
+                Toggle(KroutonL10n.tr("Disable BD-R Defect Management Spare Area on Video Blu-rays (Enables full rated write speed)"), isOn: Bindable(store).disableBDDefectManagementForVideo)
             }
 
             settingsCard(title: "Hands-Free Multi-Copy Duplication & Spanned Disc Auto-Loader") {
-                Toggle(KroutonL10n.tr("Auto-Load Next Disc: Eject finished disc & automatically start next burn after fresh blank disc insertion"), isOn: $store.autoLoadNextDiscBatchMode)
+                Toggle(KroutonL10n.tr("Auto-Load Next Disc: Eject finished disc & automatically start next burn after fresh blank disc insertion"), isOn: Bindable(store).autoLoadNextDiscBatchMode)
                     .fontWeight(.semibold)
                 Text(KroutonL10n.tr("Turns your Mac into a hands-free duplication station when burning multiple copies or multi-disc spanned archives."))
                     .font(.caption)
@@ -247,7 +243,7 @@ extension KroutonSettingsWindowView {
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Stepper("\(store.autoLoadCountdownSeconds) seconds after insert", value: $store.autoLoadCountdownSeconds, in: 3...15)
+                    Stepper("\(store.autoLoadCountdownSeconds) seconds after insert", value: Bindable(store).autoLoadCountdownSeconds, in: 3...15)
                         .font(.system(size: 12, weight: .semibold, design: .monospaced))
                 }
             }

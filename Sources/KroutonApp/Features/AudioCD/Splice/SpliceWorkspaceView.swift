@@ -21,7 +21,7 @@ struct SpliceWorkspaceView: View {
 
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
-    @ObservedObject private var montageState = TrackMontageWindowState.shared
+    @State private var montageState = TrackMontageWindowState.shared
 
     @State private var comparison = ABComparison()
     @State private var showSum = false
@@ -190,9 +190,9 @@ struct ABComparison: Equatable {
 
 /// Independent Floating Window View for the Track Montage Editor (Normal Resizable & Fullscreen-Capable Window)
 struct KroutonFloatingTrackMontageWindowView: View {
-    @ObservedObject var store: KroutonStateStore
-    @ObservedObject private var montageState = TrackMontageWindowState.shared
-    @ObservedObject private var auditioner = SpliceAudioAuditioner.shared
+    var store: KroutonStateStore
+    @State private var montageState = TrackMontageWindowState.shared
+    @State private var auditioner = SpliceAudioAuditioner.shared
 
     init(store: KroutonStateStore) {
         self.store = store

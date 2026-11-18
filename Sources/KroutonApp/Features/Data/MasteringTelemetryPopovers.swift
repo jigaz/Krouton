@@ -17,7 +17,7 @@ import VideoKit
 // MARK: - Standalone Mastering Telemetry Popover Views
 
 struct KroutonHybridLBAMapPopoverView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let activeSpec: KroutonOpticalWorkflowSpec
 
     var body: some View {
@@ -104,7 +104,7 @@ struct KroutonHybridLBAMapPopoverView: View {
 }
 
 struct KroutonAudioCuePopoverView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
 
     private var project: AudioProject { store.audioController.project }
 
@@ -197,7 +197,7 @@ struct KroutonAudioCuePopoverView: View {
 }
 
 struct KroutonVideoBitratePopoverView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let spec: KroutonOpticalWorkflowSpec
     let isBluRay: Bool
     let isDualLayer: Bool

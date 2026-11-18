@@ -1,6 +1,9 @@
 import Foundation
+import Observation
 import OpticalCore
 import SwiftUI
+
+// MARK: - Typed Preference Keys & Access Layer
 
 enum KroutonPreferenceKey: String, CaseIterable, Sendable {
     case selectedAccentIndex = "krouton.pref.selectedAccentIndex"
@@ -42,7 +45,11 @@ enum KroutonPreferences {
 
 /// Feature model owning appearance, accent palette, localization, unit, and accessibility preferences.
 /// Consolidates the four previously duplicated colour-scheme resolution blocks into one place.
-struct AppearancePreferences: Equatable, Sendable {
+// MARK: - AppearancePreferences
+
+@Observable
+@MainActor
+final class AppearancePreferences {
     var enableSecondaryAccentUITints: Bool = false
     var tintWindowWithWallpaper: Bool = false
     var appearanceMode: KroutonRoastAppearanceMode = .auto
@@ -78,7 +85,7 @@ struct AppearancePreferences: Equatable, Sendable {
         Locale(identifier: appLanguage.isoCode)
     }
 
-    mutating func load() {
+    func load() {
         if let acc = KroutonPreferences.integer(for: .selectedAccentIndex) {
             selectedAccentIndex = acc
         }

@@ -1,6 +1,6 @@
 import AppKit
-import Combine
 import DriveKit
+import Observation
 import OpticalCore
 import SwiftUI
 
@@ -8,7 +8,6 @@ import SwiftUI
 // MARK: - KroutonAppDelegate
 
 final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
-    private var cancellables = Set<AnyCancellable>()
     private var appearanceObserver: NSKeyValueObservation?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -17,13 +16,7 @@ final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
         applyDynamicDockIcon(for: store)
         bindBurnTelemetryAndPowerGuard()
 
-        store.objectWillChange
-            .receive(on: RunLoop.main)
-            .sink { [weak self, weak store] _ in
-                guard let self, let store else { return }
-                self.applyDynamicDockIcon(for: store)
-            }
-            .store(in: &cancellables)
+        bindDockIconObservation()
 
         appearanceObserver = NSApp.observe(\.effectiveAppearance, options: [.new]) { [weak self] _, _ in
             Task { @MainActor in
@@ -111,24 +104,40 @@ final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
         return out
     }
 
+    func bindDockIconObservation() {
+        let store = KroutonWindowManager.shared.store
+        withObservationTracking {
+            _ = store.iconWidgetStyle
+            _ = store.selectedAccentIndex
+            _ = store.selectedCategory
+            _ = store.selectedTaskID
+            _ = store.appearanceMode
+            self.applyDynamicDockIcon(for: store)
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.bindDockIconObservation()
+            }
+        }
+    }
+
     func bindBurnTelemetryAndPowerGuard() {
         let dm = KroutonWindowManager.shared.driveManager
-        dm.objectWillChange
-            .receive(on: RunLoop.main)
-            .sink { [weak dm] _ in
-                guard let dm else { return }
-                if dm.isExecutingQueue {
-                    KroutonPowerAndBurnAssertion.shared.acquire(reason: dm.activeJobPhase.isEmpty ? "Krouton Optical Burn" : dm.activeJobPhase)
-                    let pct = Int((min(1.0, max(0.0, dm.activeJobProgress)) * 100.0).rounded())
-                    NSApplication.shared.dockTile.badgeLabel = pct > 0 ? "\(pct)%" : "BURN"
-                } else {
-                    KroutonPowerAndBurnAssertion.shared.releaseAssertion()
-                    if NSApplication.shared.dockTile.badgeLabel != nil {
-                        NSApplication.shared.dockTile.badgeLabel = nil
-                    }
+        withObservationTracking {
+            if dm.isExecutingQueue {
+                KroutonPowerAndBurnAssertion.shared.acquire(reason: dm.activeJobPhase.isEmpty ? "Krouton Optical Burn" : dm.activeJobPhase)
+                let pct = Int((min(1.0, max(0.0, dm.activeJobProgress)) * 100.0).rounded())
+                NSApplication.shared.dockTile.badgeLabel = pct > 0 ? "\(pct)%" : "BURN"
+            } else {
+                KroutonPowerAndBurnAssertion.shared.releaseAssertion()
+                if NSApplication.shared.dockTile.badgeLabel != nil {
+                    NSApplication.shared.dockTile.badgeLabel = nil
                 }
             }
-            .store(in: &cancellables)
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.bindBurnTelemetryAndPowerGuard()
+            }
+        }
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

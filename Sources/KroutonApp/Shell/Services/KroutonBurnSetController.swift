@@ -1,5 +1,6 @@
 import BurnKit
 import Foundation
+import Observation
 import OpticalCore
 import SwiftUI
 
@@ -8,8 +9,9 @@ import SwiftUI
 // scheduler's events, which are journalled first, so a set survives a quit and can be
 // resumed with its finished discs still finished.
 
+@Observable
 @MainActor
-final class KroutonBurnSetController: ObservableObject {
+final class KroutonBurnSetController {
     static let shared = KroutonBurnSetController()
 
     enum Phase: Equatable {
@@ -39,14 +41,14 @@ final class KroutonBurnSetController: ObservableObject {
         var message: String
     }
 
-    @Published private(set) var phase: Phase = .idle
-    @Published private(set) var setTitle = ""
-    @Published private(set) var discs: [DiscRow] = []
-    @Published private(set) var drives: [DriveRow] = []
-    @Published private(set) var notice: String?
-    @Published private(set) var isStopping = false
+    private(set) var phase: Phase = .idle
+    private(set) var setTitle = ""
+    private(set) var discs: [DiscRow] = []
+    private(set) var drives: [DriveRow] = []
+    private(set) var notice: String?
+    private(set) var isStopping = false
     /// An unfinished set found in the journal whose images are still on disk.
-    @Published private(set) var resumable: BurnSetProgress?
+    private(set) var resumable: BurnSetProgress?
 
     var isBusy: Bool { phase == .preparing || phase == .running }
     var hasUnfinishedDiscs: Bool { progress.map { !$0.isComplete } ?? false }

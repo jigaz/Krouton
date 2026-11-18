@@ -7,9 +7,9 @@ import UniformTypeIdentifiers
 import VideoKit
 
 struct KroutonRedBookAudioWorkspaceView: View {
-    @ObservedObject var store: KroutonStateStore
-    @ObservedObject var auditioner = SpliceAudioAuditioner.shared
-    @ObservedObject var montageState = TrackMontageWindowState.shared
+    var store: KroutonStateStore
+    var auditioner = SpliceAudioAuditioner.shared
+    var montageState = TrackMontageWindowState.shared
     @Environment(\.undoManager) var undoManager
 
     let spec: KroutonOpticalWorkflowSpec

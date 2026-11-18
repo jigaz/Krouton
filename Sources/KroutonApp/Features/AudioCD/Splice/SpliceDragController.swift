@@ -1,19 +1,21 @@
 import AudioKit
+import Observation
 import SwiftUI
 
 @MainActor
 // MARK: - SpliceDragController
 
-final class TrackMontageWindowState: ObservableObject {
+@Observable
+final class TrackMontageWindowState {
     static let shared = TrackMontageWindowState()
-    @Published var isFloatingWindowOpen: Bool = false
-    @Published var activeTrackID: UUID? = nil
+    var isFloatingWindowOpen: Bool = false
+    var activeTrackID: UUID? = nil
     /// GPU-backed "foosh" warp phase: 0.0 = resting, 1.0 = mid-flight launch/dock impulse
-    @Published var fooshPhase: Double = 0.0
+    var fooshPhase: Double = 0.0
     /// Vertical height multiplier: 0.50 (50%) ... 2.00 (200%), base height = 174 pt
-    @Published var heightScale: Double = 1.0
+    var heightScale: Double = 1.0
     /// Horizontal zoom factor: 3.0 (default 11.3s precision span) or 1.0 (Zoom Out 34s concert span)
-    @Published var horizontalZoom: Double = 3.0
+    var horizontalZoom: Double = 3.0
     static let baseCanvasHeight: CGFloat = 174.0
 
     var scaledCanvasHeight: CGFloat {

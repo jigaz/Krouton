@@ -35,9 +35,9 @@ enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendable {
 }
 
 struct KroutonSettingsWindowView: View {
-    @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonOpticalDriveBank
-    @ObservedObject var spoolClient: SpoolRemoteNodeClient = .shared
+    var store: KroutonStateStore
+    var driveManager: KroutonOpticalDriveBank
+    var spoolClient: SpoolRemoteNodeClient = .shared
     @State var isShowingSpoolFileExporter: Bool = false
     @State var isShowingScratchFolderImporter: Bool = false
     @State var spoolExportDocument: SpoolPlainTextFileDocument = SpoolPlainTextFileDocument(text: "")

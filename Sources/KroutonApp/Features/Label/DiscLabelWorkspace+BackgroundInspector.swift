@@ -54,14 +54,14 @@ extension KroutonDiscLabelWorkspaceView {
                 VStack(alignment: .leading, spacing: 10) {
                     ColorPicker(
                         store.labelBackgroundStyle == .radialGradient ? "Inner Hub Color:" : "Primary Color:",
-                        selection: $store.labelBgPrimaryColor
+                        selection: Bindable(store).labelBgPrimaryColor
                     )
                     .font(.caption.bold())
 
                     if store.labelBackgroundStyle != .solidColor {
                         ColorPicker(
                             store.labelBackgroundStyle == .radialGradient ? "Outer Rim Color:" : "Secondary Color:",
-                            selection: $store.labelBgSecondaryColor
+                            selection: Bindable(store).labelBgSecondaryColor
                         )
                         .font(.caption.bold())
 
@@ -99,7 +99,7 @@ extension KroutonDiscLabelWorkspaceView {
                                 Text("\(Int(store.labelGradientMidpoint * 100))%")
                                     .font(.caption2.monospaced())
                             }
-                            Slider(value: $store.labelGradientMidpoint, in: 0.0...1.0)
+                            Slider(value: Bindable(store).labelGradientMidpoint, in: 0.0...1.0)
                         }
                     }
 
@@ -113,7 +113,7 @@ extension KroutonDiscLabelWorkspaceView {
                                 Text("\(Int(store.labelGradientAngle))°")
                                     .font(.caption2.monospaced())
                             }
-                            Slider(value: $store.labelGradientAngle, in: 0...360, step: 5)
+                            Slider(value: Bindable(store).labelGradientAngle, in: 0...360, step: 5)
                         }
                     }
 
@@ -142,7 +142,7 @@ extension KroutonDiscLabelWorkspaceView {
                                 .help("Randomize the physical glass shards and mirror angle inside the optical chamber")
                             }
 
-                            Picker(KroutonL10n.tr("Object Chamber"), selection: $store.labelGPUSeedPattern) {
+                            Picker(KroutonL10n.tr("Object Chamber"), selection: Bindable(store).labelGPUSeedPattern) {
                                 Text("Stained Glass & Gem Shards").tag(KroutonGPUSeedPattern.neonLaserPrism)
                                 Text("Dichroic Neon Filaments").tag(KroutonGPUSeedPattern.cyberSunburst)
                                 Text("Liquid Oil Interference").tag(KroutonGPUSeedPattern.holographicFoil)
@@ -159,7 +159,7 @@ extension KroutonDiscLabelWorkspaceView {
                                     Text("\(Int(store.labelChamberTumble * 100))%")
                                         .font(.caption2.monospaced())
                                 }
-                                Slider(value: $store.labelChamberTumble, in: 0.0...1.0)
+                                Slider(value: Bindable(store).labelChamberTumble, in: 0.0...1.0)
                             }
 
                             if store.labelBackgroundStyle == .gpuKaleidoscope {
@@ -167,14 +167,14 @@ extension KroutonDiscLabelWorkspaceView {
                                     .font(.caption2.bold())
                                     .foregroundStyle(.secondary)
 
-                                Picker(KroutonL10n.tr("Mirror Rig"), selection: $store.labelKaleidoscopeRig) {
+                                Picker(KroutonL10n.tr("Mirror Rig"), selection: Bindable(store).labelKaleidoscopeRig) {
                                     ForEach(KroutonKaleidoscopeMirrorRig.allCases) { rig in
                                         Text(rig.rawValue).tag(rig)
                                     }
                                 }
                                 .labelsHidden()
 
-                                Stepper("Mirror Facets / Scale: \(store.labelKaleidoscopeFacets)×", value: $store.labelKaleidoscopeFacets, in: 3...16)
+                                Stepper("Mirror Facets / Scale: \(store.labelKaleidoscopeFacets)×", value: Bindable(store).labelKaleidoscopeFacets, in: 3...16)
                                     .font(.caption.bold())
                             } else {
                                 VStack(alignment: .leading, spacing: 2) {
@@ -186,7 +186,7 @@ extension KroutonDiscLabelWorkspaceView {
                                         Text("\(Int(store.labelTinyPlanetRadius * 100))%")
                                             .font(.caption2.monospaced())
                                     }
-                                    Slider(value: $store.labelTinyPlanetRadius, in: 0.35...0.95)
+                                    Slider(value: Bindable(store).labelTinyPlanetRadius, in: 0.35...0.95)
                                 }
                             }
                         }

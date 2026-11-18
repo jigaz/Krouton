@@ -70,7 +70,6 @@ extension KroutonDiscLabelWorkspaceView {
 
                 Button {
                     store.labelWorkspaceSubStore.isFreehandDrawMode.toggle()
-                    store.objectWillChange.send()
                 } label: {
                     Label(
                         store.labelWorkspaceSubStore.isFreehandDrawMode ? "Drawing on Disc (Active)" : "Freehand Draw on Disc",
@@ -85,7 +84,7 @@ extension KroutonDiscLabelWorkspaceView {
 
                 Toggle(isOn: Binding(
                     get: { store.labelWorkspaceSubStore.autoSnapFreehandShapes },
-                    set: { store.labelWorkspaceSubStore.autoSnapFreehandShapes = $0; store.objectWillChange.send() }
+                    set: { store.labelWorkspaceSubStore.autoSnapFreehandShapes = $0 }
                 )) {
                     Text("Auto-Snap Loops to Crisp Circles/Polygons")
                         .font(.caption2)

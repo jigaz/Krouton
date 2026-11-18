@@ -8,9 +8,9 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct KroutonMainWorkspaceView: View {
-    @ObservedObject var store: KroutonStateStore
-    @ObservedObject var driveManager: KroutonOpticalDriveBank
-    @ObservedObject var spoolClient: SpoolRemoteNodeClient = .shared
+    var store: KroutonStateStore
+    var driveManager: KroutonOpticalDriveBank
+    var spoolClient: SpoolRemoteNodeClient = .shared
 
     @State var leftColumnLiveWidth: CGFloat = 196
     @State var rightColumnLiveWidth: CGFloat = 315
@@ -202,7 +202,7 @@ struct KroutonMainWorkspaceView: View {
         .onChange(of: driveManager.availableDrives) { _, _ in store.reconcileUniqueDriveAssignments(driveManager: driveManager) }
         .onChange(of: store.selectedTaskID) { _, _ in store.reconcileUniqueDriveAssignments(driveManager: driveManager) }
         .onChange(of: store.selectedCategory) { _, _ in store.reconcileUniqueDriveAssignments(driveManager: driveManager) }
-        .sheet(item: $driveManager.completionReport) { report in
+        .sheet(item: Bindable(driveManager).completionReport) { report in
             KroutonMasteringReportSheet(report: report, accent: store.activeAccent) {
                 driveManager.completionReport = nil
             }

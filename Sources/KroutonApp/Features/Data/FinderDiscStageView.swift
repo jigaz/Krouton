@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 // MARK: - FinderDiscStageView
 
 struct KroutonFinderDiscStageView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     @Binding var blueprint: KroutonFinderLayoutBlueprint
     @Binding var isDropTargeted: Bool
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool

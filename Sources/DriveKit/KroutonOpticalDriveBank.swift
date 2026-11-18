@@ -6,43 +6,45 @@ import DiskArbitration
 import Foundation
 import IOKit
 import IOKit.storage
+import Observation
 import OpticalCore
 import SwiftUI
 import os
 
+@Observable
 @MainActor
-public final class KroutonOpticalDriveBank: ObservableObject, OpticalDriveControlling, KroutonDriveTelemetryStore {
+public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriveTelemetryStore {
     public var mediaKind: OpticalMediaKind {
         OpticalMediaKind(mediaDescription: availableDrives.first?.mediaType ?? "DVD-R")
     }
-    @Published public var availableDrives: [KroutonOpticalDriveInfo] = []
-    @Published public var selectedDrive: KroutonOpticalDriveInfo?
-    @Published public var hardwareStatusLog: String = "Scanning IOKit / DiscRecording bus..."
+    public var availableDrives: [KroutonOpticalDriveInfo] = []
+    public var selectedDrive: KroutonOpticalDriveInfo?
+    public var hardwareStatusLog: String = "Scanning IOKit / DiscRecording bus..."
 
-        @Published public var isExecutingQueue: Bool = false
-    @Published public var activeJobPhase: String = "Idle"
-    @Published public var activeJobProgress: Double = 0.0
-    @Published public var activeJobDetail: String = ""
-    @Published public var driveTelemetry: [String: KroutonDrivePhaseScopeTelemetry] = [:]
-    @Published public var batchStates: [String: KroutonBatchBurnState] = [:]
-    @Published var driveBookTypeOverrides: [String: String] = [:]
+        public var isExecutingQueue: Bool = false
+    public var activeJobPhase: String = "Idle"
+    public var activeJobProgress: Double = 0.0
+    public var activeJobDetail: String = ""
+    public var driveTelemetry: [String: KroutonDrivePhaseScopeTelemetry] = [:]
+    public var batchStates: [String: KroutonBatchBurnState] = [:]
+    var driveBookTypeOverrides: [String: String] = [:]
     var batchCountdownTimers: [String: Timer] = [:]
     var perDriveTimers: [String: Timer] = [:]
 
-    @Published var neroSamples: [KroutonBurnTelemetrySample] = []
-    @Published public var currentSpeedX: Double = 0.0
-    @Published public var currentSpeedKBs: Double = 0.0
-    @Published public var peakSpeedX: Double = 0.0
-    @Published public var averageSpeedX: Double = 0.0
-    @Published public var currentSpindleRPM: Int = 0
-    @Published public var currentSectorLBA: Int64 = 0
-    @Published var totalTargetSectorsLBA: Int64 = 0
-    @Published var driveBufferFillPercent: Double = 0.0
-    @Published public var laserWavelengthText: String = "780 nm IR (CD)"
-    @Published public var writeStrategyText: String = "P-CAV / CLV"
-    @Published var activeTrackNumber: Int = 1
-    @Published public var elapsedSeconds: Int = 0
-    @Published public var completionReport: KroutonBurnSessionReport? = nil
+    var neroSamples: [KroutonBurnTelemetrySample] = []
+    public var currentSpeedX: Double = 0.0
+    public var currentSpeedKBs: Double = 0.0
+    public var peakSpeedX: Double = 0.0
+    public var averageSpeedX: Double = 0.0
+    public var currentSpindleRPM: Int = 0
+    public var currentSectorLBA: Int64 = 0
+    var totalTargetSectorsLBA: Int64 = 0
+    var driveBufferFillPercent: Double = 0.0
+    public var laserWavelengthText: String = "780 nm IR (CD)"
+    public var writeStrategyText: String = "P-CAV / CLV"
+    var activeTrackNumber: Int = 1
+    public var elapsedSeconds: Int = 0
+    public var completionReport: KroutonBurnSessionReport? = nil
 
     var pollTimer: Timer?
     var activeBurnSession: KroutonActiveBurnSession?

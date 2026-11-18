@@ -25,7 +25,7 @@ private extension View {
 }
 
 struct KroutonDepotHeroBannerView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let item: KroutonDepotCatalogItem
     let isNarrow: Bool
 

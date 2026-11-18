@@ -4,8 +4,8 @@ import SwiftUI
 
 /// The multi-disc set window: choose a disc size, start, then follow each disc and each drive.
 struct KroutonBurnSetSheetView: View {
-    @ObservedObject var store: KroutonStateStore
-    @ObservedObject var controller: KroutonBurnSetController = .shared
+    var store: KroutonStateStore
+    var controller: KroutonBurnSetController = .shared
     @Environment(\.dismiss) private var dismiss
     @AppStorage("krouton.pref.burnSetMedium") private var mediumRaw: String = KroutonSpanningDiscMedium.dvd5Single.rawValue
     @State private var confirmAbort = false

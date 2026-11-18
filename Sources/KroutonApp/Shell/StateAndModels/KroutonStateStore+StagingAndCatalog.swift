@@ -350,7 +350,6 @@ extension KroutonStateStore {
         if spec?.workspaceKind == .redBookAudio {
             audioController.targetDiscMediumBinding.wrappedValue = resolved
         }
-        objectWillChange.send()
     }
 
     func targetDiscMediumBinding(forFormatID formatID: String) -> Binding<KroutonSpanningDiscMedium> {

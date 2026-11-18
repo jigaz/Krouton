@@ -73,7 +73,7 @@ extension KroutonDataAndArchivalWorkspaceView {
                             Text(KroutonL10n.tr("Disc Title:"))
                                 .font(.caption.bold())
                                 .lineLimit(1)
-                            TextField("Volume Title", text: $store.discVolumeTitle)
+                            TextField("Volume Title", text: Bindable(store).discVolumeTitle)
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 135)
                         }
@@ -139,7 +139,7 @@ extension KroutonDataAndArchivalWorkspaceView {
                         .onReceive(NotificationCenter.default.publisher(for: .kroutonMenuInspectHybridLBA)) { _ in showHybridLBAMapPopover = true }
 
                         if !isRetro83 {
-                            Toggle(KroutonL10n.tr("Customize Finder Layout"), isOn: $store.enableCustomFinderLayoutTab)
+                            Toggle(KroutonL10n.tr("Customize Finder Layout"), isOn: Bindable(store).enableCustomFinderLayoutTab)
                                 .toggleStyle(.checkbox)
                                 .font(.caption)
                                 .lineLimit(1)
@@ -168,7 +168,7 @@ extension KroutonDataAndArchivalWorkspaceView {
                             Text(KroutonL10n.tr("Disc Title:"))
                                 .font(.caption.bold())
                                 .lineLimit(1)
-                            TextField("Volume Title", text: $store.discVolumeTitle)
+                            TextField("Volume Title", text: Bindable(store).discVolumeTitle)
                                 .textFieldStyle(.roundedBorder)
                                 .accessibilityLabel(KroutonL10n.tr("Disc Volume Title"))
                             Button {
@@ -229,7 +229,7 @@ extension KroutonDataAndArchivalWorkspaceView {
                             }
                             Spacer(minLength: 4)
                             if !isRetro83 {
-                                Toggle(KroutonL10n.tr("Finder View"), isOn: $store.enableCustomFinderLayoutTab)
+                                Toggle(KroutonL10n.tr("Finder View"), isOn: Bindable(store).enableCustomFinderLayoutTab)
                                     .toggleStyle(.checkbox)
                                     .font(.caption)
                                     .lineLimit(1)

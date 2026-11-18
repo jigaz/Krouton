@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 // MARK: - DiscImageInspectorWorkspace
 
 struct KroutonDiscImageInspectorWorkspaceView: View {
-    @ObservedObject var store: KroutonStateStore
+    var store: KroutonStateStore
     let spec: KroutonOpticalWorkflowSpec
     @Binding var isDropTargeted: Bool
     let onPromptToAddFiles: () -> Void
