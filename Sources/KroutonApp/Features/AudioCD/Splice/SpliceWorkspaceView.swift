@@ -243,7 +243,8 @@ struct KroutonFloatingTrackMontageWindowView: View {
                             trackID: trackID,
                             outgoingURL: track.source,
                             incomingURL: nextTrack?.source,
-                            spec: controller.transition(after: trackID)
+                            spec: controller.transition(after: trackID),
+                            suppressedAtDiscBoundary: controller.isTransitionSuppressedByDiscBreak(after: trackID)
                         )
                     }
                 )

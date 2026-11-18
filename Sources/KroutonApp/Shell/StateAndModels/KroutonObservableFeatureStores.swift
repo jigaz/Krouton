@@ -114,8 +114,8 @@ final class KroutonLabelWorkspaceSubStore {
     var transientStatusBanner: String = ""
     var isFreehandDrawMode: Bool = false
     var autoSnapFreehandShapes: Bool = true
-    public private(set) var timeline: [KroutonLabelCanvasSnapshot] = []
-    public private(set) var cursor: Int = -1
+    private(set) var timeline: [KroutonLabelCanvasSnapshot] = []
+    private(set) var cursor: Int = -1
     let maxHistoryDepth: Int = 32
     private var suppressRecordingUntil: TimeInterval = 0
     private var lastEditTimestamp: TimeInterval = 0

@@ -17,9 +17,9 @@ final class AudioProjectController {
         case failed(String)
     }
 
-    public private(set) var project: AudioProject
-    public private(set) var liveTransition: LiveTransition?
-    public private(set) var analysis: [UUID: AnalysisState] = [:]
+    private(set) var project: AudioProject
+    private(set) var liveTransition: LiveTransition?
+    private(set) var analysis: [UUID: AnalysisState] = [:]
 
     @ObservationIgnored var undoManager: UndoManager?
     @ObservationIgnored private let service: AudioAnalysisService
@@ -49,16 +49,36 @@ final class AudioProjectController {
         return nil
     }
 
-    // MARK: - Preview (per frame, cheap)
+    // MARK: - Preview (per frame, cheap — publishes live CrossfadeRenderParams to audio mailbox)
+
+    func isTransitionSuppressedByDiscBreak(after trackID: UUID) -> Bool {
+        let discs = project.discPlan().discs
+        for disc in discs {
+            if disc.tracks.last?.id == trackID {
+                return disc.number < discs.count
+            }
+        }
+        return false
+    }
 
     func preview(_ spec: KroutonTrackTransitionSpec, after trackID: UUID) {
         liveTransition = LiveTransition(trackID: trackID, spec: spec)
+        SpliceAudioAuditioner.shared.updateLiveSpec(
+            spec,
+            forTrackID: trackID,
+            suppressedAtDiscBoundary: isTransitionSuppressedByDiscBreak(after: trackID)
+        )
     }
 
     // MARK: - Commit (once per gesture or discrete edit)
 
     func commitTransition(_ spec: KroutonTrackTransitionSpec, after trackID: UUID, actionName: String = "Edit Transition") {
         edit(actionName) { $0.update(trackID) { $0.transitionToNext = spec } }
+        SpliceAudioAuditioner.shared.updateLiveSpec(
+            spec,
+            forTrackID: trackID,
+            suppressedAtDiscBoundary: isTransitionSuppressedByDiscBreak(after: trackID)
+        )
     }
 
     func edit(_ actionName: String, _ change: (inout AudioProject) -> Void) {

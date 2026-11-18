@@ -21,7 +21,7 @@ final class KroutonStateStore {
     let label = LabelDocument()
     let rip = RipSettings()
 
-    public static weak var shared: KroutonStateStore?
+    static weak var shared: KroutonStateStore?
     var isHydratingPreferences: Bool = false
 
     // MARK: - Core Navigation, Staging & Burn Queue State

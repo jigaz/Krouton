@@ -301,7 +301,8 @@ struct KroutonRedBookAudioWorkspaceView: View {
                     trackID: first.id,
                     outgoingURL: first.source,
                     incomingURL: second?.source,
-                    spec: controller.transition(after: first.id)
+                    spec: controller.transition(after: first.id),
+                    suppressedAtDiscBoundary: controller.isTransitionSuppressedByDiscBreak(after: first.id)
                 )
             } label: {
                 Image(systemName: auditioner.isPlaying ? "stop.fill" : "play.fill")
