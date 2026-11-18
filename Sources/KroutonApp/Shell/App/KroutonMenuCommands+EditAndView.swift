@@ -77,6 +77,13 @@ extension KroutonWorkspaceCommands {
     @CommandsBuilder
     var viewMenuCommands: some Commands {
         CommandGroup(before: .toolbar) {
+            Button(KroutonL10n.tr("Toggle Format Chooser Sidebar")) {
+                NotificationCenter.default.post(name: NSNotification.Name("krouton.toggleLeftSidebar"), object: nil)
+            }.keyboardShortcut("s", modifiers: [.control, .command])
+            Button(KroutonL10n.tr("Toggle Destination Queue Sidebar")) {
+                NotificationCenter.default.post(name: NSNotification.Name("krouton.toggleRightSidebar"), object: nil)
+            }.keyboardShortcut("s", modifiers: [.option, .command])
+            Divider()
             Button(KroutonL10n.tr("Burn Station Workspace")) {
                 wm.store.selectedCategory = .burn
                 if wm.store.selectedTaskID.hasPrefix("depot-") || wm.store.selectedTaskID.hasPrefix("copy-") || wm.store.selectedTaskID.hasPrefix("label-") {

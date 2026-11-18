@@ -7,6 +7,8 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
+// MARK: - Main Workspace View
+
 struct KroutonMainWorkspaceView: View {
     var store: KroutonStateStore
     var driveManager: KroutonOpticalDriveBank
@@ -20,15 +22,11 @@ struct KroutonMainWorkspaceView: View {
     @State var isLeftSidebarCompact: Bool = false
     @State var isLeftSidebarUltraSkinny: Bool = false
     @State var isRightQueueCompact: Bool = false
+    @State var isLeftSidebarCollapsed: Bool = false
+    @State var isRightSidebarCollapsed: Bool = false
     @State var isCenterWorkspaceNarrow: Bool = false
     @State var isCenterWorkspaceUltraCompact: Bool = false
     @State var isDropTargeted: Bool = false
-    // Red Book Audio CD & CD-Extra Mastering State
-    // Car-Safe MP3 / FLAC CD Mastering State
-    // Video Disc Authoring & Dual-Layer Break State
-    // M-DISC Archival PAR2 State
-    // New Data Disc File System Bridge State
-    // Dedicated Disc Image Burner State
 
     var primarySelectedDrive: KroutonOpticalDriveInfo? {
         if let firstBurnerCard = store.destinationQueue.first(where: { $0.kind == .physicalBurner }),
@@ -51,182 +49,62 @@ struct KroutonMainWorkspaceView: View {
     }
 
     var body: some View {
+        mainContentStack
+            .frame(minWidth: 1180, idealWidth: 1380, minHeight: 720, idealHeight: 880)
+            .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
+            .background(Color.kroutonWindowSurface)
+            .preferredColorScheme(store.resolvedColorScheme)
+            .environment(\.locale, store.activeLocale)
+            .tint(store.activeAccent)
+            .onAppear { store.reconcileUniqueDriveAssignments(driveManager: driveManager) }
+            .onChange(of: driveManager.availableDrives) { _, _ in store.reconcileUniqueDriveAssignments(driveManager: driveManager) }
+            .onChange(of: store.selectedTaskID) { _, _ in store.reconcileUniqueDriveAssignments(driveManager: driveManager) }
+            .onChange(of: store.selectedCategory) { _, _ in store.reconcileUniqueDriveAssignments(driveManager: driveManager) }
+            .sheet(item: Bindable(driveManager).completionReport) { report in
+                KroutonMasteringReportSheet(report: report, accent: store.activeAccent) {
+                    driveManager.completionReport = nil
+                }
+            }
+            .modifier(KroutonStageImporterModifier(store: store))
+            .modifier(KroutonProjectSheetModifier(store: store, driveManager: driveManager))
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("krouton.toggleLeftSidebar"))) { _ in
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) { isLeftSidebarCollapsed.toggle() }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("krouton.toggleRightSidebar"))) { _ in
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) { isRightSidebarCollapsed.toggle() }
+            }
+    }
+
+    private var mainContentStack: some View {
         VStack(spacing: 0) {
             topProToolbar
             Divider()
             KroutonCrashRecoveryBannerView(store: store)
-
             GeometryReader { windowGeo in
-                let totalW = windowGeo.size.width
-                let minLeftW: CGFloat = 182
-                let maxLeftW: CGFloat = 340
-                let minCenterW: CGFloat = 345
-                let minRightW: CGFloat = 262
-                let maxRightW: CGFloat = 440
-                let splittersW: CGFloat = 22
-                let maxAllowedLeft = max(minLeftW, min(maxLeftW, totalW - max(minRightW, rightColumnLiveWidth) - minCenterW - splittersW))
-                let clampedLeft = min(max(minLeftW, leftColumnLiveWidth), maxAllowedLeft)
-                let maxAllowedRight = max(minRightW, min(maxRightW, totalW - clampedLeft - minCenterW - splittersW))
-                let clampedRight = min(max(minRightW, rightColumnLiveWidth), maxAllowedRight)
-
-                let centerLiveW = max(0, totalW - clampedLeft - clampedRight - 22)
-
-                HStack(spacing: 0) {
-                    KroutonLeftFormatChooserColumnView(store: store, driveManager: driveManager, isLeftSidebarUltraSkinny: isLeftSidebarUltraSkinny)
-                        .frame(width: clampedLeft)
-                        .frame(maxHeight: .infinity)
-                        .clipped()
-
-                    ZStack {
-                        Rectangle().fill(Color.primary.opacity(0.10)).frame(width: 1)
-                        Capsule().fill(Color.secondary.opacity(0.45)).frame(width: 3, height: 28)
-                    }
-                    .frame(width: 11)
-                    .frame(maxHeight: .infinity)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 1, coordinateSpace: .global)
-                            .onChanged { val in
-                                if leftSidebarDragStartWidth == nil { leftSidebarDragStartWidth = clampedLeft }
-                                let startW = leftSidebarDragStartWidth ?? clampedLeft
-                                let maxL = max(182, min(340, totalW - clampedRight - minCenterW - 22))
-                                let newW = min(max(182, startW + val.translation.width), maxL)
-                                var tx = Transaction(); tx.disablesAnimations = true
-                                withTransaction(tx) {
-                                    leftColumnLiveWidth = newW
-                                    if !isLeftSidebarCompact && newW < 258 { isLeftSidebarCompact = true }
-                                    else if isLeftSidebarCompact && newW > 272 { isLeftSidebarCompact = false }
-                                    if !isLeftSidebarUltraSkinny && newW < 215 { isLeftSidebarUltraSkinny = true }
-                                    else if isLeftSidebarUltraSkinny && newW > 228 { isLeftSidebarUltraSkinny = false }
-                                }
-                            }
-                            .onEnded { _ in
-                                leftColumnLiveWidth = clampedLeft
-                                leftSidebarDragStartWidth = nil
-                            }
-                    )
-
-                    centerAdaptableWorkspace
-                        .frame(width: centerLiveW)
-                        .frame(maxHeight: .infinity)
-                        .clipped()
-
-                    ZStack {
-                        Rectangle().fill(Color.primary.opacity(0.10)).frame(width: 1)
-                        Capsule().fill(Color.secondary.opacity(0.45)).frame(width: 3, height: 28)
-                    }
-                    .frame(width: 11)
-                    .frame(maxHeight: .infinity)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 1, coordinateSpace: .global)
-                            .onChanged { val in
-                                if rightSidebarDragStartWidth == nil { rightSidebarDragStartWidth = clampedRight }
-                                let startW = rightSidebarDragStartWidth ?? clampedRight
-                                let maxR = max(minRightW, min(440, totalW - clampedLeft - minCenterW - 22))
-                                let newW = min(max(minRightW, startW - val.translation.width), maxR)
-                                var tx = Transaction(); tx.disablesAnimations = true
-                                withTransaction(tx) {
-                                    rightColumnLiveWidth = newW
-                                    if !isRightQueueCompact && newW < 355 { isRightQueueCompact = true }
-                                    else if isRightQueueCompact && newW > 368 { isRightQueueCompact = false }
-                                }
-                            }
-                            .onEnded { _ in
-                                rightColumnLiveWidth = clampedRight
-                                rightSidebarDragStartWidth = nil
-                            }
-                    )
-
-                    KroutonDestinationRackColumnView(
-                        store: store,
-                        driveManager: driveManager,
-                        isRightQueueCompact: isRightQueueCompact,
-                        primarySelectedDrive: primarySelectedDrive
-                    )
-                        .frame(width: clampedRight)
-                        .frame(maxHeight: .infinity)
-                        .clipped()
-                }
-                .frame(width: totalW, alignment: .leading)
-                .coordinateSpace(name: "KroutonSplitSpace")
-                .overlay {
-                    KroutonGuidedTutorialOverlayView(
-                        store: store,
-                        driveManager: driveManager,
-                        leftWidth: clampedLeft,
-                        centerWidth: centerLiveW,
-                        rightWidth: clampedRight,
-                        totalSize: windowGeo.size
-                    )
-                }
-                .onAppear {
-                    isLeftSidebarCompact = clampedLeft < 265
-                    isLeftSidebarUltraSkinny = clampedLeft < 215
-                    isRightQueueCompact = clampedRight < 355
-                    isCenterWorkspaceUltraCompact = centerLiveW < 500
-                    isCenterWorkspaceNarrow = centerLiveW < 520
-                }
-                .onChange(of: clampedRight) { _, newRightW in
-                    var tx = Transaction(); tx.disablesAnimations = true
-                    withTransaction(tx) {
-                        if !isRightQueueCompact && newRightW < 355 { isRightQueueCompact = true }
-                        else if isRightQueueCompact && newRightW > 368 { isRightQueueCompact = false }
-                    }
-                }
-                .onChange(of: clampedLeft) { _, newLeftW in
-                    var tx = Transaction(); tx.disablesAnimations = true
-                    withTransaction(tx) {
-                        if !isLeftSidebarCompact && newLeftW < 258 { isLeftSidebarCompact = true }
-                        else if isLeftSidebarCompact && newLeftW > 272 { isLeftSidebarCompact = false }
-                        if !isLeftSidebarUltraSkinny && newLeftW < 215 { isLeftSidebarUltraSkinny = true }
-                        else if isLeftSidebarUltraSkinny && newLeftW > 228 { isLeftSidebarUltraSkinny = false }
-                    }
-                }
-                .onChange(of: centerLiveW) { _, newCenterW in
-                    // Hysteresis deadband (705pt <-> 735pt) for Center Workspace 1-Column / 2-Column & Hero Schematic box!
-                    var tx = Transaction()
-                    tx.disablesAnimations = true
-                    withTransaction(tx) {
-                        if !isCenterWorkspaceNarrow && newCenterW < 510 {
-                            isCenterWorkspaceNarrow = true
-                        } else if isCenterWorkspaceNarrow && newCenterW > 535 {
-                            isCenterWorkspaceNarrow = false
-                        }
-                        if !isCenterWorkspaceUltraCompact && newCenterW < 495 {
-                            isCenterWorkspaceUltraCompact = true
-                        } else if isCenterWorkspaceUltraCompact && newCenterW > 515 {
-                            isCenterWorkspaceUltraCompact = false
-                        }
-                    }
-                }
+                splitColumnsLayout(windowSize: windowGeo.size)
             }
         }
-        .frame(minWidth: 1180, idealWidth: 1380, minHeight: 720, idealHeight: 880)
-        .background(store.enableSecondaryAccentUITints ? store.activeAccent.opacity(0.11) : Color.clear)
-        .background(Color.kroutonWindowSurface)
-        .preferredColorScheme(store.resolvedColorScheme)
-        .environment(\.locale, store.activeLocale)
-        .tint(store.activeAccent)
-        .onAppear { store.reconcileUniqueDriveAssignments(driveManager: driveManager) }
-        .onChange(of: driveManager.availableDrives) { _, _ in store.reconcileUniqueDriveAssignments(driveManager: driveManager) }
-        .onChange(of: store.selectedTaskID) { _, _ in store.reconcileUniqueDriveAssignments(driveManager: driveManager) }
-        .onChange(of: store.selectedCategory) { _, _ in store.reconcileUniqueDriveAssignments(driveManager: driveManager) }
-        .sheet(item: Bindable(driveManager).completionReport) { report in
-            KroutonMasteringReportSheet(report: report, accent: store.activeAccent) {
-                driveManager.completionReport = nil
-            }
-        }
-        .modifier(KroutonStageImporterModifier(store: store))
-        .modifier(KroutonProjectSheetModifier(store: store, driveManager: driveManager))
     }
 
     var topProToolbar: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 14) {
+            Button {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                    isLeftSidebarCollapsed.toggle()
+                }
+            } label: {
+                Image(systemName: "sidebar.left")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(isLeftSidebarCollapsed ? store.activeAccent : .secondary)
+                    .padding(6)
+                    .background(Color.primary.opacity(isLeftSidebarCollapsed ? 0.12 : 0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .buttonStyle(.plain)
+            .help("Toggle Left Format Chooser Sidebar (^⌘S)")
+
             HStack(spacing: 9) {
-                Image(systemName: "opticaldisc.fill")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(store.activeAccent)
+                KroutonBrandLogoView(size: 26, tintColor: store.enableSecondaryAccentUITints ? store.activeAccent : nil)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(KroutonL10n.tr("KROUTON"))
                         .font(.system(size: 13, weight: .heavy, design: .rounded))
@@ -240,41 +118,7 @@ struct KroutonMainWorkspaceView: View {
             Spacer()
 
             HStack(spacing: 10) {
-                Menu {
-                    Button {
-                        KroutonWindowManager.shared.openUserManualWindow()
-                    } label: {
-                        Label(KroutonL10n.tr("Krouton User Manual & Search..."), systemImage: "book.closed.fill")
-                    }
-                    Divider()
-                    ForEach(KroutonGuidedTutorialID.allCases) { tour in
-                        Button {
-                            KroutonGuidedTutorialController.shared.start(tour, store: store, driveManager: driveManager)
-                        } label: {
-                            Label(tour.title, systemImage: tour.sfSymbol)
-                        }
-                    }
-                    if KroutonGuidedTutorialController.shared.isRunning {
-                        Divider()
-                        Button(role: .destructive) {
-                            KroutonGuidedTutorialController.shared.stop()
-                        } label: {
-                            Label(KroutonL10n.tr("Exit Active Guided Tutorial"), systemImage: "xmark.circle")
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "questionmark.circle.fill")
-                        Text(KroutonL10n.tr("Manual & Tours"))
-                    }
-                    .font(.system(size: 12, weight: .semibold))
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 6)
-                    .background(Color.primary.opacity(0.08))
-                    .clipShape(Capsule())
-                }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
+                toolbarManualAndToursMenu
 
                 Button {
                     KroutonWindowManager.shared.openSettingsWindow(store: store, driveManager: driveManager)
@@ -291,6 +135,32 @@ struct KroutonMainWorkspaceView: View {
                     .overlay(Capsule().stroke(store.uiSecondaryAccent.opacity(0.5), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
+
+                Button {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                        isRightSidebarCollapsed.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "sidebar.right")
+                        if isRightSidebarCollapsed && !driveManager.availableDrives.isEmpty {
+                            Text("\(driveManager.availableDrives.count)")
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
+                                .background(store.activeAccent)
+                                .foregroundStyle(store.activeOnAccentText)
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(isRightSidebarCollapsed ? store.activeAccent : .secondary)
+                    .padding(6)
+                    .background(Color.primary.opacity(isRightSidebarCollapsed ? 0.12 : 0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+                .help("Toggle Right Destination Queue Sidebar (⌥⌘S)")
             }
         }
         .padding(.horizontal, 16)
@@ -299,7 +169,44 @@ struct KroutonMainWorkspaceView: View {
         .background(.ultraThinMaterial)
     }
 
-    // MARK: - CENTER COLUMN: ADAPTABLE WORKSPACE + INTEGRATED CAPACITY BAR (Global graph removed)
+    private var toolbarManualAndToursMenu: some View {
+        Menu {
+            Button {
+                KroutonWindowManager.shared.openUserManualWindow()
+            } label: {
+                Label(KroutonL10n.tr("Krouton User Manual & Search..."), systemImage: "book.closed.fill")
+            }
+            Divider()
+            ForEach(KroutonGuidedTutorialID.allCases) { tour in
+                Button {
+                    KroutonGuidedTutorialController.shared.start(tour, store: store, driveManager: driveManager)
+                } label: {
+                    Label(tour.title, systemImage: tour.sfSymbol)
+                }
+            }
+            if KroutonGuidedTutorialController.shared.isRunning {
+                Divider()
+                Button(role: .destructive) {
+                    KroutonGuidedTutorialController.shared.stop()
+                } label: {
+                    Label(KroutonL10n.tr("Exit Active Guided Tutorial"), systemImage: "xmark.circle")
+                }
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "questionmark.circle.fill")
+                Text(KroutonL10n.tr("Manual & Tours"))
+            }
+            .font(.system(size: 12, weight: .semibold))
+            .padding(.horizontal, 11)
+            .padding(.vertical, 6)
+            .background(Color.primary.opacity(0.08))
+            .clipShape(Capsule())
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
+
     var centerAdaptableWorkspace: some View {
         VStack(alignment: .leading, spacing: 12) {
             Group {
@@ -313,7 +220,7 @@ struct KroutonMainWorkspaceView: View {
                         onPromptToAddFiles: promptToAddFiles,
                         onHandleFinderDrop: handleFinderDrop(providers:)
                     )
-                        .offset(x: sin(dropRejectShakePhase * .pi * 4) * 8)
+                    .offset(x: sin(dropRejectShakePhase * .pi * 4) * 8)
                 case .depot:
                     KroutonDepotWorkspaceView(store: store, isCenterWorkspaceNarrow: isCenterWorkspaceNarrow)
                 case .copy:
@@ -328,7 +235,6 @@ struct KroutonMainWorkspaceView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
-            // Integrated Central Workspace Capacity Allocation Bar (Hidden in Label Designer mode)
             if store.selectedCategory != .label {
                 KroutonCentralWorkspaceCapacityBarView(store: store, activeDiscCapacityBytes: activeDiscCapacityBytes, primarySelectedDrive: primarySelectedDrive)
             }

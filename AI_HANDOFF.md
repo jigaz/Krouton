@@ -888,3 +888,15 @@ This file tracks proposed and completed changes across AI coding sessions (Claud
   - `Sources/KroutonVerify/VerifyHarness+MasteringDomainSuites.swift` (M)
   - `Sources/KroutonVerify/VerifyHarness+PeerAgentSynthesisSuites.swift` (M)
   - `Sources/Persistence/SessionStore.swift` (M)
+
+- **2026-11-18 05:34 [commit 79de2dc]:** Add collapsible left/right sidebars, Krouton SVG & vector brand logo, 72% auto-framed crossfade canvas with rubber-band rail dragging, and ±1s/2s/3s/10s responsive audition pills 
+  - `Resources/KroutonLogo.svg` (A)
+  - `Sources/AudioKit/SpliceOverlapMath.swift` (M)
+  - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceCanvasArea.swift` (M)
+  - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceControlsBar.swift` (M)
+  - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceDragController.swift` (M)
+  - `Sources/KroutonApp/Features/AudioCD/Splice/SpliceWaveformCanvas.swift` (M)
+  - `Sources/KroutonApp/Shell/App/KroutonMenuCommands+EditAndView.swift` (M)
+  - `Sources/KroutonApp/Shell/DesignSystem/KroutonBrandLogoView.swift` (A)
+  - `Sources/KroutonApp/Shell/Workspace/KroutonMainWorkspaceView+DropAndSheets.swift` (M)
+  - `Sources/KroutonApp/Shell/Workspace/KroutonMainWorkspaceView.swift` (M)

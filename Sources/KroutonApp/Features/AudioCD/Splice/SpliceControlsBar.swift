@@ -128,17 +128,29 @@ struct SpliceControlsBar: View {
             .buttonStyle(KroutonPillButtonStyle(isOn: false))
             .help("Reset transition to factory defaults and hide all 1/4 and 3/4 curve handles")
 
-            // Compact Pre/Post-Roll Lead/Lag Pill (±3s, ±5s, ±10s) right next to Preview
-            KroutonPillPicker(
-                options: [
-                    .init(value: 3.0, title: "±3s"),
-                    .init(value: 5.0, title: "±5s"),
-                    .init(value: 10.0, title: "±10s")
-                ],
-                selection: auditioner.leadLagSeconds,
-                onSelect: { auditioner.leadLagSeconds = $0 }
-            )
-            .help("Pre-roll lead and post-roll lag time around the transition when listening to Preview")
+            // Responsive Pre/Post-Roll Lead/Lag Pill (±1s, ±2s, ±3s, ±10s; auto-hides ±10s when space is tight)
+            ViewThatFits(in: .horizontal) {
+                KroutonPillPicker(
+                    options: [
+                        .init(value: 1.0, title: "±1s"),
+                        .init(value: 2.0, title: "±2s"),
+                        .init(value: 3.0, title: "±3s"),
+                        .init(value: 10.0, title: "±10s")
+                    ],
+                    selection: auditioner.leadLagSeconds,
+                    onSelect: { auditioner.leadLagSeconds = $0 }
+                )
+                KroutonPillPicker(
+                    options: [
+                        .init(value: 1.0, title: "±1s"),
+                        .init(value: 2.0, title: "±2s"),
+                        .init(value: 3.0, title: "±3s")
+                    ],
+                    selection: auditioner.leadLagSeconds == 10.0 ? 3.0 : auditioner.leadLagSeconds,
+                    onSelect: { auditioner.leadLagSeconds = $0 }
+                )
+            }
+            .help("Pre-roll lead and post-roll lag time around the transition when listening to Preview (±1s, ±2s, ±3s, ±10s)")
 
             Button(action: onAudition) {
                 HStack(spacing: 4) {

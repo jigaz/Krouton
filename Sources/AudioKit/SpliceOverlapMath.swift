@@ -94,15 +94,17 @@ public struct SpliceCanvasGeometry: Equatable, Sendable {
     public let fadeOutQ3Handle: CGPoint?
     public let fadeInQ1Handle: CGPoint?
     public let fadeInMidHandle: CGPoint?
+    public let rubberBandSpan: Double?
 
-    public init(size: CGSize, spec: KroutonTrackTransitionSpec, horizontalZoom: Double = 1.0) {
+    public init(size: CGSize, spec: KroutonTrackTransitionSpec, horizontalZoom: Double = 1.0, rubberBandSpan: Double? = nil) {
+        self.rubberBandSpan = rubberBandSpan
         let w = max(180, size.width), h = max(36, size.height)
         self.size = CGSize(width: w, height: h)
         let zoom = max(1.0, min(3.0, horizontalZoom))
         self.horizontalZoom = zoom
         let rawSpan = Self.baseTimelineSpanSeconds / zoom
-        let span = spec.isCrossfading ? max(rawSpan, spec.overlapSeconds * 1.25) : rawSpan
-        self.effectiveSpanSeconds = span
+        let baseSpan = rubberBandSpan ?? (spec.isCrossfading ? max(rawSpan, spec.overlapSeconds * 1.25) : rawSpan)
+        self.effectiveSpanSeconds = baseSpan
 
         if !spec.isCrossfading && spec.preGapSeconds <= 0.01 {
             let midX = w * 0.5
@@ -110,7 +112,16 @@ public struct SpliceCanvasGeometry: Equatable, Sendable {
             zoneX1 = midX
             index01X = midX
         } else if spec.isCrossfading {
-            let baseHalf = max(0.14, min(0.43, (spec.overlapSeconds / span) * 0.46))
+            let activeSpan = effectiveSpanSeconds
+            let half: Double
+            if rubberBandSpan != nil {
+                half = (spec.overlapSeconds / activeSpan) * 0.36
+            } else if zoom >= 2.0 {
+                half = 0.36
+            } else {
+                half = max(0.14, min(0.22, (spec.overlapSeconds / activeSpan) * 0.46))
+            }
+            let baseHalf = max(0.08, min(0.47, half))
             let baseLeft = 0.5 - baseHalf
             let baseRight = 0.5 + baseHalf
             let left = baseLeft + (spec.asymmetricUnlinked ? spec.fadeOutStartRatio * 0.22 : 0)

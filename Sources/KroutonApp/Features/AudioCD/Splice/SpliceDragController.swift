@@ -71,6 +71,7 @@ struct SpliceDragModifier: ViewModifier {
     @Binding var activeTarget: SpliceDragTarget?
     @Binding var hoveredHiddenMidTarget: SpliceDragTarget?
     let geometry: SpliceCanvasGeometry
+    @Binding var rubberBandSpan: Double?
     let onPreview: (KroutonTrackTransitionSpec) -> Void
     let onCommit: (_ old: KroutonTrackTransitionSpec, _ new: KroutonTrackTransitionSpec) -> Void
 
@@ -116,6 +117,9 @@ struct SpliceDragModifier: ViewModifier {
                 hoverPoint = value.location
                 if session == nil {
                     session = SpliceDragSession(start: value.startLocation, spec: spec, geometry: geometry)
+                    if let t = session?.target, (t == .fadeOutRail || t == .fadeInRail) {
+                        rubberBandSpan = max(0.75, spec.overlapSeconds)
+                    }
                     activeTarget = session?.target
                 }
                 guard var active = session else { return }
@@ -126,6 +130,9 @@ struct SpliceDragModifier: ViewModifier {
             .onEnded { _ in
                 if let finished = session, finished.startSpec != spec {
                     onCommit(finished.startSpec, spec)
+                }
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.68)) {
+                    rubberBandSpan = nil
                 }
                 session = nil
                 activeTarget = hovered

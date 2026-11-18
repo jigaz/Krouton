@@ -19,13 +19,15 @@ struct SpliceCanvasArea: View {
     @State private var hoverPoint: CGPoint?
     @State private var activeTarget: SpliceDragTarget?
     @State private var hoveredHiddenMidTarget: SpliceDragTarget?
+    @State private var rubberBandSpan: Double? = nil
 
     var body: some View {
         GeometryReader { proxy in
             let geometry = SpliceCanvasGeometry(
                 size: proxy.size,
                 spec: snapshot.spec,
-                horizontalZoom: snapshot.horizontalZoom
+                horizontalZoom: snapshot.horizontalZoom,
+                rubberBandSpan: rubberBandSpan
             )
             ZStack(alignment: .topLeading) {
                 SpliceWaveformCanvas(snapshot: snapshot, geometry: geometry, palette: palette)
@@ -52,6 +54,7 @@ struct SpliceCanvasArea: View {
                 activeTarget: $activeTarget,
                 hoveredHiddenMidTarget: $hoveredHiddenMidTarget,
                 geometry: geometry,
+                rubberBandSpan: $rubberBandSpan,
                 onPreview: onPreview
             ) { _, new in
                 onCommit(new)
@@ -104,6 +107,7 @@ private struct SpliceHandleOverlay: View {
         let zoneX0 = geometry.zoneX0
         let zoneX1 = geometry.zoneX1
         let index01X = geometry.index01X
+        let isRubberBanding = (geometry.rubberBandSpan != nil)
 
         ZStack(alignment: .topLeading) {
             HStack(spacing: 5) {
@@ -174,6 +178,23 @@ private struct SpliceHandleOverlay: View {
                     .position(x: zoneX0, y: topY + 13)
                 railBadge(number: 2, color: palette.incoming, seconds: spec.overlapSeconds)
                     .position(x: zoneX1, y: topY + 13)
+
+                // Track-colored Start (1) and End (2) Pull Handles for dragging rails
+                startEndPullHandle(color: palette.outgoing).position(x: zoneX0, y: topY + (h - topY) * 0.25)
+                startEndPullHandle(color: palette.incoming).position(x: zoneX1, y: topY + (h - topY) * 0.75)
+
+                if isRubberBanding {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.left.and.right")
+                        Text(String(format: "%.2fs", spec.overlapSeconds))
+                    }
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(Color.orange)
+                    .foregroundStyle(.black)
+                    .clipShape(Capsule())
+                    .position(x: geometry.centerHandle.x, y: topY + 16)
+                }
 
                 // Ghost Bezier Diamonds when hovering in the vicinity of any unspawned 1/4 or 3/4 handle
                 if hoveredHiddenMidTarget == .fadeOutMidHandle, geometry.fadeOutMidHandle == nil {
@@ -331,3 +352,12 @@ private struct SpliceHandleOverlay: View {
         return KroutonAudioEngine.formatFramesToMMSSFF(frames)
     }
 }
+
+    @ViewBuilder
+    private func startEndPullHandle(color: Color) -> some View {
+        Capsule()
+            .fill(color)
+            .frame(width: 8, height: 26)
+            .overlay(Capsule().stroke(Color.white, lineWidth: 1.5))
+            .shadow(color: .black.opacity(0.5), radius: 3)
+    }

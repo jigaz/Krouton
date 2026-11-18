@@ -124,7 +124,7 @@ private struct SpliceCanvasRenderer {
             grid.addLine(to: CGPoint(x: x, y: rulerHeight))
 
             if isInterior, abs(x - geometry.index01X) > 62 {
-                let seconds = (fraction - 0.5) * geometry.effectiveSpanSeconds
+                let seconds = (Double(x - (geometry.zoneX0 + geometry.zoneX1) * 0.5) * secondsPerPoint)
                 let label = Text(String(format: "%+.1fs", seconds))
                     .font(.system(size: 9, weight: .semibold, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.45))
