@@ -12,6 +12,8 @@ public struct CrossfadeRenderParams: Sendable, Equatable {
     public var fadeOutStart: Double
     public var fadeInEnd: Double
     public var fadeOutMidTrim: Double
+    public var fadeOutThreeQuarterTrim: Double
+    public var fadeInQuarterTrim: Double
     public var fadeInMidTrim: Double
     public var outgoingTrimLinear: Double
     public var incomingTrimLinear: Double
@@ -26,6 +28,8 @@ public struct CrossfadeRenderParams: Sendable, Equatable {
         fadeOutStart = spec.asymmetricUnlinked ? spec.fadeOutStartRatio : 0.0
         fadeInEnd = spec.asymmetricUnlinked ? spec.fadeInEndRatio : 1.0
         fadeOutMidTrim = spec.fadeOutMidTrim ?? 0.0
+        fadeOutThreeQuarterTrim = spec.fadeOutThreeQuarterTrim ?? 0.0
+        fadeInQuarterTrim = spec.fadeInQuarterTrim ?? 0.0
         fadeInMidTrim = spec.fadeInMidTrim ?? 0.0
         outgoingTrimLinear = pow(10.0, spec.outgoingTrimDB / 20.0)
         incomingTrimLinear = pow(10.0, spec.incomingTrimDB / 20.0)
@@ -36,15 +40,29 @@ public struct CrossfadeRenderParams: Sendable, Equatable {
         let outT = t <= fadeOutStart ? 0.0 : min(1.0, (t - fadeOutStart) / max(0.05, 1.0 - fadeOutStart))
         let inT = t >= fadeInEnd ? 1.0 : max(0.0, t / max(0.05, fadeInEnd))
         return (
-            shape(fadeOutCurve.gainOut(at: outT), t: outT, mid: fadeOutMidTrim) * outgoingTrimLinear,
-            shape(fadeInCurve.gainIn(at: inT), t: inT, mid: fadeInMidTrim) * incomingTrimLinear
+            shapeOut(fadeOutCurve.gainOut(at: outT), t: outT) * outgoingTrimLinear,
+            shapeIn(fadeInCurve.gainIn(at: inT), t: inT) * incomingTrimLinear
         )
     }
 
-    private func shape(_ base: Double, t: Double, mid: Double) -> Double {
+    private func shapeOut(_ base: Double, t: Double) -> Double {
         var shaped = pow(max(0.0, min(1.0, base)), shapeExponent)
-        if mid != 0.0 {
-            shaped = max(0.0, min(1.0, shaped + mid * 4.0 * t * (1.0 - t)))
+        if fadeOutMidTrim != 0.0 {
+            shaped = max(0.0, min(1.0, shaped + fadeOutMidTrim * 4.0 * t * (1.0 - t)))
+        }
+        if fadeOutThreeQuarterTrim != 0.0 {
+            shaped = max(0.0, min(1.0, shaped + fadeOutThreeQuarterTrim * 6.75 * t * t * (1.0 - t)))
+        }
+        return max(0.0, shaped)
+    }
+
+    private func shapeIn(_ base: Double, t: Double) -> Double {
+        var shaped = pow(max(0.0, min(1.0, base)), shapeExponent)
+        if fadeInQuarterTrim != 0.0 {
+            shaped = max(0.0, min(1.0, shaped + fadeInQuarterTrim * 6.75 * t * (1.0 - t) * (1.0 - t)))
+        }
+        if fadeInMidTrim != 0.0 {
+            shaped = max(0.0, min(1.0, shaped + fadeInMidTrim * 4.0 * t * (1.0 - t)))
         }
         return max(0.0, shaped)
     }

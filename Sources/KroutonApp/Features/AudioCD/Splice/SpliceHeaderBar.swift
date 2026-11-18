@@ -6,6 +6,7 @@ struct SpliceHeaderBar: View {
     let totalTransitions: Int
     let snapshot: SpliceCanvasSnapshot
     let peakReadout: String
+    var bpmReadout: String? = nil
     let activeSlot: ABComparison.Slot
     let primaryColor: Color
     let isFloatingWindow: Bool
@@ -21,7 +22,8 @@ struct SpliceHeaderBar: View {
     private var statusSummary: String {
         switch snapshot.mode {
         case .crossfade:
-            return String(format: "Overlap: %.2fs (%df) • %@", spec.overlapSeconds, spec.overlapRedBookFrames, peakReadout)
+            let bpmSuffix = bpmReadout.map { " • \($0)" } ?? ""
+            return String(format: "Overlap: %.2fs (%df) • %@%@", spec.overlapSeconds, spec.overlapRedBookFrames, peakReadout, bpmSuffix)
         case .gap:
             return String(format: "INDEX 00: %.2fs (%df)", spec.preGapSeconds, spec.preGapRedBookFrames)
         case .gapless:
@@ -80,7 +82,7 @@ struct SpliceHeaderBar: View {
                     montageState.horizontalZoom = montageState.horizontalZoom < 2.0 ? 3.0 : 1.0
                 }
             }
-            .help("Toggle between standard transition view and zoomed-out 34s concert crossfade view")
+            .help("Toggle between 5s precision crossfade view and zoomed-out 15s extended view")
 
             Button(action: onAddSubIndex) {
                 HStack(spacing: 3) {

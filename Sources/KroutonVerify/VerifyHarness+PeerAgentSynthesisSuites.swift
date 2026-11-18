@@ -187,6 +187,24 @@ extension KroutonTestHarness {
             mailbox.publish(dragged)
             h.check(mailbox.exchange(lastSeen: 1, playheadFrame: 128)?.params.overlapFrames == 44_100 && mailbox.playheadFrame == 128,
                     "MainActor slider update must reach the next render exchange without blocking and report playheadFrame")
+            var fourPointSpec = KroutonTrackTransitionSpec(
+                overlapSeconds: 2.5,
+                fadeOutMidTrim: 0.15,
+                fadeOutThreeQuarterTrim: -0.20,
+                fadeInQuarterTrim: -0.15,
+                fadeInMidTrim: 0.22
+            )
+            let geom5s = SpliceCanvasGeometry(size: CGSize(width: 800, height: 180), spec: fourPointSpec, horizontalZoom: 3.0)
+            h.check(abs(geom5s.effectiveSpanSeconds - 5.0) < 1e-6, "Crossfade 3.0x default zoom must show an exact 5.0-second total viewport")
+            h.check(geom5s.fadeOutMidHandle != nil && geom5s.fadeOutQ3Handle != nil && geom5s.fadeInQ1Handle != nil && geom5s.fadeInMidHandle != nil,
+                    "All 4 independent quarter-point Bezier diamond handles (1/4 & 3/4 on Fade-Out and Fade-In) must spawn when trims are active")
+            fourPointSpec.fadeOutMidTrim = nil
+            fourPointSpec.fadeOutThreeQuarterTrim = nil
+            fourPointSpec.fadeInQuarterTrim = nil
+            fourPointSpec.fadeInMidTrim = nil
+            let resetGeom = SpliceCanvasGeometry(size: CGSize(width: 800, height: 180), spec: fourPointSpec, horizontalZoom: 3.0)
+            h.check(resetGeom.fadeOutMidHandle == nil && resetGeom.fadeOutQ3Handle == nil && resetGeom.fadeInQ1Handle == nil && resetGeom.fadeInMidHandle == nil,
+                    "Resetting quarter-point trims to nil must hide all 4 quarter-point handles")
         }
     }
 }

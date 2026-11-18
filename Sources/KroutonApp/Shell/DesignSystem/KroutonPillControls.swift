@@ -8,7 +8,6 @@ import SwiftUI
 // in padding and font size. These three pieces replace all of them and give every
 // workspace the same on/off look.
 //
-// Not compiled here (no Swift toolchain in my sandbox).
 
 // MARK: - KroutonPillControls
 

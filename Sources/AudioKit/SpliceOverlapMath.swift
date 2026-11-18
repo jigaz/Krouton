@@ -72,7 +72,7 @@ public struct SpliceSubIndexDescriptor: Identifiable, Equatable, Sendable {
 }
 
 public struct SpliceCanvasGeometry: Equatable, Sendable {
-    static let baseTimelineSpanSeconds: Double = 34.0
+    static let baseTimelineSpanSeconds: Double = 15.0
     public static let rulerHeight: CGFloat = 24
     static let handleSlop: CGFloat = 10
 
@@ -87,8 +87,12 @@ public struct SpliceCanvasGeometry: Equatable, Sendable {
     public let subIndexDescriptors: [SpliceSubIndexDescriptor]
     public let centerHandle: CGPoint
     public let fadeOutMidAnchor: CGPoint
+    public let fadeOutQ3Anchor: CGPoint
+    public let fadeInQ1Anchor: CGPoint
     public let fadeInMidAnchor: CGPoint
     public let fadeOutMidHandle: CGPoint?
+    public let fadeOutQ3Handle: CGPoint?
+    public let fadeInQ1Handle: CGPoint?
     public let fadeInMidHandle: CGPoint?
 
     public init(size: CGSize, spec: KroutonTrackTransitionSpec, horizontalZoom: Double = 1.0) {
@@ -96,7 +100,8 @@ public struct SpliceCanvasGeometry: Equatable, Sendable {
         self.size = CGSize(width: w, height: h)
         let zoom = max(1.0, min(3.0, horizontalZoom))
         self.horizontalZoom = zoom
-        let span = Self.baseTimelineSpanSeconds / zoom
+        let rawSpan = Self.baseTimelineSpanSeconds / zoom
+        let span = spec.isCrossfading ? max(rawSpan, spec.overlapSeconds * 1.25) : rawSpan
         self.effectiveSpanSeconds = span
 
         if !spec.isCrossfading && spec.preGapSeconds <= 0.01 {
@@ -105,7 +110,7 @@ public struct SpliceCanvasGeometry: Equatable, Sendable {
             zoneX1 = midX
             index01X = midX
         } else if spec.isCrossfading {
-            let baseHalf = max(0.06, min(0.42, (spec.overlapSeconds / span) * 0.44))
+            let baseHalf = max(0.14, min(0.43, (spec.overlapSeconds / span) * 0.46))
             let baseLeft = 0.5 - baseHalf
             let baseRight = 0.5 + baseHalf
             let left = baseLeft + (spec.asymmetricUnlinked ? spec.fadeOutStartRatio * 0.22 : 0)
@@ -131,12 +136,18 @@ public struct SpliceCanvasGeometry: Equatable, Sendable {
         let midGain = 0.5 * (spec.effectiveGainOut(at: 0.5) + spec.effectiveGainIn(at: 0.5))
         centerHandle = CGPoint(x: zoneX0 + zoneW * 0.5, y: h * CGFloat(1 - min(0.90, max(0.12, midGain))))
 
-        let outAnchorPoint = CGPoint(x: zoneX0 + zoneW * 0.25, y: yForGain(spec.effectiveGainOut(at: 0.25)))
-        let inAnchorPoint  = CGPoint(x: zoneX0 + zoneW * 0.75, y: yForGain(spec.effectiveGainIn(at: 0.75)))
-        fadeOutMidAnchor = outAnchorPoint
-        fadeInMidAnchor  = inAnchorPoint
-        fadeOutMidHandle = spec.fadeOutMidTrim != nil ? outAnchorPoint : nil
-        fadeInMidHandle  = spec.fadeInMidTrim != nil ? inAnchorPoint : nil
+        let outQ1Point = CGPoint(x: zoneX0 + zoneW * 0.25, y: yForGain(spec.effectiveGainOut(at: 0.25)))
+        let outQ3Point = CGPoint(x: zoneX0 + zoneW * 0.75, y: yForGain(spec.effectiveGainOut(at: 0.75)))
+        let inQ1Point  = CGPoint(x: zoneX0 + zoneW * 0.25, y: yForGain(spec.effectiveGainIn(at: 0.25)))
+        let inQ3Point  = CGPoint(x: zoneX0 + zoneW * 0.75, y: yForGain(spec.effectiveGainIn(at: 0.75)))
+        fadeOutMidAnchor = outQ1Point
+        fadeOutQ3Anchor  = outQ3Point
+        fadeInQ1Anchor   = inQ1Point
+        fadeInMidAnchor  = inQ3Point
+        fadeOutMidHandle = spec.fadeOutMidTrim != nil ? outQ1Point : nil
+        fadeOutQ3Handle  = spec.fadeOutThreeQuarterTrim != nil ? outQ3Point : nil
+        fadeInQ1Handle   = spec.fadeInQuarterTrim != nil ? inQ1Point : nil
+        fadeInMidHandle  = spec.fadeInMidTrim != nil ? inQ3Point : nil
 
         let rawXs = spec.subIndexRatios.map { ratio in
             w * CGFloat(max(0.05, min(0.95, ratio)))
@@ -180,11 +191,17 @@ public struct SpliceCanvasGeometry: Equatable, Sendable {
             }
             if abs(p.x - index01X) <= Self.handleSlop * 1.8 { return .indexFlag }
         }
-        if let outH = fadeOutMidHandle, hypot(p.x - outH.x, p.y - outH.y) <= Self.handleSlop * 1.4 {
-            return .fadeOutMidHandle
-        }
-        if let inH = fadeInMidHandle, hypot(p.x - inH.x, p.y - inH.y) <= Self.handleSlop * 1.4 {
-            return .fadeInMidHandle
+        let activeHandles: [(CGPoint?, SpliceDragTarget)] = [
+            (fadeOutMidHandle, .fadeOutMidHandle),
+            (fadeOutQ3Handle, .fadeOutQ3Handle),
+            (fadeInQ1Handle, .fadeInQ1Handle),
+            (fadeInMidHandle, .fadeInMidHandle)
+        ]
+        if let nearest = activeHandles
+            .compactMap({ pt, target in pt.map { (hypot(p.x - $0.x, p.y - $0.y), target) } })
+            .filter({ $0.0 <= Self.handleSlop * 1.45 })
+            .min(by: { $0.0 < $1.0 }) {
+            return nearest.1
         }
         let d0 = abs(p.x - zoneX0), d1 = abs(p.x - zoneX1)
         if min(d0, d1) <= Self.handleSlop { return d0 <= d1 ? .fadeOutRail : .fadeInRail }
@@ -192,19 +209,21 @@ public struct SpliceCanvasGeometry: Equatable, Sendable {
         return nil
     }
 
-    /// Checks whether a click or hover point falls in the hidden vicinity (<= 18 pt) of an unspawned mid-curve handle.
+    /// Checks whether a click or hover point falls in the hidden vicinity (<= 18 pt) of any of the 4 unspawned quarter-point curve handles.
     public func hitTestHiddenMidCurveVicinity(_ p: CGPoint) -> SpliceDragTarget? {
         guard p.y >= Self.rulerHeight, zoneX1 - zoneX0 > 32 else { return nil }
         let radius: CGFloat = 18.0
-        let dOut = hypot(p.x - fadeOutMidAnchor.x, p.y - fadeOutMidAnchor.y)
-        let dIn  = hypot(p.x - fadeInMidAnchor.x, p.y - fadeInMidAnchor.y)
-        if fadeOutMidHandle == nil && dOut <= radius && dOut <= dIn {
-            return .fadeOutMidHandle
-        }
-        if fadeInMidHandle == nil && dIn <= radius {
-            return .fadeInMidHandle
-        }
-        return nil
+        let candidates: [( Bool, CGPoint, SpliceDragTarget )] = [
+            (fadeOutMidHandle == nil, fadeOutMidAnchor, .fadeOutMidHandle),
+            (fadeOutQ3Handle == nil,  fadeOutQ3Anchor,  .fadeOutQ3Handle),
+            (fadeInQ1Handle == nil,   fadeInQ1Anchor,   .fadeInQ1Handle),
+            (fadeInMidHandle == nil,  fadeInMidAnchor,  .fadeInMidHandle)
+        ]
+        return candidates
+            .filter { $0.0 }
+            .map { (hypot(p.x - $0.1.x, p.y - $0.1.y), $0.2) }
+            .filter { $0.0 <= radius }
+            .min(by: { $0.0 < $1.0 })?.1
     }
 }
 
@@ -214,6 +233,8 @@ public enum SpliceDragTarget: Equatable, Sendable {
     case fadeOutRail
     case fadeInRail
     case fadeOutMidHandle
+    case fadeOutQ3Handle
+    case fadeInQ1Handle
     case fadeInMidHandle
     case curveBody
 }
@@ -239,7 +260,7 @@ public struct SpliceDragSession: Equatable, Sendable {
             grabOffsetX = start.x - sx
         case .fadeOutRail: grabOffsetX = start.x - geometry.zoneX0
         case .fadeInRail: grabOffsetX = start.x - geometry.zoneX1
-        case .fadeOutMidHandle, .fadeInMidHandle, .curveBody: grabOffsetX = 0
+        case .fadeOutMidHandle, .fadeOutQ3Handle, .fadeInQ1Handle, .fadeInMidHandle, .curveBody: grabOffsetX = 0
         }
     }
 
@@ -290,6 +311,18 @@ public struct SpliceDragSession: Equatable, Sendable {
             let startTrim = startSpec.fadeOutMidTrim ?? 0.0
             let delta = -Double(translation.height / max(40, h - SpliceCanvasGeometry.rulerHeight)) * 1.35 * scale
             spec.fadeOutMidTrim = clamp(startTrim + delta, -0.45, 0.45)
+
+        case .fadeOutQ3Handle:
+            guard startSpec.isCrossfading else { return startSpec }
+            let startTrim = startSpec.fadeOutThreeQuarterTrim ?? 0.0
+            let delta = -Double(translation.height / max(40, h - SpliceCanvasGeometry.rulerHeight)) * 1.35 * scale
+            spec.fadeOutThreeQuarterTrim = clamp(startTrim + delta, -0.45, 0.45)
+
+        case .fadeInQ1Handle:
+            guard startSpec.isCrossfading else { return startSpec }
+            let startTrim = startSpec.fadeInQuarterTrim ?? 0.0
+            let delta = -Double(translation.height / max(40, h - SpliceCanvasGeometry.rulerHeight)) * 1.35 * scale
+            spec.fadeInQuarterTrim = clamp(startTrim + delta, -0.45, 0.45)
 
         case .fadeInMidHandle:
             guard startSpec.isCrossfading else { return startSpec }

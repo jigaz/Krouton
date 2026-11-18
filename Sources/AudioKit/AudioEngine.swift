@@ -202,7 +202,13 @@ public struct KroutonTrackTransitionSpec: Identifiable, Hashable, Codable, Senda
     var spectralTransientTint: Bool
     var gainMatchLUFS: Bool
     public var subIndexRatios: [Double]
+    /// 1/4-point (t = 0.25) handle trim on the Fade-Out curve (-0.45 ... +0.45)
     public var fadeOutMidTrim: Double?
+    /// 3/4-point (t = 0.75) handle trim on the Fade-Out curve (-0.45 ... +0.45)
+    public var fadeOutThreeQuarterTrim: Double?
+    /// 1/4-point (t = 0.25) handle trim on the Fade-In curve (-0.45 ... +0.45)
+    public var fadeInQuarterTrim: Double?
+    /// 3/4-point (t = 0.75) handle trim on the Fade-In curve (-0.45 ... +0.45)
     public var fadeInMidTrim: Double?
 
     public init(
@@ -222,6 +228,8 @@ public struct KroutonTrackTransitionSpec: Identifiable, Hashable, Codable, Senda
         gainMatchLUFS: Bool = false,
         subIndexRatios: [Double] = [],
         fadeOutMidTrim: Double? = nil,
+        fadeOutThreeQuarterTrim: Double? = nil,
+        fadeInQuarterTrim: Double? = nil,
         fadeInMidTrim: Double? = nil
     ) {
         self.id = id
@@ -240,6 +248,8 @@ public struct KroutonTrackTransitionSpec: Identifiable, Hashable, Codable, Senda
         self.gainMatchLUFS = gainMatchLUFS
         self.subIndexRatios = subIndexRatios.map { max(0.05, min(0.95, $0)) }.sorted()
         self.fadeOutMidTrim = fadeOutMidTrim.map { max(-0.45, min(0.45, $0)) }
+        self.fadeOutThreeQuarterTrim = fadeOutThreeQuarterTrim.map { max(-0.45, min(0.45, $0)) }
+        self.fadeInQuarterTrim = fadeInQuarterTrim.map { max(-0.45, min(0.45, $0)) }
         self.fadeInMidTrim = fadeInMidTrim.map { max(-0.45, min(0.45, $0)) }
     }
 
@@ -249,9 +259,13 @@ public struct KroutonTrackTransitionSpec: Identifiable, Hashable, Codable, Senda
         let base = fadeOutCurve.gainOut(at: normT)
         let expPower = pow(2.0, -curveTension * 1.35)
         var shaped = pow(max(0.0, min(1.0, base)), expPower)
-        if let mid = fadeOutMidTrim {
+        if let q1 = fadeOutMidTrim {
             let bell = 4.0 * normT * (1.0 - normT)
-            shaped = max(0.0, min(1.0, shaped + mid * bell))
+            shaped = max(0.0, min(1.0, shaped + q1 * bell))
+        }
+        if let q3 = fadeOutThreeQuarterTrim {
+            let skewQ3 = 6.75 * normT * normT * (1.0 - normT)
+            shaped = max(0.0, min(1.0, shaped + q3 * skewQ3))
         }
         let trimLinear = pow(10.0, outgoingTrimDB / 20.0)
         return max(0.0, shaped * trimLinear)
@@ -263,9 +277,13 @@ public struct KroutonTrackTransitionSpec: Identifiable, Hashable, Codable, Senda
         let base = fadeInCurve.gainIn(at: normT)
         let expPower = pow(2.0, -curveTension * 1.35)
         var shaped = pow(max(0.0, min(1.0, base)), expPower)
-        if let mid = fadeInMidTrim {
+        if let q1 = fadeInQuarterTrim {
+            let skewQ1 = 6.75 * normT * (1.0 - normT) * (1.0 - normT)
+            shaped = max(0.0, min(1.0, shaped + q1 * skewQ1))
+        }
+        if let q3 = fadeInMidTrim {
             let bell = 4.0 * normT * (1.0 - normT)
-            shaped = max(0.0, min(1.0, shaped + mid * bell))
+            shaped = max(0.0, min(1.0, shaped + q3 * bell))
         }
         let trimLinear = pow(10.0, incomingTrimDB / 20.0)
         return max(0.0, shaped * trimLinear)

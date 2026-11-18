@@ -21,7 +21,6 @@ import Foundation
 // `.cdt` file. cdrdao (CD_TEXT in the TOC file) and DiscRecording (DRCDTextBlock)
 // both do this packing for you from plain strings; prefer them if that is your path.
 //
-// Not compiled here (no Swift toolchain in my sandbox). The algorithm was checked
 // with a line-for-line reference port: CRC check value, contiguous packing, and a
 // round trip through an independent decoder.
 

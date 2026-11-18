@@ -14,7 +14,6 @@ import OpticalCore
 // so nothing can drift out of sync, and the whole project is one Codable value
 // that can be snapshotted for undo and persistence.
 //
-// Pure Foundation. Not compiled here (no Swift toolchain in my sandbox); the
 // layout arithmetic was checked with a reference port.
 
 public struct AudioTrack: DiscBreakableItem, Identifiable, Equatable, Codable, Sendable {

@@ -12,7 +12,6 @@ import SwiftUI
 // The peak arrays were built once by AudioAnalysisService; drawing reads a few
 // values per bar and builds five paths.
 //
-// Not compiled here (no Swift toolchain in my sandbox).
 
 struct SpliceCanvasSnapshot: Equatable, Sendable {
     var spec: KroutonTrackTransitionSpec

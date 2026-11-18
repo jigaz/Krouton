@@ -191,7 +191,6 @@ struct KroutonRedBookAudioWorkspaceView: View {
                         .accessibilityLabel(KroutonL10n.tr(allTracksSelected ? "Deselect All Tracks" : "Select All Tracks"))
                         .help(KroutonL10n.tr(allTracksSelected ? "Deselect All Tracks" : "Select All Tracks"))
                         .frame(width: 20, alignment: .center)
-                        .help(allTracksSelected ? "Deselect All Tracks" : "Select All Tracks")
 
                         Text("#").frame(width: 42, alignment: .leading)
                         Text("Pause").frame(width: 68, alignment: .leading)

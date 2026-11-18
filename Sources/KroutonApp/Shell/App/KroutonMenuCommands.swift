@@ -5,7 +5,7 @@ import RescueKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - KroutonMenuCommands
+// MARK: - KroutonMenuCommands (Apple HIG Consolidated Top-Level Menus: Krouton, File, Edit, View, Format, Disc, Window, Help)
 
 extension Notification.Name {
     static let kroutonMenuScanTOC = Notification.Name("krouton.menu.scanTOC")
@@ -16,7 +16,7 @@ extension Notification.Name {
     static let kroutonMenuInspectVideoBitrate = Notification.Name("krouton.menu.inspectVideoBitrate")
 }
 
-/// Modular macOS Menu Bar Commands (`Krouton`, `File`, `Edit`, `View`, `Format`, `Copy & Rip`, `Disc`, `Window`, `Help`).
+/// Modular macOS Menu Bar Commands following Apple HIG (`Krouton`, `File`, `Edit`, `View`, `Format`, `Disc`, `Window`, `Help`).
 struct KroutonWorkspaceCommands: Commands {
     var wm: KroutonWindowManager
 
@@ -30,7 +30,6 @@ struct KroutonWorkspaceCommands: Commands {
         editMenuCommands
         viewMenuCommands
         formatMenuCommands
-        copyAndRipMenuCommands
         discMenuCommands
         windowAndHelpMenuCommands
     }
@@ -142,81 +141,22 @@ struct KroutonWorkspaceCommands: Commands {
 
             Divider()
 
-            Button(KroutonL10n.tr("Inspect Hybrid ISO/UDF LBA Layout")) {
-                if wm.store.selectedCategory != .burn || wm.store.activeFormatSpec().workspaceKind != .dataAndArchival {
-                    selectBurnFormat(.dataHybrid)
+            Menu(KroutonL10n.tr("Copy, Rip & Rescue Workflows")) {
+                Button(KroutonL10n.tr("Duplicate Disc / Fit-to-Disc DVD-9 Shrink")) {
+                    selectCopyTask(.duplicateDisc)
                 }
-                let plan = wm.store.planLiveHybridDataLayout()
-                let summary = "Volume: \(plan.volumeIdentifier) | PVD LBA: \(plan.pvdSectorLBA) | UDF Anchor LBA: \(plan.udfAnchorAVDPLBA) | Total Sectors: \(plan.totalSectorsLBA)"
-                KroutonOSDesktopBridge.copyTextToClipboard(summary)
-                DispatchQueue.main.async {
-                    NotificationCenter.default.post(name: .kroutonMenuInspectHybridLBA, object: nil)
+                .keyboardShortcut("k", modifiers: [.command, .shift])
+
+                Button(KroutonL10n.tr("Video Disc Extractor (Lossless MKV Remux)")) {
+                    selectCopyTask(.extractVideoDisc)
                 }
-            }
-            .keyboardShortcut("l", modifiers: [.command, .control])
+                .keyboardShortcut("v", modifiers: [.command, .shift])
 
-            Button(KroutonL10n.tr("Inspect Compiled Red Book CUE Sheet")) {
-                if wm.store.selectedCategory != .burn || (wm.store.selectedFormatID != .cdDA && wm.store.selectedFormatID != .cdExtra) {
-                    selectBurnFormat(.cdDA)
+                Button(KroutonL10n.tr("Optical Bad-Sector Rescue & Recovery")) {
+                    selectCopyTask(.duplicateDisc)
                 }
-                let cue = wm.store.compileLiveAudioCueSheet()
-                KroutonOSDesktopBridge.copyTextToClipboard(cue)
-                DispatchQueue.main.async {
-                    NotificationCenter.default.post(name: .kroutonMenuInspectAudioCue, object: nil)
-                }
+                .keyboardShortcut("d", modifiers: [.command, .option])
             }
-            .keyboardShortcut("u", modifiers: [.command, .control])
-
-            Button(KroutonL10n.tr("Inspect Video Bitrate Budget")) {
-                if wm.store.selectedCategory != .burn || wm.store.activeFormatSpec().workspaceKind != .videoAuthoring {
-                    selectBurnFormat(.dvdVideo)
-                }
-                DispatchQueue.main.async {
-                    NotificationCenter.default.post(name: .kroutonMenuInspectVideoBitrate, object: nil)
-                }
-            }
-            .keyboardShortcut("b", modifiers: [.command, .control])
-        }
-    }
-
-    @CommandsBuilder
-    var copyAndRipMenuCommands: some Commands {
-        CommandMenu(KroutonL10n.tr("Copy & Rip")) {
-            Button(KroutonL10n.tr("Scan Audio CD TOC & Lookup MusicBrainz")) {
-                selectCopyTask(.ripAudioCD)
-                NotificationCenter.default.post(name: .kroutonMenuScanTOC, object: nil)
-            }
-            .keyboardShortcut("r", modifiers: [.command, .option])
-
-            Button(KroutonL10n.tr("Rip Selected Audio CD Tracks")) {
-                selectCopyTask(.ripAudioCD)
-                NotificationCenter.default.post(name: .kroutonMenuRipSelected, object: nil)
-            }
-            .keyboardShortcut("r", modifiers: [.command, .shift])
-
-            Button(KroutonL10n.tr("CD Info & Metadata Tags...")) {
-                wm.store.selectedCategory = .copy
-                wm.store.selectedTaskID = KroutonCopyTaskID.ripAudioCD.rawValue
-                NotificationCenter.default.post(name: .kroutonMenuShowCDInfo, object: nil)
-            }
-            .keyboardShortcut("i", modifiers: .command)
-
-            Divider()
-
-            Button(KroutonL10n.tr("Duplicate Disc / Fit-to-Disc DVD-9 Shrink")) {
-                selectCopyTask(.duplicateDisc)
-            }
-            .keyboardShortcut("k", modifiers: [.command, .shift])
-
-            Button(KroutonL10n.tr("Video Disc Extractor (Lossless MKV Remux)")) {
-                selectCopyTask(.extractVideoDisc)
-            }
-            .keyboardShortcut("v", modifiers: [.command, .shift])
-
-            Button(KroutonL10n.tr("Optical Bad-Sector Rescue & Recovery")) {
-                selectCopyTask(.duplicateDisc)
-            }
-            .keyboardShortcut("d", modifiers: [.command, .option])
         }
     }
 
@@ -241,6 +181,27 @@ struct KroutonWorkspaceCommands: Commands {
             }
             .keyboardShortcut(".", modifiers: .command)
             .disabled(!wm.driveManager.isExecutingQueue)
+
+            Divider()
+
+            Button(KroutonL10n.tr("Scan Audio CD TOC & Lookup MusicBrainz")) {
+                selectCopyTask(.ripAudioCD)
+                NotificationCenter.default.post(name: .kroutonMenuScanTOC, object: nil)
+            }
+            .keyboardShortcut("r", modifiers: [.command, .option])
+
+            Button(KroutonL10n.tr("Rip Selected Audio CD Tracks")) {
+                selectCopyTask(.ripAudioCD)
+                NotificationCenter.default.post(name: .kroutonMenuRipSelected, object: nil)
+            }
+            .keyboardShortcut("r", modifiers: [.command, .shift])
+
+            Button(KroutonL10n.tr("CD Info & Metadata Tags...")) {
+                wm.store.selectedCategory = .copy
+                wm.store.selectedTaskID = KroutonCopyTaskID.ripAudioCD.rawValue
+                NotificationCenter.default.post(name: .kroutonMenuShowCDInfo, object: nil)
+            }
+            .keyboardShortcut("i", modifiers: .command)
 
             Divider()
 

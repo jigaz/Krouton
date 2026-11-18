@@ -229,7 +229,7 @@ extension KroutonStateStore {
     func downloadAndStageDepotItem(id: String, jumpToInspector: Bool = false) {
         guard let idx = self.depotItems.firstIndex(where: { $0.id == id }) else { return }
         let item = self.depotItems[idx]
-        let cacheDir = URL(fileURLWithPath: "/tmp/KroutonDepotCache", isDirectory: true)
+        let cacheDir = (FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory).appendingPathComponent("Krouton/DepotCache", isDirectory: true)
         try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
         let safeFilename = item.id + "-" + item.version.replacingOccurrences(of: " ", with: "_") + ".iso"
         let isoURL = cacheDir.appendingPathComponent(safeFilename)
@@ -268,7 +268,7 @@ extension KroutonStateStore {
     }
 
     func stageDepotItemForBurning(_ item: KroutonDepotCatalogItem, jumpToInspector: Bool = false) {
-        let cacheDir = URL(fileURLWithPath: "/tmp/KroutonDepotCache", isDirectory: true)
+        let cacheDir = (FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory).appendingPathComponent("Krouton/DepotCache", isDirectory: true)
         let safeFilename = item.id + "-" + item.version.replacingOccurrences(of: " ", with: "_") + ".iso"
         let isoURL = cacheDir.appendingPathComponent(safeFilename)
         guard FileManager.default.fileExists(atPath: isoURL.path) else {

@@ -56,7 +56,7 @@ struct SpliceControlsBar: View {
                         }
                     )
                     .tint(KroutonPillMetrics.activeFill)
-                    .frame(width: 58)
+                    .frame(minWidth: 96, idealWidth: 115, maxWidth: 135)
 
                     Text(String(format: "%.1fs", spec.overlapSeconds))
                         .kroutonReadout(emphasised: true)
@@ -78,7 +78,7 @@ struct SpliceControlsBar: View {
                         }
                     )
                     .tint(KroutonPillMetrics.activeFill)
-                    .frame(width: 68)
+                    .frame(minWidth: 92, idealWidth: 110, maxWidth: 130)
 
                     Text(String(format: "%+d%%", Int(spec.curveTension * 100)))
                         .kroutonReadout(emphasised: true)
@@ -120,9 +120,13 @@ struct SpliceControlsBar: View {
             Button {
                 onCommit(resetSpec(from: spec, mode: snapshot.mode))
             } label: {
-                Text("Reset")
+                HStack(spacing: 3) {
+                    Image(systemName: "arrow.counterclockwise")
+                    Text("Reset")
+                }
             }
             .buttonStyle(KroutonPillButtonStyle(isOn: false))
+            .help("Reset transition to factory defaults and hide all 1/4 and 3/4 curve handles")
 
             // Compact Pre/Post-Roll Lead/Lag Pill (±3s, ±5s, ±10s) right next to Preview
             KroutonPillPicker(

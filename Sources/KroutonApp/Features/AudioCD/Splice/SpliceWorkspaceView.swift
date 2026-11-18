@@ -53,9 +53,22 @@ struct SpliceWorkspaceView: View {
         return String(format: "Sum peak ≤ %+.1f dBFS", decibels)
     }
 
+    private var bpmSummary: String? {
+        switch (outgoing?.estimatedBPM, incoming?.estimatedBPM) {
+        case let (outBPM?, inBPM?):
+            return String(format: "%.0f➔%.0f BPM (Δ%+.1f)", outBPM, inBPM, inBPM - outBPM)
+        case let (outBPM?, nil):
+            return String(format: "Out %.0f BPM", outBPM)
+        case let (nil, inBPM?):
+            return String(format: "In %.0f BPM", inBPM)
+        case (nil, nil):
+            return nil
+        }
+    }
+
     var body: some View {
         if !isFloatingWindow && montageState.isFloatingWindowOpen {
-            // 25% current height ghosted, non-editable mini duplicate waveform with no controls or labels
+            // 25% current height ghosted mini duplicate waveform; clicking focuses the popped-out Track Montage Editor window
             GeometryReader { proxy in
                 let miniGeom = SpliceCanvasGeometry(
                     size: proxy.size,
@@ -68,8 +81,13 @@ struct SpliceWorkspaceView: View {
             .frame(height: montageState.miniGhostCanvasHeight)
             .background(Color(red: 0.05, green: 0.06, blue: 0.08).opacity(0.55))
             .clipShape(RoundedRectangle(cornerRadius: 6))
-            .opacity(0.46)
-            .allowsHitTesting(false)
+            .opacity(0.58)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                openWindow(id: "track-montage")
+                NSApp.activate(ignoringOtherApps: true)
+            }
+            .help("Click to bring the popped-out Track Montage Editor window to the front")
             .padding(.horizontal, 16)
             .padding(.vertical, 6)
         } else {
@@ -79,10 +97,16 @@ struct SpliceWorkspaceView: View {
                     totalTransitions: totalTransitions,
                     snapshot: snapshot,
                     peakReadout: peakReadout,
+                    bpmReadout: bpmSummary,
                     activeSlot: comparison.active,
                     primaryColor: primaryColor,
                     isFloatingWindow: isFloatingWindow,
-                    onSelectMode: { onCommit(spec.switched(to: $0)) },
+                    onSelectMode: { mode in
+                        if mode == .crossfade {
+                            montageState.horizontalZoom = 3.0
+                        }
+                        onCommit(spec.switched(to: mode))
+                    },
                     onSelectSlot: { onCommit(comparison.switchSlot(to: $0, current: spec)) },
                     onAddSubIndex: {
                         var updated = spec
@@ -115,6 +139,8 @@ struct SpliceWorkspaceView: View {
                         trackNumber: trackNumber,
                         outgoingTitle: outgoingTitle,
                         incomingTitle: incomingTitle,
+                        outgoingBPM: outgoing?.estimatedBPM,
+                        incomingBPM: incoming?.estimatedBPM,
                         onPreview: onPreview,
                         onCommit: onCommit
                     )
@@ -127,6 +153,8 @@ struct SpliceWorkspaceView: View {
                         trackNumber: trackNumber,
                         outgoingTitle: outgoingTitle,
                         incomingTitle: incomingTitle,
+                        outgoingBPM: outgoing?.estimatedBPM,
+                        incomingBPM: incoming?.estimatedBPM,
                         onPreview: onPreview,
                         onCommit: onCommit
                     )

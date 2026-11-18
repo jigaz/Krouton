@@ -15,7 +15,6 @@ import Foundation
 //   - Peaks are true sample values. The old cache normalised to 0.92 full scale.
 //   - Length is an exact frame count from the file, not seconds as a Double.
 //
-// Not compiled here (no Swift toolchain in my sandbox).
 
 public struct TrackAnalysis: Sendable {
     public let sampleRate: Double
@@ -33,6 +32,8 @@ public struct TrackAnalysis: Sendable {
     public let performer: String?
     public let album: String?
     public let isrc: String?
+    /// Tempo in BPM estimated from the 75 Hz frame onset envelope (nil if rhythmic pulse is weak).
+    public let estimatedBPM: Double?
 }
 
 public enum AudioAnalysisError: LocalizedError {
@@ -129,17 +130,20 @@ public actor AudioAnalysisService {
         let tail = try readWindow(file, url: url, start: length - windowFrames, count: windowFrames)
         let tags = await readTags(url)
 
+        let hPeaks = framePeaks(head, sampleRate: rate, alignToEnd: false)
+        let tPeaks = framePeaks(tail, sampleRate: rate, alignToEnd: true)
         return TrackAnalysis(
             sampleRate: rate,
             redBookFrames: Int64((Double(length) * 75.0 / rate).rounded(.up)),
-            headPeaks: framePeaks(head, sampleRate: rate, alignToEnd: false),
-            tailPeaks: framePeaks(tail, sampleRate: rate, alignToEnd: true),
+            headPeaks: hPeaks,
+            tailPeaks: tPeaks,
             headLUFS: LoudnessMeter.integratedLUFS(channels: head, sampleRate: rate),
             tailLUFS: LoudnessMeter.integratedLUFS(channels: tail, sampleRate: rate),
             title: tags.title,
             performer: tags.performer,
             album: tags.album,
-            isrc: tags.isrc
+            isrc: tags.isrc,
+            estimatedBPM: estimateBPM(headPeaks: hPeaks, tailPeaks: tPeaks)
         )
     }
 
@@ -206,14 +210,35 @@ public actor AudioAnalysisService {
             isrc: await text(.id3MetadataInternationalStandardRecordingCode)
         )
     }
-}
 
-// What this deletes from SpliceDragController.swift:
-//   - `SpliceWaveformCache` entirely (both static caches, the NSLock, the byte-envelope
-//     and PRNG fallbacks, `extractAudioTags`, `cleanTrackTitle`)
-//   - `AutoExtractedAudioTags`
-// Folder names are no longer read as album and artist. If you want that
-// suggestion back, add it to FilenameTitleGuess and label it `.filenameGuess`.
-//
-// `stripLeadingTrackNumber` is display formatting; FilenameTitleGuess already
-// does it at ingest, so stored titles are clean and the views stop re-stripping.
+    /// Estimates tempo in [72, 175] BPM via half-wave-rectified onset autocorrelation over 75 Hz Red Book frame peaks.
+    public static func estimateBPM(headPeaks: FramePeaks, tailPeaks: FramePeaks) -> Double? {
+        let vals = headPeaks.values.count >= 450 ? headPeaks.values : tailPeaks.values
+        guard vals.count >= 300 else { return nil }
+        let n = min(vals.count, 1_500)
+        var onset = [Float](repeating: 0, count: n)
+        var energySum: Float = 0
+        for i in 1..<n {
+            let diff = max(0, vals[i] - vals[i - 1])
+            onset[i] = diff
+            energySum += diff
+        }
+        guard energySum > 0.25 else { return nil }
+        // Lag in 75 Hz frames for 72..175 BPM: lag = 75 * 60 / BPM -> 26..62 frames
+        var bestLag = 37
+        var bestScore: Float = -1
+        for lag in 26...62 {
+            var score: Float = 0
+            for i in lag..<n {
+                score += onset[i] * onset[i - lag]
+            }
+            if score > bestScore {
+                bestScore = score
+                bestLag = lag
+            }
+        }
+        guard bestScore > 0 else { return nil }
+        let bpm = (75.0 * 60.0) / Double(bestLag)
+        return (bpm * 2.0).rounded() / 2.0
+    }
+}

@@ -336,5 +336,19 @@ extension KroutonTestHarness {
             (key.contains("/KroutonApp/Features/") || key.contains("/KroutonApp/Shell/NavigationAndRack/")) && src.contains(".contextMenu")
         }
         h.lint(contextMenuClusters.count >= 6, "Expected at least 6 workspace/rack view clusters providing contextual menus")
+        // Verify zero duplicate .keyboardShortcut(...) bindings across KroutonMenuCommands cluster
+        let shortcutRegex = try! NSRegularExpression(pattern: #"\.keyboardShortcut\(([^\)]+)\)"#)
+        let scMatches = shortcutRegex.matches(in: menuClusterText, options: [], range: menuRange)
+        var seenShortcuts = Set<String>()
+        var duplicateMenuShortcuts: [String] = []
+        for m in scMatches {
+            if let r = Range(m.range(at: 1), in: menuClusterText) {
+                let sig = String(menuClusterText[r]).replacingOccurrences(of: " ", with: "")
+                if !seenShortcuts.insert(sig).inserted {
+                    duplicateMenuShortcuts.append(sig)
+                }
+            }
+        }
+        h.lint(duplicateMenuShortcuts.isEmpty, "Menu bar commands must have zero duplicate keyboard shortcuts (found: \(duplicateMenuShortcuts))")
     }
 }

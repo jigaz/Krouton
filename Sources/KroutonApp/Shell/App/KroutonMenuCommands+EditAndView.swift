@@ -5,7 +5,7 @@ import RescueKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Edit, View, Window & Help Menu Commands
+// MARK: - Edit, View, Window & Help Menu Commands (Apple HIG Separation of View vs. Window)
 
 extension KroutonWorkspaceCommands {
     @CommandsBuilder
@@ -112,6 +112,43 @@ extension KroutonWorkspaceCommands {
 
             Divider()
 
+            Button(KroutonL10n.tr("Inspect Hybrid ISO/UDF LBA Layout")) {
+                if wm.store.selectedCategory != .burn || wm.store.activeFormatSpec().workspaceKind != .dataAndArchival {
+                    selectBurnFormat(.dataHybrid)
+                }
+                let plan = wm.store.planLiveHybridDataLayout()
+                let summary = "Volume: \(plan.volumeIdentifier) | PVD LBA: \(plan.pvdSectorLBA) | UDF Anchor LBA: \(plan.udfAnchorAVDPLBA) | Total Sectors: \(plan.totalSectorsLBA)"
+                KroutonOSDesktopBridge.copyTextToClipboard(summary)
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: .kroutonMenuInspectHybridLBA, object: nil)
+                }
+            }
+            .keyboardShortcut("l", modifiers: [.command, .control])
+
+            Button(KroutonL10n.tr("Inspect Compiled Red Book CUE Sheet")) {
+                if wm.store.selectedCategory != .burn || (wm.store.selectedFormatID != .cdDA && wm.store.selectedFormatID != .cdExtra) {
+                    selectBurnFormat(.cdDA)
+                }
+                let cue = wm.store.compileLiveAudioCueSheet()
+                KroutonOSDesktopBridge.copyTextToClipboard(cue)
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: .kroutonMenuInspectAudioCue, object: nil)
+                }
+            }
+            .keyboardShortcut("u", modifiers: [.command, .control])
+
+            Button(KroutonL10n.tr("Inspect Video Bitrate Budget")) {
+                if wm.store.selectedCategory != .burn || wm.store.activeFormatSpec().workspaceKind != .videoAuthoring {
+                    selectBurnFormat(.dvdVideo)
+                }
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: .kroutonMenuInspectVideoBitrate, object: nil)
+                }
+            }
+            .keyboardShortcut("b", modifiers: [.command, .control])
+
+            Divider()
+
             Button(wm.store.labelShowAlignmentGrid ? KroutonL10n.tr("Hide 10mm Alignment Grid") : KroutonL10n.tr("Show 10mm Alignment Grid")) {
                 wm.store.labelShowAlignmentGrid.toggle()
             }
@@ -133,14 +170,6 @@ extension KroutonWorkspaceCommands {
             .keyboardShortcut("0", modifiers: [.command, .option])
 
             Divider()
-
-            Button(KroutonL10n.tr("Open Floating Phase Scope Telemetry")) {
-                let firstID = wm.driveManager.availableDrives.first?.id ?? "network-spool-drive"
-                KroutonWindowManager.shared.openFloatingPhaseScopeWindow(driveID: firstID)
-            }
-            .keyboardShortcut("p", modifiers: [.command, .option])
-
-            Divider()
         }
     }
 
@@ -151,13 +180,38 @@ extension KroutonWorkspaceCommands {
                 KroutonWindowManager.shared.openMainWindow()
             }
             .keyboardShortcut("0", modifiers: .command)
+
+            Button(KroutonL10n.tr("Open Track Montage Editor Window")) {
+                KroutonWindowManager.shared.openTrackMontageWindow()
+            }
+            .keyboardShortcut("m", modifiers: [.command, .option])
+
+            Button(KroutonL10n.tr("Open Floating Phase Scope Telemetry")) {
+                let firstID = wm.driveManager.availableDrives.first?.id ?? "network-spool-drive"
+                KroutonWindowManager.shared.openFloatingPhaseScopeWindow(driveID: firstID)
+            }
+            .keyboardShortcut("p", modifiers: [.command, .option])
         }
 
         CommandGroup(replacing: .help) {
-            Button(KroutonL10n.tr("Krouton Optical Mastering & Glossary Reference")) {
-                KroutonWindowManager.shared.openSettingsWindow(store: wm.store, driveManager: wm.driveManager)
+            Button(KroutonL10n.tr("Krouton User Manual & Mastering Guide...")) {
+                KroutonWindowManager.shared.openUserManualWindow()
             }
             .keyboardShortcut("?", modifiers: .command)
+
+            Menu(KroutonL10n.tr("Interactive Guided Tutorials")) {
+                ForEach(KroutonGuidedTutorialID.allCases) { tour in
+                    Button(KroutonL10n.tr(tour.title)) {
+                        KroutonWindowManager.shared.startGuidedTutorialOnMainWorkspace(tour)
+                    }
+                }
+                if KroutonGuidedTutorialController.shared.isRunning {
+                    Divider()
+                    Button(KroutonL10n.tr("Exit Active Guided Tutorial")) {
+                        KroutonGuidedTutorialController.shared.stop()
+                    }
+                }
+            }
 
             Divider()
 

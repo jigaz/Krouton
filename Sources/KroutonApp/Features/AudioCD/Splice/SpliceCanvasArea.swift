@@ -9,6 +9,8 @@ struct SpliceCanvasArea: View {
     let trackNumber: Int
     let outgoingTitle: String
     let incomingTitle: String
+    var outgoingBPM: Double? = nil
+    var incomingBPM: Double? = nil
     let onPreview: (KroutonTrackTransitionSpec) -> Void
     let onCommit: (KroutonTrackTransitionSpec) -> Void
 
@@ -36,6 +38,8 @@ struct SpliceCanvasArea: View {
                     trackNumber: trackNumber,
                     outgoingTitle: outgoingTitle,
                     incomingTitle: incomingTitle,
+                    outgoingBPM: outgoingBPM,
+                    incomingBPM: incomingBPM,
                     hoverPoint: hoverPoint,
                     activeTarget: activeTarget,
                     hoveredHiddenMidTarget: hoveredHiddenMidTarget,
@@ -62,6 +66,8 @@ struct SpliceCanvasArea: View {
     }
 }
 
+// MARK: - SpliceHandleOverlay (Bezier Diamond Curve Nodes & BPM Track Badges)
+
 private struct SpliceHandleOverlay: View {
     let snapshot: SpliceCanvasSnapshot
     let geometry: SpliceCanvasGeometry
@@ -69,6 +75,8 @@ private struct SpliceHandleOverlay: View {
     let trackNumber: Int
     let outgoingTitle: String
     let incomingTitle: String
+    let outgoingBPM: Double?
+    let incomingBPM: Double?
     let hoverPoint: CGPoint?
     let activeTarget: SpliceDragTarget?
     let hoveredHiddenMidTarget: SpliceDragTarget?
@@ -76,6 +84,20 @@ private struct SpliceHandleOverlay: View {
 
     private var spec: KroutonTrackTransitionSpec { snapshot.spec }
     private var topY: CGFloat { SpliceCanvasGeometry.rulerHeight }
+
+    private var outgoingBadgeText: String {
+        if let bpm = outgoingBPM {
+            return String(format: "OUT: %02d %@ • %.0f BPM", trackNumber, outgoingTitle, bpm)
+        }
+        return String(format: "OUT: %02d %@", trackNumber, outgoingTitle)
+    }
+
+    private var incomingBadgeText: String {
+        if let bpm = incomingBPM {
+            return String(format: "IN: %02d %@ • %.0f BPM", trackNumber + 1, incomingTitle, bpm)
+        }
+        return String(format: "IN: %02d %@", trackNumber + 1, incomingTitle)
+    }
 
     var body: some View {
         let h = geometry.size.height
@@ -86,7 +108,7 @@ private struct SpliceHandleOverlay: View {
         ZStack(alignment: .topLeading) {
             HStack(spacing: 5) {
                 Circle().fill(palette.outgoing).frame(width: 6, height: 6)
-                Text(String(format: "OUT: %02d %@", trackNumber, outgoingTitle))
+                Text(outgoingBadgeText)
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.95))
                     .lineLimit(1)
@@ -98,7 +120,7 @@ private struct SpliceHandleOverlay: View {
 
             HStack(spacing: 5) {
                 Circle().fill(palette.incoming).frame(width: 6, height: 6)
-                Text(String(format: "IN: %02d %@", trackNumber + 1, incomingTitle))
+                Text(incomingBadgeText)
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.95))
                     .lineLimit(1)
@@ -153,50 +175,40 @@ private struct SpliceHandleOverlay: View {
                 railBadge(number: 2, color: palette.incoming, seconds: spec.overlapSeconds)
                     .position(x: zoneX1, y: topY + 13)
 
-                // Subtle ghost ring when hovering over the hidden vicinity of an unspawned mid-curve handle
+                // Ghost Bezier Diamonds when hovering in the vicinity of any unspawned 1/4 or 3/4 handle
                 if hoveredHiddenMidTarget == .fadeOutMidHandle, geometry.fadeOutMidHandle == nil {
-                    Circle()
-                        .strokeBorder(palette.outgoing.opacity(0.85), style: StrokeStyle(lineWidth: 1.4, dash: [2, 2]))
-                        .background(Circle().fill(Color.black.opacity(0.45)))
-                        .frame(width: 13, height: 13)
-                        .position(geometry.fadeOutMidAnchor)
+                    ghostBezierDiamond(color: palette.outgoing).position(geometry.fadeOutMidAnchor)
+                }
+                if hoveredHiddenMidTarget == .fadeOutQ3Handle, geometry.fadeOutQ3Handle == nil {
+                    ghostBezierDiamond(color: palette.outgoing).position(geometry.fadeOutQ3Anchor)
+                }
+                if hoveredHiddenMidTarget == .fadeInQ1Handle, geometry.fadeInQ1Handle == nil {
+                    ghostBezierDiamond(color: palette.incoming).position(geometry.fadeInQ1Anchor)
                 }
                 if hoveredHiddenMidTarget == .fadeInMidHandle, geometry.fadeInMidHandle == nil {
-                    Circle()
-                        .strokeBorder(palette.incoming.opacity(0.85), style: StrokeStyle(lineWidth: 1.4, dash: [2, 2]))
-                        .background(Circle().fill(Color.black.opacity(0.45)))
-                        .frame(width: 13, height: 13)
-                        .position(geometry.fadeInMidAnchor)
+                    ghostBezierDiamond(color: palette.incoming).position(geometry.fadeInMidAnchor)
                 }
 
-                // Spawned On-Demand Fade-Out Mid Handle (t = 0.25) — double-click to remove
-                if let outMidPt = geometry.fadeOutMidHandle {
-                    midCurveHandleView(
-                        color: palette.outgoing,
-                        isActive: activeTarget == .fadeOutMidHandle
-                    )
-                    .position(outMidPt)
+                // Spawned Track-Colored Bezier Diamond Handles (1/4 and 3/4 on Outgoing & Incoming curves)
+                if let pt = geometry.fadeOutMidHandle {
+                    bezierDiamondHandle(color: palette.outgoing, isActive: activeTarget == .fadeOutMidHandle).position(pt)
+                }
+                if let pt = geometry.fadeOutQ3Handle {
+                    bezierDiamondHandle(color: palette.outgoing, isActive: activeTarget == .fadeOutQ3Handle).position(pt)
+                }
+                if let pt = geometry.fadeInQ1Handle {
+                    bezierDiamondHandle(color: palette.incoming, isActive: activeTarget == .fadeInQ1Handle).position(pt)
+                }
+                if let pt = geometry.fadeInMidHandle {
+                    bezierDiamondHandle(color: palette.incoming, isActive: activeTarget == .fadeInMidHandle).position(pt)
                 }
 
-                // Spawned On-Demand Fade-In Mid Handle (t = 0.75) — double-click to remove
-                if let inMidPt = geometry.fadeInMidHandle {
-                    midCurveHandleView(
-                        color: palette.incoming,
-                        isActive: activeTarget == .fadeInMidHandle
-                    )
-                    .position(inMidPt)
-                }
-
-                // Center Tension Handle
-                VStack(spacing: 1) {
-                    Image(systemName: "arrowtriangle.up.fill").font(.system(size: 9))
-                    Image(systemName: "arrowtriangle.down.fill").font(.system(size: 9))
-                }
-                .padding(.horizontal, 5).padding(.vertical, 3.5)
-                .background(activeTarget == .curveBody ? KroutonPillMetrics.activeFill : Color.white)
-                .foregroundStyle(.black)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-                .shadow(color: .black.opacity(0.55), radius: 3)
+                // Center Tension Bezier Diamond Node
+                bezierDiamondHandle(
+                    color: activeTarget == .curveBody ? KroutonPillMetrics.activeFill : Color.white,
+                    isActive: activeTarget == .curveBody,
+                    isCenterNode: true
+                )
                 .position(geometry.centerHandle)
             } else if snapshot.mode == .gap {
                 railBadge(number: 1, color: .white.opacity(0.75), seconds: 0)
@@ -224,19 +236,30 @@ private struct SpliceHandleOverlay: View {
     }
 
     @ViewBuilder
-    private func midCurveHandleView(color: Color, isActive: Bool) -> some View {
+    private func ghostBezierDiamond(color: Color) -> some View {
+        RoundedRectangle(cornerRadius: 2.5)
+            .strokeBorder(color.opacity(0.92), style: StrokeStyle(lineWidth: 1.5, dash: [2, 2]))
+            .background(RoundedRectangle(cornerRadius: 2.5).fill(Color.black.opacity(0.45)))
+            .frame(width: 11, height: 11)
+            .rotationEffect(.degrees(45))
+    }
+
+    @ViewBuilder
+    private func bezierDiamondHandle(color: Color, isActive: Bool, isCenterNode: Bool = false) -> some View {
+        let side: CGFloat = isActive ? 13 : (isCenterNode ? 11.5 : 10.5)
         ZStack {
-            Circle()
+            RoundedRectangle(cornerRadius: 2.5)
                 .fill(color)
-                .frame(width: isActive ? 15 : 13, height: isActive ? 15 : 13)
+                .frame(width: side, height: side)
+            RoundedRectangle(cornerRadius: 2.5)
+                .strokeBorder(Color.white, lineWidth: isActive ? 1.8 : 1.3)
+                .frame(width: side, height: side)
             Circle()
-                .strokeBorder(Color.white, lineWidth: 1.5)
-                .frame(width: isActive ? 15 : 13, height: isActive ? 13 : 13)
-            Image(systemName: "arrow.up.and.down")
-                .font(.system(size: 9, weight: .black))
-                .foregroundStyle(.black)
+                .fill(Color.black.opacity(0.82))
+                .frame(width: 3.6, height: 3.6)
         }
-        .shadow(color: .black.opacity(0.6), radius: 2.5)
+        .rotationEffect(.degrees(45))
+        .shadow(color: .black.opacity(0.65), radius: 2.5)
     }
 
     @ViewBuilder
@@ -270,10 +293,19 @@ private struct SpliceHandleOverlay: View {
         let dbIn = gIn > 0.001 ? formatDB(20.0 * log10(gIn)) : "-∞ dB"
         let relSec = (Double(pt.x / max(1.0, w)) - 0.5) * geometry.effectiveSpanSeconds
         let hint: String = {
-            if hoveredHiddenMidTarget == .fadeOutMidHandle { return " • Click to add Fade-Out Handle" }
-            if hoveredHiddenMidTarget == .fadeInMidHandle { return " • Click to add Fade-In Handle" }
-            if activeTarget == .fadeOutMidHandle || activeTarget == .fadeInMidHandle { return " • Double-click handle to remove" }
-            return ""
+            switch hoveredHiddenMidTarget {
+            case .fadeOutMidHandle?: return " • Click to add 1/4 Fade-Out Handle"
+            case .fadeOutQ3Handle?:  return " • Click to add 3/4 Fade-Out Handle"
+            case .fadeInQ1Handle?:   return " • Click to add 1/4 Fade-In Handle"
+            case .fadeInMidHandle?:  return " • Click to add 3/4 Fade-In Handle"
+            default: break
+            }
+            switch activeTarget {
+            case .fadeOutMidHandle?, .fadeOutQ3Handle?, .fadeInQ1Handle?, .fadeInMidHandle?:
+                return " • Double-click handle to hide"
+            default:
+                return ""
+            }
         }()
         let label = String(format: "%@ • Out %@ • In %@%@", formatMMSSFF(abs(relSec)), dbOut, dbIn, hint)
 
@@ -286,7 +318,7 @@ private struct SpliceHandleOverlay: View {
             .foregroundStyle(.white)
             .clipShape(Capsule())
             .overlay(Capsule().stroke(Color.white.opacity(0.35), lineWidth: 0.8))
-            .position(x: min(w - 135, max(135, pt.x)), y: max(36, min(geometry.size.height - 16, pt.y - 16)))
+            .position(x: min(w - 145, max(145, pt.x)), y: max(36, min(geometry.size.height - 16, pt.y - 16)))
             .allowsHitTesting(false)
     }
 

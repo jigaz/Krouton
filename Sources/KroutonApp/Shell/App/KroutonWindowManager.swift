@@ -32,9 +32,26 @@ final class KroutonWindowManager {
 
     func openMainWindow() { openWindowAction?(id: "main") }
 
+    func openTrackMontageWindow() {
+        TrackMontageWindowState.shared.isFloatingWindowOpen = true
+        openWindowAction?(id: "track-montage")
+        NSApplication.shared.activate(ignoringOtherApps: true)
+    }
+
     func openSettingsWindow(store: KroutonStateStore, driveManager: KroutonOpticalDriveBank, pane: KroutonSettingsCategory? = nil) {
         if let p = pane { store.selectedSettingsPane = p }
         openWindowAction?(id: "settings")
+    }
+
+    func openUserManualWindow() {
+        openWindowAction?(id: "user-manual")
+        NSApplication.shared.activate(ignoringOtherApps: true)
+    }
+
+    func startGuidedTutorialOnMainWorkspace(_ tutorial: KroutonGuidedTutorialID) {
+        openMainWindow()
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        KroutonGuidedTutorialController.shared.start(tutorial, store: store, driveManager: driveManager)
     }
 }
 

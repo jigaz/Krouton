@@ -14,7 +14,7 @@ final class TrackMontageWindowState {
     var fooshPhase: Double = 0.0
     /// Vertical height multiplier: 0.50 (50%) ... 2.00 (200%), base height = 174 pt
     var heightScale: Double = 1.0
-    /// Horizontal zoom factor: 3.0 (default 11.3s precision span) or 1.0 (Zoom Out 34s concert span)
+    /// Horizontal zoom factor: 3.0 (default 11.3s precision span) or 1.0 (Zoom Out 15s extended span)
     var horizontalZoom: Double = 3.0
     static let baseCanvasHeight: CGFloat = 174.0
 
@@ -143,6 +143,10 @@ struct SpliceDragModifier: ViewModifier {
                 switch hiddenTarget {
                 case .fadeOutMidHandle:
                     if updated.fadeOutMidTrim == nil { updated.fadeOutMidTrim = 0.0 }
+                case .fadeOutQ3Handle:
+                    if updated.fadeOutThreeQuarterTrim == nil { updated.fadeOutThreeQuarterTrim = 0.0 }
+                case .fadeInQ1Handle:
+                    if updated.fadeInQuarterTrim == nil { updated.fadeInQuarterTrim = 0.0 }
                 case .fadeInMidHandle:
                     if updated.fadeInMidTrim == nil { updated.fadeInMidTrim = 0.0 }
                 default:
@@ -163,6 +167,10 @@ struct SpliceDragModifier: ViewModifier {
                 switch geometry.hitTest(event.location) {
                 case .fadeOutMidHandle?:
                     updated.fadeOutMidTrim = nil
+                case .fadeOutQ3Handle?:
+                    updated.fadeOutThreeQuarterTrim = nil
+                case .fadeInQ1Handle?:
+                    updated.fadeInQuarterTrim = nil
                 case .fadeInMidHandle?:
                     updated.fadeInMidTrim = nil
                 case .indexFlag?:
@@ -188,7 +196,7 @@ struct SpliceDragModifier: ViewModifier {
     private func pointerStyle(for target: SpliceDragTarget?) -> PointerStyle? {
         switch target {
         case .indexFlag?, .subIndexFlag?, .fadeOutRail?, .fadeInRail?: return .columnResize
-        case .fadeOutMidHandle?, .fadeInMidHandle?: return .rowResize
+        case .fadeOutMidHandle?, .fadeOutQ3Handle?, .fadeInQ1Handle?, .fadeInMidHandle?: return .rowResize
         case .curveBody?: return session == nil ? .grabIdle : .grabActive
         case nil: return nil
         }

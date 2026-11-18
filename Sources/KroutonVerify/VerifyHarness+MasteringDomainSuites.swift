@@ -261,8 +261,8 @@ extension KroutonTestHarness {
         )
         let geom1x = SpliceCanvasGeometry(size: canvasSize, spec: fade4s, horizontalZoom: 1.0)
         let geom3x = SpliceCanvasGeometry(size: canvasSize, spec: fade4s, horizontalZoom: 3.0)
-        h.check(abs(geom1x.effectiveSpanSeconds - 34.0) < 1e-6, "1x horizontal zoom must span 34.0 seconds")
-        h.check(abs(geom3x.effectiveSpanSeconds - (34.0 / 3.0)) < 1e-6, "3x horizontal zoom must span 11.333 seconds")
+        h.check(abs(geom1x.effectiveSpanSeconds - 15.0) < 1e-6, "1x horizontal zoom must span 15.0 seconds")
+        h.check(abs(geom3x.effectiveSpanSeconds - 5.0) < 1e-6, "3x horizontal zoom must span 5.0 seconds")
         h.check((geom3x.zoneX1 - geom3x.zoneX0) > (geom1x.zoneX1 - geom1x.zoneX0) * 2.2,
                 "3x zoom must widen the rendered crossfade zone proportionally vs 1x zoom")
         h.check(geom1x.subIndexDescriptors.count == 4, "Expected 4 track-aware subIndexDescriptors")

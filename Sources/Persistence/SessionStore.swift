@@ -17,7 +17,6 @@ import os
 //                  exit this is what tells the user which disc is suspect.
 //
 // Foundation only: nothing here touches AppKit or SwiftUI.
-// Not compiled here (no Swift toolchain in my sandbox).
 
 // MARK: - RunLock
 

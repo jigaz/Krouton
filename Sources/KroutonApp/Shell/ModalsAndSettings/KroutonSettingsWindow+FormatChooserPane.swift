@@ -8,12 +8,19 @@ import UniformTypeIdentifiers
 
 extension KroutonSettingsWindowView {
     var filteredAndSortedFormats: [KroutonOpticalWorkflowSpec] {
+        let q = trimmedSearchQuery.lowercased()
         let filtered = store.discFormats.filter { fmt in
-            switch formatFilter {
-            case .all: return true
-            case .enabled: return fmt.showInTaskChooser
-            default: return fmt.filterGroup == formatFilter
-            }
+            let groupMatch: Bool = {
+                switch formatFilter {
+                case .all: return true
+                case .enabled: return fmt.showInTaskChooser
+                default: return fmt.filterGroup == formatFilter
+                }
+            }()
+            guard groupMatch else { return false }
+            guard !q.isEmpty else { return true }
+            let hay = "\(fmt.technicalName) \(fmt.colloquialName) \(fmt.platform) \(fmt.bookOrFileSystem) \(fmt.laserType)".lowercased()
+            return q.split(separator: " ").allSatisfy { hay.contains($0) }
         }
         return filtered.sorted(using: formatSortOrder)
     }

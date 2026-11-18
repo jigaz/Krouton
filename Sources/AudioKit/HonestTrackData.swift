@@ -1,9 +1,7 @@
 import AVFoundation
 import Foundation
 
-// Replacements for the hard-coded placeholders in the slice.
 //
-//   Placeholder in the slice                         Replacement here
 //   -----------------------------------------------  --------------------------------
 //   ISRC invented from a filename hash               `ISRC` validates, never invents
 //   confidenceSource "ShazamKit Acoustic + AI ..."   `MetadataSource` per field
@@ -13,7 +11,6 @@ import Foundation
 //   gain silently clamped at 1.25                    `predictedOverlapPeak` + a warning
 //   sin/cos "waveform" bars, fake transient tint     `PeakPyramid` from real samples
 //
-// Not compiled here (no Swift toolchain in my sandbox). The loudness maths was
 // checked with a reference port: a 997 Hz stereo sine at -23 dBFS reads -23.00 LUFS
 // at both 44.1 kHz and 48 kHz.
 

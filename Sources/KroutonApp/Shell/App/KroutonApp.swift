@@ -44,6 +44,12 @@ struct KroutonApp: App {
         }
         .defaultSize(width: 960, height: 280)
 
+        Window("Krouton User Manual", id: "user-manual") {
+            KroutonUserManualWindowView(store: wm.store, driveManager: wm.driveManager)
+                .modifier(KroutonSceneActionBinder())
+        }
+        .defaultSize(width: 980, height: 660)
+
         Settings {
             KroutonSettingsWindowView(store: wm.store, driveManager: wm.driveManager)
         }

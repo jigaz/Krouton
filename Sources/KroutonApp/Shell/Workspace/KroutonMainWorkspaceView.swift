@@ -150,6 +150,16 @@ struct KroutonMainWorkspaceView: View {
                 }
                 .frame(width: totalW, alignment: .leading)
                 .coordinateSpace(name: "KroutonSplitSpace")
+                .overlay {
+                    KroutonGuidedTutorialOverlayView(
+                        store: store,
+                        driveManager: driveManager,
+                        leftWidth: clampedLeft,
+                        centerWidth: centerLiveW,
+                        rightWidth: clampedRight,
+                        totalSize: windowGeo.size
+                    )
+                }
                 .onAppear {
                     isLeftSidebarCompact = clampedLeft < 265
                     isLeftSidebarUltraSkinny = clampedLeft < 215
@@ -230,6 +240,42 @@ struct KroutonMainWorkspaceView: View {
             Spacer()
 
             HStack(spacing: 10) {
+                Menu {
+                    Button {
+                        KroutonWindowManager.shared.openUserManualWindow()
+                    } label: {
+                        Label(KroutonL10n.tr("Krouton User Manual & Search..."), systemImage: "book.closed.fill")
+                    }
+                    Divider()
+                    ForEach(KroutonGuidedTutorialID.allCases) { tour in
+                        Button {
+                            KroutonGuidedTutorialController.shared.start(tour, store: store, driveManager: driveManager)
+                        } label: {
+                            Label(tour.title, systemImage: tour.sfSymbol)
+                        }
+                    }
+                    if KroutonGuidedTutorialController.shared.isRunning {
+                        Divider()
+                        Button(role: .destructive) {
+                            KroutonGuidedTutorialController.shared.stop()
+                        } label: {
+                            Label(KroutonL10n.tr("Exit Active Guided Tutorial"), systemImage: "xmark.circle")
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "questionmark.circle.fill")
+                        Text(KroutonL10n.tr("Manual & Tours"))
+                    }
+                    .font(.system(size: 12, weight: .semibold))
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 6)
+                    .background(Color.primary.opacity(0.08))
+                    .clipShape(Capsule())
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+
                 Button {
                     KroutonWindowManager.shared.openSettingsWindow(store: store, driveManager: driveManager)
                 } label: {
