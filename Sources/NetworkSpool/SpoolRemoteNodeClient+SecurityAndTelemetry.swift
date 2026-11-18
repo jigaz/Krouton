@@ -104,7 +104,14 @@ extension SpoolRemoteNodeClient {
                 return failSpool("Could not read staged file: \(fileURL.lastPathComponent)")
             }
             defer { try? handle.close() }
-            while let chunk = try? handle.read(upToCount: chunkSize), !chunk.isEmpty {
+            while true {
+                let chunk: Data?
+                do {
+                    chunk = try handle.read(upToCount: chunkSize)
+                } catch {
+                    return failSpool("Disk read error on \(fileURL.lastPathComponent): \(error.localizedDescription)")
+                }
+                guard let chunk, !chunk.isEmpty else { break }
                 var chunkReq = URLRequest(url: chunkURL)
                 chunkReq.httpMethod = "POST"
                 chunkReq.httpBody = chunk
@@ -241,7 +248,6 @@ public enum SpoolLANSecurityEngine {
         let trimmed = rawEndpoint.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !trimmed.isEmpty else { return false }
 
-        // Strip scheme if present
         var hostPart = trimmed
         for prefix in ["http://", "https://", "ws://", "wss://"] {
             if hostPart.hasPrefix(prefix) {
@@ -249,41 +255,26 @@ public enum SpoolLANSecurityEngine {
                 break
             }
         }
-        // Strip path if present
-        if let slashIdx = hostPart.firstIndex(of: "/") {
-            hostPart = String(hostPart[..<slashIdx])
+        // Strip path, query, or fragment so http://evil.com?.local cannot smuggle a fake suffix
+        if let cutIdx = hostPart.firstIndex(where: { $0 == "/" || $0 == "?" || $0 == "#" }) {
+            hostPart = String(hostPart[..<cutIdx])
         }
-        // Handle IPv6 brackets [::1]:7420 or host:port
+        // Reject userinfo (user@host)
+        guard !hostPart.contains("@"), !hostPart.isEmpty else { return false }
+
         if hostPart.hasPrefix("[") {
-            if let closeBracket = hostPart.firstIndex(of: "]") {
-                let ipv6 = String(hostPart[hostPart.index(after: hostPart.startIndex)..<closeBracket])
-                return ipv6 == "::1" || ipv6.hasPrefix("fe80:") || ipv6.hasPrefix("fd") || ipv6.hasPrefix("fc")
-            }
-            return false
-        }
-        if let colonIdx = hostPart.firstIndex(of: ":") {
+            guard let closeBracket = hostPart.firstIndex(of: "]") else { return false }
+            hostPart = String(hostPart[...closeBracket])
+        } else if let colonIdx = hostPart.firstIndex(of: ":") {
             hostPart = String(hostPart[..<colonIdx])
         }
 
-        if hostPart == "localhost" || hostPart.hasSuffix(".local") || hostPart.hasSuffix(".local.") || hostPart.hasSuffix(".lan") {
+        switch SpoolEndpointPolicy().evaluate(host: hostPart) {
+        case .allowedLiteral, .resolveThenEvaluate:
             return true
-        }
-
-        // Check IPv4 octets
-        let parts = hostPart.split(separator: ".", omittingEmptySubsequences: false)
-        if parts.count == 4, let o0 = Int(parts[0]), let o1 = Int(parts[1]), let o2 = Int(parts[2]), let o3 = Int(parts[3]) {
-            guard (0...255).contains(o0), (0...255).contains(o1), (0...255).contains(o2), (0...255).contains(o3) else {
-                return false
-            }
-            if o0 == 127 { return true }                                  // 127.0.0.0/8 Loopback
-            if o0 == 10 { return true }                                   // 10.0.0.0/8 RFC-1918 Class A
-            if o0 == 172 && (16...31).contains(o1) { return true }        // 172.16.0.0/12 RFC-1918 Class B
-            if o0 == 192 && o1 == 168 { return true }                     // 192.168.0.0/16 RFC-1918 Class C
-            if o0 == 169 && o1 == 254 { return true }                     // 169.254.0.0/16 Link-Local Bonjour
+        case .denied:
             return false
         }
-
-        return false
     }
 
     /// Computes a deterministic HMAC-SHA256 signature over `timestamp.nonce.payloadBase64`
@@ -324,14 +315,18 @@ public enum SpoolLANSecurityEngine {
             return nil
         }
 
-        let expected = signPayload(
-            rawPayload,
-            sharedSecret: sharedSecret,
-            timestampEpochSeconds: envelope.timestampEpochSeconds,
-            nonce: envelope.nonce
-        )
-
-        guard expected.signatureHex == envelope.signatureHex.lowercased() else {
+        let b64 = rawPayload.base64EncodedString()
+        let canonicalMessage = "\(envelope.timestampEpochSeconds).\(envelope.nonce).\(b64)"
+        let key = SymmetricKey(data: Data(sharedSecret.utf8))
+        var sigBytes: [UInt8] = []
+        let hex = Array(envelope.signatureHex.utf8)
+        guard hex.count == 64 else { return nil }
+        for i in stride(from: 0, to: 64, by: 2) {
+            guard let s = String(bytes: hex[i..<(i + 2)], encoding: .utf8),
+                  let b = UInt8(s, radix: 16) else { return nil }
+            sigBytes.append(b)
+        }
+        guard HMAC<SHA256>.isValidAuthenticationCode(sigBytes, authenticating: Data(canonicalMessage.utf8), using: key) else {
             return nil
         }
         seenNonces.insert(envelope.nonce)

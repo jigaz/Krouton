@@ -1,49 +1,63 @@
-# CLAUDE.md — Krouton
+# CLAUDE.md — Krouton (`app.krouton`)
 
-Krouton is a native macOS 14+ (Swift 6, SwiftUI, AppKit) optical media mastering, multi-disc spanning, archival rescue, and disc-label studio with a built-in headless CLI (`Krouton`), Apple Shortcuts (`AppIntents`), and a 22-suite verification executable (`krouton-verify`).
+This file provides canonical architectural context, build/verification commands, and strict source-hygiene invariants for Claude and peer AI agents working on **Krouton**.
 
-- **Bundle ID:** `com.krouton.opticalstudio`
-- **Team ID:** `D3BJL3F92P` (Jorgen Thompquist)
+## 1. Essential Commands
+- **Build All Targets:** `swift build`
+- **Run Unit Tests:** `swift test`
+- **Run Deterministic Verification Harness (27 Suites / 476 Assertions / 5,152 Rules):** `swift run krouton-verify`
+- **Launch macOS App:** `swift run Krouton`
 
-## Build, Verify & Package Commands
-- **Debug build:** `swift build`
-- **Release build:** `swift build -c release`
-- **Run unit test suites (9 test targets):** `swift test`
-- **Run 22-suite architectural verification gate:** `swift run krouton-verify`
-- **Compile Asset Catalog (`Assets.car`):**
-  `xcrun actool Resources/Assets.xcassets --compile Resources --platform macosx --minimum-deployment-target 14.0 --app-icon AppIcon --output-partial-info-plist /tmp/assetcatalog_generated_info.plist`
-- **Sync release binary & resources into `build/Krouton.app` and sign:**
-  `cp .build/arm64-apple-macosx/release/Krouton build/Krouton.app/Contents/MacOS/Krouton`
-  `cp Resources/Assets.car Resources/AppIcon*.icns build/Krouton.app/Contents/Resources/`
-  `codesign --force --deep --sign - build/Krouton.app`
+> **Mandatory Verification Rule:** Every code change or architectural proposal MUST pass `swift test && swift run krouton-verify` with zero warnings and zero failures.
 
-## 11-Target Swift 6 Package Architecture (`Package.swift`)
-1. `OpticalCore` — Domain models, LBA math, Red Book 75-fps math, `KroutonSpanningDiscMedium`.
-2. `DriveKit` — Hardware abstraction isolating `IOKit`, `DiscRecording`, `DiskArbitration`, and `hdiutil`.
-3. `ImageKit` — Hybrid ISO-9660/UDF/El Torito LBA planner, CUE/BIN extractor, SHA-256 & hex inspector.
-4. `AudioKit` — Red Book CUE compiler, 18B CD-TEXT CRC-16 encoder, equal-power crossfade DSP.
-5. `VideoKit` — Optical bitrate budgeter, DVD-9 to DVD-5 shrink engine, IFO relinker, AVCHD muxer.
-6. `BurnKit` — `DiscSpanningEngine`, frozen `BurnSet` state machine, single-read stager.
-7. `RescueKit` — Bad-sector optical rescue engine and archival disc quality grader.
-8. `LabelKit` — Polar 300-DPI disc geometry engine and 1:1 vector PDF print sheet generator.
-9. `NetworkSpool` — Port `7420` remote optical burn server (`Krumb`) and spool telemetry.
-10. `Persistence` — `SessionStore`, `RunLock` crash recovery, and security-scoped bookmark vault.
-11. `KroutonApp` — SwiftUI macOS shell (`KroutonAppDelegate.swift`, `KroutonWindowManager`, `KroutonStateStore`), `AppIntents` Shortcuts provider, and `KroutonCLIRunner`.
-- *Verification Target:* `KroutonVerify` (`krouton-verify` executable).
+---
 
-## Critical Guardrails
-1. **Concurrency & MainActor:** UI and AppKit delegates (`KroutonAppDelegate`, `KroutonStateStore`) are `@MainActor` isolated. Keep hardware/optical I/O off the main thread.
-2. **Optical Burn Safety:** Never allow app termination or system sleep while `driveManager.isExecutingQueue == true` (`KroutonPowerAndBurnAssertion` & `applicationShouldTerminate`).
-3. **App Icons & Appearance Switching:**
-   - When `store.iconWidgetStyle` is `"default"`, `NSApplication.shared.applicationIconImage` MUST be `nil` so macOS natively switches Default/Dark/Tinted/Clear icons via `Assets.car` (`CFBundleIconName = AppIcon`).
-   - Use `.sourceAtop` in `tintMonochromeIcon` to preserve alpha transparency around the unplated bread icon.
-4. **Color Palette:** Do not alter the locked 10-swatch Display-P3 harmony values documented in `KroutonPaletteKit/README_PALETTE_LOCKED.md`.
-5. **Localization & Accessibility:** Route all user-facing strings through `KroutonL10n.tr(...)` and maintain the HIG 9pt typography floor.
+## 2. 11-Target Modular Architecture
+Krouton is a native macOS optical disc mastering, extraction, bad-sector rescue, and distributed burn-pool suite written in **Swift 6** (`swift-tools-version: 6.0`, macOS 14+):
 
-## Multi-Agent Sync & Change Tracking (MANDATORY)
-- Before making multi-file or architectural changes, write your proposed plan under `## Proposed Changes` in `AI_HANDOFF.md`.
-- Always run `swift build` and `swift run krouton-verify` before finalizing changes.
-- After completing any code, resource, or build modification, append a timestamped entry under `## Completed Changes` in `AI_HANDOFF.md` listing:
-  1. Summary of what changed and why.
-  2. Exact files created, modified, or deleted.
-  3. Any follow-up items or open issues for the next session.
+### 11 Core Architectural Modules (`KroutonDomainIdentity.Module`, 21 SPM Targets in `Package.swift`)
+1. `OpticalCore` — Pure domain models, `KroutonDomainIdentity`, 32 optical format recipes, `BurnClaimLedger`, `SpanManifest`. Zero external dependencies.
+2. `DriveKit` — Optical hardware discovery & low-level I/O. **Strictly isolated:** never import UI or networking frameworks here.
+3. `BurnKit` — `BurnSetScheduler`, `BusArbitrationState`, `BurnPowerAndBandwidthArbiter`, APFS CoW staging.
+4. `ImageKit` — Hybrid ISO-9660 / Joliet / UDF / El Torito LBA planner (PVD LBA 16, El Torito LBA 17, UDF LBA 256), `.cue/.bin` parser, SHA-256 sector inspector.
+5. `AudioKit` — Red Book CD-DA 75 fps (2352 B/frame) engine, lock-free `CrossfadeParameterMailbox`, `SpliceOverlapMath`, CD-Text CRC-16, CUE compiler.
+6. `VideoKit` — DVD-5/DVD-9/BD-25/BD-50 bitrate budgeting, menu-preserving DVD-9 -> DVD-5 shrink & `.IFO` relinking.
+7. `RescueKit` — Bad-sector optical rescue copy engine & archival disc quality grading.
+8. `LabelKit` — 300-DPI polar disc geometry & 1:1 vector PDF print sheet engine.
+9. `NetworkSpool` — Zero-trust LAN/VPN optical spooling (`SpoolWireFrame`, `SpoolTransferManifest`, `SpoolExtentPipeline`, `SpoolExtentStore`, `DriveLeaseTable`, `SpoolCutoverPolicy`, `SpoolEndpointPolicy`, `SpoolPairing`, `SpoolSecureTransport`, `SpoolPathRanking`, `SpoolTelemetryConflator`). Depends only on `OpticalCore`.
+10. `Persistence` — `SessionStore`, `RunLock` crash recovery, L10n catalog.
+11. `KroutonApp` — macOS application target split into `Shell/` and `Features/` (plus `KroutonVerify` and 9 module test targets = 21 SPM targets total).
+
+---
+
+## 3. Non-Negotiable Code Style & Verification Gates (`krouton-verify`)
+All code written or proposed for Krouton is automatically linted by **Suite 1, Suite 2, and Suite 18**:
+
+- **Pure-SwiftUI Feature Gate (`Sources/KroutonApp/Features/`):**
+  - Files under `Features/` must use **100% Pure SwiftUI**.
+  - ** strictly banned in `Features/`:** `import AppKit`, `NSColor`, `NSView`, `NSImage`, `NSViewRepresentable`.
+  - Use `Color.resolve(in: EnvironmentValues())` for color math and `ImageIO` (`CGImageSource`) + `Image(decorative:scale:)` for file thumbnails.
+- **Strict File & Function Size Ceilings:**
+  - SwiftUI View files (`*View*.swift`, `*Bar.swift`, `*Canvas.swift`): **<= 400 LOC**
+  - Non-View Swift files: **<= 500 LOC**
+  - Individual functions / computed bodies: **<= 200 LOC**
+- **Canonical Section Headers:**
+  - Any Swift file **> 120 LOC** MUST include canonical `// MARK: -` section headers.
+- **Role-Based Extension Naming:**
+  - Multi-file extensions of a type `Foo` MUST be named `Foo+Role.swift` (e.g., `VerifyHarness+ArchitectureSuites.swift`).
+- **Zero Shell-Injection / Zero Subprocess Networking (Suite 18):**
+  - Never use `Process`, `NSTask`, `/bin/sh`, `curl`, `rsync`, `nc`, or `ssh`.
+  - All networking and IPC must use native Apple frameworks (`Network.framework`, `URLSession`, `CryptoKit`).
+- **Swift 6 Strict Concurrency & Observation:**
+  - All cross-isolation models must conform to `Sendable`.
+  - UI state uses `@Observable` with leaf-granular sub-stores (`let` child store + `ReferenceWritableKeyPath`, Suite 24).
+  - Never use `.contextMenu` inside `Features/` or `Shell/NavigationAndRack/` where custom popover/pill controls are mandated.
+
+---
+
+## 4. Current Consultation Task (Networking Strategy Q1–Q10)
+When reviewing `Krouton_Networking_Consultation.zip`:
+1. Start with this `CLAUDE.md` and `00_KROUTON_NETWORKING_CONTEXT.md`.
+2. Answer all 10 architectural questions in `01_NETWORKING_STRATEGY_QUESTIONS.md` (`Q1`–`Q10`).
+3. Cross-reference the real production implementations in `ReferenceSources/` (`SpoolLANSecurityEngine`, `BurnClaimLedger`, `VerifyHarness+PeerAgentSynthesisSuites.swift`, etc.).
+4. Provide complete, deterministic Swift 6 code for **Suite 27** (`Q10`) ready to drop into `Sources/KroutonVerify/`.

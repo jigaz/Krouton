@@ -49,6 +49,7 @@ extension KroutonTestHarness {
     mutating func runVerifyPeerAgentSynthesisSuites() {
         runVerifyLateBindingAndObservationSuites()
         runVerifyCloneStagerBusAndAudioSuites()
+        runVerifyDistributedSpoolSuite()
     }
 
     private mutating func runVerifyLateBindingAndObservationSuites() {

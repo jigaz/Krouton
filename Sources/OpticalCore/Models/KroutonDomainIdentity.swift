@@ -22,6 +22,10 @@ public enum KroutonDomainIdentity: Sendable {
     }
 
     // MARK: - Bonjour & NetworkSpool
+    /// Also list this under NSBonjourServices in the app's Info.plist, with an
+    /// NSLocalNetworkUsageDescription, or browsing silently finds nothing under Local Network privacy.
+    public static let spoolServiceType = "_krouton-spool._tcp"
+    public static let spoolDefaultPort: UInt16 = 7420
 
     // MARK: - 11 Architectural Modules & OSLog Subsystems
     public enum Module: String, Sendable, CaseIterable {
