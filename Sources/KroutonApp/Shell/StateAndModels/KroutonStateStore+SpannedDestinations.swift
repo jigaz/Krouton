@@ -4,7 +4,7 @@ import Foundation
 import OpticalCore
 import SwiftUI
 
-// MARK: - Automatic Right-Column Destination Rack Synchronization for Multi-Disc Spanning
+// MARK: - Automatic Right-Column Destination Rack & Waiting Burn Pool Synchronization
 
 @MainActor
 extension KroutonStateStore {
@@ -42,10 +42,30 @@ extension KroutonStateStore {
         }
     }
 
-    /// Automatically adds, renames, or removes right-column destination cards to match the
-    /// active multi-disc spanning plan (`Disc 1`, `Disc 2`, `Disc 3`…).
+    /// Per-disc byte estimates for the active single-disc or multi-disc plan.
+    func activeSpannedDiscByteEstimates() -> [Int64] {
+        guard selectedCategory == .burn else { return [max(0, totalStagedBytes)] }
+        let spec = activeFormatSpec()
+        if spec.filterGroup == .audio && spec.id != "mp3-cd" {
+            let plan = audioController.project.discPlan()
+            if plan.discs.isEmpty { return [0] }
+            return plan.discs.map { Int64($0.usedFrames) * 2352 }
+        }
+        let plan = dataDiscPlan(forFormatID: spec.id)
+        if plan.discs.isEmpty { return [max(0, totalStagedBytes)] }
+        return plan.discs.map { $0.usedUnits }
+    }
+
+    /// Synchronizes the Right Destination Rack Column:
+    /// - If physical burners are present in `destinationQueue`, keeps the physical burner drive slots
+    ///   in the upper active zone (sorted fastest-first) and populates `waitingBurnPool` (the lower
+    ///   secondary-tinted waiting zone) with all remaining copies (`Copy 2..20`) or spanned discs (`Disc 2..7`).
+    /// - If only `.discImage` cards are used, synchronizes one `.discImage` card per spanned disc.
     func syncSpannedDestinations(driveManager: KroutonOpticalDriveBank) {
-        guard selectedCategory == .burn else { return }
+        guard selectedCategory == .burn || selectedCategory == .depot || selectedCategory == .copy else {
+            waitingBurnPool.removeAll()
+            return
+        }
         let labels = activeSpannedDiscLabels()
         let requiredDiscs = max(1, labels.count)
         let baseTarget = defaultDiscImageTarget
@@ -56,15 +76,27 @@ extension KroutonStateStore {
             return cleaned.isEmpty ? "KROUTON_DISC" : cleaned
         }
 
-        // 1. Remove any auto-spawned destination cards whose disc number is no longer needed
-        destinationQueue.removeAll { item in
-            if let dNum = item.spannedDiscNumber, dNum > requiredDiscs {
-                return true
+        let hasPhysicalBurnerInQueue = destinationQueue.contains { $0.kind == .physicalBurner }
+
+        if hasPhysicalBurnerInQueue {
+            // Remove any legacy auto-spawned .discImage cards that were previously created as overflow for spanned discs
+            if requiredDiscs > 1 {
+                destinationQueue.removeAll { item in
+                    item.kind == .discImage && (item.spannedDiscNumber ?? 0) > 1
+                }
             }
+            syncBurnPoolTickets(driveManager: driveManager)
+            savedQueuesByDomain[currentDestinationDomainKey] = destinationQueue
+            return
+        }
+
+        // Pure .discImage queue mode: 1 .discImage card per spanned disc
+        waitingBurnPool.removeAll()
+        destinationQueue.removeAll { item in
+            if let dNum = item.spannedDiscNumber, dNum > requiredDiscs { return true }
             return false
         }
 
-        // 2. Tag Disc 1 on the primary card when multi-disc spanning is active (clear when single-disc)
         if !destinationQueue.isEmpty {
             if requiredDiscs > 1 {
                 if destinationQueue[0].spannedDiscNumber == nil {
@@ -75,46 +107,26 @@ extension KroutonStateStore {
             }
         }
 
-        // 3. Ensure every spanned disc 2...requiredDiscs has a destination card in the right column
         if requiredDiscs > 1 {
-            let templateKind = destinationQueue.first?.kind ?? .discImage
             for dNum in 2...requiredDiscs {
                 if !destinationQueue.contains(where: { $0.spannedDiscNumber == dNum }) {
                     let stem = sanitizedFileStem(labels[dNum - 1])
-                    let usedDriveIDs = Set(destinationQueue.filter { $0.kind == .physicalBurner }.map(\.targetDriveID))
-                    if templateKind == .physicalBurner,
-                       let freeDrive = driveManager.availableDrives.first(where: { !usedDriveIDs.contains($0.id) }) {
-                        destinationQueue.append(
-                            KroutonBakeBatchItem(
-                                kind: .physicalBurner,
-                                targetDriveID: freeDrive.id,
-                                hardwareOrPath: freeDrive.displayName,
-                                speedOrCodec: "Max Safe (Auto)",
-                                simulationMode: false,
-                                verifyAfterBurn: true,
-                                compressAfterCreation: false,
-                                spannedDiscNumber: dNum
-                            )
+                    destinationQueue.append(
+                        KroutonBakeBatchItem(
+                            kind: .discImage,
+                            targetDriveID: "",
+                            hardwareOrPath: "~/Desktop/\(stem).\(ext)",
+                            speedOrCodec: baseTarget.description,
+                            simulationMode: false,
+                            verifyAfterBurn: true,
+                            compressAfterCreation: false,
+                            spannedDiscNumber: dNum
                         )
-                    } else {
-                        destinationQueue.append(
-                            KroutonBakeBatchItem(
-                                kind: .discImage,
-                                targetDriveID: "",
-                                hardwareOrPath: "~/Desktop/\(stem).\(ext)",
-                                speedOrCodec: baseTarget.description,
-                                simulationMode: false,
-                                verifyAfterBurn: true,
-                                compressAfterCreation: false,
-                                spannedDiscNumber: dNum
-                            )
-                        )
-                    }
+                    )
                 }
             }
         }
 
-        // 4. Keep all spanned .discImage paths & descriptions synchronized with current disc labels
         for idx in destinationQueue.indices {
             let dNum = destinationQueue[idx].spannedDiscNumber ?? (idx == 0 ? 1 : nil)
             if destinationQueue[idx].kind == .discImage, let dNum, dNum >= 1, dNum <= labels.count {
@@ -127,7 +139,6 @@ extension KroutonStateStore {
             }
         }
 
-        // Sort spanned cards in ascending disc order while keeping unspanned extra cards intact
         destinationQueue.sort { lhs, rhs in
             switch (lhs.spannedDiscNumber, rhs.spannedDiscNumber) {
             case let (a?, b?): return a < b
@@ -137,5 +148,196 @@ extension KroutonStateStore {
             }
         }
         savedQueuesByDomain[currentDestinationDomainKey] = destinationQueue
+    }
+
+    // MARK: - Multi-Burner Pool & Lower Waiting Queue Management
+
+    /// Synchronizes the upper assigned physical burner slots and the lower `waitingBurnPool`
+    /// based on spanned disc count, requested copy count, and connected burner write speeds.
+    func syncBurnPoolTickets(driveManager: KroutonOpticalDriveBank) {
+        let burnerIndices = destinationQueue.indices.filter { destinationQueue[$0].kind == .physicalBurner }
+        guard !burnerIndices.isEmpty else {
+            waitingBurnPool.removeAll()
+            return
+        }
+
+        // Determine total copies from the maximum copiesToBurn across burner cards or poolTotalCopies
+        let maxCardCopies = burnerIndices.map { destinationQueue[$0].copiesToBurn }.max() ?? 1
+        let effectiveCopies = max(poolTotalCopies, maxCardCopies)
+        if poolTotalCopies != effectiveCopies {
+            poolTotalCopies = effectiveCopies
+        }
+
+        // Sort physical burner cards in fastest-drive-first order (e.g. 24x -> 10x -> 4x)
+        let speedByDriveID: [String: Double] = Dictionary(
+            uniqueKeysWithValues: driveManager.availableDrives.map { ($0.id, $0.parsedMaxWriteSpeedX) }
+        )
+        destinationQueue.sort { lhs, rhs in
+            if lhs.kind == .physicalBurner && rhs.kind == .physicalBurner {
+                let spdL = speedByDriveID[lhs.targetDriveID] ?? 16.0
+                let spdR = speedByDriveID[rhs.targetDriveID] ?? 16.0
+                if abs(spdL - spdR) > 0.001 { return spdL > spdR }
+            }
+            return false
+        }
+
+        let labels = activeSpannedDiscLabels()
+        let resolvedLabels = labels.isEmpty
+            ? [discVolumeTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "KROUTON_DISC" : discVolumeTitle]
+            : labels
+        let byteEstimates = activeSpannedDiscByteEstimates()
+
+        let allTickets = KroutonDrivePoolState.buildTickets(
+            spannedVolumeLabels: resolvedLabels,
+            perDiscBytes: byteEstimates,
+            totalCopies: effectiveCopies
+        )
+
+        let updatedBurnerIndices = destinationQueue.indices.filter { destinationQueue[$0].kind == .physicalBurner }
+        completedPoolTicketCount = 0
+
+        // If there is only 1 ticket total and 1 burner, clear waiting pool and assign the single ticket
+        var remainingTickets = allTickets
+        for bIdx in updatedBurnerIndices {
+            destinationQueue[bIdx].pendingApprovalTicket = nil
+            if !remainingTickets.isEmpty {
+                let assigned = remainingTickets.removeFirst()
+                destinationQueue[bIdx].assignedPoolTicket = assigned
+                destinationQueue[bIdx].spannedDiscNumber = assigned.totalSpannedDiscs > 1 ? assigned.spannedDiscNumber : nil
+            } else {
+                destinationQueue[bIdx].assignedPoolTicket = nil
+                destinationQueue[bIdx].spannedDiscNumber = nil
+            }
+        }
+        waitingBurnPool = remainingTickets
+    }
+
+    /// Updates the total copy count for the pool and immediately rebuilds the upper assigned slots & lower waiting tasks.
+    func setPoolTotalCopies(_ copies: Int, driveManager: KroutonOpticalDriveBank) {
+        let clamped = max(1, min(99, copies))
+        poolTotalCopies = clamped
+        for idx in destinationQueue.indices where destinationQueue[idx].kind == .physicalBurner {
+            destinationQueue[idx].copiesToBurn = clamped
+        }
+        syncBurnPoolTickets(driveManager: driveManager)
+    }
+
+    /// Adds all connected physical optical drives into the upper active pool, sorted fastest-first (e.g. 24x, 10x, 4x).
+    func poolAllConnectedBurners(driveManager: KroutonOpticalDriveBank) {
+        let sortedDrives = driveManager.availableDrives.sorted { $0.parsedMaxWriteSpeedX > $1.parsedMaxWriteSpeedX }
+        guard !sortedDrives.isEmpty else { return }
+        let usedIDs = Set(destinationQueue.filter { $0.kind == .physicalBurner }.map(\.targetDriveID))
+        for drv in sortedDrives where !usedIDs.contains(drv.id) {
+            destinationQueue.append(
+                KroutonBakeBatchItem(
+                    kind: .physicalBurner,
+                    targetDriveID: drv.id,
+                    hardwareOrPath: drv.displayName,
+                    speedOrCodec: "Max Safe (Auto)",
+                    simulationMode: false,
+                    verifyAfterBurn: true,
+                    compressAfterCreation: false,
+                    copiesToBurn: poolTotalCopies
+                )
+            )
+        }
+        reconcileUniqueDriveAssignments(driveManager: driveManager)
+        syncBurnPoolTickets(driveManager: driveManager)
+    }
+
+    /// Moves a specific waiting burn task from the lower secondary-colored waiting pool across the divider
+    /// into the target upper active burner slot (or the fastest available burner slot if `targetCardID` is nil).
+    func promoteWaitingTicket(_ ticketID: UUID, toCardID targetCardID: UUID? = nil, driveManager: KroutonOpticalDriveBank) {
+        guard let waitIdx = waitingBurnPool.firstIndex(where: { $0.id == ticketID }) else { return }
+        let burnerIndices = destinationQueue.indices.filter { destinationQueue[$0].kind == .physicalBurner }
+        guard !burnerIndices.isEmpty else { return }
+
+        let chosenCardIndex: Int = {
+            if let targetCardID, let match = destinationQueue.firstIndex(where: { $0.id == targetCardID && $0.kind == .physicalBurner }) {
+                return match
+            }
+            if let emptySlot = burnerIndices.first(where: { destinationQueue[$0].assignedPoolTicket == nil && destinationQueue[$0].pendingApprovalTicket == nil }) {
+                return emptySlot
+            }
+            return burnerIndices[0]
+        }()
+
+        let promoted = waitingBurnPool.remove(at: waitIdx)
+        if let prevPending = destinationQueue[chosenCardIndex].pendingApprovalTicket {
+            waitingBurnPool.insert(prevPending, at: 0)
+            destinationQueue[chosenCardIndex].pendingApprovalTicket = nil
+        }
+        if let prevAssigned = destinationQueue[chosenCardIndex].assignedPoolTicket {
+            waitingBurnPool.insert(prevAssigned, at: 0)
+        }
+        waitingBurnPool.sort { $0.sequenceNumber < $1.sequenceNumber }
+        destinationQueue[chosenCardIndex].assignedPoolTicket = promoted
+        destinationQueue[chosenCardIndex].spannedDiscNumber = promoted.totalSpannedDiscs > 1 ? promoted.spannedDiscNumber : nil
+    }
+
+    /// Moves the currently assigned ticket on an upper burner card back down into the lower waiting pool.
+    func demoteAssignedTicketToWaitingPool(fromCardID cardID: UUID) {
+        guard let idx = destinationQueue.firstIndex(where: { $0.id == cardID }) else { return }
+        if let pending = destinationQueue[idx].pendingApprovalTicket {
+            waitingBurnPool.insert(pending, at: 0)
+            destinationQueue[idx].pendingApprovalTicket = nil
+        }
+        if let assigned = destinationQueue[idx].assignedPoolTicket {
+            waitingBurnPool.insert(assigned, at: 0)
+            destinationQueue[idx].assignedPoolTicket = nil
+            destinationQueue[idx].spannedDiscNumber = nil
+        }
+        waitingBurnPool.sort { $0.sequenceNumber < $1.sequenceNumber }
+    }
+
+    /// Called when an upper burner finishes its assigned disc:
+    /// - In `.autoAssign` mode: pulls the next waiting ticket from `waitingBurnPool` directly into `assignedPoolTicket`.
+    /// - In `.askOperator` mode: stages the next waiting ticket in `pendingApprovalTicket` so the operator can approve or skip.
+    @discardableResult
+    func advancePoolAfterCardBurnCompleted(cardID: UUID) -> KroutonPoolBurnTicket? {
+        guard let idx = destinationQueue.firstIndex(where: { $0.id == cardID }) else { return nil }
+        if destinationQueue[idx].assignedPoolTicket != nil {
+            completedPoolTicketCount += 1
+            destinationQueue[idx].completedCopies += 1
+        }
+        destinationQueue[idx].assignedPoolTicket = nil
+        destinationQueue[idx].pendingApprovalTicket = nil
+        destinationQueue[idx].spannedDiscNumber = nil
+
+        guard !waitingBurnPool.isEmpty else { return nil }
+        let nextTicket = waitingBurnPool.removeFirst()
+        switch poolDispatchMode {
+        case .autoAssign:
+            destinationQueue[idx].assignedPoolTicket = nextTicket
+            destinationQueue[idx].spannedDiscNumber = nextTicket.totalSpannedDiscs > 1 ? nextTicket.spannedDiscNumber : nil
+        case .askOperator:
+            destinationQueue[idx].pendingApprovalTicket = nextTicket
+        }
+        return nextTicket
+    }
+
+    /// Approves the pending ticket on an upper burner slot, moving it into the active assigned state.
+    func approvePendingTicketOnCard(_ cardID: UUID) {
+        guard let idx = destinationQueue.firstIndex(where: { $0.id == cardID }) else { return }
+        if let pending = destinationQueue[idx].pendingApprovalTicket {
+            destinationQueue[idx].pendingApprovalTicket = nil
+            destinationQueue[idx].assignedPoolTicket = pending
+            destinationQueue[idx].spannedDiscNumber = pending.totalSpannedDiscs > 1 ? pending.spannedDiscNumber : nil
+        } else if !waitingBurnPool.isEmpty {
+            let nextTicket = waitingBurnPool.removeFirst()
+            destinationQueue[idx].assignedPoolTicket = nextTicket
+            destinationQueue[idx].spannedDiscNumber = nextTicket.totalSpannedDiscs > 1 ? nextTicket.spannedDiscNumber : nil
+        }
+    }
+
+    /// Skips this burner for the pending approval ticket, returning the ticket to the front of the waiting pool
+    /// and assigning it to another idle burner if one is available in Auto-Assign mode.
+    func skipDriveForPendingTicket(onCardID cardID: UUID) {
+        guard let idx = destinationQueue.firstIndex(where: { $0.id == cardID }) else { return }
+        if let pending = destinationQueue[idx].pendingApprovalTicket {
+            destinationQueue[idx].pendingApprovalTicket = nil
+            waitingBurnPool.insert(pending, at: 0)
+            waitingBurnPool.sort { $0.sequenceNumber < $1.sequenceNumber }
+        }
     }
 }

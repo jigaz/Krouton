@@ -31,6 +31,7 @@ public struct BlankRequest: Sendable, Equatable {
 public protocol OpticalDrive: Sendable {
     var id: DriveID { get }
     var displayName: String { get }
+    var maxWriteSpeedX: Double { get }
     /// Waits for a blank that satisfies the request, prompting through the UI.
     /// Throws `BurnFailure.mediaRejected` if the user supplies something unusable,
     /// `.cancelledByUser` if they dismiss the prompt.
@@ -38,6 +39,10 @@ public protocol OpticalDrive: Sendable {
     func write(image: URL, onPhase: @Sendable (BurnPhase) async -> Void) async throws(BurnFailure)
     func verify(againstSHA256 digest: String, byteCount: Int64) async throws(BurnFailure)
     func eject() async
+}
+
+extension OpticalDrive {
+    public var maxWriteSpeedX: Double { 16.0 }
 }
 
 public protocol BurnJournaling: Sendable {
@@ -68,7 +73,7 @@ public actor BurnSetScheduler {
     ///   starts with its finished discs already finished.
     public init(progress: BurnSetProgress, drives: [any OpticalDrive], journal: any BurnJournaling) {
         self.progress = progress
-        self.drives = drives
+        self.drives = drives.sorted { $0.maxWriteSpeedX > $1.maxWriteSpeedX }
         self.journal = journal
         (events, continuation) = AsyncStream.makeStream(of: BurnSchedulerEvent.self)
     }
@@ -165,9 +170,11 @@ public actor BurnSetScheduler {
             if started {
                 try? await record(.attemptFailed(set: setID, disc: disc.index, attempt: attempt,
                                                  failure: failure, at: .now), disc: disc.index)
+            } else if failure == .cancelledByUser || failure == .driveDisconnected {
+                // If an idle/secondary drive was cancelled or unplugged before laser ignition,
+                // release its claim so remaining active drives in the pool can burn this disc.
+                claimed.remove(disc.index)
             }
-            // The disc stays claimed for the rest of this run, so nothing retries it
-            // automatically. The next `run` starts with a clean slate.
             return failure
         }
     }
@@ -208,14 +215,16 @@ public actor ScriptedOpticalDrive: OpticalDrive {
 
     public nonisolated let id: DriveID
     public nonisolated let displayName: String
+    public nonisolated let maxWriteSpeedX: Double
     private var steps: [Step]
     private var currentStep: Step = .succeed()
     public private(set) var burnedImageURLs: [URL] = []
     public private(set) var ejectCount: Int = 0
 
-    public init(id: String, displayName: String, script: [Step]) {
+    public init(id: String, displayName: String, maxWriteSpeedX: Double = 16.0, script: [Step]) {
         self.id = DriveID(id)
         self.displayName = displayName
+        self.maxWriteSpeedX = maxWriteSpeedX
         self.steps = script
     }
 

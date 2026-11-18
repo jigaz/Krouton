@@ -282,4 +282,8 @@ struct KroutonBakeBatchItem: Identifiable, Hashable, Codable, Sendable {
     var completedCopies: Int = 0
     /// Non-nil when managed by the multi-disc spanning engine (1 = Disc 1, 2 = Disc 2, etc.)
     var spannedDiscNumber: Int? = nil
+    /// Ticket currently assigned to this burner slot in the upper active queue.
+    var assignedPoolTicket: KroutonPoolBurnTicket? = nil
+    /// Ticket waiting for operator confirmation on this burner slot when in Ask/Manual mode.
+    var pendingApprovalTicket: KroutonPoolBurnTicket? = nil
 }

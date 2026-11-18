@@ -93,6 +93,11 @@ final class KroutonStateStore {
         KroutonKitchenEventRow(id: "depot", eventTitle: "Disc Image Depot download verified", eventSubtitle: "ISO / image downloaded and SHA-256 verified", bannerEnabled: true, iPhoneEnabled: false, watchEnabled: false, soundEnabled: true)
     ]
 
+    var poolDispatchMode: KroutonPoolDispatchMode = .autoAssign
+    var poolTotalCopies: Int = 1
+    var waitingBurnPool: [KroutonPoolBurnTicket] = []
+    var completedPoolTicketCount: Int = 0
+
     var destinationQueue: [KroutonBakeBatchItem] = [
         KroutonBakeBatchItem(
             kind: .physicalBurner,

@@ -90,8 +90,85 @@ extension KroutonTestHarness {
             h.check(prog.isComplete && prog.jobs[0].attempts == 1 && prog.jobs[1].attempts == 2,
                     "After Disc 2 succeeds on attempt 2, BurnSetProgress.isComplete must be true with attempts == 2")
         }
+
+        // 17b. Multi-Burner Asymmetric Speed Pool (24x, 10x, 4x) with 20 Copies:
+        //      Fastest-first initial dispatch (3 active slots + 17 waiting tasks) & proportional work-stealing completion
+        let drives3 = [
+            KroutonPoolDriveDescriptor(id: "usb-4x", displayName: "Vintage 4x Burner", maxWriteSpeedX: 4.0),
+            KroutonPoolDriveDescriptor(id: "usb-24x", displayName: "Pioneer 24x Burner", maxWriteSpeedX: 24.0),
+            KroutonPoolDriveDescriptor(id: "usb-10x", displayName: "Slim 10x Burner", maxWriteSpeedX: 10.0)
+        ]
+        let tickets20 = KroutonDrivePoolState.buildTickets(
+            spannedVolumeLabels: ["MASTER_ISO"],
+            perDiscBytes: [700_000_000],
+            totalCopies: 20
+        )
+        var pool20 = KroutonDrivePoolState()
+        pool20.populateAndAssignInitialSlots(tickets: tickets20, activeDrives: drives3)
+        h.check(pool20.assignedByDriveID["usb-24x"]?.copyNumber == 1
+                && pool20.assignedByDriveID["usb-10x"]?.copyNumber == 2
+                && pool20.assignedByDriveID["usb-4x"]?.copyNumber == 3
+                && pool20.waitingTasks.count == 17,
+                "3 burners (24x, 10x, 4x) with 20 copies must assign Copy 1->24x, Copy 2->10x, Copy 3->4x and hold Copies 4..20 (17) in waitingTasks")
+
+        // Simulate proportional completion: 24x completes 12 more, 10x completes 5 more, 4x completes 0 more
+        for _ in 0..<12 { _ = pool20.completeActiveAndAdvance(driveID: "usb-24x", dispatchMode: .autoAssign) }
+        for _ in 0..<5  { _ = pool20.completeActiveAndAdvance(driveID: "usb-10x", dispatchMode: .autoAssign) }
+        // Finish the final active copy on each of the 3 drives
+        _ = pool20.completeActiveAndAdvance(driveID: "usb-24x", dispatchMode: .autoAssign)
+        _ = pool20.completeActiveAndAdvance(driveID: "usb-10x", dispatchMode: .autoAssign)
+        _ = pool20.completeActiveAndAdvance(driveID: "usb-4x", dispatchMode: .autoAssign)
+        h.check(pool20.isComplete && pool20.completedTickets.count == 20
+                && pool20.completedCountByDriveID["usb-24x"] == 13
+                && pool20.completedCountByDriveID["usb-10x"] == 6
+                && pool20.completedCountByDriveID["usb-4x"] == 1,
+                "Asymmetric 24x/10x/4x pool must complete all 20 copies with fastest burner claiming the most tasks (13 + 6 + 1 == 20)")
+
+        // 17c. 7-Disc Spanned Set on 1 Burner vs 2 Burners (Auto-Assign & Ask/Manual Promotion)
+        let span7Labels = (1...7).map { String(format: "ARCHIVE_D0%d", $0) }
+        let span7Tickets = KroutonDrivePoolState.buildTickets(
+            spannedVolumeLabels: span7Labels,
+            perDiscBytes: Array(repeating: 4_500_000_000, count: 7),
+            totalCopies: 1
+        )
+        var singleBurnerPool = KroutonDrivePoolState()
+        singleBurnerPool.populateAndAssignInitialSlots(
+            tickets: span7Tickets,
+            activeDrives: [KroutonPoolDriveDescriptor(id: "solo-24x", displayName: "Solo Burner", maxWriteSpeedX: 24.0)]
+        )
+        h.check(singleBurnerPool.assignedByDriveID["solo-24x"]?.spannedDiscNumber == 1 && singleBurnerPool.waitingTasks.count == 6,
+                "7-disc spanned set on 1 burner must assign Disc 1 to active slot and queue Discs 2..7 (6) in waiting pool")
+        for _ in 1...7 { _ = singleBurnerPool.completeActiveAndAdvance(driveID: "solo-24x", dispatchMode: .autoAssign) }
+        h.check(singleBurnerPool.isComplete && singleBurnerPool.completedTickets.map(\.spannedDiscNumber) == Array(1...7),
+                "Single burner must pull and complete all 7 spanned discs in exact 1..7 order")
+
+        // 2 Burners in Ask/Manual mode + manual promotion across the divider
+        var dualBurnerPool = KroutonDrivePoolState()
+        dualBurnerPool.populateAndAssignInitialSlots(
+            tickets: span7Tickets,
+            activeDrives: [
+                KroutonPoolDriveDescriptor(id: "b1-24x", displayName: "Burner 1", maxWriteSpeedX: 24.0),
+                KroutonPoolDriveDescriptor(id: "b2-10x", displayName: "Burner 2", maxWriteSpeedX: 10.0)
+            ]
+        )
+        _ = dualBurnerPool.completeActiveAndAdvance(driveID: "b1-24x", dispatchMode: .askOperator)
+        h.check(dualBurnerPool.pendingApprovalByDriveID["b1-24x"]?.spannedDiscNumber == 3 && dualBurnerPool.assignedByDriveID["b1-24x"] == nil,
+                "In .askOperator mode, finishing Disc 1 on Burner 1 must stage Disc 3 in pendingApprovalByDriveID until approved")
+        _ = dualBurnerPool.approvePendingTicket(forDriveID: "b1-24x")
+        h.check(dualBurnerPool.assignedByDriveID["b1-24x"]?.spannedDiscNumber == 3,
+                "Approving pending ticket on Burner 1 must promote Disc 3 into active assignedByDriveID")
+        if let disc7 = dualBurnerPool.waitingTasks.last {
+            _ = dualBurnerPool.manuallyPromoteWaitingTicket(disc7.id, toDriveID: "b2-10x")
+            h.check(dualBurnerPool.assignedByDriveID["b2-10x"]?.spannedDiscNumber == 7
+                    && dualBurnerPool.waitingTasks.contains(where: { $0.spannedDiscNumber == 2 }),
+                    "Manually promoting Disc 7 to Burner 2 must assign Disc 7 to Burner 2 and return unstarted Disc 2 to waitingTasks")
+        }
     }
 
+    runVerifyShellAndTelemetrySuite()
+    }
+
+    private mutating func runVerifyShellAndTelemetrySuite() {
     self.runSuite("18. Zero Shell-Injection Process Gate & 500-Frame Telemetry State Machine Fuzzing") { h in
     // 16a. Scan all 21 production files to ensure Process never invokes a shell (/bin/sh, /bin/zsh, /bin/bash, -c)
     let forbiddenShellPatterns = ["/bin/sh", "/bin/bash", "/bin/zsh", "/usr/bin/env sh", "Darwin.system(", "popen("]

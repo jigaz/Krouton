@@ -57,7 +57,7 @@ struct KroutonDestinationRackColumnView: View {
 
             Divider()
 
-            // Iterating directly over store.destinationQueue by UUID (Zero raw array indices = Zero crashes!)
+            // Two-Zone Queue: Upper Active Assigned Burners (Primary Accent) + Visual Divider + Lower Waiting Pool (Secondary Accent)
             ScrollView {
                 VStack(spacing: 12) {
                     ForEach(store.destinationQueue) { item in
@@ -68,6 +68,10 @@ struct KroutonDestinationRackColumnView: View {
                             isRightQueueCompact: isRightQueueCompact,
                             primarySelectedDrive: primarySelectedDrive
                         )
+                    }
+
+                    if shouldShowBurnPoolZone {
+                        waitingBurnPoolDividerAndZone
                     }
                 }
                 .padding(.horizontal, isRightQueueCompact ? 10 : 12)
@@ -83,13 +87,7 @@ struct KroutonDestinationRackColumnView: View {
             .onChange(of: store.audioController.project) { _, _ in
                 store.syncSpannedDestinations(driveManager: driveManager)
             }
-            .onAppear {
-                store.syncSpannedDestinations(driveManager: driveManager)
-            }
-            .onChange(of: store.activeSpannedDiscLabels()) { _, _ in
-                store.syncSpannedDestinations(driveManager: driveManager)
-            }
-            .onChange(of: store.audioController.project) { _, _ in
+            .onChange(of: driveManager.availableDrives) { _, _ in
                 store.syncSpannedDestinations(driveManager: driveManager)
             }
 

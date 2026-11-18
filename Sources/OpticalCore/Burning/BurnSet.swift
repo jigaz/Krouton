@@ -61,6 +61,32 @@ public struct BurnSet: Codable, Sendable, Identifiable, Equatable {
         self.createdAt = createdAt
         self.discs = discs
     }
+
+    /// Expands this frozen set to `copyCount` copies without duplicating the staged ISO files on disk.
+    public func expandingCopies(_ copyCount: Int) -> BurnSet {
+        let copies = max(1, copyCount)
+        guard copies > 1, !discs.isEmpty else { return self }
+        var expanded: [FrozenDisc] = []
+        var nextIndex = 1
+        for copyNum in 1...copies {
+            for baseDisc in discs {
+                let label = discs.count == 1
+                    ? "\(baseDisc.volumeLabel)_C\(String(format: "%02d", copyNum))"
+                    : "\(baseDisc.volumeLabel)_C\(copyNum)"
+                expanded.append(
+                    FrozenDisc(
+                        index: nextIndex,
+                        volumeLabel: String(label.prefix(32)),
+                        imageURL: baseDisc.imageURL,
+                        imageSHA256: baseDisc.imageSHA256,
+                        imageBytes: baseDisc.imageBytes
+                    )
+                )
+                nextIndex += 1
+            }
+        }
+        return BurnSet(id: id, title: title, createdAt: createdAt, discs: expanded)
+    }
 }
 
 public enum BurnFailure: Error, Codable, Sendable, Equatable {

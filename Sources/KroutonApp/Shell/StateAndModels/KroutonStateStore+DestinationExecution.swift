@@ -135,7 +135,29 @@ extension KroutonStateStore {
                     continuation.resume(returning: report.isSuccess)
                 }
             }
-            if burnSucceeded && target.copiesToBurn > 1 && autoLoadNextDiscBatchMode {
+            if burnSucceeded && (!waitingBurnPool.isEmpty || target.assignedPoolTicket != nil) {
+                let nextTicket = advancePoolAfterCardBurnCompleted(cardID: target.id)
+                if let nextTicket, poolDispatchMode == .autoAssign, autoLoadNextDiscBatchMode {
+                    let driveKey = target.targetDriveID.isEmpty ? (driveManager.selectedDrive?.id ?? "") : target.targetDriveID
+                    driveManager.startBatchAutoLoadMonitor(
+                        for: driveKey,
+                        completedCopy: max(1, nextTicket.sequenceNumber - 1),
+                        totalCopies: max(nextTicket.totalCopies, nextTicket.totalSpannedDiscs),
+                        countdownSeconds: autoLoadCountdownSeconds,
+                        bitsetDVDROM: self.forceDVDROMBookType
+                    ) { [weak self] in
+                        guard let self = self else { return }
+                        if let updatedItem = self.destinationQueue.first(where: { $0.id == target.id }) {
+                            self.executeSingleDestination(
+                                updatedItem,
+                                driveManager: driveManager,
+                                primarySelectedDrive: primarySelectedDrive,
+                                isAutoLoadedCopy: true
+                            )
+                        }
+                    }
+                }
+            } else if burnSucceeded && target.copiesToBurn > 1 && autoLoadNextDiscBatchMode {
                 let finishedCount = target.completedCopies + 1
                 if finishedCount < target.copiesToBurn {
                     updateQueueItem(target.id) { $0.completedCopies = finishedCount }

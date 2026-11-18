@@ -46,6 +46,7 @@ struct KroutonDestinationCardView: View {
             destinationCardTopHeaderBar
 
             if item.kind == .physicalBurner {
+                activePoolTicketSlotBanner
                 physicalBurnerDriveAndSpeedSection
                 physicalBurnerBatchAndOptionsSection
             } else if item.kind == .networkBurner {
@@ -267,10 +268,14 @@ extension KroutonDestinationCardView {
 
     @ViewBuilder
     func copiesStepperView(cardID: UUID) -> some View {
-        Stepper(value: Binding(get: { item.copiesToBurn }, set: { n in store.updateQueueItem(cardID) { $0.copiesToBurn = max(1, min(99, n)) } }), in: 1...99) {
-            Text("\(item.copiesToBurn)×").font(.system(size: 10.5, weight: item.copiesToBurn > 1 ? .bold : .semibold, design: .monospaced)).lineLimit(1)
+        Stepper(value: Binding(
+            get: { max(item.copiesToBurn, store.poolTotalCopies) },
+            set: { n in store.setPoolTotalCopies(n, driveManager: driveManager) }
+        ), in: 1...99) {
+            let count = max(item.copiesToBurn, store.poolTotalCopies)
+            Text("\(count)×").font(.system(size: 10.5, weight: count > 1 ? .bold : .semibold, design: .monospaced)).lineLimit(1)
         }
         .controlSize(.small)
-        .help("Copies to burn: \(item.copiesToBurn)")
+        .help("Total copies in burn pool: \(max(item.copiesToBurn, store.poolTotalCopies))")
     }
 }

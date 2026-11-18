@@ -820,3 +820,16 @@ This file tracks proposed and completed changes across AI coding sessions (Claud
   - `Sources/KroutonApp/Shell/Workspace/KroutonMainWorkspaceView.swift` (M)
   - `Sources/KroutonVerify/VerifyHarness+ArchitectureSuites.swift` (M)
   - `Sources/NetworkSpool/SpoolRemoteNodeClient.swift` (M)
+
+- **2026-11-18 00:42 [commit 7f532ba]:** Add multi-burner work-stealing pool and two-zone waiting burn queue in right rack 
+  - `Sources/BurnKit/BurnSetScheduler.swift` (M)
+  - `Sources/KroutonApp/Shell/NavigationAndRack/KroutonDestinationCardView.swift` (M)
+  - `Sources/KroutonApp/Shell/NavigationAndRack/KroutonDestinationSubViews+WaitingPool.swift` (A)
+  - `Sources/KroutonApp/Shell/NavigationAndRack/KroutonDestinationSubViews.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateDomainModels.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+DestinationExecution.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+SpannedDestinations.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore.swift` (M)
+  - `Sources/KroutonVerify/VerifyHarness+HardwareAndBurnSuites.swift` (M)
+  - `Sources/OpticalCore/Burning/BurnPoolQueue.swift` (A)
+  - `Sources/OpticalCore/Burning/BurnSet.swift` (M)
