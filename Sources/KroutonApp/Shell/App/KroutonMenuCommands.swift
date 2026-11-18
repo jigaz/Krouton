@@ -109,42 +109,42 @@ struct KroutonWorkspaceCommands: Commands {
     var formatMenuCommands: some Commands {
         CommandMenu(KroutonL10n.tr("Format")) {
             Menu(KroutonL10n.tr("Data & Archival Media")) {
-                Button(KroutonL10n.tr("Hybrid ISO-9660 + Joliet + UDF")) { selectBurnFormat("data-hybrid") }
+                Button(KroutonL10n.tr("Hybrid ISO-9660 + Joliet + UDF")) { selectBurnFormat(.dataHybrid) }
                     .keyboardShortcut("1", modifiers: [.command, .control])
-                Button(KroutonL10n.tr("UDF 2.60 Optical Volume")) { selectBurnFormat("udf-260") }
-                Button(KroutonL10n.tr("M-DISC 1,000-Year Archival Vault")) { selectBurnFormat("m-disc") }
+                Button(KroutonL10n.tr("UDF 2.60 Optical Volume")) { selectBurnFormat(.dataUDFModern) }
+                Button(KroutonL10n.tr("M-DISC 1,000-Year Archival Vault")) { selectBurnFormat(.mdiscVault) }
                     .keyboardShortcut("5", modifiers: [.command, .control])
-                Button(KroutonL10n.tr("Burn Disc Image (.iso / .cue / .dmg)")) { selectBurnFormat("image-burn") }
+                Button(KroutonL10n.tr("Burn Disc Image (.iso / .cue / .dmg)")) { selectBurnFormat(.imageBurn) }
                     .keyboardShortcut("6", modifiers: [.command, .control])
             }
             Menu(KroutonL10n.tr("Audio & Music Discs")) {
-                Button(KroutonL10n.tr("Red Book Audio CD (CD-DA)")) { selectBurnFormat("cd-da") }
+                Button(KroutonL10n.tr("Red Book Audio CD (CD-DA)")) { selectBurnFormat(.cdDA) }
                     .keyboardShortcut("2", modifiers: [.command, .control])
-                Button(KroutonL10n.tr("MP3 / FLAC Car Audio CD")) { selectBurnFormat("mp3-cd") }
-                Button(KroutonL10n.tr("Blue Book CD-Extra (Audio + Data)")) { selectBurnFormat("cd-extra") }
+                Button(KroutonL10n.tr("MP3 / FLAC Car Audio CD")) { selectBurnFormat(.mp3CD) }
+                Button(KroutonL10n.tr("Blue Book CD-Extra (Audio + Data)")) { selectBurnFormat(.cdExtra) }
             }
             Menu(KroutonL10n.tr("Video & Cinema Discs")) {
-                Button(KroutonL10n.tr("DVD-Video (VIDEO_TS)")) { selectBurnFormat("dvd-video") }
+                Button(KroutonL10n.tr("DVD-Video (VIDEO_TS)")) { selectBurnFormat(.dvdVideo) }
                     .keyboardShortcut("3", modifiers: [.command, .control])
-                Button(KroutonL10n.tr("AVCHD High-Definition")) { selectBurnFormat("avchd") }
-                Button(KroutonL10n.tr("Blu-ray Disc Single-Layer (BD-R 25 GB)")) { selectBurnFormat("bd-r-sl") }
+                Button(KroutonL10n.tr("AVCHD High-Definition")) { selectBurnFormat(.bdOnDVD) }
+                Button(KroutonL10n.tr("Blu-ray Disc Single-Layer (BD-R 25 GB)")) { selectBurnFormat(.bd25) }
                     .keyboardShortcut("4", modifiers: [.command, .control])
-                Button(KroutonL10n.tr("Blu-ray Disc Dual-Layer (BD-R 50 GB)")) { selectBurnFormat("bd-r-dl") }
-                Button(KroutonL10n.tr("BDXL Triple/Quad-Layer UHD (100 GB)")) { selectBurnFormat("bdxl-uhd") }
+                Button(KroutonL10n.tr("Blu-ray Disc Dual-Layer (BD-R 50 GB)")) { selectBurnFormat(.bd50) }
+                Button(KroutonL10n.tr("BDXL Triple/Quad-Layer UHD (100 GB)")) { selectBurnFormat(.bdUHD) }
             }
             Menu(KroutonL10n.tr("Retro Console Optical Media")) {
-                Button(KroutonL10n.tr("Nintendo Wii Optical Disc")) { selectBurnFormat("console-wii") }
-                Button(KroutonL10n.tr("Nintendo GameCube (MiniDVD)")) { selectBurnFormat("console-gc") }
-                Button(KroutonL10n.tr("Sony PlayStation 2 (DVD-ROM)")) { selectBurnFormat("console-ps2") }
-                Button(KroutonL10n.tr("Sony PlayStation 1 (CD-XA Mode 2)")) { selectBurnFormat("console-ps1") }
-                Button(KroutonL10n.tr("Original Xbox (XDVDFS)")) { selectBurnFormat("console-xbox") }
+                Button(KroutonL10n.tr("Nintendo Wii Optical Disc")) { selectBurnFormat(.consoleWii) }
+                Button(KroutonL10n.tr("Nintendo GameCube (MiniDVD)")) { selectBurnFormat(.consoleGC) }
+                Button(KroutonL10n.tr("Sony PlayStation 2 (DVD-ROM)")) { selectBurnFormat(.consolePS2) }
+                Button(KroutonL10n.tr("Sony PlayStation 1 (CD-XA Mode 2)")) { selectBurnFormat(.consolePS1) }
+                Button(KroutonL10n.tr("Original Xbox (XDVDFS)")) { selectBurnFormat(.consoleXbox) }
             }
 
             Divider()
 
             Button(KroutonL10n.tr("Inspect Hybrid ISO/UDF LBA Layout")) {
-                if wm.store.selectedCategory != .burn || (!wm.store.selectedTaskID.hasPrefix("data-") && wm.store.selectedTaskID != "udf-260" && wm.store.selectedTaskID != "m-disc") {
-                    selectBurnFormat("data-hybrid")
+                if wm.store.selectedCategory != .burn || wm.store.activeFormatSpec().workspaceKind != .dataAndArchival {
+                    selectBurnFormat(.dataHybrid)
                 }
                 let plan = wm.store.planLiveHybridDataLayout()
                 let summary = "Volume: \(plan.volumeIdentifier) | PVD LBA: \(plan.pvdSectorLBA) | UDF Anchor LBA: \(plan.udfAnchorAVDPLBA) | Total Sectors: \(plan.totalSectorsLBA)"
@@ -156,8 +156,8 @@ struct KroutonWorkspaceCommands: Commands {
             .keyboardShortcut("l", modifiers: [.command, .control])
 
             Button(KroutonL10n.tr("Inspect Compiled Red Book CUE Sheet")) {
-                if wm.store.selectedCategory != .burn || (wm.store.selectedTaskID != "cd-da" && wm.store.selectedTaskID != "cd-extra") {
-                    selectBurnFormat("cd-da")
+                if wm.store.selectedCategory != .burn || (wm.store.selectedFormatID != .cdDA && wm.store.selectedFormatID != .cdExtra) {
+                    selectBurnFormat(.cdDA)
                 }
                 let cue = wm.store.compileLiveAudioCueSheet()
                 KroutonOSDesktopBridge.copyTextToClipboard(cue)
@@ -168,8 +168,8 @@ struct KroutonWorkspaceCommands: Commands {
             .keyboardShortcut("u", modifiers: [.command, .control])
 
             Button(KroutonL10n.tr("Inspect Video Bitrate Budget")) {
-                if wm.store.selectedCategory != .burn || (!wm.store.selectedTaskID.hasPrefix("dvd-") && !wm.store.selectedTaskID.hasPrefix("bd") && wm.store.selectedTaskID != "avchd") {
-                    selectBurnFormat("dvd-video")
+                if wm.store.selectedCategory != .burn || wm.store.activeFormatSpec().workspaceKind != .videoAuthoring {
+                    selectBurnFormat(.dvdVideo)
                 }
                 DispatchQueue.main.async {
                     NotificationCenter.default.post(name: .kroutonMenuInspectVideoBitrate, object: nil)
@@ -183,24 +183,20 @@ struct KroutonWorkspaceCommands: Commands {
     var copyAndRipMenuCommands: some Commands {
         CommandMenu(KroutonL10n.tr("Copy & Rip")) {
             Button(KroutonL10n.tr("Scan Audio CD TOC & Lookup MusicBrainz")) {
-                wm.store.selectedCategory = .copy
-                wm.store.selectedTaskID = "copy-rip-audio"
-                wm.store.syncDefaultDestinationForCategory(.copy, taskID: "copy-rip-audio", driveManager: wm.driveManager)
+                selectCopyTask(.ripAudioCD)
                 NotificationCenter.default.post(name: .kroutonMenuScanTOC, object: nil)
             }
             .keyboardShortcut("r", modifiers: [.command, .option])
 
             Button(KroutonL10n.tr("Rip Selected Audio CD Tracks")) {
-                wm.store.selectedCategory = .copy
-                wm.store.selectedTaskID = "copy-rip-audio"
-                wm.store.syncDefaultDestinationForCategory(.copy, taskID: "copy-rip-audio", driveManager: wm.driveManager)
+                selectCopyTask(.ripAudioCD)
                 NotificationCenter.default.post(name: .kroutonMenuRipSelected, object: nil)
             }
             .keyboardShortcut("r", modifiers: [.command, .shift])
 
             Button(KroutonL10n.tr("CD Info & Metadata Tags...")) {
                 wm.store.selectedCategory = .copy
-                wm.store.selectedTaskID = "copy-rip-audio"
+                wm.store.selectedTaskID = KroutonCopyTaskID.ripAudioCD.rawValue
                 NotificationCenter.default.post(name: .kroutonMenuShowCDInfo, object: nil)
             }
             .keyboardShortcut("i", modifiers: .command)
@@ -208,23 +204,17 @@ struct KroutonWorkspaceCommands: Commands {
             Divider()
 
             Button(KroutonL10n.tr("Duplicate Disc / Fit-to-Disc DVD-9 Shrink")) {
-                wm.store.selectedCategory = .copy
-                wm.store.selectedTaskID = "copy-duplicate"
-                wm.store.syncDefaultDestinationForCategory(.copy, taskID: "copy-duplicate", driveManager: wm.driveManager)
+                selectCopyTask(.duplicateDisc)
             }
             .keyboardShortcut("k", modifiers: [.command, .shift])
 
             Button(KroutonL10n.tr("Video Disc Extractor (Lossless MKV Remux)")) {
-                wm.store.selectedCategory = .copy
-                wm.store.selectedTaskID = "copy-rip-video"
-                wm.store.syncDefaultDestinationForCategory(.copy, taskID: "copy-rip-video", driveManager: wm.driveManager)
+                selectCopyTask(.extractVideoDisc)
             }
             .keyboardShortcut("v", modifiers: [.command, .shift])
 
             Button(KroutonL10n.tr("Optical Bad-Sector Rescue & Recovery")) {
-                wm.store.selectedCategory = .copy
-                wm.store.selectedTaskID = "copy-rescue"
-                wm.store.syncDefaultDestinationForCategory(.copy, taskID: "copy-rescue", driveManager: wm.driveManager)
+                selectCopyTask(.duplicateDisc)
             }
             .keyboardShortcut("d", modifiers: [.command, .option])
         }
@@ -313,9 +303,15 @@ struct KroutonWorkspaceCommands: Commands {
         }
     }
 
-    func selectBurnFormat(_ id: String) {
+    func selectBurnFormat(_ format: KroutonFormatID) {
         wm.store.selectedCategory = .burn
-        wm.store.selectedTaskID = id
-        wm.store.syncDefaultDestinationForCategory(.burn, taskID: id, driveManager: wm.driveManager)
+        wm.store.selectedTaskID = format.rawValue
+        wm.store.syncDefaultDestinationForCategory(.burn, taskID: format.rawValue, driveManager: wm.driveManager)
+    }
+
+    func selectCopyTask(_ task: KroutonCopyTaskID) {
+        wm.store.selectedCategory = .copy
+        wm.store.selectedTaskID = task.rawValue
+        wm.store.syncDefaultDestinationForCategory(.copy, taskID: task.rawValue, driveManager: wm.driveManager)
     }
 }

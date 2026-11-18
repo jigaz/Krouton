@@ -18,25 +18,25 @@ extension KroutonStateStore {
     /// Format-aware Disc Image extension (.cue/.bin for Red Book & Raw CD Consoles, .dmg for macOS HFS+/APFS, .iso for Hybrid/UDF/Video/DVD)
     var defaultDiscImageTarget: (path: String, description: String) {
         let cleanTitle = discVolumeTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? (selectedTaskID == "dvd-video" ? "DVD_VIDEO" : "KROUTON_DISC")
+            ? (selectedFormatID == .dvdVideo ? "DVD_VIDEO" : "KROUTON_DISC")
             : discVolumeTitle.replacingOccurrences(of: " ", with: "_")
         if selectedCategory == .copy {
-            if selectedTaskID == "copy-rip-audio" {
+            switch selectedCopyTaskID {
+            case .ripAudioCD:
                 return ("~/Music/Krouton Rips/\(cleanTitle).cue", "Red Book .BIN + .CUE Archival Image")
-            } else if selectedTaskID == "copy-rip-video" {
+            case .extractVideoDisc:
                 return ("~/Movies/Krouton Extracts/\(cleanTitle).iso", "Decrypted Video .ISO Image")
+            default:
+                return ("~/Desktop/Disc_Backup.iso", "1:1 Archival Sector .ISO Image")
             }
-            return ("~/Desktop/Disc_Backup.iso", "1:1 Archival Sector .ISO Image")
         }
-        let spec = activeFormatSpec()
-        switch spec.id {
-        case "cd-da", "cd-extra", "dts-cd", "cd-g", "console-ps1", "console-saturn", "console-3do", "console-dc":
+        let fmt = activeFormatSpec().formatID
+        if fmt?.usesRawCueBinImage == true {
             return ("~/Desktop/\(cleanTitle).cue", "2,352-Byte Raw .BIN + .CUE Image")
-        case "data-apple-apfs", "macos9-hfs":
+        } else if fmt?.usesAppleDiskImage == true {
             return ("~/Desktop/\(cleanTitle).dmg", "Apple HFS+ / APFS Disk Image")
-        default:
-            return ("~/Desktop/\(cleanTitle).iso", "Sector-Exact .ISO Optical Image")
         }
+        return ("~/Desktop/\(cleanTitle).iso", "Sector-Exact .ISO Optical Image")
     }
     /// Strict task-aware allowed destination types (never offer Video Transcode on Audio CD or Burners on Rip tasks!)
     var allowedDestinationsForCurrentCategory: [KroutonBurnDestinationKind] {
@@ -44,17 +44,17 @@ extension KroutonStateStore {
         case .depot:
             return [.physicalBurner, .networkBurner]
         case .burn:
-            if selectedTaskID == "image-burn" {
+            if selectedFormatID == .imageBurn {
                 return [.physicalBurner, .networkBurner]
             }
             return [.physicalBurner, .networkBurner, .discImage]
         case .copy:
-            switch selectedTaskID {
-            case "copy-rip-audio", "copy-audio-rip":
+            switch selectedCopyTaskID {
+            case .ripAudioCD:
                 return [.audioRip, .discImage]
-            case "copy-rip-video":
+            case .extractVideoDisc:
                 return [.videoExtract, .discImage]
-            default: // "copy-duplicate"
+            default:
                 return [.physicalBurner, .networkBurner, .discImage]
             }
         case .label:
@@ -157,10 +157,10 @@ extension KroutonStateStore {
         case .depot:
             return "GET & BURN ISO (\(count))"
         case .copy:
-            switch selectedTaskID {
-            case "copy-rip-audio", "copy-audio-rip":
+            switch selectedCopyTaskID {
+            case .ripAudioCD:
                 return "RIP AUDIO CD (\(count))"
-            case "copy-rip-video":
+            case .extractVideoDisc:
                 return "EXTRACT VIDEO (\(count))"
             default:
                 return "DUPLICATE DISC (\(count))"
@@ -174,9 +174,9 @@ extension KroutonStateStore {
         case .burn: return "flame.fill"
         case .depot: return "arrow.down.doc.fill"
         case .copy:
-            switch selectedTaskID {
-            case "copy-rip-audio", "copy-audio-rip": return "waveform.badge.plus"
-            case "copy-rip-video": return "film.stack.fill"
+            switch selectedCopyTaskID {
+            case .ripAudioCD: return "waveform.badge.plus"
+            case .extractVideoDisc: return "film.stack.fill"
             default: return "doc.on.doc.fill"
             }
         case .label: return "printer.fill"
@@ -190,11 +190,11 @@ extension KroutonStateStore {
             let item = self.depotItems.first(where: { $0.id == self.selectedDepotHeroItemID }) ?? self.depotItems[0]
             return "Depot Ready • \(item.title) (\(item.sizeDisplay))"
         case .copy:
-            switch selectedTaskID {
-            case "copy-rip-audio", "copy-audio-rip":
+            switch selectedCopyTaskID {
+            case .ripAudioCD:
                 if let cd = KroutonRealCDExtractor.scanMountedAudioCD() { return "Audio Rip Ready • \(cd.tracks.count) Red Book Tracks (\(ByteCountFormatter.string(fromByteCount: cd.totalPCMBytes, countStyle: .file)))" }
                 return "Audio Rip Ready • Insert Red Book Audio CD"
-            case "copy-rip-video":
+            case .extractVideoDisc:
                 return "Video Extract • \(stagedFiles.count) Source(s) (\(ByteCountFormatter.string(fromByteCount: totalStagedBytes, countStyle: .file)))"
             default:
                 return "Disc Duplicator • \(ByteCountFormatter.string(fromByteCount: totalStagedBytes, countStyle: .file)) Staged"
@@ -209,12 +209,11 @@ extension KroutonStateStore {
         case .burn, .depot:
             return "domain.opticalBurn"
         case .copy:
-            if taskID == "copy-rip-audio" || taskID == "copy-audio-rip" {
-                return "domain.audioRip"
-            } else if taskID == "copy-rip-video" {
-                return "domain.videoExtract"
+            switch KroutonCopyTaskID(rawValue: taskID) {
+            case .ripAudioCD: return "domain.audioRip"
+            case .extractVideoDisc: return "domain.videoExtract"
+            default: return "domain.opticalBurn"
             }
-            return "domain.opticalBurn" // Duplicate Disc shares optical burn hardware & ISO targets!
         case .label:
             return "domain.discLabel"
         }
@@ -258,7 +257,7 @@ extension KroutonStateStore {
                 let baseDir = dir.isEmpty ? "~/Desktop" : dir
                 let ext = (imgTarget.path as NSString).pathExtension
                 let cleanTitle = discVolumeTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    ? (selectedTaskID == "dvd-video" ? "DVD_VIDEO" : "KROUTON_DISC")
+                    ? (selectedFormatID == .dvdVideo ? "DVD_VIDEO" : "KROUTON_DISC")
                     : discVolumeTitle.replacingOccurrences(of: " ", with: "_")
                 restored[i].hardwareOrPath = "\(baseDir)/\(cleanTitle).\(ext)"
                 restored[i].speedOrCodec = imgTarget.description
@@ -280,11 +279,11 @@ extension KroutonStateStore {
                 KroutonBakeBatchItem(kind: .physicalBurner, targetDriveID: currentDriveID, hardwareOrPath: currentDriveName, speedOrCodec: "Max Safe (Auto)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
             ]
         case .copy:
-            if taskID == "copy-rip-audio" || taskID == "copy-audio-rip" {
+            if KroutonCopyTaskID(rawValue: taskID) == .ripAudioCD {
                 destinationQueue = [
                     KroutonBakeBatchItem(kind: .audioRip, targetDriveID: "", hardwareOrPath: "~/Music/Krouton Rips/FLAC Lossless", speedOrCodec: "FLAC (Lossless) + AccurateRip", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
                 ]
-            } else if taskID == "copy-rip-video" {
+            } else if KroutonCopyTaskID(rawValue: taskID) == .extractVideoDisc {
                 destinationQueue = [
                     KroutonBakeBatchItem(kind: .videoExtract, targetDriveID: "", hardwareOrPath: "~/Movies/Krouton Extracts", speedOrCodec: "Lossless MKV Remux", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
                 ]
@@ -319,7 +318,7 @@ extension KroutonStateStore {
                 destinationQueue.append(
                     KroutonBakeBatchItem(kind: .physicalBurner, targetDriveID: nextUnusedDrive.id, hardwareOrPath: nextUnusedDrive.displayName, speedOrCodec: "Max Safe (Auto)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
                 )
-            } else if selectedTaskID == "image-burn" {
+            } else if selectedFormatID == .imageBurn {
                 destinationQueue.append(
                     KroutonBakeBatchItem(kind: .networkBurner, targetDriveID: "", hardwareOrPath: "localhost:7420", speedOrCodec: "Max Safe (Auto)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
                 )
@@ -330,7 +329,7 @@ extension KroutonStateStore {
                 )
             }
         case .copy:
-            if selectedTaskID == "copy-rip-audio" || selectedTaskID == "copy-audio-rip" {
+            if selectedCopyTaskID == .ripAudioCD {
                 let hasCueBackup = destinationQueue.contains(where: { $0.kind == .discImage })
                 if !hasCueBackup {
                     let imgTarget = defaultDiscImageTarget
@@ -342,7 +341,7 @@ extension KroutonStateStore {
                         KroutonBakeBatchItem(kind: .audioRip, targetDriveID: "", hardwareOrPath: "~/Music/Krouton Rips/MP3 320kbps", speedOrCodec: "MP3 (320 kbps CBR)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
                     )
                 }
-            } else if selectedTaskID == "copy-rip-video" {
+            } else if selectedCopyTaskID == .extractVideoDisc {
                 let hasIsoBackup = destinationQueue.contains(where: { $0.kind == .discImage })
                 if !hasIsoBackup {
                     let imgTarget = defaultDiscImageTarget

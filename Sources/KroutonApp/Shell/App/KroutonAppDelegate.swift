@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import DriveKit
+import OpticalCore
 import SwiftUI
 
 @MainActor
@@ -150,7 +151,7 @@ final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
             let ext = url.pathExtension.lowercased()
             if ["iso", "dmg", "cdr", "bin", "cue", "mds", "nrg"].contains(ext) {
                 store.selectedCategory = .burn
-                store.selectedTaskID = "disc-image"
+                store.selectedTaskID = KroutonFormatID.imageBurn.rawValue
             }
             if !store.stagedFiles.contains(where: { $0.url.standardizedFileURL == url.standardizedFileURL }) {
                 let entry = KroutonOpticalDriveBank.inspectFileOrFolder(url: url)

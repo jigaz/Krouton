@@ -2,6 +2,44 @@ import Foundation
 import OpticalCore
 import SwiftUI
 
+enum KroutonPreferenceKey: String, CaseIterable, Sendable {
+    case selectedAccentIndex = "krouton.pref.selectedAccentIndex"
+    case harmonyEnabled = "krouton.pref.harmonyEnabled"
+    case appearanceMode = "krouton.pref.appearanceMode"
+    case iconWidgetStyle = "krouton.pref.iconWidgetStyle"
+    case folderColorMode = "krouton.pref.folderColorMode"
+    case sidebarIconSize = "krouton.pref.sidebarIconSize"
+    case appLanguage = "krouton.pref.appLanguage"
+    case useBase10Units = "krouton.pref.useBase10Units"
+    case rememberLastTask = "krouton.pref.rememberLastTask"
+    case labelTemplate = "krouton.pref.labelTemplate"
+    case lastCategory = "krouton.pref.lastCategory"
+    case lastTaskID = "krouton.pref.lastTaskID"
+    case burnSetMedium = "krouton.pref.burnSetMedium"
+}
+
+enum KroutonPreferences {
+    static func string(for key: KroutonPreferenceKey) -> String? {
+        UserDefaults.standard.string(forKey: key.rawValue)
+    }
+    static func bool(for key: KroutonPreferenceKey, default defaultValue: Bool = false) -> Bool {
+        UserDefaults.standard.object(forKey: key.rawValue) != nil
+            ? UserDefaults.standard.bool(forKey: key.rawValue)
+            : defaultValue
+    }
+    static func integer(for key: KroutonPreferenceKey) -> Int? {
+        UserDefaults.standard.object(forKey: key.rawValue) != nil
+            ? UserDefaults.standard.integer(forKey: key.rawValue)
+            : nil
+    }
+    static func set(_ value: Any?, for key: KroutonPreferenceKey) {
+        UserDefaults.standard.set(value, forKey: key.rawValue)
+    }
+    static func has(_ key: KroutonPreferenceKey) -> Bool {
+        UserDefaults.standard.object(forKey: key.rawValue) != nil
+    }
+}
+
 /// Feature model owning appearance, accent palette, localization, unit, and accessibility preferences.
 /// Consolidates the four previously duplicated colour-scheme resolution blocks into one place.
 struct AppearancePreferences: Equatable, Sendable {
@@ -40,40 +78,40 @@ struct AppearancePreferences: Equatable, Sendable {
         Locale(identifier: appLanguage.isoCode)
     }
 
-    mutating func load(from defaults: UserDefaults = .standard) {
-        if defaults.object(forKey: "krouton.pref.selectedAccentIndex") != nil {
-            selectedAccentIndex = defaults.integer(forKey: "krouton.pref.selectedAccentIndex")
+    mutating func load() {
+        if let acc = KroutonPreferences.integer(for: .selectedAccentIndex) {
+            selectedAccentIndex = acc
         }
-        if defaults.object(forKey: "krouton.pref.harmonyEnabled") != nil {
-            enableSecondaryAccentUITints = defaults.bool(forKey: "krouton.pref.harmonyEnabled")
+        if KroutonPreferences.has(.harmonyEnabled) {
+            enableSecondaryAccentUITints = KroutonPreferences.bool(for: .harmonyEnabled)
             tintWindowWithWallpaper = enableSecondaryAccentUITints
         }
-        if let rawApp = defaults.string(forKey: "krouton.pref.appearanceMode"),
+        if let rawApp = KroutonPreferences.string(for: .appearanceMode),
            let mode = KroutonRoastAppearanceMode(rawValue: rawApp) {
             appearanceMode = mode
         }
-        if let rawStyle = defaults.string(forKey: "krouton.pref.iconWidgetStyle"),
+        if let rawStyle = KroutonPreferences.string(for: .iconWidgetStyle),
            let style = KroutonGarnishStyleMode(rawValue: rawStyle) {
             iconWidgetStyle = style
         }
-        if let rawFolder = defaults.string(forKey: "krouton.pref.folderColorMode"),
+        if let rawFolder = KroutonPreferences.string(for: .folderColorMode),
            let fMode = KroutonStageFolderColorMode(rawValue: rawFolder) {
             folderColorMode = fMode
         }
-        if let rawSize = defaults.string(forKey: "krouton.pref.sidebarIconSize"),
+        if let rawSize = KroutonPreferences.string(for: .sidebarIconSize),
            let sSize = KroutonTrackIconSizeMode(rawValue: rawSize) {
             sidebarIconSize = sSize
         }
-        if let rawLang = defaults.string(forKey: "krouton.pref.appLanguage"),
+        if let rawLang = KroutonPreferences.string(for: .appLanguage),
            let lang = KroutonLanguage(rawValue: rawLang) {
             appLanguage = lang
             KroutonL10n.activeISOCode = lang.isoCode
         }
-        if defaults.object(forKey: "krouton.pref.useBase10Units") != nil {
-            useBase10Units = defaults.bool(forKey: "krouton.pref.useBase10Units")
+        if KroutonPreferences.has(.useBase10Units) {
+            useBase10Units = KroutonPreferences.bool(for: .useBase10Units)
         }
-        if defaults.object(forKey: "krouton.pref.rememberLastTask") != nil {
-            rememberLastTaskOnLaunch = defaults.bool(forKey: "krouton.pref.rememberLastTask")
+        if KroutonPreferences.has(.rememberLastTask) {
+            rememberLastTaskOnLaunch = KroutonPreferences.bool(for: .rememberLastTask)
         }
     }
 }

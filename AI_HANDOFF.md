@@ -733,3 +733,23 @@ This file tracks proposed and completed changes across AI coding sessions (Claud
 
 - **2026-11-17 16:38 [commit 5c38d3d]:** Add Suite 21 assertions for LocalizableCatalog.json and @dynamicMemberLookup persistence 
   - `Sources/KroutonVerify/VerifyHarness+LabelAndPersistenceSuites.swift` (M)
+
+- **2026-11-17 17:47 [commit a98089e]:** Architectural Pass: Typed KroutonFormatID routing, KroutonPreferences layer, and ImageKit ISO synthesis decoupling 
+  - `Sources/ImageKit/DiscImageDepotOperations.swift` (M)
+  - `Sources/KroutonApp/Features/Rip/CopyAndRipWorkspaces.swift` (M)
+  - `Sources/KroutonApp/Shell/App/KroutonAppDelegate.swift` (M)
+  - `Sources/KroutonApp/Shell/App/KroutonMenuCommands.swift` (M)
+  - `Sources/KroutonApp/Shell/DesignSystem/KroutonThemeEngine.swift` (M)
+  - `Sources/KroutonApp/Shell/NavigationAndRack/KroutonCentralWorkspaceCapacityBarView.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/AppearancePreferences.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonSessionPersistence.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+DepotCache.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+DestinationExecution.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+DestinationQueue.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+SpannedDestinations.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+SubStoreForwarding.swift` (M)
+  - `Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore.swift` (M)
+  - `Sources/KroutonVerify/VerifyHarness+ArchitectureSuites.swift` (M)
+  - `Sources/KroutonVerify/VerifyHarness+ImageAndSectorSuites.swift` (M)
+  - `Sources/OpticalCore/Models/MultiDiscSpanner.swift` (M)
+  - `Sources/OpticalCore/Models/OpticalWorkflowCatalog.swift` (M)

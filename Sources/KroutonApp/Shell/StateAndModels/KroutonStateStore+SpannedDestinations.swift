@@ -30,7 +30,7 @@ extension KroutonStateStore {
         }
         let plan = dataDiscPlan(forFormatID: spec.id)
         let total = max(1, plan.discs.count)
-        let fallback = (selectedTaskID == "dvd-video") ? "DVD_VIDEO" : "KROUTON_DISC"
+        let fallback = (selectedFormatID == .dvdVideo) ? "DVD_VIDEO" : "KROUTON_DISC"
         return (1...total).map { dNum in
             DiscSpanningEngine.resolvedDiscVolumeLabel(
                 baseTitle: discVolumeTitle,

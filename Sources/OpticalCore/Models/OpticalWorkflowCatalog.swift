@@ -39,6 +39,60 @@ public enum KroutonFormatID: String, CaseIterable, Codable, Sendable {
     case photoCD = "photo-cd"
     case vcdSVCD = "vcd-svcd"
     case cdG = "cd-g"
+
+    public var usesRawCueBinImage: Bool {
+        switch self {
+        case .cdDA, .cdExtra, .dtsCD, .cdG, .consolePS1, .consoleSaturn, .console3DO, .consoleDC:
+            return true
+        default:
+            return false
+        }
+    }
+
+    public var usesAppleDiskImage: Bool {
+        switch self {
+        case .dataAppleAPFS, .macos9HFS:
+            return true
+        default:
+            return false
+        }
+    }
+
+    public var exactShortDisplayName: String {
+        switch self {
+        case .cdDA: return "Audio CD"
+        case .mp3CD: return "MP3 CD"
+        case .cdExtra: return "CD-Extra"
+        case .dtsCD: return "DTS-CD"
+        case .dvdAudio: return "DVD-Audio"
+        case .sacdR: return "SACD"
+        case .dvdVideo: return "DVD-Video"
+        case .bdOnDVD: return "AVCHD"
+        case .bd25: return "BD-R SL"
+        case .bd50: return "BD-R DL"
+        case .bdUHD: return "BDXL UHD"
+        case .imageBurn: return "Burn Image"
+        case .dataHybrid: return "Hybrid Data"
+        case .dataUDFModern: return "UDF 2.60"
+        case .dataAppleAPFS: return "Apple HFS+"
+        case .dataRetroISO: return "DOS 8.3"
+        case .videoSVCD, .vcdSVCD: return "VCD"
+        case .mdiscVault: return "M-DISC"
+        case .dvdRAM: return "DVD-RAM"
+        case .consoleWii: return "Wii"
+        case .consoleGC: return "GameCube"
+        case .consolePS2: return "PS2"
+        case .consolePS1: return "PS1"
+        case .consolePS3: return "PS3"
+        case .consoleXbox: return "Xbox"
+        case .consoleDC: return "Dreamcast"
+        case .consoleSaturn: return "Saturn"
+        case .console3DO: return "3DO / PCE"
+        case .macos9HFS: return "HFS"
+        case .photoCD: return "Photo CD"
+        case .cdG: return "Karaoke"
+        }
+    }
 }
 
 public enum KroutonCopyTaskID: String, CaseIterable, Codable, Sendable {
@@ -157,86 +211,64 @@ public struct KroutonOpticalWorkflowSpec: Identifiable, Hashable, Sendable {
 // MARK: - Strict Per-Format File Type Compatibility & OpenPanel UTType Rules
 extension KroutonOpticalWorkflowSpec {
     public var allowedFileExtensions: [String] {
-        if id == "cd-da" || id == "audio-cdda" || id == "cd-extra" || id == "audio-cdextra" || id == "dts-cd" || id == "audio-dtscd" || id == "dvd-audio" || id == "audio-dvda" || id == "sacd-r" {
+        switch formatID {
+        case .cdDA, .cdExtra, .dtsCD, .dvdAudio, .sacdR:
             return ["wav", "aiff", "aif", "flac", "alac", "m4a", "mp3", "ogg", "opus", "wv", "ape", "dsf", "dff", "caf", "ac3", "dts"]
-        } else if id == "mp3-cd" || id == "audio-mp3" {
+        case .mp3CD:
             return ["mp3", "flac", "m4a", "wav", "ogg", "aac", "wma", "opus"]
-        } else if filterGroup == .video || id.hasPrefix("video-") || id.hasPrefix("bd-") || id == "avchd-dvd" || id == "dvd-video" || id == "vcd-svcd" {
-            // Video authoring formats NEVER allow .iso/.dmg/.bin disc images!
+        case .dvdVideo, .bdOnDVD, .bd25, .bd50, .bdUHD, .videoSVCD, .vcdSVCD:
             return ["mkv", "mp4", "m4v", "mov", "m2ts", "mts", "ts", "vob", "IFO", "ifo", "avi", "webm", "mpg", "mpeg", "wmv", "hevc", "h264", "bdmv"]
-        } else if id == "image-burn" || sourceSupport == "Disc Image" {
+        case .imageBurn:
             return ["iso", "dmg", "cdr", "bin", "cue", "img", "toast", "nrg", "mds", "mdf", "ccd", "chd", "rvz"]
-        } else if id == "console-wii" || id == "game-wii" {
+        case .consoleWii:
             return ["rvz", "wbfs", "iso", "wia", "ciso"]
-        } else if id == "console-gc" || id == "game-gc" {
+        case .consoleGC:
             return ["rvz", "gcm", "iso", "ciso", "gcz"]
-        } else if id == "console-ps2" || id == "game-ps2" {
+        case .consolePS2:
             return ["iso", "chd", "bin", "cue", "mdf", "mds"]
-        } else if id == "console-ps1" || id == "game-ps1" {
+        case .consolePS1:
             return ["cue", "bin", "chd", "ccd", "img", "sub"]
-        } else if id == "console-xbox" || id == "game-xbox" {
+        case .consoleXbox:
             return ["iso", "xiso", "dvd"]
-        } else if filterGroup == .console {
-            return ["cue", "bin", "iso", "chd", "cdi", "gdi", "rvz", "gcm"]
+        default:
+            if filterGroup == .video {
+                return ["mkv", "mp4", "m4v", "mov", "m2ts", "mts", "ts", "vob", "IFO", "ifo", "avi", "webm", "mpg", "mpeg", "wmv", "hevc", "h264", "bdmv"]
+            }
+            if sourceSupport == "Disc Image" {
+                return ["iso", "dmg", "cdr", "bin", "cue", "img", "toast", "nrg", "mds", "mdf", "ccd", "chd", "rvz"]
+            }
+            if filterGroup == .console {
+                return ["cue", "bin", "iso", "chd", "cdi", "gdi", "rvz", "gcm"]
+            }
+            return []
         }
-        return [] // Data & M-DISC formats accept any file or directory
     }
 
     public var allowsDirectorySelection: Bool {
-        if id == "image-burn" || filterGroup == .console {
-            return false // Single disc image or ROM file only
+        if formatID == .imageBurn || filterGroup == .console {
+            return false
         }
-        return true // Audio/Video folders (e.g. Album folders, VIDEO_TS, BDMV) and Data folders are allowed
+        return true
     }
 
     public var expectedMediaDescription: String {
         if filterGroup == .audio { return "Audio tracks (.wav, .flac, .aiff, .m4a, .mp3)" }
         if filterGroup == .video { return "Video streams (.mkv, .mp4, .mov, .m2ts, VIDEO_TS, BDMV)" }
-        if id == "image-burn" { return "Disc images (.iso, .dmg, .bin/.cue, .cdr, .img, .toast)" }
-        if id == "console-wii" || id == "game-wii" { return "Nintendo Wii disc images (.rvz, .wbfs, .iso, .wia, .ciso)" }
-        if id == "console-gc" || id == "game-gc" { return "Nintendo GameCube disc images (.rvz, .gcm, .iso, .ciso, .gcz)" }
-        if id == "console-ps2" || id == "game-ps2" { return "PlayStation 2 disc images (.iso, .chd, .bin/.cue, .mdf/.mds)" }
-        if id == "console-ps1" || id == "game-ps1" { return "PlayStation 1 disc images (.cue/.bin, .chd, .ccd/.img/.sub)" }
-        if id == "console-xbox" || id == "game-xbox" { return "Xbox XDVDFS disc images (.iso, .xiso, .dvd)" }
-        if filterGroup == .console { return "Console ROM disc images (.cue/.bin, .iso, .chd, .rvz, .gcm, .wbfs)" }
-        return "Files and folders"
+        switch formatID {
+        case .imageBurn: return "Disc images (.iso, .dmg, .bin/.cue, .cdr, .img, .toast)"
+        case .consoleWii: return "Nintendo Wii disc images (.rvz, .wbfs, .iso, .wia, .ciso)"
+        case .consoleGC: return "Nintendo GameCube disc images (.rvz, .gcm, .iso, .ciso, .gcz)"
+        case .consolePS2: return "PlayStation 2 disc images (.iso, .chd, .bin/.cue, .mdf/.mds)"
+        case .consolePS1: return "PlayStation 1 disc images (.cue/.bin, .chd, .ccd/.img/.sub)"
+        case .consoleXbox: return "Xbox XDVDFS disc images (.iso, .xiso, .dvd)"
+        default:
+            if filterGroup == .console { return "Console ROM disc images (.cue/.bin, .iso, .chd, .rvz, .gcm, .wbfs)" }
+            return "Files and folders"
+        }
     }
 
     public var exactShortDisplayName: String {
-        switch id {
-        case "cd-da": return "Audio CD"
-        case "mp3-cd": return "MP3 CD"
-        case "cd-extra": return "CD-Extra"
-        case "dts-cd": return "DTS-CD"
-        case "dvd-audio": return "DVD-Audio"
-        case "sacd-r": return "SACD"
-        case "dvd-video": return "DVD-Video"
-        case "bd-on-dvd": return "AVCHD"
-        case "bd-25": return "BD-R SL"
-        case "bd-50": return "BD-R DL"
-        case "bd-uhd": return "BDXL UHD"
-        case "image-burn": return "Burn Image"
-        case "data-hybrid": return "Hybrid Data"
-        case "data-udf-modern": return "UDF 2.60"
-        case "data-apple-apfs": return "Apple HFS+"
-        case "data-retro-iso": return "DOS 8.3"
-        case "video-svcd", "vcd-svcd": return "VCD"
-        case "mdisc-vault": return "M-DISC"
-        case "dvd-ram": return "DVD-RAM"
-        case "console-wii": return "Wii"
-        case "console-gc": return "GameCube"
-        case "console-ps2": return "PS2"
-        case "console-ps1": return "PS1"
-        case "console-ps3": return "PS3"
-        case "console-xbox": return "Xbox"
-        case "console-dc": return "Dreamcast"
-        case "console-saturn": return "Saturn"
-        case "console-3do": return "3DO / PCE"
-        case "macos9-hfs": return "HFS"
-        case "photo-cd": return "Photo CD"
-        case "cd-g": return "Karaoke"
-        default: return technicalName
-        }
+        formatID?.exactShortDisplayName ?? technicalName
     }
 }
 

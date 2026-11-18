@@ -217,6 +217,27 @@ extension KroutonTestHarness {
                 }
             }
 
+            for fileURL in allSwiftFiles {
+                let relPath = fileURL.path.replacingOccurrences(of: KroutonTestHarness.repositoryRoot.path + "/", with: "")
+                let src = (try? String(contentsOf: fileURL, encoding: .utf8)) ?? ""
+                let lines = src.components(separatedBy: .newlines)
+
+                // 9. Typed Preferences Gate (zero raw UserDefaults.standard or krouton.pref.* outside AppearancePreferences)
+                if relPath.hasPrefix("Sources/KroutonApp/")
+                    && relPath != "Sources/KroutonApp/Shell/StateAndModels/AppearancePreferences.swift"
+                    && relPath != "Sources/KroutonApp/Shell/NavigationAndRack/KroutonBurnSetSheetView.swift"
+                    && relPath != "Sources/KroutonApp/Shell/Services/KroutonNotificationAndCompanionService.swift"
+                    && relPath != "Sources/KroutonApp/Shell/Services/KroutonOSDesktopBridge.swift" {
+                    let hasRawDefaults = lines.contains { $0.contains("UserDefaults.standard") || $0.contains("krouton.pref.") }
+                    h.lint(!hasRawDefaults, "\(relPath) must route preferences through typed KroutonPreferences")
+                }
+
+                // 10. Boundary check: UI target must delegate ISO-9660 synthesis to ImageKit
+                if relPath == "Sources/KroutonApp/Shell/StateAndModels/KroutonStateStore+DepotCache.swift" {
+                    h.lint(!src.contains("Primary Volume Descriptor"), "KroutonStateStore+DepotCache must delegate raw ISO synthesis to ImageKit")
+                }
+            }
+
             Self.verifyDynamicMenuAndShortcutContracts(&h, allSwiftFiles: allSwiftFiles, clusterSourceByPrefix: clusterSourceByPrefix)
         }
     }
@@ -263,6 +284,8 @@ extension KroutonTestHarness {
 
     // Verify Copy Task IDs
     h.check(KroutonCopyTaskID.allCases.count == 3, "Expected 3 canonical KroutonCopyTaskID cases")
+    h.check(KroutonFormatID.cdDA.usesRawCueBinImage && KroutonFormatID.consolePS1.usesRawCueBinImage && !KroutonFormatID.dvdVideo.usesRawCueBinImage, "KroutonFormatID.usesRawCueBinImage must classify raw .cue/.bin formats")
+    h.check(KroutonFormatID.dataAppleAPFS.usesAppleDiskImage && KroutonFormatID.macos9HFS.usesAppleDiskImage && !KroutonFormatID.dataHybrid.usesAppleDiskImage, "KroutonFormatID.usesAppleDiskImage must classify Apple .dmg formats")
     }
     }
 
@@ -273,6 +296,7 @@ extension KroutonTestHarness {
     ) {
         let menuClusterText = clusterSourceByPrefix.first { $0.key.hasSuffix("/KroutonMenuCommands") }?.value ?? ""
         h.lint(menuClusterText.contains("CommandGroup(replacing: .appSettings)"), "KroutonMenuCommands cluster must register canonical .appSettings CommandGroup")
+        h.lint(menuClusterText.contains("func selectBurnFormat(_ format: KroutonFormatID)") && !menuClusterText.contains("selectBurnFormat(\""), "KroutonMenuCommands must dispatch burn formats via typed KroutonFormatID")
 
         // Dynamically discover all Notification.Name.kroutonMenu* definitions and verify end-to-end Publisher + Subscriber wiring
         let notifRegex = try! NSRegularExpression(pattern: #"static\s+let\s+(kroutonMenu[A-Za-z0-9_]+)\s*=\s*Notification\.Name"#)

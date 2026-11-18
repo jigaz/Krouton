@@ -17,12 +17,12 @@ struct KroutonCentralWorkspaceCapacityBarView: View {
         // 1. Rip Audio CD / Extract Video Disc -> Local SSD Extraction Target
         if store.selectedCategory == .copy {
             let ssdFree = (try? FileManager.default.attributesOfFileSystem(forPath: NSHomeDirectory())[.systemFreeSize] as? Int64) ?? 64_000_000_000
-            if store.selectedTaskID == "copy-rip-audio" || store.selectedTaskID == "copy-audio-rip" {
+            if store.selectedCopyTaskID == .ripAudioCD {
                 let cd = KroutonRealCDExtractor.scanMountedAudioCD()
                 let pcmBytes = cd?.totalPCMBytes ?? 0
                 let trkCount = cd?.tracks.count ?? 0
                 return ("EXTRACTION TARGET (LOCAL SSD)", "SSD Target", pcmBytes, max(1, ssdFree), "\(trkCount) PCM Tracks")
-            } else if store.selectedTaskID == "copy-rip-video" {
+            } else if store.selectedCopyTaskID == .extractVideoDisc {
                 return ("EXTRACTION TARGET (LOCAL SSD)", "SSD Target", store.totalStagedBytes, max(1, ssdFree), "\(store.stagedFiles.count) Items")
             } else {
                 let used = store.totalStagedBytes

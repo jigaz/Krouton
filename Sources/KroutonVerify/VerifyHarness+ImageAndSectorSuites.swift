@@ -143,6 +143,22 @@ extension KroutonTestHarness {
     let inspected = DiscImageDepotOperations.inspectImageFile(at: isoURL)
     h.check(extractedBytes == 2048 && inspected.classification.isBootable && inspected.classification.detectedFilesystems.contains("ISO-9660"),
             "DiscImageDepotOperations must extract 2048B sectors from 2352B .BIN and classify ISO-9660/El Torito bootability")
+
+    // Verify 36-sector (73,728-byte) ISO-9660 + El Torito Bootable Depot Master synthesis in ImageKit
+    let depotISOURL = tmpDir.appendingPathComponent("depot_boot_master.iso")
+    try? DiscImageDepotOperations.writeBootableDepotISO(
+        volumeID: "systemrescue-11",
+        manifestText: "KROUTON DEPOT TEST MANIFEST",
+        destinationURL: depotISOURL
+    )
+    let depotInspect = DiscImageDepotOperations.inspectImageFile(at: depotISOURL)
+    let pvdDump = KroutonElToritoBootInspector.readSectorHexDump(url: depotISOURL, lba: 16, sectorSize: 2048)
+    h.check(depotInspect.byteSize == 36 * 2048
+            && depotInspect.classification.isBootable
+            && depotInspect.classification.bootStandard == "El Torito x86/EFI"
+            && depotInspect.classification.detectedFilesystems.contains("ISO-9660")
+            && (pvdDump.first?.asciiText.contains("CD001") == true),
+            "DiscImageDepotOperations.writeBootableDepotISO must synthesize valid 36-sector ISO-9660 + El Torito bootable master")
     }
 
     self.runSuite("7. SHA-256 Digest & 2048-Byte Sector Hex Dump Inspector") { h in

@@ -98,10 +98,10 @@ final class KroutonCrashRecoveryController: ObservableObject {
         guard !didEvaluateLaunch else { return }
         didEvaluateLaunch = true
 
-        if UserDefaults.standard.object(forKey: "krouton.pref.rememberLastTask") == nil {
-            UserDefaults.standard.set(true, forKey: "krouton.pref.rememberLastTask")
+        if !KroutonPreferences.has(.rememberLastTask) {
+            KroutonPreferences.set(true, for: .rememberLastTask)
         }
-        let rememberEnabled = UserDefaults.standard.bool(forKey: "krouton.pref.rememberLastTask")
+        let rememberEnabled = KroutonPreferences.bool(for: .rememberLastTask, default: true)
         if store.rememberLastTaskOnLaunch != rememberEnabled {
             store.rememberLastTaskOnLaunch = rememberEnabled
         }

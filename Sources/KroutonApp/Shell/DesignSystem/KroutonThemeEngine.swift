@@ -190,7 +190,7 @@ extension KroutonStateStore {
 // MARK: - Native SwiftUI Semantic Surface Colors (Zero NSColor Dependency)
 extension Color {
     private static var isEffectiveDarkAppearance: Bool {
-        if let raw = UserDefaults.standard.string(forKey: "krouton.pref.appearanceMode"),
+        if let raw = KroutonPreferences.string(for: .appearanceMode),
            let mode = KroutonRoastAppearanceMode(rawValue: raw) {
             switch mode {
             case .dark: return true

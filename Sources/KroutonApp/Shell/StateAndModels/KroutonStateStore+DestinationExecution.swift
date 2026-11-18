@@ -174,7 +174,7 @@ extension KroutonStateStore {
         case .discPrinter, .pdfVector:
             executeLabelDestinationExport()
         default:
-            if selectedCategory == .copy && (selectedTaskID == "copy-rip-audio" || selectedTaskID == "copy-audio-rip"),
+            if selectedCategory == .copy && selectedCopyTaskID == .ripAudioCD,
                let liveCD = KroutonRealCDExtractor.scanMountedAudioCD() {
                 let rawOut = target.hardwareOrPath.isEmpty ? "~/Music/Krouton Rips" : target.hardwareOrPath
                 let expanded = (rawOut as NSString).expandingTildeInPath

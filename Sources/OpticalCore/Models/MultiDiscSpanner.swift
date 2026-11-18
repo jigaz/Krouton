@@ -47,46 +47,44 @@ public enum KroutonSpanningDiscMedium: String, CaseIterable, Identifiable, Codab
 
     /// Returns true when the format supports selecting a target physical disc storage size in the workspace header.
     public static func supportsTargetDiscSizeSelection(forFormatID formatID: String) -> Bool {
-        if formatID == "image-burn" || formatID.hasPrefix("console-") {
+        if KroutonFormatID(rawValue: formatID) == .imageBurn || formatID.hasPrefix("console-") {
             return false
         }
         return !allowedMedia(forFormatID: formatID).isEmpty
     }
 
     public static func defaultMedium(forFormatID formatID: String) -> KroutonSpanningDiscMedium {
-        switch formatID {
-        case "cd-da", "cd-extra", "dts-cd", "cd-g", "vcd-svcd", "video-svcd", "macos9-hfs", "photo-cd", "data-retro-iso", "mp3-cd":
+        switch KroutonFormatID(rawValue: formatID) {
+        case .cdDA, .cdExtra, .dtsCD, .cdG, .vcdSVCD, .videoSVCD, .macos9HFS, .photoCD, .dataRetroISO, .mp3CD:
             return .cd80Min700MB
-        case "bd-25", "mdisc-vault":
+        case .bd25, .mdiscVault, .dataUDFModern:
             return .bd25Single
-        case "bd-50":
+        case .bd50:
             return .bd50Dual
-        case "bd-uhd":
+        case .bdUHD:
             return .bdxl100Triple
-        case "data-udf-modern":
-            return .bd25Single
         default:
             return .dvd5Single
         }
     }
 
     public static func allowedMedia(forFormatID formatID: String) -> [KroutonSpanningDiscMedium] {
-        if formatID == "image-burn" || formatID.hasPrefix("console-") {
+        if KroutonFormatID(rawValue: formatID) == .imageBurn || formatID.hasPrefix("console-") {
             return []
         }
-        switch formatID {
-        case "cd-da", "cd-extra", "dts-cd", "cd-g", "vcd-svcd", "video-svcd", "macos9-hfs", "photo-cd", "data-retro-iso":
+        switch KroutonFormatID(rawValue: formatID) {
+        case .cdDA, .cdExtra, .dtsCD, .cdG, .vcdSVCD, .videoSVCD, .macos9HFS, .photoCD, .dataRetroISO:
             return [.cd74Min650MB, .cd80Min700MB, .cd90Min800MB]
-        case "mp3-cd":
+        case .mp3CD:
             return [.cd74Min650MB, .cd80Min700MB, .cd90Min800MB, .dvd5Single, .dvd9Dual]
-        case "dvd-video", "dvd-audio", "sacd-r", "dvd-ram":
+        case .dvdVideo, .dvdAudio, .sacdR, .dvdRAM:
             return [.miniDVD80mm, .dvd5Single, .dvd9Dual]
-        case "bd-on-dvd":
+        case .bdOnDVD:
             // AVCHD: 4.7 GB DVD-5 up to 128 GB BDXL
             return [.dvd5Single, .dvd9Dual, .bd25Single, .bd50Dual, .bdxl100Triple, .bdxl128Quad]
-        case "bd-25", "bd-50", "bd-uhd":
+        case .bd25, .bd50, .bdUHD:
             return [.bd25Single, .bd50Dual, .bdxl100Triple, .bdxl128Quad]
-        case "mdisc-vault":
+        case .mdiscVault:
             return [.dvd5Single, .bd25Single, .bd50Dual, .bdxl100Triple, .bdxl128Quad]
         default:
             // Data discs (Universal Hybrid, UDF 2.60, Apple HFS+/APFS, etc.): full 650 MB - 128 GB range

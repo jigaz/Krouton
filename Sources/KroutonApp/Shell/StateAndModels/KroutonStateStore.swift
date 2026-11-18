@@ -31,16 +31,18 @@ final class KroutonStateStore: ObservableObject {
     @Published var selectedCategory: KroutonMasteringStation = .burn {
         didSet {
             guard !isHydratingPreferences, self.rememberLastTaskOnLaunch else { return }
-            UserDefaults.standard.set(selectedCategory.rawValue, forKey: "krouton.pref.lastCategory")
+            KroutonPreferences.set(selectedCategory.rawValue, for: .lastCategory)
         }
     }
-    @Published var selectedTaskID: String = "data-hybrid" {
+    @Published var selectedTaskID: String = KroutonFormatID.dataHybrid.rawValue {
         didSet {
             guard !isHydratingPreferences, self.rememberLastTaskOnLaunch else { return }
-            UserDefaults.standard.set(selectedTaskID, forKey: "krouton.pref.lastTaskID")
+            KroutonPreferences.set(selectedTaskID, for: .lastTaskID)
             KroutonCrashRecoveryController.shared.saveCurrentState(from: self)
         }
     }
+    var selectedFormatID: KroutonFormatID? { KroutonFormatID(rawValue: selectedTaskID) }
+    var selectedCopyTaskID: KroutonCopyTaskID? { KroutonCopyTaskID(rawValue: selectedTaskID) }
     @Published var bitsetVendorProfile: String = "Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)"
     @Published var autoLoadNextDiscBatchMode: Bool = true
     @Published var autoLoadCountdownSeconds: Int = 5
@@ -163,18 +165,17 @@ final class KroutonStateStore: ObservableObject {
     func hydratePreferencesFromUserDefaults() {
         isHydratingPreferences = true
         defer { isHydratingPreferences = false }
-        let defaults = UserDefaults.standard
-        appearance.load(from: defaults)
-        if let rawTpl = defaults.string(forKey: "krouton.pref.labelTemplate"),
+        appearance.load()
+        if let rawTpl = KroutonPreferences.string(for: .labelTemplate),
            let tpl = KroutonCroutonLabelStyle(rawValue: rawTpl) {
             label.selectedLabelTemplate = tpl
         }
         if appearance.rememberLastTaskOnLaunch {
-            if let rawCat = defaults.string(forKey: "krouton.pref.lastCategory"),
+            if let rawCat = KroutonPreferences.string(for: .lastCategory),
                let cat = KroutonMasteringStation(rawValue: rawCat) {
                 selectedCategory = cat
             }
-            if let lastTask = defaults.string(forKey: "krouton.pref.lastTaskID"), !lastTask.isEmpty {
+            if let lastTask = KroutonPreferences.string(for: .lastTaskID), !lastTask.isEmpty {
                 selectedTaskID = lastTask
             }
         }

@@ -1,4 +1,5 @@
 import Foundation
+import ImageKit
 import OpticalCore
 
 // MARK: - KroutonStateStore — DepotCache
@@ -29,45 +30,6 @@ extension KroutonStateStore {
             }
         }
 
-        // Build a valid 36-sector (73,728-byte) ISO-9660 + El Torito Bootable Image on disk
-        let sectorSize = 2048
-        let totalSectors = 36
-        var image = Data(count: totalSectors * sectorSize)
-
-        // LBA 16: Primary Volume Descriptor (PVD)
-        let pvdOffset = 16 * sectorSize
-        image[pvdOffset] = 0x01
-        for (i, b) in Array("CD001".utf8).enumerated() { image[pvdOffset + 1 + i] = b }
-        image[pvdOffset + 6] = 0x01
-        let sysID = Array("KROUTON OPTICAL MASTERING ENGINE".padding(toLength: 32, withPad: " ", startingAt: 0).utf8)
-        for (i, b) in sysID.prefix(32).enumerated() { image[pvdOffset + 8 + i] = b }
-        let volID = Array(item.id.uppercased().replacingOccurrences(of: "-", with: "_").padding(toLength: 32, withPad: " ", startingAt: 0).utf8)
-        for (i, b) in volID.prefix(32).enumerated() { image[pvdOffset + 40 + i] = b }
-
-        // LBA 17: El Torito Boot Record Volume Descriptor
-        let brvdOffset = 17 * sectorSize
-        image[brvdOffset] = 0x00
-        for (i, b) in Array("CD001".utf8).enumerated() { image[brvdOffset + 1 + i] = b }
-        image[brvdOffset + 6] = 0x01
-        for (i, b) in Array("EL TORITO SPECIFICATION".utf8).enumerated() { image[brvdOffset + 7 + i] = b }
-        // Boot Catalog pointer at LBA 18 (little-endian UInt32 at offset +71)
-        image[brvdOffset + 71] = 18
-
-        // LBA 18: El Torito Validation Entry + Default Boot Entry (LBA 20)
-        let catOffset = 18 * sectorSize
-        image[catOffset] = 0x01 // Header ID
-        image[catOffset + 30] = 0x55
-        image[catOffset + 31] = 0xAA
-        image[catOffset + 32] = 0x88 // Bootable indicator
-        image[catOffset + 40] = 20   // Load RBA = LBA 20
-
-        // LBA 19: Volume Descriptor Set Terminator
-        let termOffset = 19 * sectorSize
-        image[termOffset] = 0xFF
-        for (i, b) in Array("CD001".utf8).enumerated() { image[termOffset + 1 + i] = b }
-        image[termOffset + 6] = 0x01
-
-        // LBA 20+: Manifest & Disc Content Schematic payload
         let manifest = """
         KROUTON DISC IMAGE DEPOT — VERIFIED OPTICAL MASTER
         Title: \(item.title) (v\(item.version))
@@ -78,12 +40,7 @@ extension KroutonStateStore {
         Contents:
         \(item.blueprintRootFiles.map { "  - " + $0 }.joined(separator: "\n"))
         """
-        let payloadOffset = 20 * sectorSize
-        for (i, b) in Array(manifest.utf8).prefix((totalSectors - 20) * sectorSize).enumerated() {
-            image[payloadOffset + i] = b
-        }
-
-        try image.write(to: destinationURL, options: .atomic)
+        try DiscImageDepotOperations.writeBootableDepotISO(volumeID: item.id, manifestText: manifest, destinationURL: destinationURL)
     }
 
     /// Queries the live Internet Archive REST API (archive.org/advancedsearch.php) for optical ISO / CDR / BIN-CUE items

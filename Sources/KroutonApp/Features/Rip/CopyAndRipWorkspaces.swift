@@ -66,8 +66,8 @@ struct KroutonCopyAndRipWorkspaceView: View {
     @State var videoExtractTitles: [KroutonVideoExtractTitleItem] = []
 
     var body: some View {
-        let isShrinkTask = (store.selectedTaskID == "copy-duplicate" || store.selectedTaskID == "copy-shrink-dvd")
-        let isAudioRipTask = (store.selectedTaskID == "copy-rip-audio" || store.selectedTaskID == "copy-audio-rip")
+        let isShrinkTask = (store.selectedCopyTaskID == .duplicateDisc)
+        let isAudioRipTask = (store.selectedCopyTaskID == .ripAudioCD)
         let sourceDescription = mountedCDSnapshot != nil
             ? "Mounted CD: \(mountedCDSnapshot!.mountPath) • \(mountedCDSnapshot!.tracks.count) Audio Tracks (\(ByteCountFormatter.string(fromByteCount: mountedCDSnapshot!.totalPCMBytes, countStyle: .file))) • DiscID: \(mountedCDSnapshot!.musicBrainzDiscID)"
             : "Source Drive: \(primarySelectedDrive?.displayName ?? "Optical Drive") — Status: \(primarySelectedDrive?.statusBadgeText ?? "Ready")"
@@ -309,7 +309,7 @@ struct KroutonCopyAndRipWorkspaceView: View {
                     }.buttonStyle(.bordered).controlSize(.mini).fixedSize().disabled(audioRipTracks.isEmpty)
                     if showVideoHandoff {
                         Button(KroutonL10n.tr("Send to Video Author ->")) {
-                            store.selectedTaskID = "dvd-video"
+                            store.selectedTaskID = KroutonFormatID.dvdVideo.rawValue
                             copyStatusBanner = "Routed Extracted Stream to DVD/BDMV Authoring Deck"
                         }.buttonStyle(.borderedProminent).tint(store.uiSecondaryAccent).controlSize(.mini).fixedSize()
                     }

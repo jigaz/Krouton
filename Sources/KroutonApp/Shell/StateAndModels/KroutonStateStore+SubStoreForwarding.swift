@@ -21,7 +21,7 @@ extension KroutonStateStore {
             let oldTemplate = label.selectedLabelTemplate
             label[keyPath: keyPath] = newValue
             if label.selectedLabelTemplate != oldTemplate && !isHydratingPreferences {
-                UserDefaults.standard.set(label.selectedLabelTemplate.rawValue, forKey: "krouton.pref.labelTemplate")
+                KroutonPreferences.set(label.selectedLabelTemplate.rawValue, for: .labelTemplate)
             }
         }
     }
@@ -44,36 +44,36 @@ extension KroutonStateStore {
         if updated.enableSecondaryAccentUITints != old.enableSecondaryAccentUITints {
             appearance.tintWindowWithWallpaper = updated.enableSecondaryAccentUITints
             if !isHydratingPreferences {
-                UserDefaults.standard.set(updated.enableSecondaryAccentUITints, forKey: "krouton.pref.harmonyEnabled")
+                KroutonPreferences.set(updated.enableSecondaryAccentUITints, for: .harmonyEnabled)
             }
         }
         if updated.appLanguage != old.appLanguage {
             KroutonL10n.activeISOCode = updated.appLanguage.isoCode
             if !isHydratingPreferences {
-                UserDefaults.standard.set(updated.appLanguage.rawValue, forKey: "krouton.pref.appLanguage")
+                KroutonPreferences.set(updated.appLanguage.rawValue, for: .appLanguage)
             }
         }
         guard !isHydratingPreferences else { return }
         if updated.appearanceMode != old.appearanceMode {
-            UserDefaults.standard.set(updated.appearanceMode.rawValue, forKey: "krouton.pref.appearanceMode")
+            KroutonPreferences.set(updated.appearanceMode.rawValue, for: .appearanceMode)
         }
         if updated.selectedAccentIndex != old.selectedAccentIndex {
-            UserDefaults.standard.set(updated.selectedAccentIndex, forKey: "krouton.pref.selectedAccentIndex")
+            KroutonPreferences.set(updated.selectedAccentIndex, for: .selectedAccentIndex)
         }
         if updated.iconWidgetStyle != old.iconWidgetStyle {
-            UserDefaults.standard.set(updated.iconWidgetStyle.rawValue, forKey: "krouton.pref.iconWidgetStyle")
+            KroutonPreferences.set(updated.iconWidgetStyle.rawValue, for: .iconWidgetStyle)
         }
         if updated.folderColorMode != old.folderColorMode {
-            UserDefaults.standard.set(updated.folderColorMode.rawValue, forKey: "krouton.pref.folderColorMode")
+            KroutonPreferences.set(updated.folderColorMode.rawValue, for: .folderColorMode)
         }
         if updated.sidebarIconSize != old.sidebarIconSize {
-            UserDefaults.standard.set(updated.sidebarIconSize.rawValue, forKey: "krouton.pref.sidebarIconSize")
+            KroutonPreferences.set(updated.sidebarIconSize.rawValue, for: .sidebarIconSize)
         }
         if updated.rememberLastTaskOnLaunch != old.rememberLastTaskOnLaunch {
-            UserDefaults.standard.set(updated.rememberLastTaskOnLaunch, forKey: "krouton.pref.rememberLastTask")
+            KroutonPreferences.set(updated.rememberLastTaskOnLaunch, for: .rememberLastTask)
         }
         if updated.useBase10Units != old.useBase10Units {
-            UserDefaults.standard.set(updated.useBase10Units, forKey: "krouton.pref.useBase10Units")
+            KroutonPreferences.set(updated.useBase10Units, for: .useBase10Units)
         }
     }
 }
