@@ -10,3 +10,6 @@ DerivedData/
 /build/
 /.swiftpm/
 /krouton-spoold/target/
+
+# Cross-platform release artifacts
+dist/

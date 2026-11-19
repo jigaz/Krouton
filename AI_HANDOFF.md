@@ -1020,3 +1020,8 @@ This file tracks proposed and completed changes across AI coding sessions (Claud
   - `krouton-spoold/Cargo.toml` (M)
   - `krouton-spoold/crates/krouton-spoold/Cargo.toml` (A)
   - `krouton-spoold/crates/krouton-spoold/src/main.rs` (A)
+
+- **2026-11-18 23:51 [commit 4b53caf]:** Add cross-platform release matrix builder (macOS universal, Windows x86_64 PE32+, Linux arm64/x86_64 static musl) 
+  - `.gitignore` (M)
+  - `Scripts/build-spoold-matrix.sh` (A)
+  - `krouton-spoold/crates/spoold-verify/src/hygiene_and_hal_suites.rs` (M)

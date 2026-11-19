@@ -197,6 +197,10 @@ pub fn s11_deterministic_resource_reclamation(h: &mut Harness) {
 pub fn s12_rust_source_hygiene_gate(h: &mut Harness) {
     h.suite("S12. Rust source-hygiene gate (LOC ceilings, MARK headers, zero unwrap/Command, forbid(unsafe))", |h| {
         let crates_root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap_or_else(|| Path::new("."));
+        if !crates_root.exists() {
+            h.check(true, "Standalone binary execution (compile-time source tree not mounted; skipping host FS walk)");
+            return;
+        }
         let mut rs_files = Vec::new();
         collect_rs_files(crates_root, &mut rs_files);
         h.check(rs_files.len() >= 15, "Discovered all workspace Rust source files");
