@@ -1,58 +1,88 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="Krouton"
-BUNDLE_ID="app.krouton"
-VERSION="${1:-1.0.0}"
-BUILD_DIR=".build/release"
-APP_DIR=".build/${APP_NAME}.app"
+# Builds a strictly single-architecture native Krouton.app bundle for the target CPU
+# (ARCH=arm64 or ARCH=x86_64; defaults to host `uname -m`) with its matching native
+# `krouton-spoold` helper binary embedded at Contents/Helpers/krouton-spoold.
 
-echo "Building ${APP_NAME} (${VERSION}) in release mode..."
-swift build -c release
+export PATH="$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ARCH="${ARCH:-$(uname -m)}"
+VERSION="${VERSION:-1.0.0}"
 
-rm -rf "${APP_DIR}"
-mkdir -p "${APP_DIR}/Contents/MacOS"
-mkdir -p "${APP_DIR}/Contents/Resources"
+case "$ARCH" in
+  arm64|aarch64)
+    SWIFT_ARCH="arm64"
+    RUST_TARGET="aarch64-apple-darwin"
+    MIN_MACOS="14.0"
+    ;;
+  x86_64)
+    SWIFT_ARCH="x86_64"
+    RUST_TARGET="x86_64-apple-darwin"
+    MIN_MACOS="14.0"
+    ;;
+  *)
+    echo "Unsupported macOS architecture: $ARCH (expected arm64 or x86_64)" >&2
+    exit 1
+    ;;
+esac
 
-cp "${BUILD_DIR}/${APP_NAME}" "${APP_DIR}/Contents/MacOS/${APP_NAME}"
+APP_DIR="$ROOT_DIR/dist/macos-$SWIFT_ARCH/Krouton.app"
+CONTENTS_DIR="$APP_DIR/Contents"
+MACOS_DIR="$CONTENTS_DIR/MacOS"
+HELPERS_DIR="$CONTENTS_DIR/Helpers"
+RESOURCES_DIR="$CONTENTS_DIR/Resources"
 
-for bundle in "${BUILD_DIR}"/*.bundle; do
-  if [ -d "${bundle}" ]; then
-    cp -R "${bundle}" "${APP_DIR}/Contents/Resources/"
-  fi
-done
+echo "=== 1. Building Native $SWIFT_ARCH Krouton Swift Executable ==="
+cd "$ROOT_DIR"
+swift build -c release --arch "$SWIFT_ARCH" --product Krouton
+SWIFT_BIN="$(swift build -c release --arch "$SWIFT_ARCH" --show-bin-path)/Krouton"
 
-cat > "${APP_DIR}/Contents/Info.plist" <<EOF
+echo "=== 2. Building Native $RUST_TARGET krouton-spoold Helper Daemon ==="
+cd "$ROOT_DIR/krouton-spoold"
+MACOSX_DEPLOYMENT_TARGET=12.0 cargo build --release -p krouton-spoold --target "$RUST_TARGET"
+SPOOLD_BIN="$ROOT_DIR/krouton-spoold/target/$RUST_TARGET/release/krouton-spoold"
+
+echo "=== 3. Assembling Pure Single-Architecture $SWIFT_ARCH Krouton.app Bundle ==="
+rm -rf "$APP_DIR"
+mkdir -p "$MACOS_DIR" "$HELPERS_DIR" "$RESOURCES_DIR"
+cp "$SWIFT_BIN" "$MACOS_DIR/Krouton"
+cp "$SPOOLD_BIN" "$HELPERS_DIR/krouton-spoold"
+chmod +x "$MACOS_DIR/Krouton" "$HELPERS_DIR/krouton-spoold"
+
+cat << PLIST > "$CONTENTS_DIR/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"\>
 <plist version="1.0">
 <dict>
-    <key>CFBundleExecutable</key>
-    <string>${APP_NAME}</string>
-    <key>CFBundleIdentifier</key>
-    <string>${BUNDLE_ID}</string>
-    <key>CFBundleName</key>
-    <string>${APP_NAME}</string>
-    <key>CFBundleDisplayName</key>
-    <string>${APP_NAME}</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleShortVersionString</key>
-    <string>${VERSION}</string>
-    <key>CFBundleVersion</key>
-    <string>${VERSION}</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>14.0</string>
-    <key>NSHighResolutionCapable</key>
-    <true/>
-    <key>NSBonjourServices</key>
-    <array>
-        <string>_krouton-spool._tcp</string>
-    </array>
-    <key>NSLocalNetworkUsageDescription</key>
-    <string>Krouton uses the local network to discover and stream optical disc images to paired Krouton burn nodes.</string>
+  <key>CFBundleExecutable</key>
+  <string>Krouton</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.krouton.app</string>
+  <key>CFBundleName</key>
+  <string>Krouton</string>
+  <key>CFBundleDisplayName</key>
+  <string>Krouton</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>${VERSION}</string>
+  <key>CFBundleVersion</key>
+  <string>${VERSION}</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>${MIN_MACOS}</string>
+  <key>LSArchitecturePriority</key>
+  <array>
+    <string>${SWIFT_ARCH}</string>
+  </array>
+  <key>NSHighResolutionCapable</key>
+  <true/>
 </dict>
 </plist>
-EOF
+PLIST
 
-echo "✅ Packaged ${APP_DIR}"
+echo "=== 4. Ad-Hoc Signing Native $SWIFT_ARCH Bundle ==="
+codesign --force --deep --sign - "$APP_DIR"
+
+echo "=== 5. Verifying Native Single-Architecture Headers ==="
+file "$MACOS_DIR/Krouton" "$HELPERS_DIR/krouton-spoold"

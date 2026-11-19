@@ -1025,3 +1025,7 @@ This file tracks proposed and completed changes across AI coding sessions (Claud
   - `.gitignore` (M)
   - `Scripts/build-spoold-matrix.sh` (A)
   - `krouton-spoold/crates/spoold-verify/src/hygiene_and_hal_suites.rs` (M)
+
+- **2026-11-19 01:05 [commit 0ed90e5]:** Enforce strictly single-architecture native binaries across build-spoold-matrix.sh and bundle-app.sh 
+  - `Scripts/build-spoold-matrix.sh` (M)
+  - `Scripts/bundle-app.sh` (M)
