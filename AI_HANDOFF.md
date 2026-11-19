@@ -1011,3 +1011,12 @@ This file tracks proposed and completed changes across AI coding sessions (Claud
   - `sprint3_blueprint_hero_and_resizable_columns.sh` (D)
   - `sprint3_deep_localization.sh` (D)
   - `sprint3_expand_depot_and_ia_api.sh` (D)
+
+- **2026-11-18 23:38 [commit 82ccc47]:** Complete Milestone 2: krouton-spoold CLI daemon, Kind-10 ManifestOffer parity & dual Swift/Rust pre-commit gate 
+  - `Sources/KroutonVerify/VerifyHarness+SpooldGoldenVectorSuite.swift` (M)
+  - `Sources/NetworkSpool/SpoolTransferManifest.swift` (M)
+  - `Sources/NetworkSpool/SpoolWireFrame.swift` (M)
+  - `krouton-spoold/Cargo.lock` (M)
+  - `krouton-spoold/Cargo.toml` (M)
+  - `krouton-spoold/crates/krouton-spoold/Cargo.toml` (A)
+  - `krouton-spoold/crates/krouton-spoold/src/main.rs` (A)

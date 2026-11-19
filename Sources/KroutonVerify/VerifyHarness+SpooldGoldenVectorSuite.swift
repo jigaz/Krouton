@@ -46,6 +46,9 @@ extension KroutonTestHarness {
         if let manifest {
             let record = ExtentCommitRecord(extentIndex: 5, leafDigest: manifest.leafDigests[5]).encoded()
             h.check(Self.goldenHex(record) == v["journal.record_5"], "44-byte commit record matches")
+            let offer = manifest.encodeManifestOffer()
+            let decodedOffer = offer.flatMap { SpoolTransferManifest(manifestOffer: $0) }
+            h.check(decodedOffer == manifest, "Kind-10 ManifestOffer frame round-trips identically to Rust spoold-proto")
         }
     }
 

@@ -3,7 +3,7 @@ resolver = "3"
 members = [
     "crates/spoold-proto",
     "crates/spoold-crypto",
-    "crates/spoold-verify",
+    "crates/krouton-spoold", "crates/spoold-verify",
 ]
 # Dependency DAG (arrows point at dependencies). Planned crates are marked; they slot in without
 # changing any existing edge:

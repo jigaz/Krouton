@@ -16,6 +16,7 @@ public enum SpoolFrameKind: UInt8, Sendable, CaseIterable {
     case telemetry = 7
     case control = 8
     case manifestMismatch = 9
+    case manifestOffer = 10
 }
 
 public enum SpoolWireError: Error, Sendable, Equatable {

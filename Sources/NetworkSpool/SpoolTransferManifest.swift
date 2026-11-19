@@ -149,3 +149,74 @@ public struct ExtentCommitRecord: Sendable, Equatable {
         return bitmap
     }
 }
+
+// MARK: - Decision D3: Wire ManifestOffer (Kind 10) Encode & Decode
+
+public extension SpoolTransferManifest {
+    static let maxManifestLeaves = 262_144
+    private static let allowedSectorSizes: Set<UInt16> = [2048, 2336, 2352, 2448]
+    private static let maxOfferPayloadBytes = 8 * 1024 * 1024
+
+    func encodeManifestOffer() -> SpoolFrame? {
+        guard self.sectorsPerExtent > 0,
+              self.totalSectors > 0,
+              let sectorSizeU16 = UInt16(exactly: self.sectorSize),
+              let sectorsPerExtentU32 = UInt32(exactly: self.sectorsPerExtent),
+              let totalSectorsU64 = UInt64(exactly: self.totalSectors),
+              Self.allowedSectorSizes.contains(sectorSizeU16),
+              self.leafDigests.count == self.extentCount,
+              self.leafDigests.count <= Self.maxManifestLeaves else {
+            return nil
+        }
+        var payload = [UInt8]()
+        payload.reserveCapacity(self.leafDigests.count * 32)
+        for leaf in self.leafDigests {
+            guard leaf.count == 32 else { return nil }
+            payload.append(contentsOf: leaf)
+        }
+        guard payload.count <= Self.maxOfferPayloadBytes else { return nil }
+        let header = SpoolFrameHeader(
+            kind: .manifestOffer,
+            flags: 0,
+            extentIndex: sectorsPerExtentU32,
+            firstLBA: totalSectorsU64,
+            sectorSize: sectorSizeU16,
+            payloadLength: UInt32(payload.count),
+            digest: self.root
+        )
+        return SpoolFrame(header: header, payload: payload)
+    }
+
+    init?(manifestOffer frame: SpoolFrame) {
+        let h = frame.header
+        guard h.kind == .manifestOffer,
+              h.flags == 0,
+              Self.allowedSectorSizes.contains(h.sectorSize),
+              h.extentIndex > 0,
+              h.firstLBA > 0,
+              let totalSectorsInt = Int(exactly: h.firstLBA),
+              frame.payload.count % 32 == 0 else {
+            return nil
+        }
+        let leafCount = frame.payload.count / 32
+        guard leafCount > 0, leafCount <= Self.maxManifestLeaves else { return nil }
+        let spx = UInt64(h.extentIndex)
+        let expectedLeaves = Int((h.firstLBA + (spx - 1)) / spx)
+        guard leafCount == expectedLeaves else { return nil }
+
+        var leaves: [[UInt8]] = []
+        leaves.reserveCapacity(leafCount)
+        for i in 0..<leafCount {
+            let start = i * 32
+            leaves.append(Array(frame.payload[start..<(start + 32)]))
+        }
+        let candidate = SpoolTransferManifest(
+            sectorSize: Int(h.sectorSize),
+            sectorsPerExtent: Int(h.extentIndex),
+            totalSectors: totalSectorsInt,
+            leafDigests: leaves
+        )
+        guard candidate.root == h.digest else { return nil }
+        self = candidate
+    }
+}

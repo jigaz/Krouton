@@ -166,6 +166,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "krouton-spoold"
+version = "0.1.0"
+dependencies = [
+ "spoold-crypto",
+ "spoold-hal",
+ "spoold-mmc",
+ "spoold-proto",
+ "spoold-store",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.191"
 source = "registry+https://github.com/rust-lang/crates.io-index"
