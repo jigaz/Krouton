@@ -176,6 +176,10 @@ extension KroutonTestHarness {
                                                          peerHello: spoofedB, peerCommitment: SpoolPairing.commitment(to: helloB)) }
                 == .commitmentMismatch,
                 "A revealed hello that does not match the earlier commitment must abort pairing")
+        h.check(pairingError { try SpoolPairing.complete(isInitiator: true, ownHello: helloA, ownEphemeral: aliceEph,
+                                                         peerHello: helloB, peerCommitment: nil) }
+                == .commitmentMismatch,
+                "A missing commitment on initiator must abort pairing")
 
         let exporter = Data(repeating: 7, count: 32)
         let proof = try? SpoolSessionProof.sign(exporter: exporter, role: "node", identity: bob)

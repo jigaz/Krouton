@@ -70,7 +70,20 @@ public enum SpoolPairing {
         peerHello: SpoolPairingHello,
         peerCommitment: Data?
     ) throws(SpoolPairingError) -> SpoolPairingResult {
-        if let peerCommitment, commitment(to: peerHello) != peerCommitment { throw .commitmentMismatch }
+        if isInitiator {
+            guard let peerCommitment else { throw .commitmentMismatch }
+            let expected = commitment(to: peerHello)
+            guard expected.count == peerCommitment.count,
+                  zip(expected, peerCommitment).reduce(UInt8(0), { $0 | ($1.0 ^ $1.1) }) == 0 else {
+                throw .commitmentMismatch
+            }
+        } else if let peerCommitment {
+            let expected = commitment(to: peerHello)
+            guard expected.count == peerCommitment.count,
+                  zip(expected, peerCommitment).reduce(UInt8(0), { $0 | ($1.0 ^ $1.1) }) == 0 else {
+                throw .commitmentMismatch
+            }
+        }
         guard peerHello.nonce.count == 16,
               let peerEphemeral = try? Curve25519.KeyAgreement.PublicKey(rawRepresentation: peerHello.ephemeralKey),
               let peerIdentity = try? Curve25519.Signing.PublicKey(rawRepresentation: peerHello.identityKey),

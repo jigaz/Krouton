@@ -11,6 +11,8 @@ harness.runVerifyAudioAndVideoSuites()
 harness.runVerifyMasteringDomainModelsSuite()
 harness.runVerifyHardwareAndBurnSuites()
 harness.runVerifyLabelAndPersistenceSuites()
+harness.runVerifyIntegrationReachabilitySuite()
+harness.runVerifySpooldGoldenVectorSuite()
 
 print("\n🎯 SUMMARY: \(harness.passed) behaviour assertions and \(harness.lintPassed) source-rule checks passed, \(harness.failed) failed.")
 if harness.failed > 0 {

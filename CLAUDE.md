@@ -45,19 +45,16 @@ All code written or proposed for Krouton is automatically linted by **Suite 1, S
   - Any Swift file **> 120 LOC** MUST include canonical `// MARK: -` section headers.
 - **Role-Based Extension Naming:**
   - Multi-file extensions of a type `Foo` MUST be named `Foo+Role.swift` (e.g., `VerifyHarness+ArchitectureSuites.swift`).
-- **Zero Shell-Injection / Zero Subprocess Networking (Suite 18):**
-  - Never use `Process`, `NSTask`, `/bin/sh`, `curl`, `rsync`, `nc`, or `ssh`.
+- **Zero Shell-Injection Gate (Suite 18):**
+  - Never invoke shells (`/bin/sh`, `/bin/bash`, `/bin/zsh`, `popen`, `system`) or subprocess networking (`curl`, `rsync`, `nc`, `ssh`).
+  - Direct `Process` execution with an explicit executable URL and argument array (e.g., `/usr/bin/hdiutil`, `ffmpeg`) is permitted only in the imaging/transcoding layers.
   - All networking and IPC must use native Apple frameworks (`Network.framework`, `URLSession`, `CryptoKit`).
+- **Integration Reachability Ratchet (Suite 28 & `PENDING_INTEGRATION.md`):**
+  - Every `public` type in a library target must either have a caller in another production file or be listed in `PENDING_INTEGRATION.md` with an owner and decide-by date.
+  - When a listed type gains a production caller, remove its entry from `PENDING_INTEGRATION.md` so the unwired list can only shrink.
 - **Swift 6 Strict Concurrency & Observation:**
   - All cross-isolation models must conform to `Sendable`.
   - UI state uses `@Observable` with leaf-granular sub-stores (`let` child store + `ReferenceWritableKeyPath`, Suite 24).
   - Never use `.contextMenu` inside `Features/` or `Shell/NavigationAndRack/` where custom popover/pill controls are mandated.
 
 ---
-
-## 4. Current Consultation Task (Networking Strategy Q1–Q10)
-When reviewing `Krouton_Networking_Consultation.zip`:
-1. Start with this `CLAUDE.md` and `00_KROUTON_NETWORKING_CONTEXT.md`.
-2. Answer all 10 architectural questions in `01_NETWORKING_STRATEGY_QUESTIONS.md` (`Q1`–`Q10`).
-3. Cross-reference the real production implementations in `ReferenceSources/` (`SpoolLANSecurityEngine`, `BurnClaimLedger`, `VerifyHarness+PeerAgentSynthesisSuites.swift`, etc.).
-4. Provide complete, deterministic Swift 6 code for **Suite 27** (`Q10`) ready to drop into `Sources/KroutonVerify/`.

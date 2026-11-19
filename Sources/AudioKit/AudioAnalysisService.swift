@@ -54,6 +54,7 @@ public actor AudioAnalysisService {
     /// Must cover the longest crossfade (15 s) with margin.
     static let windowSeconds: Double = 35
     private static let maxConcurrentDecodes = 4
+    private static let maxCachedAnalyses = 64
 
     /// A changed file (same path, new size or date) is analysed again.
     private struct Key: Hashable {
@@ -63,6 +64,7 @@ public actor AudioAnalysisService {
     }
 
     private var cache: [Key: TrackAnalysis] = [:]
+    private var accessOrder: [Key] = []
     private var inFlight: [Key: Task<TrackAnalysis, Error>] = [:]
     private var activeDecodes = 0
     private var waiters: [CheckedContinuation<Void, Never>] = []
@@ -73,7 +75,11 @@ public actor AudioAnalysisService {
     /// Dropping 99 files starts 99 calls; only a few decode at a time.
     public func analysis(for url: URL) async throws -> TrackAnalysis {
         let key = Self.key(for: url)
-        if let hit = cache[key] { return hit }
+        if let hit = cache[key] {
+            accessOrder.removeAll { $0 == key }
+            accessOrder.append(key)
+            return hit
+        }
         if let running = inFlight[key] { return try await running.value }
 
         let task = Task<TrackAnalysis, Error> {
@@ -87,8 +93,20 @@ public actor AudioAnalysisService {
         inFlight[key] = task
         defer { inFlight[key] = nil }
         let result = try await task.value
+        while cache.count >= Self.maxCachedAnalyses, !accessOrder.isEmpty {
+            let oldest = accessOrder.removeFirst()
+            cache.removeValue(forKey: oldest)
+        }
         cache[key] = result
+        accessOrder.removeAll { $0 == key }
+        accessOrder.append(key)
         return result
+    }
+
+    /// Returns cached analysis buffers immediately to the system when leaving audio workspaces.
+    public func purgeCache() {
+        cache.removeAll(keepingCapacity: false)
+        accessOrder.removeAll(keepingCapacity: false)
     }
 
     // MARK: - Concurrency limit

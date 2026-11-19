@@ -1,0 +1,19 @@
+[package]
+name = "spoold-proto"
+description = "Sans-I/O KRSP v1 protocol core for krouton-spoold: framing, manifest, journal, extent pipeline, leases, policies."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[features]
+default = []
+# Swap the built-in portable SHA-256 for RustCrypto's `sha2` (SHA-NI / ARMv8 SHA2 acceleration).
+# Release builds of the daemon enable this; the built-in one keeps the crate dependency-free.
+sha2 = ["dep:sha2"]
+
+[dependencies]
+sha2 = { workspace = true, optional = true }
+
+[lints]
+workspace = true

@@ -118,7 +118,7 @@ public struct SpoolUploadSender: Sendable {
             case .credit:
                 credits += index
             case .extentAck:
-                inFlight.remove(index)
+                guard inFlight.remove(index) != nil else { continue }
                 acknowledged.insert(index)
             case .extentReject:
                 guard inFlight.remove(index) != nil else { continue }

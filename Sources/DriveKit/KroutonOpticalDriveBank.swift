@@ -279,17 +279,22 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
         }
 
         let previousSelectedID = self.selectedDrive?.id
-        self.availableDrives = found
-        if let prevID = previousSelectedID, let match = found.first(where: { $0.id == prevID }) {
-            self.selectedDrive = match
-        } else {
-            self.selectedDrive = found.first
+        if self.availableDrives != found {
+            self.availableDrives = found
+        }
+        let nextSelected = (previousSelectedID.flatMap { prevID in found.first(where: { $0.id == prevID }) }) ?? found.first
+        if self.selectedDrive != nextSelected {
+            self.selectedDrive = nextSelected
         }
 
-        if let primary = self.selectedDrive {
-            self.hardwareStatusLog = "\(primary.displayName) [FW \(primary.firmware)] — \(primary.statusBadgeText)"
+        let nextStatusLog: String
+        if let primary = nextSelected {
+            nextStatusLog = "\(primary.displayName) [FW \(primary.firmware)] — \(primary.statusBadgeText)"
         } else {
-            self.hardwareStatusLog = "No Local Optical Drive Detected — Check USB Connection"
+            nextStatusLog = "No Local Optical Drive Detected — Check USB Connection"
+        }
+        if self.hardwareStatusLog != nextStatusLog {
+            self.hardwareStatusLog = nextStatusLog
         }
     }
 

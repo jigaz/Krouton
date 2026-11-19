@@ -1,10 +1,12 @@
 .DS_Store
 /.build
-/build
 /Packages
 xcuserdata/
 DerivedData/
-.swiftpm/
-*.xcodeproj
-.build/
-build/
+.swiftpm/configuration/registries.json
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.netrc
+*.tmp
+/build/
+/.swiftpm/
+/krouton-spoold/target/

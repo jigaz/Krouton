@@ -145,6 +145,13 @@ extension KroutonTestHarness {
         let frame = SpoolFrameHeader.byteCount + manifest.extentBytes
         let query = SpoolFrameHeader.byteCount + 32
 
+        var guardSender = SpoolUploadSender(manifest: manifest, maxInFlight: 2)
+        _ = guardSender.connect()
+        let bitmapFrame = SpoolFrame(header: SpoolFrameHeader(kind: .bitmapReply), payload: ExtentBitmap(count: manifest.extentCount).bytes)
+        let unsolicitedAck = SpoolFrame.signal(.extentAck, extentIndex: 15)
+        _ = try? guardSender.receive(bitmapFrame.encoded() + unsolicitedAck.encoded()) { _ in [] }
+        h.check(!guardSender.acknowledged.contains(15), "An unsolicited .extentAck for an extent not in flight must be ignored")
+
         let clean = runSpoolLoopback(image: image, senderManifest: manifest, receiverManifest: manifest, faults: .init())
         h.check(clean.sender.phase == .complete && clean.staged == image && clean.reconnects == 0
                 && clean.sender.extentsSent == manifest.extentCount && clean.sender.peakInFlight <= 3,

@@ -1,36 +1,31 @@
-# Krouton — macOS Optical Media Mastering Studio & CLI
+# Krouton (`app.krouton`)
 
-Krouton is a native Swift 6 / SwiftUI optical media authoring, multi-disc spanning, archival rescue, and disc-label studio for macOS 14 Sonoma and later, featuring a built-in headless CLI (`krouton`), Apple Shortcuts (`AppIntents`) integration, and remote network spooling (`NetworkSpool` / Port `7420`).
+**Krouton** is a native macOS optical disc mastering, extraction, bad-sector rescue, and distributed burn-pool suite written in **Swift 6** with a 100% Pure-SwiftUI interface.
 
-- **Author & Maintainer:** Jorgen Thompquist
-- **Apple Developer Team ID:** `D3BJL3F92P`
-- **Bundle Identifier:** `com.krouton.opticalstudio`
+## Highlights
+- **11-Module Clean Architecture (21 SPM Targets):** Strictly isolated hardware I/O (`DriveKit`), APFS copy-on-write burn staging (`BurnKit`), hybrid ISO-9660 / Joliet / UDF / El Torito LBA planning (`ImageKit`), 75 fps Red Book CD-DA & lock-free crossfade auditioning (`AudioKit`), DVD-9 to DVD-5 menu-preserving shrink (`VideoKit`), adaptive bad-sector recovery (`RescueKit`), 300-DPI vector disc labels (`LabelKit`), and zero-trust LAN/VPN optical spooling (`NetworkSpool`).
+- **Deterministic Verification Harness (`krouton-verify`):** 28 verification suites enforcing architectural boundaries, domain math, 500-frame telemetry fuzzing, loopback fault injection, and integration reachability ratchets in under 0.5 seconds.
 
-## Key Capabilities
-- **Data & Hybrid Image Mastering (`ImageKit`, `BurnKit`):** ISO-9660 / Joliet / UDF 2.60 / HFS+ hybrid filesystems, El Torito (UEFI + BIOS) & Apple Partition Map bootable sector inspection, `.BIN/.CUE` <-> `.ISO` transcoding, and live multi-disc spanning (`650 MB CD-R` to `128 GB BDXL`).
-- **Red Book CD-DA & Car-Safe Audio Studio (`AudioKit`):** Per-track `INDEX 00` pre-gaps, Hidden Track One Audio (HTOA), 18-byte `CD-TEXT` CRC-16 encoding with 7-bit ASCII sanitization, ISRC/MCN barcodes, equal-power crossfade DSP, and 5-second transition auditioning.
-- **Video & Optical Shrink (`VideoKit`):** Optical bitrate budgeting, DVD-9 to DVD-5 requantization, IFO relinking, Dual-Layer ECC break alignment, and AVCHD muxing.
-- **Archival Rescue & Grading (`RescueKit`):** Multi-pass bad-sector optical recovery and archival media quality grading.
-- **Polar 300-DPI Disc Label Studio (`LabelKit`):** 120mm / 80mm polar geometry engine and 1:1 vector PDF print sheet generation.
-- **Zero-Coaster Network Spooling (`NetworkSpool`):** Spool-and-burn remote mastering over Port `7420` (`_krumb._tcp.local.`).
-- **Adaptive macOS Experience (`KroutonApp`):** Native `Assets.car` + dynamic `.icns` Dock icon switching (Default, Dark, Tinted, Clear), 10-preset Display-P3 dual-polarity color harmony engine, IOKit burn sleep guards, and 10-language localization.
+## Requirements
+- macOS 14.0 (Sonoma) or later
+- Swift 6.0 / Xcode 16+
 
-## Installation
+## Build, Test & Verify
+```bash
+# Build all targets
+swift build
 
-    brew install --cask Packaging/Homebrew/Casks/krouton.rb
-    brew install --formula Packaging/Homebrew/Formula/krouton.rb
+# Run unit tests
+swift test
 
-## Build & Verification
+# Run the 28-suite deterministic verification harness
+swift run krouton-verify
 
-    swift build -c release
-    swift test
-    swift run krouton-verify
+# Launch Krouton
+swift run Krouton
+```
 
-## Headless CLI Usage
-
-    krouton --version
-    krouton drives --json
-    krouton formats
-    krouton inspect ~/Downloads/archive.iso --sha256
-    krouton span --medium dvd5 ~/Documents/ProjectArchive/*
-    krouton iso --volume ARCHIVE_2026 --out ~/Desktop/Archive.iso ~/Documents/Payload
+## Packaging a Release `.app` Bundle
+```bash
+./Scripts/bundle-app.sh
+```

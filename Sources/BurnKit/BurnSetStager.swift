@@ -52,10 +52,20 @@ public struct StagedInputFile: Sendable, Equatable {
 
     public init(sourceURL: URL, relativePathOnDisc: String? = nil) {
         self.sourceURL = sourceURL
-        self.relativePathOnDisc = (relativePathOnDisc ?? sourceURL.lastPathComponent)
+        let raw = (relativePathOnDisc ?? sourceURL.lastPathComponent)
             .precomposedStringWithCanonicalMapping
             .replacingOccurrences(of: "\\", with: "/")
-            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        let safeParts = raw
+            .split(separator: "/", omittingEmptySubsequences: true)
+            .filter { $0 != "." && $0 != ".." }
+            .map(String.init)
+        let fallback = sourceURL.lastPathComponent
+            .replacingOccurrences(of: "\\", with: "/")
+            .split(separator: "/", omittingEmptySubsequences: true)
+            .filter { $0 != "." && $0 != ".." }
+            .map(String.init)
+            .joined(separator: "_")
+        self.relativePathOnDisc = safeParts.isEmpty ? (fallback.isEmpty ? "staged-item" : fallback) : safeParts.joined(separator: "/")
     }
 }
 
@@ -119,7 +129,7 @@ public enum BurnSetStager {
                 }
             } else {
                 let code = errno
-                if code == EXDEV || code == ENOTSUP || code == ENOTTY {
+                if code != EINTR && code != EAGAIN {
                     break
                 }
             }

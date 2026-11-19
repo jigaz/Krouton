@@ -1,0 +1,21 @@
+[package]
+name = "spoold-verify"
+description = "Deterministic verification harness for krouton-spoold (the Rust counterpart of krouton-verify)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "krouton-spoold-verify"
+path = "src/main.rs"
+
+[dependencies]
+spoold-proto.workspace = true
+spoold-crypto.workspace = true
+spoold-mmc.workspace = true
+spoold-hal.workspace = true
+spoold-store.workspace = true
+
+[lints]
+workspace = true

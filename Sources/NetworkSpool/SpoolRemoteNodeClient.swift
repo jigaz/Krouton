@@ -102,7 +102,9 @@ public final class SpoolRemoteNodeClient {
     }
 
     func normalizedBaseURL(from hostOrPath: String) -> URL? {
-        URL(string: "http://\(normalizedHostPort(from: hostOrPath))")
+        let candidate = hostOrPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? activeEndpointHost : hostOrPath
+        guard SpoolLANSecurityEngine.isAllowedLANEndpoint(candidate) else { return nil }
+        return URL(string: "http://\(normalizedHostPort(from: candidate))")
     }
 
     public func refreshRemoteDrives(endpoint: String? = nil) async {

@@ -48,6 +48,7 @@ public enum SpoolTLS {
     public static func parameters(pairings: [(nodeID: String, key: SymmetricKey)]) -> NWParameters {
         let tls = NWProtocolTLS.Options()
         let options = tls.securityProtocolOptions
+        sec_protocol_options_set_min_tls_protocol_version(options, .TLSv13)
         for pairing in pairings {
             let key = pairing.key.withUnsafeBytes { DispatchData(bytes: $0) }
             let identity = Data(pairing.nodeID.utf8).withUnsafeBytes { DispatchData(bytes: $0) }
