@@ -1,4 +1,6 @@
 /target
-**/*.rs.bk
-Cargo.lock.orig
-*.mutbak
+*.key
+*.p12
+spool/
+clients.pins
+.DS_Store

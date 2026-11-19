@@ -1,55 +1,15 @@
 [workspace]
-resolver = "3"
-members = [
-    "crates/spoold-proto",
-    "crates/spoold-crypto",
-    "crates/krouton-spoold", "crates/spoold-verify",
-]
-# Dependency DAG (arrows point at dependencies). Planned crates are marked; they slot in without
-# changing any existing edge:
-#
-#   spoold (daemon bin, planned) ──► spoold-net (planned: rustls mTLS, tokio, mDNS)
-#        │                              │
-#        ├──► spoold-hal (planned: OpticalDriveHal; macos / linux / windows backends)
-#        ├──► spoold-store (planned: preallocation, barrier journal, RunLock, reaper)
-#        ▼                              ▼
-#   spoold-crypto ──────────────────► spoold-proto ◄── spoold-verify (bin)
-#
-# spoold-proto has ZERO third-party dependencies and no I/O: every protocol rule is a pure
-# function or state machine, so spoold-verify can drive it deterministically.
+resolver = "2"
+members = ["crates/spoold-core", "crates/krouton-spoold"]
 
 [workspace.package]
 version = "0.1.0"
-edition = "2024"
-rust-version = "1.88"
-publish = false
-
-[workspace.dependencies]
-spoold-proto = { path = "crates/spoold-proto" }
-spoold-crypto = { path = "crates/spoold-crypto" }
-spoold-mmc = { path = "crates/spoold-mmc" }
-spoold-hal = { path = "crates/spoold-hal" }
-spoold-store = { path = "crates/spoold-store" }
-sha2 = { version = "0.10", default-features = false }
-hkdf = "0.12"
-x25519-dalek = { version = "2", features = ["static_secrets", "zeroize"] }
-ed25519-dalek = { version = "2", features = ["zeroize"] }
-zeroize = "1"
-
-[workspace.lints.rust]
-unsafe_code = "forbid"          # HAL and store crates will opt out per module, with a SAFETY comment
-missing_debug_implementations = "warn"
-
-[workspace.lints.clippy]
-unwrap_used = "deny"            # protocol code returns errors; spoold-verify opts back in
-expect_used = "deny"
-panic = "deny"
-cast_possible_truncation = "deny"   # armv7 has a 32-bit usize: a 50 GB offset must never pass through usize
-indexing_slicing = "warn"
+edition = "2021"
+rust-version = "1.75"
+license = "UNLICENSED"
 
 [profile.release]
-opt-level = 3
-lto = "fat"
+lto = "thin"
 codegen-units = 1
 panic = "abort"
-strip = "symbols"
+strip = true

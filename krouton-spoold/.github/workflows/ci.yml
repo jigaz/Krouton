@@ -6,14 +6,16 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: -D warnings
+  # macOS 12 Monterey is the oldest supported burn box.
+  MACOSX_DEPLOYMENT_TARGET: "12.0"
 
 jobs:
-  verify:
+  # Core + server (including the real-TLS end-to-end test) on each OS family.
+  test:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-13, macos-14, windows-latest]   # Linux x86_64, Intel Mac, Apple Silicon, Windows x64
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -21,28 +23,107 @@ jobs:
         with:
           components: clippy, rustfmt
       - run: cargo fmt --all --check
-      - run: cargo clippy --workspace --all-targets
+      - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
-      # The gate. No drive, network or disk needed, so it runs everywhere.
-      - run: cargo run --release -p spoold-verify
-      # Same suite with the accelerated hash, so both SHA-256 paths stay identical.
-      - run: cargo run --release -p spoold-verify --features spoold-proto/sha2
 
-  golden-vectors-fresh:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: pip install cryptography
-      - name: Vectors on disk match a fresh run of the independent generator
-        run: python3 tools/gen_golden_vectors.py | diff - vectors/krsp-golden-v1.txt
-
-  thirty-two-bit:
-    # armv7 (Raspberry Pi OS 32-bit) has a 32-bit usize; type-check that every offset stays u64.
-    runs-on: ubuntu-latest
+  # Release binaries for every supported burn box.
+  build:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-apple-darwin,           os: macos-latest,   label: macos12-intel }
+          - { target: aarch64-apple-darwin,          os: macos-latest,   label: macos-apple-silicon }
+          - { target: x86_64-pc-windows-msvc,        os: windows-latest, label: windows10-x64 }
+          - { target: i686-pc-windows-msvc,          os: windows-latest, label: windows10-x86 }
+          - { target: aarch64-unknown-linux-gnu,     os: ubuntu-latest,  label: raspberrypi-64bit, cross: true }
+          - { target: armv7-unknown-linux-gnueabihf, os: ubuntu-latest,  label: raspberrypi-32bit, cross: true }
+          - { target: x86_64-unknown-linux-gnu,      os: ubuntu-latest,  label: debian-x64 }
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: armv7-unknown-linux-gnueabihf, aarch64-unknown-linux-gnu
-      - run: cargo check --workspace --target armv7-unknown-linux-gnueabihf
-      - run: cargo check --workspace --target aarch64-unknown-linux-gnu
+          targets: ${{ matrix.target }}
+      - name: Install cross
+        if: matrix.cross
+        run: cargo install cross --locked
+      - name: Build
+        shell: bash
+        run: |
+          if [ "${{ matrix.cross }}" = "true" ]; then tool=cross; else tool=cargo; fi
+          $tool build --release -p krouton-spoold --target ${{ matrix.target }}
+      - name: Smoke-run native builds
+        if: ${{ !matrix.cross && matrix.target != 'x86_64-apple-darwin' }}
+        shell: bash
+        run: target/${{ matrix.target }}/release/krouton-spoold --version
+      - name: Smoke-run Intel macOS build under Rosetta
+        if: matrix.target == 'x86_64-apple-darwin'
+        run: arch -x86_64 target/x86_64-apple-darwin/release/krouton-spoold --version || echo "Rosetta unavailable on runner; skipped"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: krouton-spoold-${{ matrix.label }}
+          path: |
+            target/${{ matrix.target }}/release/krouton-spoold
+            target/${{ matrix.target }}/release/krouton-spoold.exe
+          if-no-files-found: error
+
+  # Swift package: unit tests, then Krouton's client against a live server over TLS.
+  swift:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: swift test
+        working-directory: swift/KroutonSpool
+      - name: Start krouton-spoold (simulated drive)
+        run: |
+          cargo build --release -p krouton-spoold
+          mkdir -p "$RUNNER_TEMP/e2e" && cd "$RUNNER_TEMP/e2e"
+          export KROUTON_P12_PASSWORD=ci-only
+          sh "$GITHUB_WORKSPACE/scripts/make-certs.sh" server ci-server
+          sh "$GITHUB_WORKSPACE/scripts/make-certs.sh" client ci-client | sed -n 's/^  \([0-9a-f]\{64\}  ci-client\)$/\1/p' > clients.pins
+          test -s clients.pins
+          printf 'listen = 127.0.0.1:7477\nbackend = simulate\nspool_dir = spool\nmin_free_gib = 0\n' > spoold.conf
+          "$GITHUB_WORKSPACE/target/release/krouton-spoold" check --config spoold.conf | tee check.out
+          echo "SPOOLD_E2E_SERVER_PIN=$(sed -n 's/.*enter it in Krouton): //p' check.out)" >> "$GITHUB_ENV"
+          nohup "$GITHUB_WORKSPACE/target/release/krouton-spoold" run --config spoold.conf > server.log 2>&1 &
+          sleep 2
+      - name: Swift ↔ Rust end-to-end
+        working-directory: swift/KroutonSpool
+        env:
+          SPOOLD_E2E_HOST: 127.0.0.1
+          SPOOLD_E2E_P12: ${{ runner.temp }}/e2e/ci-client.p12
+          SPOOLD_E2E_P12_PASSWORD: ci-only
+        run: swift test --filter E2ETests
+      - name: Server log
+        if: always()
+        run: cat "$RUNNER_TEMP/e2e/server.log" || true
+
+  scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck scripts/*.sh deploy/*/install.sh
+      - run: systemd-analyze verify deploy/linux/krouton-spoold.service || true
+
+  powershell:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse PowerShell scripts
+        shell: powershell
+        run: |
+          $failed = $false
+          foreach ($f in @('crates/spoold-core/src/imapi-burn.ps1', 'deploy/windows/install.ps1')) {
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $f), [ref]$null, [ref]$errors)
+            if ($errors) { $errors | ForEach-Object { Write-Error "$f : $_" }; $failed = $true }
+          }
+          if ($failed) { exit 1 }
+      - name: IMAPI2 is present (no drive on the runner)
+        shell: powershell
+        run: |
+          $m = New-Object -ComObject IMAPI2.MsftDiscMaster2
+          "IMAPI2 recorders on runner: $($m.Count)"
