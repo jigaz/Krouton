@@ -49,7 +49,7 @@ public actor SpoolServerConnection {
         (events, continuation) = AsyncThrowingStream.makeStream(of: Event.self, throwing: Error.self)
     }
 
-    // MARK: Opening
+    // MARK: - Opening
 
     /// Connects and completes TLS. `acceptPin` decides whether the server's key is trusted (a
     /// paired server's stored pin, or anything during pairing, where the code comparison decides).
@@ -123,7 +123,7 @@ public actor SpoolServerConnection {
         }
     }
 
-    // MARK: Traffic
+    // MARK: - Traffic
 
     private func startPump() {
         pump = Task { [weak self] in
@@ -186,7 +186,7 @@ public actor SpoolServerConnection {
         continuation.finish()
     }
 
-    // MARK: Upload Pipeline
+    // MARK: - Upload Pipeline
 
     /// Starts (or resumes) sending `file` under `manifest`. The server answers the bitmap query
     /// with what it already holds, so only missing extents travel.

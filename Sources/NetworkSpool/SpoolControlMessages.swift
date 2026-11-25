@@ -114,7 +114,7 @@ public enum SpoolControl: Sendable, Equatable {
     case pairCommit(Data)
     case pairResult(accepted: Bool, nodeID: String, serverName: String)
 
-    // MARK: Encode
+    // MARK: - Encode
 
     public func jsonObject() -> [String: Any] {
         switch self {

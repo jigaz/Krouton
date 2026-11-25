@@ -22,7 +22,7 @@ public enum SpoolClientIdentity {
     static let tlsKeyTag = Data("app.krouton.spool.tls-key".utf8)
     static let certificateLabel = "Krouton Burn Server Client"
 
-    // MARK: Ed25519 identity
+    // MARK: - Ed25519 identity
 
     /// The Ed25519 identity, created and stored on first use.
     public static func signingKey() throws(SpoolClientIdentityError) -> Curve25519.Signing.PrivateKey {
@@ -53,7 +53,7 @@ public enum SpoolClientIdentity {
         return key
     }
 
-    // MARK: TLS identity
+    // MARK: - TLS identity
 
     /// The TLS `SecIdentity` (P-256 key + self-signed certificate), created on first use.
     public static func tlsIdentity(deviceName: String) throws(SpoolClientIdentityError) -> SecIdentity {
