@@ -36,6 +36,7 @@ impl RingCrypto {
     }
 
     /// Deterministic identity from a 32-byte seed (golden-vector tests only).
+    #[cfg(test)]
     pub fn from_seed(seed: &[u8; 32]) -> Result<Self, String> {
         let identity = Ed25519KeyPair::from_seed_unchecked(seed).map_err(|e| e.to_string())?;
         Ok(Self { identity, rng: SystemRandom::new() })

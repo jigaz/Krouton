@@ -291,10 +291,7 @@ fn unpair(home: &Path, args: &[String]) -> Result<(), String> {
 fn check(home: &Path) -> Result<(), String> {
     let mut problems = Vec::new();
     println!("Home        : {}", home.display());
-    let config = match load_config(home) {
-        Ok(c) => c,
-        Err(e) => return Err(e),
-    };
+    let config = load_config(home)?;
     println!("Name        : {}", config.name);
     println!("Listen      : {}", config.listen.iter().map(ToString::to_string).collect::<Vec<_>>().join(", "));
     println!("Backend     : {}", config.backend.resolved().name());

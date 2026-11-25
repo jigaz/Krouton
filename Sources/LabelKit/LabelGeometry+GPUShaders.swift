@@ -1,11 +1,11 @@
 import CoreGraphics
 import CoreImage
-import os
 import CoreImage.CIFilterBuiltins
 import Foundation
 import OpticalCore
 import RescueKit
 import Vision
+import os
 
 extension KroutonLabelGeometryEngine {
     public static func traceImageContoursWithVision(
