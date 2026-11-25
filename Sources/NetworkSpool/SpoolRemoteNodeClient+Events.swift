@@ -163,7 +163,7 @@ extension SpoolRemoteNodeClient {
 
     /// Connects to `serverID` (a paired server's node ID) and refreshes its drives and jobs.
     public func refreshRemoteDrives(serverID: String? = nil) async {
-        guard let server = serverID.flatMap(server(withID:)) ?? pairedServers.first else {
+        guard let server = serverID.flatMap({ self.server(withID: $0) }) ?? pairedServers.first else {
             statusBannerText = "No burn servers paired yet"
             return
         }

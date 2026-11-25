@@ -157,18 +157,20 @@ public actor BurnSetScheduler {
                                              drive: drive.id, mediaID: media.mediaID, at: .now), disc: disc.index)
             started = true
 
-            await arbiter.acquireSpinUp(for: drive.id)
+            // Arbitration only matters when several drives can spin up at once.
+            let arbitrated = drives.count > 1
+            if arbitrated { await arbiter.acquireSpinUp(for: drive.id) }
             do {
                 try await drive.write(image: disc.imageURL) { phase in
-                    if phase == .writing { await self.arbiter.reachedSteadyWriting(drive.id) }
+                    if arbitrated, phase == .writing { await self.arbiter.reachedSteadyWriting(drive.id) }
                     try? await self.record(.phaseChanged(set: setID, disc: disc.index, attempt: attempt,
                                                          phase: phase, at: .now), disc: disc.index)
                 }
             } catch {
-                await arbiter.withdraw(drive.id)
+                if arbitrated { await arbiter.withdraw(drive.id) }
                 throw error
             }
-            await arbiter.withdraw(drive.id)
+            if arbitrated { await arbiter.withdraw(drive.id) }
             try await record(.phaseChanged(set: setID, disc: disc.index, attempt: attempt,
                                            phase: .verifying, at: .now), disc: disc.index)
             try await drive.verify(againstSHA256: disc.imageSHA256, byteCount: disc.imageBytes)
