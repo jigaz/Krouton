@@ -1,5 +1,7 @@
 # Krouton & Krumb ("The Bakery") — Master Architecture & Rebuild Specification
 
+> **Note (2026-11-25):** the network daemon described here as "Krumb" (REST and WebSockets on port 7420) was built as **Krouton Server** instead: KRSP v1 over pinned mutual TLS 1.3, advertised as `_krouton-spool._tcp`. See [`krouton-server/README.md`](krouton-server/README.md). The burn-safety principle below (stage the whole image before the laser starts) still holds.
+
 ## 1. Product Vision & Ecosystem Overview
 **Krouton** is a native macOS (SwiftUI + AppKit + Metal) optical disc mastering, archival, ripping, and label-printing application. It pairs with **Krumb**, a headless cross-platform Rust daemon that exposes physical optical drives over the local network via mDNS (`_krumb._tcp.local.`, Port `7420`), REST, and WebSockets.
 
