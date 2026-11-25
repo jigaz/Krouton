@@ -107,7 +107,6 @@ final class KroutonIdlePowerMonitor {
 
     private var cancellables = Set<AnyCancellable>()
     private var memoryPressureSource: DispatchSourceMemoryPressure?
-    private var ioActivityToken: NSObjectProtocol?
 
     private init() {
         setupLifecycleObservers()
