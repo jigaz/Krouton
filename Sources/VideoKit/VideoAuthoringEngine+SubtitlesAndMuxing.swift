@@ -157,9 +157,8 @@ extension KroutonVideoAuthoringEngine {
             preserveMenusAndExtras: true
         )
 
-        try fm.createDirectory(at: outputVideoTSDirectory, withIntermediateDirectories: true)
-
         if !plan.requiresRequantization {
+            try fm.createDirectory(at: outputVideoTSDirectory, withIntermediateDirectories: true)
             for url in entries {
                 let destURL = outputVideoTSDirectory.appendingPathComponent(url.lastPathComponent)
                 if fm.fileExists(atPath: destURL.path) { try fm.removeItem(at: destURL) }
@@ -173,6 +172,8 @@ extension KroutonVideoAuthoringEngine {
                 sourceBytes: mainBytes + menuBytes, dvd5Bytes: plan.targetUsableDVD5Bytes
             )
         }
+        // Only now that the shrink can actually run does anything get written.
+        try fm.createDirectory(at: outputVideoTSDirectory, withIntermediateDirectories: true)
 
         // Group VTS_xx title sets (01..99)
         var titleVOBsByVTS: [Int: [URL]] = [:]

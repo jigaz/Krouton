@@ -1,5 +1,6 @@
 import CoreGraphics
 import CoreImage
+import os
 import CoreImage.CIFilterBuiltins
 import Foundation
 import OpticalCore
@@ -82,13 +83,9 @@ extension KroutonLabelGeometryEngine {
 
     // MARK: - Apple Silicon Metal GPU Kaleidoscope, 360° Tiny Planet Globe & Vision Foreground Lifter
 
-    /// `CIContext` is documented as thread-safe but is not annotated `Sendable` in every SDK,
-    /// so it is held in a box rather than relying on `nonisolated(unsafe)` (which warns on newer SDKs).
-    private struct SendableCIContext: @unchecked Sendable {
-        let context: CIContext
-    }
-
-    private static let sharedMetalCIContext = SendableCIContext(context:
+    /// `CIContext` is not `Sendable` in the macOS 26 SDK, so the shared context lives behind a lock
+    /// (the same pattern `HybridImageBuilder` uses); renders through it are serialized.
+    private static let sharedMetalCIContext = OSAllocatedUnfairLock(uncheckedState:
         CIContext(options: [.useSoftwareRenderer: false, .workingColorSpace: KroutonLabelGeometryEngine.sRGBColorSpace, .outputColorSpace: KroutonLabelGeometryEngine.sRGBColorSpace])
     )
 
@@ -256,6 +253,6 @@ extension KroutonLabelGeometryEngine {
             }
         }
 
-        return sharedMetalCIContext.context.createCGImage(outputCI, from: rect)
+        return sharedMetalCIContext.withLockUnchecked { $0.createCGImage(outputCI, from: rect) }
     }
 }

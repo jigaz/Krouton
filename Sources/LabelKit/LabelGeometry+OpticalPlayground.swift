@@ -14,12 +14,8 @@ extension KroutonLabelGeometryEngine {
         CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
     }()
 
-    /// See `SendableCIContext`-style note in GPUShaders: `CIContext` is thread-safe but not `Sendable` in every SDK.
-    private struct OpticalCIContextBox: @unchecked Sendable {
-        let context: CIContext
-    }
-
-    private static let opticalGPUContext = OpticalCIContextBox(context:
+    /// `CIContext` is not `Sendable` in the macOS 26 SDK: held behind a lock, as in GPUShaders.
+    private static let opticalGPUContext = OSAllocatedUnfairLock(uncheckedState:
         CIContext(options: [
             .useSoftwareRenderer: false,
             .highQualityDownsample: true,
@@ -132,7 +128,7 @@ extension KroutonLabelGeometryEngine {
         }
 
         let adjustedCI = applyApplePhotosAdjustments(to: baseCI, adjustments: bgAdjustments, extentRect: rect)
-        guard let cgOut = opticalGPUContext.context.createCGImage(adjustedCI, from: rect) else {
+        guard let cgOut = opticalGPUContext.withLockUnchecked { $0.createCGImage(adjustedCI, from: rect) } else {
             return nil
         }
 
