@@ -14,14 +14,19 @@ extension KroutonLabelGeometryEngine {
         CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
     }()
 
-    private static let opticalGPUContext: CIContext = {
+    /// See `SendableCIContext`-style note in GPUShaders: `CIContext` is thread-safe but not `Sendable` in every SDK.
+    private struct OpticalCIContextBox: @unchecked Sendable {
+        let context: CIContext
+    }
+
+    private static let opticalGPUContext = OpticalCIContextBox(context:
         CIContext(options: [
             .useSoftwareRenderer: false,
             .highQualityDownsample: true,
             .workingColorSpace: sRGBColorSpace,
             .outputColorSpace: sRGBColorSpace
         ])
-    }()
+    )
 
     private struct OpticalRenderCacheKey: Equatable {
         let style: KroutonVectorBackgroundStyle
@@ -127,7 +132,7 @@ extension KroutonLabelGeometryEngine {
         }
 
         let adjustedCI = applyApplePhotosAdjustments(to: baseCI, adjustments: bgAdjustments, extentRect: rect)
-        guard let cgOut = opticalGPUContext.createCGImage(adjustedCI, from: rect) else {
+        guard let cgOut = opticalGPUContext.context.createCGImage(adjustedCI, from: rect) else {
             return nil
         }
 

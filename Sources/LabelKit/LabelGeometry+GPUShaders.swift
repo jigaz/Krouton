@@ -82,9 +82,15 @@ extension KroutonLabelGeometryEngine {
 
     // MARK: - Apple Silicon Metal GPU Kaleidoscope, 360° Tiny Planet Globe & Vision Foreground Lifter
 
-    private static let sharedMetalCIContext: CIContext = {
+    /// `CIContext` is documented as thread-safe but is not annotated `Sendable` in every SDK,
+    /// so it is held in a box rather than relying on `nonisolated(unsafe)` (which warns on newer SDKs).
+    private struct SendableCIContext: @unchecked Sendable {
+        let context: CIContext
+    }
+
+    private static let sharedMetalCIContext = SendableCIContext(context:
         CIContext(options: [.useSoftwareRenderer: false, .workingColorSpace: KroutonLabelGeometryEngine.sRGBColorSpace, .outputColorSpace: KroutonLabelGeometryEngine.sRGBColorSpace])
-    }()
+    )
 
     /// Replicates a drawn vector shape N times radially around the (0,0) spindle center
     public static func replicateShapeWithPolarSymmetry(
@@ -250,6 +256,6 @@ extension KroutonLabelGeometryEngine {
             }
         }
 
-        return sharedMetalCIContext.createCGImage(outputCI, from: rect)
+        return sharedMetalCIContext.context.createCGImage(outputCI, from: rect)
     }
 }
