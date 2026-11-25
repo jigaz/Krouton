@@ -147,6 +147,7 @@ extension KroutonSettingsWindowView {
     static func symbol(for state: SpoolJobState) -> String {
         switch state {
         case .receiving: "arrow.up.circle"
+        case .mastering: "square.stack.3d.up"
         case .queued: "clock"
         case .burning: "flame"
         case .verifying: "checkmark.magnifyingglass"

@@ -17,13 +17,14 @@ struct SpoolLoopbackRun {
 
 extension KroutonTestHarness {
     mutating func runVerifyDistributedSpoolSuite() {
-        self.runSuite("27. Krouton Server Client: Framing, Resumable Upload, Pairing & Control Channel") { h in
+        self.runSuite("27. Krouton Server Client: Framing, Resumable Upload, Pairing, Control Channel & Folder Bundles") { h in
             Self.verifySpoolFraming(&h)
             Self.verifySpoolManifestAndJournal(&h)
             Self.verifySpoolLoopbackFaults(&h)
             Self.verifySpoolEndpointPolicy(&h)
             Self.verifySpoolPairingAndTelemetry(&h)
             Self.verifyKroutonServerClientWire(&h)
+            Self.verifyKroutonServerBundles(&h)
         }
     }
 

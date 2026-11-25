@@ -7,7 +7,8 @@ import Foundation
 // `krouton-server/crates/krsp/src/control.rs` exactly; `Vectors/krsp-control-v1.txt` pins both.
 
 public enum SpoolJobState: String, Sendable, Equatable, CaseIterable {
-    case receiving, queued, burning, verifying, done, failed, cancelled
+    /// `mastering`: a folder upload is being unpacked and built into a disc image on the server.
+    case receiving, mastering, queued, burning, verifying, done, failed, cancelled
 
     public var isTerminal: Bool { self == .done || self == .failed || self == .cancelled }
 }
@@ -80,13 +81,24 @@ public struct SpoolBurnOptions: Sendable, Equatable {
     }
 }
 
+/// What a `submit` uploads: a finished 2048-byte-sector disc image, or a folder as a KRSP bundle
+/// (`SpoolBundleWriter`) for the server to master first.
+public enum SpoolUploadContent: String, Sendable, Equatable {
+    case image, files
+}
+
 public struct SpoolServerWelcome: Sendable, Equatable {
     public let serverName: String
     public let nodeID: String
     public let version: String
     public let maxImageBytes: UInt64
     public let freeBytes: UInt64
+    /// File systems the server builds from folders (`iso9660`, `joliet`, `rockridge`, `udf`);
+    /// empty when it only burns finished images. Absent from servers before 0.3.
+    public let fileSystems: [String]
     public let drives: [SpoolDriveInfo]
+
+    public var buildsDiscsFromFolders: Bool { !fileSystems.isEmpty }
 }
 
 // MARK: - Messages
@@ -99,7 +111,7 @@ public enum SpoolControl: Sendable, Equatable {
     case hello(app: String, deviceName: String)
     case listDrives
     case listJobs
-    case submit(job: String, drive: String, label: String, options: SpoolBurnOptions)
+    case submit(job: String, drive: String, label: String, content: SpoolUploadContent, options: SpoolBurnOptions)
     case watch(job: String)
     case cancel(job: String)
     case eject(drive: String)
@@ -127,8 +139,8 @@ public enum SpoolControl: Sendable, Equatable {
         case .hello(let app, let device): ["type": "hello", "app": app, "deviceName": device]
         case .listDrives: ["type": "listDrives"]
         case .listJobs: ["type": "listJobs"]
-        case .submit(let job, let drive, let label, let o):
-            ["type": "submit", "job": job, "drive": drive, "label": label,
+        case .submit(let job, let drive, let label, let content, let o):
+            ["type": "submit", "job": job, "drive": drive, "label": label, "content": content.rawValue,
              "speed": o.speed, "verify": o.verify, "simulate": o.simulate, "eject": o.eject]
         case .watch(let job): ["type": "watch", "job": job]
         case .cancel(let job): ["type": "cancel", "job": job]
@@ -138,7 +150,8 @@ public enum SpoolControl: Sendable, Equatable {
         case .pairConfirm(let accepted): ["type": "pairConfirm", "accepted": accepted]
         case .welcome(let w):
             ["type": "welcome", "serverName": w.serverName, "nodeId": w.nodeID, "version": w.version,
-             "maxImageBytes": w.maxImageBytes, "freeBytes": w.freeBytes, "drives": w.drives.map(Self.driveObject)]
+             "maxImageBytes": w.maxImageBytes, "freeBytes": w.freeBytes, "fileSystems": w.fileSystems,
+             "drives": w.drives.map(Self.driveObject)]
         case .drives(let drives): ["type": "drives", "drives": drives.map(Self.driveObject)]
         case .accepted(let job): ["type": "accepted", "job": job]
         case .job(let info): Self.jobObject(info).merging(["type": "job"]) { _, new in new }
@@ -194,7 +207,15 @@ extension SpoolControl {
         case "submit":
             guard let job = s("job"), let drive = s("drive"), let label = s("label"), let speed = n("speed"),
                   let verify = b("verify"), let simulate = b("simulate"), let eject = b("eject") else { return nil }
-            self = .submit(job: job, drive: drive, label: label,
+            let content: SpoolUploadContent
+            if o["content"] == nil {
+                content = .image
+            } else if let wire = s("content"), let known = SpoolUploadContent(rawValue: wire) {
+                content = known
+            } else {
+                return nil
+            }
+            self = .submit(job: job, drive: drive, label: label, content: content,
                            options: SpoolBurnOptions(speed: Int(clamping: speed), verify: verify, simulate: simulate, eject: eject))
         case "watch": guard let j = s("job") else { return nil }; self = .watch(job: j)
         case "cancel": guard let j = s("job") else { return nil }; self = .cancel(job: j)
@@ -205,8 +226,16 @@ extension SpoolControl {
         case "welcome":
             guard let name = s("serverName"), let node = s("nodeId"), let version = s("version"),
                   let max = n("maxImageBytes"), let free = n("freeBytes"), let drives = Self.drives(o["drives"]) else { return nil }
-            self = .welcome(SpoolServerWelcome(serverName: name, nodeID: node, version: version,
-                                               maxImageBytes: max, freeBytes: free, drives: drives))
+            let fileSystems: [String]
+            if o["fileSystems"] == nil {
+                fileSystems = []
+            } else if let list = o["fileSystems"] as? [String] {
+                fileSystems = list
+            } else {
+                return nil
+            }
+            self = .welcome(SpoolServerWelcome(serverName: name, nodeID: node, version: version, maxImageBytes: max,
+                                               freeBytes: free, fileSystems: fileSystems, drives: drives))
         case "drives": guard let d = Self.drives(o["drives"]) else { return nil }; self = .drives(d)
         case "accepted": guard let j = s("job") else { return nil }; self = .accepted(job: j)
         case "job": guard let j = Self.job(o) else { return nil }; self = .job(j)

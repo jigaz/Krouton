@@ -26,9 +26,62 @@ extension SpoolRemoteNodeClient {
         telemetry store: any KroutonDriveTelemetryStore,
         telemetryKey: String
     ) async -> SpoolRemoteBurnOutcome {
-        guard let server = server(withID: serverID) ?? pairedServers.first else {
-            return SpoolRemoteBurnOutcome(succeeded: false, message: "Pair a burn server first (Settings › Burners & Network).",
+        await burnUpload(of: image, content: .image, label: label, serverID: serverID, driveID: driveID,
+                         options: options, telemetry: store, telemetryKey: telemetryKey)
+    }
+
+    /// Sends the contents of `folder` to a server that builds the disc itself
+    /// (`SpoolServerWelcome.buildsDiscsFromFolders`), then burns it like `burnImage`. The folder is
+    /// packed into a temporary KRSP bundle first, so problems such as links or names a disc cannot
+    /// hold are reported before anything is uploaded. This is how a Mac without its own mastering
+    /// tools, or an iPad, burns data discs.
+    public func burnFolder(
+        at folder: URL,
+        label: String,
+        serverID: String,
+        driveID: String?,
+        options: SpoolBurnOptions,
+        telemetry store: any KroutonDriveTelemetryStore,
+        telemetryKey: String
+    ) async -> SpoolRemoteBurnOutcome {
+        guard server(withID: serverID) ?? pairedServers.first != nil else {
+            return Self.notPaired
+        }
+        let bundle = FileManager.default.temporaryDirectory
+            .appendingPathComponent("krouton-\(UUID().uuidString).krspbundle")
+        defer { try? FileManager.default.removeItem(at: bundle) }
+        statusBannerText = "Packing \(label)…"
+        do {
+            let summary = try await Task.detached(priority: .userInitiated) {
+                try SpoolBundleWriter.bundle(folder: folder, to: bundle)
+            }.value
+            appendEventLog("Packed \(label): \(summary.files) files in \(summary.folders) folders")
+        } catch {
+            statusBannerText = error.localizedDescription
+            return SpoolRemoteBurnOutcome(succeeded: false, message: error.localizedDescription,
                                           serverName: "", driveName: "", job: nil)
+        }
+        return await burnUpload(of: bundle, content: .files, label: label, serverID: serverID, driveID: driveID,
+                                options: options, telemetry: store, telemetryKey: telemetryKey)
+    }
+
+    private static var notPaired: SpoolRemoteBurnOutcome {
+        SpoolRemoteBurnOutcome(succeeded: false, message: "Pair a burn server first (Settings › Burners & Network).",
+                               serverName: "", driveName: "", job: nil)
+    }
+
+    private func burnUpload(
+        of image: URL,
+        content: SpoolUploadContent,
+        label: String,
+        serverID: String,
+        driveID: String?,
+        options: SpoolBurnOptions,
+        telemetry store: any KroutonDriveTelemetryStore,
+        telemetryKey: String
+    ) async -> SpoolRemoteBurnOutcome {
+        guard let server = server(withID: serverID) ?? pairedServers.first else {
+            return Self.notPaired
         }
         let job = UUID().uuidString
         telemetryTarget = (store, telemetryKey, job)
@@ -42,7 +95,7 @@ extension SpoolRemoteNodeClient {
         do {
             manifest = try await Task.detached(priority: .userInitiated) { try SpoolTransferManifest.forImage(at: image) }.value
         } catch {
-            return outcome(false, "Could not read the disc image: \(error.localizedDescription)", server, "", job)
+            return outcome(false, "Could not read the upload: \(error.localizedDescription)", server, "", job)
         }
         guard let offer = manifest.encodeManifestOffer() else {
             return outcome(false, "The image is too large to describe in one manifest", server, "", job)
@@ -55,7 +108,7 @@ extension SpoolRemoteNodeClient {
             do {
                 let connection = try await ensureSession(for: server)
                 drive = try chooseDrive(driveID)
-                let submit = SpoolControl.submit(job: job, drive: drive, label: label, options: options)
+                let submit = SpoolControl.submit(job: job, drive: drive, label: label, content: content, options: options)
                 try await withCheckedThrowingContinuation { (waiter: CheckedContinuation<Void, Error>) in
                     acceptWaiters[job] = waiter
                     Task {
@@ -82,7 +135,7 @@ extension SpoolRemoteNodeClient {
                 case .complete:
                     break uploadLoop
                 case .sourceChanged:
-                    return outcome(false, "The image file changed while it was being uploaded", server, drive, job)
+                    return outcome(false, "The file changed while it was being uploaded", server, drive, job)
                 default:
                     throw SpoolServerConnection.Failure.protocolError("Upload stopped (\(phase))")
                 }

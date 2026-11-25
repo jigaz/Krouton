@@ -13,15 +13,17 @@ const NAMES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../Vectors/krsp-
 /// (path, None = folder / Some(contents), mtime)
 fn canonical() -> Vec<(String, Option<Vec<u8>>, u64)> {
     let long = format!("Holiday 2026/{}.txt", "a-very-long-file-name-that-needs-a-pax-header".repeat(2));
+    // Sorted pre-order (folders before their contents, names by UTF-8 bytes): the order the Swift
+    // app walks a folder in, so it can reproduce this archive from real files.
     vec![
         ("Holiday 2026".into(), None, 1_767_225_600),
-        ("Holiday 2026/README.txt".into(), Some(b"Burned by Krouton.\n".to_vec()), 1_767_225_601),
         ("Holiday 2026/Fotos \u{2013} \u{dc}n\u{ef}code".into(), None, 1_767_225_602),
         (
             "Holiday 2026/Fotos \u{2013} \u{dc}n\u{ef}code/IMG_0001.JPG".into(),
             Some((0..3).flat_map(|_| 0..=255u8).collect()),
             1_767_225_603,
         ),
+        ("Holiday 2026/README.txt".into(), Some(b"Burned by Krouton.\n".to_vec()), 1_767_225_601),
         (long, Some(b"long\n".to_vec()), 1_767_225_604),
         ("empty.bin".into(), Some(Vec::new()), 0),
     ]

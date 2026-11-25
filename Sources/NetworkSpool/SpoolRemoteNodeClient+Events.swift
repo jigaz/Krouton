@@ -100,6 +100,9 @@ extension SpoolRemoteNodeClient {
     static func describe(_ job: SpoolJobInfo) -> String {
         switch job.state {
         case .receiving: return "Uploading \(job.label)"
+        case .mastering:
+            let pct = job.fraction.map { String(format: " %.0f%%", $0 * 100) } ?? ""
+            return "\(job.label): building the disc on the server\(pct)"
         case .queued: return job.queueAhead == 0 ? "\(job.label): next in line" : "\(job.label): \(job.queueAhead) ahead in the queue"
         case .burning, .verifying:
             let pct = job.fraction.map { String(format: " %.0f%%", $0 * 100) } ?? ""

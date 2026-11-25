@@ -59,8 +59,7 @@ public enum SpoolClientIdentity {
     public static func tlsIdentity(deviceName: String) throws(SpoolClientIdentityError) -> SecIdentity {
         let key = try tlsPrivateKey()
         if let existing = existingCertificate() {
-            var identity: SecIdentity?
-            if SecIdentityCreateWithCertificate(nil, existing, &identity) == errSecSuccess, let identity {
+            if let identity = identity(for: existing) {
                 return identity
             }
             // A certificate left from an older key: replace it.
@@ -68,10 +67,27 @@ public enum SpoolClientIdentity {
             SecItemDelete(query as CFDictionary)
         }
         let certificate = try createCertificate(for: key, commonName: deviceName)
-        var identity: SecIdentity?
-        let status = SecIdentityCreateWithCertificate(nil, certificate, &identity)
-        guard status == errSecSuccess, let identity else { throw .keychain(status) }
+        guard let identity = identity(for: certificate) else { throw .keychain(errSecItemNotFound) }
         return identity
+    }
+
+    /// Pairs the stored certificate with its private key. macOS has a direct call; iPadOS finds
+    /// the identity the keychain forms from a certificate and the key whose hash it matches.
+    static func identity(for certificate: SecCertificate) -> SecIdentity? {
+        #if os(macOS)
+        var identity: SecIdentity?
+        return SecIdentityCreateWithCertificate(nil, certificate, &identity) == errSecSuccess ? identity : nil
+        #else
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassIdentity,
+            kSecAttrLabel as String: certificateLabel,
+            kSecReturnRef as String: true
+        ]
+        var result: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess, let found = result,
+              CFGetTypeID(found) == SecIdentityGetTypeID() else { return nil }
+        return unsafeDowncast(found, to: SecIdentity.self)
+        #endif
     }
 
     static func tlsPrivateKey() throws(SpoolClientIdentityError) -> SecKey {

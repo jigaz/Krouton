@@ -20,3 +20,20 @@ jobs:
         run: swift test
       - name: Run Deterministic Verification Harness
         run: swift run krouton-verify
+
+  ipados-portable-core:
+    # The libraries an iPad app would share (krouton-verify Suite 31) must compile for iPadOS.
+    # NetworkSpool pulls in OpticalCore; LabelKit pulls in AudioKit and RescueKit.
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        scheme: [ NetworkSpool, LabelKit, Persistence ]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ${{ matrix.scheme }} for iPadOS
+        run: |
+          xcodebuild -scheme '${{ matrix.scheme }}' -destination 'generic/platform=iOS' \
+            -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO build > build.log 2>&1 && status=0 || status=$?
+          grep -E 'error:|warning:|BUILD (SUCCEEDED|FAILED)' build.log | sort -u | head -n 80
+          exit "$status"
