@@ -87,16 +87,16 @@ pub fn xorriso_master(
     cmd.arg("-V").arg(iso_volume_name(request.label));
     cmd.arg("-o").arg(request.output);
     cmd.arg(request.tree);
-    let mut errors = Vec::new();
+    let mut errors = ToolOutput::default();
     let code = run_tool(cmd, request.cancel, &mut |line| {
         if line.contains("UPDATE") && line.contains('%') {
             progress(first_percent(line));
-        } else if line.contains("FAILURE") || line.contains("SORRY") || line.contains("FATAL") {
-            errors.push(line.trim().to_owned());
+        } else {
+            errors.note(line, line.contains("FAILURE") || line.contains("SORRY") || line.contains("FATAL"));
         }
     })
     .map_err(|e| format!("Could not run {xorriso}: {e}"))?;
-    finish(request, code, errors, "xorriso")?;
+    finish(request, code, errors.into_messages(), "xorriso")?;
     Ok(vec![ISO9660, JOLIET, ROCK_RIDGE])
 }
 
@@ -122,18 +122,14 @@ pub fn hdiutil_master(
     cmd.arg("-default-volume-name").arg(unicode_volume_name(request.label, 32));
     cmd.arg("-o").arg(request.output);
     cmd.arg(request.tree);
-    let mut errors = Vec::new();
+    let mut errors = ToolOutput::default();
     let code = run_tool(cmd, request.cancel, &mut |line| match parse_puppet_line(line) {
         Some(Puppet::Percent(p)) => progress(p),
         Some(Puppet::Message(_)) => {}
-        None => {
-            if line.contains("failed") || line.contains("rror") {
-                errors.push(line.trim().to_owned());
-            }
-        }
+        None => errors.note(line, line.contains("failed") || line.contains("rror")),
     })
     .map_err(|e| format!("Could not run {hdiutil}: {e}"))?;
-    finish(request, code, errors, "hdiutil makehybrid")?;
+    finish(request, code, errors.into_messages(), "hdiutil makehybrid")?;
     Ok(if udf_only { vec![UDF] } else { vec![ISO9660, JOLIET, UDF] })
 }
 
@@ -183,6 +179,34 @@ fn walk(dir: &Path) -> Vec<u64> {
 }
 
 // MARK: - Shared
+
+/// A tool's error lines, plus its last few lines of any kind for when it fails without one.
+#[derive(Debug, Default)]
+pub struct ToolOutput {
+    errors: Vec<String>,
+    tail: std::collections::VecDeque<String>,
+}
+
+impl ToolOutput {
+    pub fn note(&mut self, line: &str, is_error: bool) {
+        let line = line.trim();
+        if line.is_empty() {
+            return;
+        }
+        if is_error {
+            self.errors.push(line.to_owned());
+        }
+        if self.tail.len() == 3 {
+            self.tail.pop_front();
+        }
+        self.tail.push_back(line.to_owned());
+    }
+
+    #[must_use]
+    pub fn into_messages(self) -> Vec<String> {
+        if self.errors.is_empty() { self.tail.into() } else { self.errors }
+    }
+}
 
 /// Turns a tool's exit into a result, checking that the image really exists and is non-empty.
 ///

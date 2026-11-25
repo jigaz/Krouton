@@ -296,17 +296,19 @@ impl Backend for WindowsBackend {
         cmd.arg("-Tree").arg(request.tree);
         cmd.args(["-Label", &imapi_volume_name(request.label)]);
         cmd.args(["-FileSystems", if udf_only { "4" } else { "7" }]);
-        let mut errors = Vec::new();
+        let mut errors = master::ToolOutput::default();
         let code = run_tool(cmd, request.cancel, &mut |line| {
             let line = line.trim();
             if let Some(p) = line.strip_prefix("PERCENT:") {
                 progress(p.parse::<f64>().ok().map(|p| (p / 100.0).clamp(0.0, 1.0)));
             } else if let Some(e) = line.strip_prefix("ERROR:") {
-                errors.push(e.to_owned());
+                errors.note(e, true);
+            } else {
+                errors.note(line, false);
             }
         })
         .map_err(|e| format!("Could not run PowerShell: {e}"))?;
-        master::finish(request, code, errors, "IMAPI2FS")?;
+        master::finish(request, code, errors.into_messages(), "IMAPI2FS")?;
         Ok(if udf_only { vec![master::UDF] } else { vec![master::ISO9660, master::JOLIET, master::UDF] })
     }
 
