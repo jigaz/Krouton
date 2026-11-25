@@ -420,8 +420,7 @@ impl Session {
                 vec![Control::PairHello { hello: own.encode() }.to_frame()]
             }
             (PairingStep::Confirm { device, peer, deadline, .. }, Control::PairConfirm { accepted }) => {
-                self.phase =
-                    Phase::Pairing(PairingStep::Confirm { device, peer, client_ok: Some(accepted), deadline });
+                self.phase = Phase::Pairing(PairingStep::Confirm { device, peer, client_ok: Some(accepted), deadline });
                 self.advance_pairing()
             }
             _ => self.close_with(ErrorCode::PairingRejected, "Unexpected pairing message"),
