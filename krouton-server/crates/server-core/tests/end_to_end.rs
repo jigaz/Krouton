@@ -24,7 +24,9 @@ use server_core::config::{BackendKind, Config};
 use server_core::jobs::JobManager;
 use server_core::pairing_window::PairingWindow;
 use server_core::testutil::TempDir;
-use server_core::{Ephemeral, NodeCrypto, Peer, ServerContext, Session, drive_connection};
+use server_core::{
+    Ephemeral, NodeCrypto, Peer, PlainTransport, ServerContext, Session, drive_connection, spawn_reader,
+};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
@@ -120,14 +122,16 @@ fn start_server() -> Harness {
     let (c, np) = (Arc::clone(&ctx), Arc::clone(&next_peer));
     std::thread::spawn(move || {
         for stream in listener.incoming() {
-            let mut stream = stream.unwrap();
+            let stream = stream.unwrap();
             let (tls_pin, exporter) = *np.lock().unwrap();
             let ctx = Arc::clone(&c);
             std::thread::spawn(move || {
-                stream.set_read_timeout(Some(Duration::from_millis(50))).unwrap();
+                let incoming = spawn_reader(stream.try_clone().unwrap());
                 let peer = Peer { tls_pin, exporter, address: "test".into() };
                 let (session, first) = Session::start(ctx, peer);
-                let _ = drive_connection(&mut stream, session, &first, Duration::from_secs(30));
+                let mut transport = PlainTransport(stream.try_clone().unwrap());
+                let _ = drive_connection(&mut transport, &incoming, session, &first, Duration::from_secs(30));
+                let _ = stream.shutdown(std::net::Shutdown::Both);
             });
         }
     });

@@ -14,17 +14,17 @@ import OpticalCore
 public final class SpoolRemoteNodeClient {
     public static let shared = SpoolRemoteNodeClient()
 
-    public private(set) var pairedServers: [SpoolPairedServer] = SpoolPairedServerStore.load()
-    public private(set) var nearbyUnpaired: [SpoolDiscoveredNode] = []
-    public private(set) var remoteDrives: [SpoolDriveInfo] = []
-    public private(set) var jobs: [SpoolJobInfo] = []
-    public private(set) var connectedServerID: String?
+    public internal(set) var pairedServers: [SpoolPairedServer] = SpoolPairedServerStore.load()
+    public internal(set) var nearbyUnpaired: [SpoolDiscoveredNode] = []
+    public internal(set) var remoteDrives: [SpoolDriveInfo] = []
+    public internal(set) var jobs: [SpoolJobInfo] = []
+    public internal(set) var connectedServerID: String?
     /// What the connected server reported when the session opened.
     public internal(set) var serverWelcome: SpoolServerWelcome?
     public var statusBannerText: String = "No burn server connected"
     public internal(set) var isSpoolingImage = false
     public internal(set) var spoolProgressFraction = 0.0
-    public private(set) var recentEvents: [String] = []
+    public internal(set) var recentEvents: [String] = []
     /// Non-nil while a pairing code is on screen.
     public internal(set) var pairingPrompt: SpoolPairingPrompt?
 

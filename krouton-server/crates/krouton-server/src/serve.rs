@@ -1,17 +1,16 @@
 //! Listening, admission control and the per-connection TLS driver.
 
 use krsp::endpoint::AddressVerdict;
-use rustls::{ServerConnection, StreamOwned};
+use rustls::ServerConnection;
 use server_core::session::ServerContext;
-use server_core::{Peer, Session, drive_connection, log};
-use std::net::{TcpListener, TcpStream};
+use server_core::{Peer, Session, Transport, drive_connection, log, spawn_reader};
+use std::io::{self, Read, Write};
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
 const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(10);
-/// Read timeout while a session runs; also how often job events are forwarded.
-const POLL_INTERVAL: Duration = Duration::from_millis(50);
 const WRITE_TIMEOUT: Duration = Duration::from_secs(60);
 /// The app pings every 20 s; three missed pings close the connection.
 const IDLE_TIMEOUT: Duration = Duration::from_secs(70);
@@ -54,32 +53,86 @@ impl Listener {
 }
 
 fn handle(
-    stream: TcpStream,
+    mut stream: TcpStream,
     ctx: &Arc<ServerContext>,
     tls: Arc<rustls::ServerConfig>,
     address: String,
 ) -> Result<(), String> {
     stream.set_nodelay(true).ok();
+    // The handshake is the only blocking exchange with a deadline; a peer that stalls is dropped.
     stream.set_read_timeout(Some(HANDSHAKE_TIMEOUT)).map_err(|e| e.to_string())?;
     stream.set_write_timeout(Some(WRITE_TIMEOUT)).map_err(|e| e.to_string())?;
-    let connection = ServerConnection::new(tls).map_err(|e| e.to_string())?;
-    let mut tls = StreamOwned::new(connection, stream);
-    while tls.conn.is_handshaking() {
-        tls.conn.complete_io(&mut tls.sock).map_err(|e| format!("TLS handshake failed: {e}"))?;
+    let mut conn = ServerConnection::new(tls).map_err(|e| e.to_string())?;
+    while conn.is_handshaking() {
+        conn.complete_io(&mut stream).map_err(|e| format!("TLS handshake failed: {e}"))?;
     }
-    let certificate = tls.conn.peer_certificates().and_then(|c| c.first()).ok_or("no client certificate")?;
+    let certificate = conn.peer_certificates().and_then(|c| c.first()).ok_or("no client certificate")?;
     let tls_pin = server_core::x509::certificate_pin(certificate).ok_or("client certificate has no P-256 key")?;
-    let exporter = tls
-        .conn
+    let exporter = conn
         .export_keying_material([0u8; 32], krsp::identity::EXPORTER_LABEL, None)
         .map_err(|e| format!("TLS exporter failed: {e}"))?;
-    tls.sock.set_read_timeout(Some(POLL_INTERVAL)).map_err(|e| e.to_string())?;
 
+    // From here a reader thread does plain blocking reads (no timeouts: Windows leaves a socket in an
+    // undefined state after a receive timeout) and this thread owns the TLS state.
+    stream.set_read_timeout(None).map_err(|e| e.to_string())?;
+    let incoming = spawn_reader(stream.try_clone().map_err(|e| e.to_string())?);
+    let mut transport = TlsTransport { conn, sock: stream };
     let (session, first) = Session::start(Arc::clone(ctx), Peer { tls_pin, exporter, address });
-    let result = drive_connection(&mut tls, session, &first, IDLE_TIMEOUT);
-    tls.conn.send_close_notify();
-    let _ = tls.conn.complete_io(&mut tls.sock);
+    let result = drive_connection(&mut transport, &incoming, session, &first, IDLE_TIMEOUT);
+    transport.close();
     result.map_err(|e| e.to_string())
+}
+
+/// rustls on top of a socket whose reads happen on another thread: ciphertext comes in through
+/// `open`, plaintext goes out through `send`.
+struct TlsTransport {
+    conn: ServerConnection,
+    sock: TcpStream,
+}
+
+impl TlsTransport {
+    fn flush_tls(&mut self) -> io::Result<()> {
+        while self.conn.wants_write() {
+            self.conn.write_tls(&mut self.sock)?;
+        }
+        self.sock.flush()
+    }
+
+    fn close(&mut self) {
+        self.conn.send_close_notify();
+        let _ = self.flush_tls();
+        let _ = self.sock.shutdown(Shutdown::Both);
+    }
+}
+
+impl Transport for TlsTransport {
+    fn open(&mut self, raw: &[u8]) -> io::Result<Vec<u8>> {
+        let mut cursor = raw;
+        let mut plaintext = Vec::new();
+        while !cursor.is_empty() {
+            if self.conn.read_tls(&mut cursor)? == 0 {
+                break;
+            }
+            self.conn.process_new_packets().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+            // Drain as we go so rustls' received-plaintext buffer never fills.
+            match self.conn.reader().read_to_end(&mut plaintext) {
+                Ok(_) => {}
+                Err(e) if e.kind() == io::ErrorKind::WouldBlock => {}
+                Err(e) => return Err(e),
+            }
+        }
+        // Alerts or key updates rustls wants to answer.
+        self.flush_tls()?;
+        Ok(plaintext)
+    }
+
+    fn send(&mut self, data: &[u8]) -> io::Result<()> {
+        for chunk in data.chunks(16 * 1024) {
+            self.conn.writer().write_all(chunk)?;
+            self.flush_tls()?;
+        }
+        Ok(())
+    }
 }
 
 // MARK: - Bonjour

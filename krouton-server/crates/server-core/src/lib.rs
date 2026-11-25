@@ -64,28 +64,90 @@ pub fn secure_permissions(path: &std::path::Path) {
     let _ = path;
 }
 
-/// Runs a session over an established, authenticated-at-TLS-level stream until either side
-/// closes or the peer is silent for `idle`. The stream must have a short read timeout (the loop
-/// uses it to interleave job events with reads).
-pub fn drive_connection<S: Read + Write>(
-    stream: &mut S,
+/// The connection's byte layer: TLS in the binary, plain TCP in tests.
+pub trait Transport {
+    /// Turns bytes read from the socket into application bytes (decrypting, for TLS).
+    fn open(&mut self, raw: &[u8]) -> io::Result<Vec<u8>>;
+    /// Sends application bytes (encrypting, for TLS) and flushes them to the socket.
+    fn send(&mut self, data: &[u8]) -> io::Result<()>;
+}
+
+/// Plain TCP, for tests and for tools that terminate TLS elsewhere.
+#[derive(Debug)]
+pub struct PlainTransport(pub std::net::TcpStream);
+
+impl Transport for PlainTransport {
+    fn open(&mut self, raw: &[u8]) -> io::Result<Vec<u8>> {
+        Ok(raw.to_vec())
+    }
+
+    fn send(&mut self, data: &[u8]) -> io::Result<()> {
+        self.0.write_all(data)?;
+        self.0.flush()
+    }
+}
+
+/// What the reader thread passes on: bytes, end of stream (empty), or an error.
+pub type Incoming = io::Result<Vec<u8>>;
+
+/// Reads `reader` on its own thread with plain blocking reads (no timeouts: on Windows a timed-out
+/// receive leaves the socket in an undefined state) and forwards what arrives. The thread ends
+/// at end of stream, on an error, or when the receiver is dropped and the socket is shut down.
+pub fn spawn_reader<R: Read + Send + 'static>(mut reader: R) -> std::sync::mpsc::Receiver<Incoming> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    let spawned = std::thread::Builder::new().name("conn-reader".into()).spawn(move || {
+        let mut buf = vec![0u8; 64 * 1024];
+        loop {
+            match reader.read(&mut buf) {
+                Ok(0) => {
+                    let _ = tx.send(Ok(Vec::new()));
+                    return;
+                }
+                Ok(n) => {
+                    if tx.send(Ok(buf.get(..n).unwrap_or_default().to_vec())).is_err() {
+                        return;
+                    }
+                }
+                Err(e) if e.kind() == io::ErrorKind::Interrupted => {}
+                Err(e) => {
+                    let _ = tx.send(Err(e));
+                    return;
+                }
+            }
+        }
+    });
+    if let Err(e) = spawned {
+        log(&format!("could not start a reader thread: {e}"));
+    }
+    rx
+}
+
+/// How often job events are forwarded while the peer is quiet.
+const TICK: Duration = Duration::from_millis(50);
+
+/// Runs a session until either side closes or the peer is silent for `idle`. Bytes arrive from
+/// `incoming` (see [`spawn_reader`]); this thread owns the transport (and so the TLS state), so
+/// no lock is needed and the socket is never read with a timeout.
+pub fn drive_connection<T: Transport>(
+    transport: &mut T,
+    incoming: &std::sync::mpsc::Receiver<Incoming>,
     mut session: Session,
     first: &[Frame],
     idle: Duration,
 ) -> io::Result<()> {
-    write_frames(stream, first)?;
+    send_frames(transport, first)?;
     if session.is_closed() {
         return Ok(());
     }
     let mut decoder = FrameDecoder::new();
-    let mut buf = vec![0u8; 256 * 1024];
     let mut last_heard = Instant::now();
     loop {
-        match stream.read(&mut buf) {
-            Ok(0) => return Ok(()),
-            Ok(n) => {
+        match incoming.recv_timeout(TICK) {
+            Ok(Ok(raw)) if raw.is_empty() => return Ok(()),
+            Ok(Ok(raw)) => {
                 last_heard = Instant::now();
-                let frames = match decoder.push(buf.get(..n).unwrap_or_default()) {
+                let data = transport.open(&raw)?;
+                let frames = match decoder.push(&data) {
                     Ok(frames) => frames,
                     Err(e) => {
                         let reply = krsp::control::Control::Error {
@@ -93,44 +155,36 @@ pub fn drive_connection<S: Read + Write>(
                             message: e.to_string(),
                             job: None,
                         };
-                        let _ = write_frames(stream, &[reply.to_frame()]);
+                        let _ = send_frames(transport, &[reply.to_frame()]);
                         return Err(io::Error::new(io::ErrorKind::InvalidData, e.to_string()));
                     }
                 };
                 for frame in frames {
                     let out = session.on_frame(&frame);
-                    write_frames(stream, &out)?;
+                    send_frames(transport, &out)?;
                     if session.is_closed() {
                         return Ok(());
                     }
                 }
             }
-            Err(e)
-                if matches!(
-                    e.kind(),
-                    io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut | io::ErrorKind::Interrupted
-                ) => {}
-            Err(e) => return Err(e),
+            Ok(Err(e)) => return Err(e),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => return Ok(()),
         }
         let out = session.tick();
-        write_frames(stream, &out)?;
-        if session.is_closed() {
-            return Ok(());
-        }
-        if last_heard.elapsed() > idle {
+        send_frames(transport, &out)?;
+        if session.is_closed() || last_heard.elapsed() > idle {
             return Ok(());
         }
     }
 }
 
-fn write_frames<S: Write>(stream: &mut S, frames: &[Frame]) -> io::Result<()> {
+fn send_frames<T: Transport>(transport: &mut T, frames: &[Frame]) -> io::Result<()> {
     if frames.is_empty() {
         return Ok(());
     }
-    for frame in frames {
-        stream.write_all(&frame.encode())?;
-    }
-    stream.flush()
+    let bytes: Vec<u8> = frames.iter().flat_map(Frame::encode).collect();
+    transport.send(&bytes)
 }
 
 #[cfg(test)]
