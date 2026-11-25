@@ -69,11 +69,14 @@ impl StagedImage {
         let valid_len = valid_journal_prefix(&journal_bytes);
         let committed = CommitRecord::replay(journal_bytes.get(..valid_len).unwrap_or_default(), manifest);
 
-        let journal = OpenOptions::new().create(true).append(true).open(&journal_path)?;
-        if (valid_len as u64) < journal.metadata()?.len() {
-            journal.set_len(valid_len as u64)?;
-            journal.sync_all()?;
+        // Drop a torn tail before appending. Truncation uses its own handle: on Windows an
+        // append-only handle has no right to change the file's length.
+        if journal_path.exists() && (valid_len as u64) < fs::metadata(&journal_path)?.len() {
+            let file = OpenOptions::new().write(true).open(&journal_path)?;
+            file.set_len(valid_len as u64)?;
+            file.sync_all()?;
         }
+        let journal = OpenOptions::new().create(true).append(true).open(&journal_path)?;
         let image =
             OpenOptions::new().create(true).truncate(false).read(true).write(true).open(dir.join(PARTIAL_FILE))?;
         if image.metadata()?.len() != manifest.image_bytes() {
@@ -165,7 +168,7 @@ pub fn load_manifest(dir: &Path) -> io::Result<TransferManifest> {
 /// Length of the journal prefix made of whole records whose checksums verify.
 fn valid_journal_prefix(journal: &[u8]) -> usize {
     let mut len = 0;
-    for record in journal.chunks_exact(COMMIT_RECORD_LEN) {
+    for record in journal.as_chunks::<COMMIT_RECORD_LEN>().0 {
         let (body, check) = record.split_at(36);
         if krsp::sha256::Sha256::digest(&[body]).get(..8) != Some(check) {
             break;

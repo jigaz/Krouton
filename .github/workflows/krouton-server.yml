@@ -58,7 +58,12 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cross
+      # The golden vectors live at the repo root, outside the workspace cross mounts.
       - run: cross test --workspace --target ${{ matrix.target }}
+        env:
+          CROSS_CONTAINER_OPTS: >-
+            -v ${{ github.workspace }}/Vectors:/Vectors:ro
+            -v ${{ github.workspace }}/Vectors:${{ github.workspace }}/Vectors:ro
 
   # Release binaries for every supported burn box.
   build:

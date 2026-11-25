@@ -57,8 +57,7 @@ fn manifest_merkle_bitmap_and_journal_match() {
     assert_eq!(hex(manifest.leaf(25).unwrap()), v["manifest.leaf_25"]);
     assert_eq!(hex(&manifest.root), v["manifest.root"]);
 
-    let three: Vec<[u8; 32]> =
-        bytes(&v, "merkle.three_leaves_input").chunks_exact(32).map(|c| c.try_into().unwrap()).collect();
+    let three: Vec<[u8; 32]> = bytes(&v, "merkle.three_leaves_input").as_chunks::<32>().0.to_vec();
     assert_eq!(hex(&merkle_root(&three)), v["merkle.three_leaves_root"]);
     assert_eq!(hex(&merkle_root(&[])), v["merkle.empty_root"]);
 

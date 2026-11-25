@@ -147,8 +147,7 @@ impl ManifestOffer {
         if h.extent_index == 0 || h.first_lba == 0 || !frame.payload.len().is_multiple_of(32) {
             return Err(ManifestOfferError::BadGeometry);
         }
-        let leaves: Vec<[u8; 32]> =
-            frame.payload.chunks_exact(32).filter_map(|c| <[u8; 32]>::try_from(c).ok()).collect();
+        let leaves: Vec<[u8; 32]> = frame.payload.as_chunks::<32>().0.to_vec();
         let manifest = TransferManifest::new(u32::from(h.sector_size), h.extent_index, h.first_lba, leaves);
         let expected = manifest.expected_extent_count();
         if manifest.extent_count() as u64 != expected {
@@ -266,7 +265,7 @@ impl CommitRecord {
     #[must_use]
     pub fn replay(journal: &[u8], manifest: &TransferManifest) -> ExtentBitmap {
         let mut bitmap = ExtentBitmap::new(manifest.extent_count());
-        for record in journal.chunks_exact(COMMIT_RECORD_LEN) {
+        for record in journal.as_chunks::<COMMIT_RECORD_LEN>().0 {
             let (body, check) = record.split_at(36);
             if Sha256::digest(&[body]).get(..8) != Some(check) {
                 break;
