@@ -18,6 +18,11 @@ import OpticalCore
 public struct BlankMedia: Sendable, Equatable {
     public let mediaID: String       // manufacturer / ATIP or MID string
     public let capacityBytes: Int64  // as reported by THIS disc, not a table
+
+    public init(mediaID: String, capacityBytes: Int64) {
+        self.mediaID = mediaID
+        self.capacityBytes = capacityBytes
+    }
 }
 
 public struct BlankRequest: Sendable, Equatable {
