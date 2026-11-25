@@ -128,7 +128,7 @@ extension KroutonLabelGeometryEngine {
         }
 
         let adjustedCI = applyApplePhotosAdjustments(to: baseCI, adjustments: bgAdjustments, extentRect: rect)
-        guard let cgOut = opticalGPUContext.withLockUnchecked { $0.createCGImage(adjustedCI, from: rect) } else {
+        guard let cgOut = opticalGPUContext.withLockUnchecked({ $0.createCGImage(adjustedCI, from: rect) }) else {
             return nil
         }
 
