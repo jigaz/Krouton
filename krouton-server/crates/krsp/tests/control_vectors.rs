@@ -93,7 +93,7 @@ fn control_vectors_round_trip_exactly() {
     if std::env::var_os("KRSP_WRITE_CONTROL_VECTORS").is_some() {
         std::fs::write(PATH, format!("{header}{expected}")).unwrap();
     }
-    let file = std::fs::read_to_string(PATH).expect("Vectors/krsp-control-v1.txt is missing");
+    let file = std::fs::read_to_string(PATH).expect("Vectors/krsp-control-v1.txt is missing").replace("\r\n", "\n");
     let mut seen = 0;
     for line in file.lines().filter(|l| !l.starts_with('#') && !l.trim().is_empty()) {
         let (name, text) = line.split_once(" = ").unwrap();

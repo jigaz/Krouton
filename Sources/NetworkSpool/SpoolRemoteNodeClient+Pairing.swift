@@ -56,27 +56,23 @@ extension SpoolRemoteNodeClient {
 
     private func runPairing(_ connection: SpoolServerConnection, signing: Curve25519.Signing.PrivateKey,
                             label: String) async throws -> (nodeID: String, serverName: String, identity: Data) {
+        // The iterator stays a plain local (as in a `for try await` loop): capturing it in a
+        // nested function would make it main-actor state that `next()` then has to send away.
         var events = connection.events.makeAsyncIterator()
-        func next() async throws -> SpoolControl {
-            while let event = try await events.next() {
-                guard case .control(let message) = event else { continue }
-                if case .error(_, let text, _) = message {
-                    throw SpoolRemoteError(code: .pairingRejected, message: text)
-                }
-                return message
-            }
-            throw SpoolServerConnection.Failure.closed
-        }
-
+        var message: SpoolControl?
         try await connection.send([.pairStart(deviceName: deviceName)])
-        guard case .pairCommit(let commitment) = try await next() else { throw SpoolServerConnection.Failure.protocolError("Expected a commitment") }
+        message = nil
+        while message == nil, let event = try await events.next() { message = try Self.pairingControl(from: event) }
+        guard case .pairCommit(let commitment) = try Self.require(message) else { throw SpoolServerConnection.Failure.protocolError("Expected a commitment") }
 
         let ephemeral = Curve25519.KeyAgreement.PrivateKey()
         var nonce = Data(count: 16)
         for i in nonce.indices { nonce[i] = UInt8.random(in: 0...255) }
         let own = SpoolPairing.makeHello(identity: signing.publicKey, ephemeral: ephemeral, nonce: nonce)
         try await connection.send([.pairHello(own.encoded)])
-        guard case .pairHello(let raw) = try await next(), raw.count == 80 else {
+        message = nil
+        while message == nil, let event = try await events.next() { message = try Self.pairingControl(from: event) }
+        guard case .pairHello(let raw) = try Self.require(message), raw.count == 80 else {
             throw SpoolServerConnection.Failure.protocolError("Expected the server's hello")
         }
         let bytes = [UInt8](raw)
@@ -93,7 +89,9 @@ extension SpoolRemoteNodeClient {
         guard matches else { throw SpoolRemoteError(code: .pairingRejected, message: "The codes did not match") }
         statusBannerText = "Waiting for \(label) to confirm the code…"
 
-        guard case .pairResult(let accepted, let nodeID, let serverName) = try await next() else {
+        message = nil
+        while message == nil, let event = try await events.next() { message = try Self.pairingControl(from: event) }
+        guard case .pairResult(let accepted, let nodeID, let serverName) = try Self.require(message) else {
             throw SpoolServerConnection.Failure.protocolError("Expected the pairing result")
         }
         guard accepted else { throw SpoolRemoteError(code: .pairingRejected, message: "The server's operator declined") }
@@ -101,5 +99,18 @@ extension SpoolRemoteNodeClient {
             throw SpoolRemoteError(code: .pairingRejected, message: "The server's node ID does not match its identity key")
         }
         return (nodeID, serverName, result.peerIdentityKey.rawRepresentation)
+    }
+
+    /// The control message carried by a pairing-time event; `nil` for anything else.
+    private static func pairingControl(from event: SpoolServerConnection.Event) throws -> SpoolControl? {
+        guard case .control(let message) = event else { return nil }
+        if case .error(_, let text, _) = message { throw SpoolRemoteError(code: .pairingRejected, message: text) }
+        return message
+    }
+
+    /// The message a pairing step waited for, or `.closed` when the stream ended first.
+    private static func require(_ message: SpoolControl?) throws -> SpoolControl {
+        guard let message else { throw SpoolServerConnection.Failure.closed }
+        return message
     }
 }
