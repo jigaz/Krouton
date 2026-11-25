@@ -15,5 +15,5 @@ jobs:
         run: swift build
       - name: Run Unit Tests
         run: swift test
-      - name: Run 28-Suite Deterministic Verification Harness
+      - name: Run Deterministic Verification Harness
         run: swift run krouton-verify

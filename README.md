@@ -4,7 +4,7 @@
 
 ## Highlights
 - **11-Module Clean Architecture (21 SPM Targets):** Strictly isolated hardware I/O (`DriveKit`), APFS copy-on-write burn staging (`BurnKit`), hybrid ISO-9660 / Joliet / UDF / El Torito LBA planning (`ImageKit`), 75 fps Red Book CD-DA & lock-free crossfade auditioning (`AudioKit`), DVD-9 to DVD-5 menu-preserving shrink (`VideoKit`), adaptive bad-sector recovery (`RescueKit`), 300-DPI vector disc labels (`LabelKit`), and zero-trust LAN/VPN optical spooling (`NetworkSpool`).
-- **Deterministic Verification Harness (`krouton-verify`):** 28 verification suites enforcing architectural boundaries, domain math, 500-frame telemetry fuzzing, loopback fault injection, and integration reachability ratchets in under 0.5 seconds.
+- **Deterministic Verification Harness (`krouton-verify`):** verification suites enforcing architectural boundaries, domain math, 500-frame telemetry fuzzing, loopback fault injection, and integration reachability ratchets in under 0.5 seconds.
 
 ## Requirements
 - macOS 14.0 (Sonoma) or later
@@ -18,7 +18,7 @@ swift build
 # Run unit tests
 swift test
 
-# Run the 28-suite deterministic verification harness
+# Run the deterministic verification harness
 swift run krouton-verify
 
 # Launch Krouton

@@ -2,7 +2,7 @@
 cd "$(dirname "$0")" || exit 1
 echo "=== AI_HANDOFF.md ==="
 cat AI_HANDOFF.md
-echo "\n=== Uncommitted Changes (git status) ==="
+printf '\n=== Uncommitted Changes (git status) ===\n'
 git status -s
-echo "\n=== Diff Stat ==="
+printf '\n=== Diff Stat ===\n'
 git diff --stat

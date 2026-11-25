@@ -52,13 +52,13 @@ chmod +x "$MACOS_DIR/Krouton" "$HELPERS_DIR/krouton-spoold"
 
 cat << PLIST > "$CONTENTS_DIR/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"\>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
   <key>CFBundleExecutable</key>
   <string>Krouton</string>
   <key>CFBundleIdentifier</key>
-  <string>com.krouton.app</string>
+  <string>com.krouton.opticalstudio</string>
   <key>CFBundleName</key>
   <string>Krouton</string>
   <key>CFBundleDisplayName</key>

@@ -16,7 +16,7 @@ cp ".build/release/Krouton" "$APP_DIR/Contents/MacOS/Krouton"
 cp "XcodeHost/Info.plist" "$APP_DIR/Contents/Info.plist"
 cp "Resources/PrivacyInfo.xcprivacy" "$APP_DIR/Contents/Resources/PrivacyInfo.xcprivacy"
 
-for icns in AppIcon AppIcon-Dark AppIcon-Clear AppIcon-Tinted; do
+for icns in AppIcon AppIcon-Dark AppIcon-Light AppIcon-Clear AppIcon-Tinted; do
   if [ -f "Resources/${icns}.icns" ]; then
     cp "Resources/${icns}.icns" "$APP_DIR/Contents/Resources/${icns}.icns"
   fi

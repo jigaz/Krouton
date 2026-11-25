@@ -5,7 +5,7 @@ This file provides canonical architectural context, build/verification commands,
 ## 1. Essential Commands
 - **Build All Targets:** `swift build`
 - **Run Unit Tests:** `swift test`
-- **Run Deterministic Verification Harness (27 Suites / 476 Assertions / 5,152 Rules):** `swift run krouton-verify`
+- **Run Deterministic Verification Harness:** `swift run krouton-verify`
 - **Launch macOS App:** `swift run Krouton`
 
 > **Mandatory Verification Rule:** Every code change or architectural proposal MUST pass `swift test && swift run krouton-verify` with zero warnings and zero failures.
@@ -55,6 +55,6 @@ All code written or proposed for Krouton is automatically linted by **Suite 1, S
 - **Swift 6 Strict Concurrency & Observation:**
   - All cross-isolation models must conform to `Sendable`.
   - UI state uses `@Observable` with leaf-granular sub-stores (`let` child store + `ReferenceWritableKeyPath`, Suite 24).
-  - Never use `.contextMenu` inside `Features/` or `Shell/NavigationAndRack/` where custom popover/pill controls are mandated.
+  - Workspace and rack views in `Features/` and `Shell/NavigationAndRack/` provide right-click `.contextMenu`s; `krouton-verify` Suite 3 requires at least 6 such view clusters, so do not remove them.
 
 ---
