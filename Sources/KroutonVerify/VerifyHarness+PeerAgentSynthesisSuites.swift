@@ -53,20 +53,9 @@ extension KroutonTestHarness {
     }
 
     private mutating func runVerifyLateBindingAndObservationSuites() {
-        self.runSuite("23. Late-Binding BurnClaimLedger, Capacity-Aware Claim Policy & Non-Stranding Pool") { h in
-            func makeDisc(_ i: Int, _ bytes: Int64) -> FrozenDisc {
-                FrozenDisc(
-                    index: i,
-                    volumeLabel: "SET_D0\(i)",
-                    imageURL: URL(fileURLWithPath: "/dev/null"),
-                    imageSHA256: "",
-                    imageBytes: bytes
-                )
-            }
+        self.runSuite("23. Late-Binding BurnClaimLedger & Non-Stranding Pool") { h in
             let dFast = DriveID("b1-24x")
             let dSlow = DriveID("b2-10x")
-            let candidates = [makeDisc(2, 4_600_000_000), makeDisc(3, 4_600_000_000), makeDisc(7, 1_200_000_000)]
-
             var ledger = BurnClaimLedger(discs: Array(1...7), drivesFastestFirst: [dFast, dSlow])
             _ = ledger.offer(to: dFast)
             _ = ledger.offer(to: dSlow) // Burner 2 peeks Disc 2, but its tray is never touched

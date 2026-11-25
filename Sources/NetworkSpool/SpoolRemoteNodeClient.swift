@@ -3,6 +3,7 @@ import Foundation
 import Network
 import Observation
 import OpticalCore
+import SystemConfiguration
 
 // MARK: - Krouton Server Client
 
@@ -70,8 +71,11 @@ public final class SpoolRemoteNodeClient {
         pairedServers.first { $0.nodeID == id || $0.hostPort == id }
     }
 
+    /// The Mac's name as set in System Settings › General › Sharing (shown on the server).
     public var deviceName: String {
-        Host.current().localizedName ?? "Mac"
+        if let name = SCDynamicStoreCopyComputerName(nil, nil) as String?, !name.isEmpty { return name }
+        let host = ProcessInfo.processInfo.hostName
+        return host.hasSuffix(".local") ? String(host.dropLast(6)) : host
     }
 
     public func appendEventLog(_ line: String) {
