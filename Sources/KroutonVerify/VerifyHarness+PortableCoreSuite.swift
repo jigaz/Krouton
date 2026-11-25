@@ -48,22 +48,12 @@ extension KroutonTestHarness {
             h.lint(files > 40, "The portable modules' sources must be found (\(files) files)")
             h.lint(violations.isEmpty, "Portable modules must not use macOS-only frameworks outside #if os(macOS): \(violations.prefix(6))")
 
-            let sample = """
-            import Foundation
-            #if os(macOS)
-            import AppKit
-            let color = NSColor.red
-            #elseif os(iOS)
-            let fine = 1
-            #else
-            let p = Process()
-            #endif
-            #if !os(macOS)
-            let q = NSWorkspace.shared
-            #endif
-            // NSImage in a comment is fine
-            let r = Host.current()
-            """
+            // Built from an array so the import-order lint does not read these lines as this file's imports.
+            let sample = [
+                "import Foundation", "#if os(macOS)", "import AppKit", "let color = NSColor.red", "#elseif os(iOS)",
+                "let fine = 1", "#else", "let p = Process()", "#endif", "#if !os(macOS)", "let q = NSWorkspace.shared",
+                "#endif", "// NSImage in a comment is fine", "let r = Host.current()",
+            ].joined(separator: "\n")
             h.lint(Self.macOnlyUses(in: sample) == ["Process()", "NSWorkspace", "Host.current"],
                    "The scanner must skip #if os(macOS) branches only, and flag macOS-only symbols everywhere else")
         }

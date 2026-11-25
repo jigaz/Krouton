@@ -9,7 +9,7 @@ This file provides canonical architectural context, build/verification commands,
 - **Krouton Server (Rust):** `cd krouton-server && cargo test --workspace && cargo clippy --workspace --all-targets`
 - **Launch macOS App:** `swift run Krouton`
 
-> **Mandatory Verification Rule:** Every code change or architectural proposal MUST pass `swift test && swift run krouton-verify` with zero warnings and zero failures. Changes under `krouton-server/` or `Vectors/` must also pass `cargo test --workspace` and `cargo clippy --workspace --all-targets` (CI runs them on Linux, macOS, Windows and ARM). A wire change regenerates `Vectors/krsp-control-v1.txt` (`KRSP_WRITE_CONTROL_VECTORS=1 cargo test -p krsp --test control_vectors`) and is checked on both sides.
+> **Mandatory Verification Rule:** Every code change or architectural proposal MUST pass `swift test && swift run krouton-verify` with zero warnings and zero failures. Changes under `krouton-server/` or `Vectors/` must also pass `cargo test --workspace` and `cargo clippy --workspace --all-targets` (CI runs them on Linux, macOS, Windows and ARM). A wire change regenerates `Vectors/krsp-control-v1.txt` (`KRSP_WRITE_CONTROL_VECTORS=1 cargo test -p krsp --test control_vectors`), and a bundle-format change regenerates `Vectors/krsp-bundle-v1.tar` and `krsp-bundle-names-v1.txt` (`KRSP_WRITE_BUNDLE_VECTORS=1 cargo test -p krsp --test bundle_vectors`); both are checked on both sides.
 
 ---
 
@@ -25,7 +25,7 @@ Krouton is a native macOS optical disc mastering, extraction, bad-sector rescue,
 6. `VideoKit` — DVD-5/DVD-9/BD-25/BD-50 bitrate budgeting, menu-preserving DVD-9 -> DVD-5 shrink & `.IFO` relinking.
 7. `RescueKit` — Bad-sector optical rescue copy engine & archival disc quality grading.
 8. `LabelKit` — 300-DPI polar disc geometry & 1:1 vector PDF print sheet engine.
-9. `NetworkSpool` — Client for **Krouton Server** (`krouton-server/`, Rust): KRSP v1 frames (`SpoolWireFrame`), Merkle manifests and the resumable `SpoolUploadSender`, pairing and session proofs (`SpoolPairing`), pinned mutual TLS (`SpoolTLS`, `SpoolServerConnection`), keys (`SpoolClientIdentity`), control messages (`SpoolControl`), and `SpoolRemoteNodeClient`. The server side of the protocol lives only in Rust. Depends only on `OpticalCore`.
+9. `NetworkSpool` — Client for **Krouton Server** (`krouton-server/`, Rust): KRSP v1 frames (`SpoolWireFrame`), Merkle manifests and the resumable `SpoolUploadSender`, pairing and session proofs (`SpoolPairing`), pinned mutual TLS (`SpoolTLS`, `SpoolServerConnection`), keys (`SpoolClientIdentity`), control messages (`SpoolControl`), folder bundles for server-side mastering (`SpoolBundleWriter`), and `SpoolRemoteNodeClient` (`burnImage`, `burnFolder`). The server side of the protocol lives only in Rust. Depends only on `OpticalCore`.
 10. `Persistence` — `SessionStore`, `RunLock` crash recovery, L10n catalog.
 11. `KroutonApp` — macOS application target split into `Shell/` and `Features/` (plus `KroutonVerify` and 9 module test targets = 21 SPM targets total).
 
@@ -53,6 +53,9 @@ All code written or proposed for Krouton is automatically linted by **Suite 1, S
 - **Integration Reachability Ratchet (Suite 28 & `PENDING_INTEGRATION.md`):**
   - Every `public` type in a library target must either have a caller in another production file or be listed in `PENDING_INTEGRATION.md` with an owner and decide-by date.
   - When a listed type gains a production caller, remove its entry from `PENDING_INTEGRATION.md` so the unwired list can only shrink.
+- **Portable Core Gate (Suite 31, iPad-ready):**
+  - `OpticalCore`, `AudioKit`, `LabelKit`, `RescueKit`, `Persistence` and `NetworkSpool` may depend only on each other and must not import `AppKit`, `IOKit`, `DiskArbitration`, `DiscRecording`, `SystemConfiguration` or the macOS-only modules, nor use `Process`, `NSWorkspace`, `NS*` UI types or other macOS-only symbols, except inside `#if os(macOS)`.
+  - CI builds these libraries for `generic/platform=iOS`; keep that job green.
 - **Swift 6 Strict Concurrency & Observation:**
   - All cross-isolation models must conform to `Sendable`.
   - UI state uses `@Observable` with leaf-granular sub-stores (`let` child store + `ReferenceWritableKeyPath`, Suite 24).

@@ -89,6 +89,30 @@ Unknown keys are errors, so a typo cannot silently fall back to a default.
 Remote burning takes data images with 2048-byte sectors (ISO 9660 / UDF / hybrid: data discs,
 DVD-Video and BD folders). Audio CDs and raw `.bin/.cue` images burn on the Mac's own drive.
 
+### Folders: the server builds the disc
+
+A client can also send a folder instead of a finished image (a *files* job). This is for devices
+that cannot build disc images themselves, such as an iPad. The folder travels as a KRSP bundle (a
+strict subset of tar: files and folders only, see `crates/krsp/src/bundle.rs`) through the same
+resumable upload. The server then:
+
+1. checks every name, refusing links, absolute paths, `..`, names Windows reserves (`CON`,
+   `AUX`, `COM1`…), characters such as `:` `*` `?`, and names that differ only by case;
+2. unpacks it into the job's folder, never overwriting or following anything;
+3. builds the image with the tool the system already has, shown as a *mastering* step:
+
+| Server | Tool | Disc gets |
+|---|---|---|
+| Linux / Raspberry Pi | `xorriso -as mkisofs` | ISO 9660 level 3 + Joliet + Rock Ridge (xorriso writes no UDF; files of 4 GiB and more use multi-extent ISO 9660) |
+| macOS | `hdiutil makehybrid` | ISO 9660 + Joliet + UDF; UDF only when a file is 4 GiB or larger |
+| Windows | IMAPI2FS (built in) | ISO 9660 + Joliet + UDF 2.50; UDF 2.50 only when a file is 4 GiB or larger |
+
+The image then joins the drive's queue like any other. A folder job needs about three times its
+size free in the spool (upload, unpacked files, image) while it is being built. The upload is
+kept until the burn succeeds, so a retry neither uploads nor rebuilds anything. The server's
+Welcome message lists the file systems it builds, and `krouton-server check` prints them, so a
+client knows before sending a folder. A Linux server without `xorriso` refuses folder jobs.
+
 ## Security model
 
 * **No CA, no passwords.** Each side has a P-256 TLS key and an Ed25519 identity. Pairing stores
@@ -115,8 +139,10 @@ Every message is a frame: a 64-byte big-endian header (`"KRSP"`, version, kind, 
 index, first LBA, sector size, payload length, SHA-256 digest) followed by the payload. Extent
 data, bitmaps and credit use binary frames. Control messages are JSON objects in kind-8 frames.
 See `crates/krsp/src/control.rs` for the full message list and session sequence. The Swift side
-lives in `Sources/NetworkSpool`. `Vectors/krsp-golden-v1.txt` pins both implementations byte for
-byte, and is checked by `cargo test` and by `krouton-verify` Suite 29.
+lives in `Sources/NetworkSpool`. Shared fixtures in `Vectors/` pin both implementations: frames and
+manifests (`krsp-golden-v1.txt`, Suite 29), every control message (`krsp-control-v1.txt`), the
+bundle format byte for byte (`krsp-bundle-v1.tar`) and the name rules (`krsp-bundle-names-v1.txt`),
+all checked by `cargo test` and by `krouton-verify` Suite 27.
 
 ## Development
 

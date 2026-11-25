@@ -15,8 +15,8 @@ extension SpoolBundleWriter {
     }
 
     /// Writes the contents of `folder` (not the folder itself) to `output` as a bundle, folders
-    /// before their contents and names in UTF-8 byte order, so the same folder always gives the
-    /// same bytes. Refuses links, special files, names a disc cannot hold, and names that differ
+    /// before their contents and names (in Unicode NFC, as discs and Windows expect) in UTF-8 byte
+    /// order, so the same folder always gives the same bytes. Refuses links, special files, names a disc cannot hold, and names that differ
     /// only by case, before anything is uploaded.
     public static func bundle(folder: URL, to output: URL, isCancelled: () -> Bool = { false }) throws -> FolderSummary {
         guard FileManager.default.createFile(atPath: output.path, contents: nil) else {
@@ -34,10 +34,11 @@ extension SpoolBundleWriter {
         func walk(_ directory: URL, prefix: String) throws {
             let names = try FileManager.default.contentsOfDirectory(atPath: directory.path)
                 .filter { !skippedNames.contains($0) && !$0.hasPrefix("._") }
-                .sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) }
-            for name in names {
+                .map { (onDisk: $0, nfc: $0.precomposedStringWithCanonicalMapping) }
+                .sorted { $0.nfc.utf8.lexicographicallyPrecedes($1.nfc.utf8) }
+            for (onDisk, name) in names {
                 if isCancelled() { throw SpoolBundleError.cancelled }
-                let url = directory.appendingPathComponent(name)
+                let url = directory.appendingPathComponent(onDisk)
                 let path = prefix.isEmpty ? name : prefix + "/" + name
                 guard seen.insert(SpoolBundleFormat.collisionKey(path)).inserted else { throw SpoolBundleError.duplicate(path) }
                 let values = try url.resourceValues(forKeys: keys)

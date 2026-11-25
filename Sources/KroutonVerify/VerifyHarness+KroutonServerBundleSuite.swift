@@ -36,7 +36,8 @@ extension KroutonTestHarness {
         h.check(built == golden, "The Swift bundle writer must produce Vectors/krsp-bundle-v1.tar byte for byte")
 
         let folderResult = Self.bundleCanonicalFolder(entries)
-        h.check(folderResult == golden, "Bundling the same folder from disk (Finder litter skipped) must give the same bytes")
+        h.check((try? folderResult.get()) == golden,
+                "Bundling the same folder from disk (Finder litter skipped) must give the same bytes: \(Self.firstDifference(folderResult, golden))")
 
         Self.verifyBundleNameVectors(&h, vectors.appendingPathComponent("krsp-bundle-names-v1.txt"))
         Self.verifyBundleRefusals(&h)
@@ -58,7 +59,7 @@ extension KroutonTestHarness {
     }
 
     /// Recreates the canonical entries as real files (plus a `.DS_Store`) and bundles the folder.
-    static func bundleCanonicalFolder(_ entries: [(String, Data?, UInt64)]) -> Data? {
+    static func bundleCanonicalFolder(_ entries: [(String, Data?, UInt64)]) -> Result<Data, Error> {
         let fm = FileManager.default
         let root = fm.temporaryDirectory.appendingPathComponent("krouton-bundle-\(UUID().uuidString)")
         let source = root.appendingPathComponent("source")
@@ -82,10 +83,28 @@ extension KroutonTestHarness {
             }
             let output = root.appendingPathComponent("out.krspbundle")
             _ = try SpoolBundleWriter.bundle(folder: source, to: output)
-            return try Data(contentsOf: output)
+            return .success(try Data(contentsOf: output))
         } catch {
-            return nil
+            return .failure(error)
         }
+    }
+
+    /// Where two bundles first differ, with the entry name in that 512-byte block on each side.
+    static func firstDifference(_ got: Result<Data, Error>, _ expected: Data) -> String {
+        let data: Data
+        switch got {
+        case .success(let bytes): data = bytes
+        case .failure(let error): return "bundling failed: \(error)"
+        }
+        guard let offset = zip(data, expected).enumerated().first(where: { $0.element.0 != $0.element.1 })?.offset else {
+            return "lengths \(data.count) vs \(expected.count)"
+        }
+        func name(_ bytes: Data) -> String {
+            let block = (offset / 512) * 512
+            guard bytes.count >= block + 100 else { return "?" }
+            return String(decoding: bytes[bytes.startIndex + block ..< bytes.startIndex + block + 100].prefix { $0 != 0 }, as: UTF8.self)
+        }
+        return "byte \(offset) (block name “\(name(data))” vs “\(name(expected))”)"
     }
 
     static func verifyBundleNameVectors(_ h: inout KroutonTestHarness, _ url: URL) {
