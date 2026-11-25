@@ -15,6 +15,7 @@ pub mod session;
 pub mod store;
 #[doc(hidden)]
 pub mod testutil;
+pub mod x509;
 
 pub use session::{Ephemeral, NodeCrypto, Peer, ServerContext, Session};
 

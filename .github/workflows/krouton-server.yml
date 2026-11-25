@@ -1,0 +1,117 @@
+name: Krouton Server
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ "krouton-server/**", "Vectors/**", ".github/workflows/krouton-server.yml" ]
+  pull_request:
+    branches: [ main ]
+    paths: [ "krouton-server/**", "Vectors/**", ".github/workflows/krouton-server.yml" ]
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: krouton-server
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets
+      # The lockfile is resolved here (the dev sandbox has no crates.io access); kept as an artifact.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Cargo.lock
+          path: krouton-server/Cargo.lock
+
+  # Native tests on each OS family the server runs on.
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest, macos-15-intel, windows-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --workspace
+
+  # ARM Linux under QEMU: 64-bit Raspberry Pi OS, and 32-bit ARMv7 where usize is 32 bits.
+  test-arm:
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [ aarch64-unknown-linux-gnu, armv7-unknown-linux-gnueabihf ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+      - run: cross test --workspace --target ${{ matrix.target }}
+
+  # Release binaries for every supported burn box.
+  build:
+    needs: [ lint ]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux: static musl binaries run on any distro (Debian, Ubuntu, Proxmox VE, Raspberry Pi OS, Synology DSM, Unraid, TrueNAS SCALE).
+          - { name: linux-x86_64,  os: ubuntu-latest,  target: x86_64-unknown-linux-musl,        cross: true }
+          - { name: linux-arm64,   os: ubuntu-latest,  target: aarch64-unknown-linux-musl,       cross: true }   # Raspberry Pi 3/4/5 (64-bit OS)
+          - { name: linux-armv7,   os: ubuntu-latest,  target: armv7-unknown-linux-musleabihf,   cross: true }   # Raspberry Pi 2/3/4 (32-bit OS)
+          - { name: linux-armv6,   os: ubuntu-latest,  target: arm-unknown-linux-musleabihf,     cross: true }   # Raspberry Pi Zero / 1
+          - { name: linux-x86,     os: ubuntu-latest,  target: i686-unknown-linux-musl,          cross: true }   # old 32-bit PCs
+          # Windows 10 / 11
+          - { name: windows-x64,   os: windows-latest, target: x86_64-pc-windows-msvc }
+          - { name: windows-x86,   os: windows-latest, target: i686-pc-windows-msvc }
+          - { name: windows-arm64, os: windows-latest, target: aarch64-pc-windows-msvc }
+          # macOS 12 Monterey or later
+          - { name: macos-arm64,   os: macos-latest,   target: aarch64-apple-darwin }
+          - { name: macos-x86_64,  os: macos-latest,   target: x86_64-apple-darwin }
+    runs-on: ${{ matrix.os }}
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "12.0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - if: matrix.cross
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+      - name: Build
+        shell: bash
+        run: |
+          if [ "${{ matrix.cross }}" = "true" ]; then
+            cross build --release -p krouton-server --target ${{ matrix.target }}
+          else
+            cargo build --release -p krouton-server --target ${{ matrix.target }}
+          fi
+      - name: Package
+        shell: bash
+        run: |
+          out="dist/krouton-server-${{ matrix.name }}"
+          mkdir -p "$out"
+          bin="target/${{ matrix.target }}/release/krouton-server"
+          [ -f "$bin.exe" ] && bin="$bin.exe"
+          cp "$bin" "$out/"
+          cp -R deploy "$out/"
+          cp README.md "$out/"
+          (cd dist && if command -v sha256sum >/dev/null; then sha256sum krouton-server-${{ matrix.name }}/krouton-server*; else shasum -a 256 krouton-server-${{ matrix.name }}/krouton-server*; fi) > "$out/SHA256SUMS"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: krouton-server-${{ matrix.name }}
+          path: krouton-server/dist/krouton-server-${{ matrix.name }}

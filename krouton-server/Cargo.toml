@@ -10,7 +10,7 @@
 
 [workspace]
 resolver = "2"
-members = ["crates/krsp", "crates/server-core"]
+members = ["crates/krsp", "crates/server-core", "crates/krouton-server"]
 
 [workspace.package]
 version = "0.2.0"

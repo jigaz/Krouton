@@ -101,3 +101,19 @@ fn pairing_commitment_and_salt_match() {
     assert_eq!(hex(&commitment(&bob)), v["pairing.commitment_bob"]);
     assert_eq!(hex(&transcript_salt(&alice, &bob)), v["pairing.salt"]);
 }
+
+/// X25519(0x33…33, X25519(0x44…44)·G), computed independently with pyca/cryptography. With it the
+/// HKDF derivation can be pinned to the golden code and key without an elliptic-curve library.
+const PAIRING_SHARED_SECRET: &str = "3c528e9fd39731b15d10de8feb5f71d3f65b73c993581dedb03315a9ed177730";
+
+#[test]
+fn pairing_code_and_key_match() {
+    use krsp::pairing::{PairingHello, derive, transcript_salt};
+    let v = golden();
+    let alice = PairingHello::decode(&bytes(&v, "pairing.hello_alice").try_into().unwrap());
+    let bob = PairingHello::decode(&bytes(&v, "pairing.hello_bob").try_into().unwrap());
+    let shared: [u8; 32] = unhex(PAIRING_SHARED_SECRET).unwrap().try_into().unwrap();
+    let secrets = derive(&shared, &transcript_salt(&alice, &bob));
+    assert_eq!(secrets.code, v["pairing.code"]);
+    assert_eq!(hex(&secrets.key), v["pairing.key"]);
+}
