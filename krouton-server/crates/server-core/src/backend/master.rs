@@ -5,7 +5,7 @@
 //! | Backend | Tool | File systems |
 //! |---|---|---|
 //! | Linux | `xorriso -as mkisofs` | ISO 9660 (level 3) + Joliet + Rock Ridge |
-//! | macOS | `hdiutil makehybrid` | ISO 9660 + Joliet + UDF; UDF only if a file is 4 GiB or larger |
+//! | macOS | `hdiutil makehybrid` (no progress output) | ISO 9660 + Joliet + UDF; UDF only if a file is 4 GiB or larger |
 //! | Windows | IMAPI2FS (`windows.rs`) | ISO 9660 + Joliet + UDF 2.50; UDF only if a file is 4 GiB or larger |
 //! | Simulate | none | a placeholder image of the right size |
 //!
@@ -13,7 +13,6 @@
 //! Windows 10/11, macOS and Linux all read.
 
 use super::{first_percent, run_capture, run_tool};
-use crate::backend::macos::{Puppet, parse_puppet_line};
 use std::fs::{self, File};
 use std::io::{Seek, SeekFrom, Write};
 use std::path::Path;
@@ -112,7 +111,8 @@ pub fn hdiutil_master(
     let _ = fs::remove_file(request.output);
     let udf_only = request.largest_file >= ISO_FILE_LIMIT;
     let mut cmd = Command::new(hdiutil);
-    cmd.args(["makehybrid", "-puppetstrings", "-udf"]);
+    // makehybrid refuses -puppetstrings and prints no progress, so the bar is indeterminate.
+    cmd.args(["makehybrid", "-udf"]);
     cmd.arg("-udf-volume-name").arg(unicode_volume_name(request.label, 32));
     if !udf_only {
         cmd.args(["-iso", "-joliet"]);
@@ -122,11 +122,10 @@ pub fn hdiutil_master(
     cmd.arg("-default-volume-name").arg(unicode_volume_name(request.label, 32));
     cmd.arg("-o").arg(request.output);
     cmd.arg(request.tree);
+    progress(None);
     let mut errors = ToolOutput::default();
-    let code = run_tool(cmd, request.cancel, &mut |line| match parse_puppet_line(line) {
-        Some(Puppet::Percent(p)) => progress(p),
-        Some(Puppet::Message(_)) => {}
-        None => errors.note(line, line.contains("failed") || line.contains("rror")),
+    let code = run_tool(cmd, request.cancel, &mut |line| {
+        errors.note(line, line.contains("failed") || line.contains("rror"));
     })
     .map_err(|e| format!("Could not run {hdiutil}: {e}"))?;
     finish(request, code, errors.into_messages(), "hdiutil makehybrid")?;
