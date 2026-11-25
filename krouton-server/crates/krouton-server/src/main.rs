@@ -320,6 +320,12 @@ fn check(home: &Path) -> Result<(), String> {
     for d in &drives {
         println!("Drive       : {} {} ({}), media: {}", d.id, d.name, d.device, backend.media(d).wire_name());
     }
+    let systems = backend.file_systems();
+    if systems.is_empty() {
+        println!("Folders     : not supported (the Mac must send finished disc images)");
+    } else {
+        println!("Folders     : built into {}", systems.join(" + "));
+    }
     problems.extend(backend.diagnose());
     if problems.is_empty() {
         println!("\nAll good.");

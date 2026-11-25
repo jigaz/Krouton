@@ -43,7 +43,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      # Real mastering tests: xorriso on Linux (required there), hdiutil on macOS and IMAPI2FS on
+      # Windows run unconditionally.
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq xorriso
       - run: cargo test --workspace
+        env:
+          KROUTON_REQUIRE_MASTERING: ${{ runner.os == 'Linux' && '1' || '' }}
 
   # ARM Linux under QEMU: 64-bit Raspberry Pi OS, and 32-bit ARMv7 where usize is 32 bits.
   test-arm:

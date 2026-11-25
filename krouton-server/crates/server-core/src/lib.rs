@@ -8,6 +8,7 @@
 pub mod backend;
 pub mod clients;
 pub mod config;
+pub mod extract;
 pub mod fsutil;
 pub mod jobs;
 pub mod pairing_window;

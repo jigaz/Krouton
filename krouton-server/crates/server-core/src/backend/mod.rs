@@ -13,8 +13,11 @@
 
 pub mod linux;
 pub mod macos;
+pub mod master;
 pub mod simulate;
 pub mod windows;
+
+pub use master::MasterRequest;
 
 use crate::config::{BackendKind, Config};
 use krsp::control::{BurnOptions, MediaState};
@@ -78,6 +81,17 @@ pub trait Backend: Send + Sync + std::fmt::Debug {
     /// the user. Must return promptly once `cancel` is set.
     fn burn(&self, request: &BurnRequest<'_>, progress: &mut dyn FnMut(Progress)) -> Result<(), String>;
     fn eject(&self, drive: &Drive) -> Result<(), String>;
+    /// File systems [`Backend::master`] builds (see `master.rs`), or empty when the tool it
+    /// needs is missing. Called once at startup.
+    fn file_systems(&self) -> Vec<&'static str>;
+    /// Builds a disc image from a folder for a `files` job. `progress` gets 0…1 (or `None` when
+    /// the tool cannot say). Returns the file systems written. Must return promptly once
+    /// `request.cancel` is set.
+    fn master(
+        &self,
+        request: &MasterRequest<'_>,
+        progress: &mut dyn FnMut(Option<f64>),
+    ) -> Result<Vec<&'static str>, String>;
     /// Problems that would stop a burn (missing tool, no permission), for `krouton-server check`.
     fn diagnose(&self) -> Vec<String>;
 }

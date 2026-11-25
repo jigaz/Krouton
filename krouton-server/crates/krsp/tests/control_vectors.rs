@@ -4,7 +4,7 @@
 //! `KRSP_WRITE_CONTROL_VECTORS=1 cargo test -p krsp --test control_vectors`.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-use krsp::control::{BurnOptions, Control, DriveInfo, ErrorCode, JobInfo, JobState, MediaState};
+use krsp::control::{BurnOptions, Content, Control, DriveInfo, ErrorCode, JobInfo, JobState, MediaState};
 use krsp::json;
 
 const PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../Vectors/krsp-control-v1.txt");
@@ -41,7 +41,18 @@ fn canonical() -> Vec<(&'static str, Control)> {
                 job: "0C5E1B2A-7F11-4C51-9C5E-2F6C9B1D0E77".into(),
                 drive: "sr0".into(),
                 label: "Holiday".into(),
+                content: Content::Image,
                 options: BurnOptions { speed: 8, verify: true, simulate: false, eject: true },
+            },
+        ),
+        (
+            "submit_files",
+            Control::Submit {
+                job: "J2".into(),
+                drive: "sr0".into(),
+                label: "Photos".into(),
+                content: Content::Files,
+                options: BurnOptions { speed: 0, verify: true, simulate: false, eject: false },
             },
         ),
         ("watch", Control::Watch { job: "J1".into() }),
@@ -60,12 +71,22 @@ fn canonical() -> Vec<(&'static str, Control)> {
                 version: "0.2.0".into(),
                 max_image_bytes: 137_438_953_472,
                 free_bytes: 500_000_000_000,
+                file_systems: vec!["iso9660".into(), "joliet".into(), "udf".into()],
                 drives: vec![drive.clone()],
             },
         ),
         ("drives", Control::Drives { drives: vec![drive] }),
         ("accepted", Control::Accepted { job: "J1".into() }),
         ("job", Control::Job(job.clone())),
+        (
+            "job_mastering",
+            Control::Job(JobInfo {
+                state: JobState::Mastering,
+                fraction: Some(0.5),
+                message: "Building the disc".into(),
+                ..job.clone()
+            }),
+        ),
         (
             "jobs",
             Control::Jobs {

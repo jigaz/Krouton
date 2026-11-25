@@ -7,10 +7,10 @@
 //! [`Session::tick`] a few times a second, and writes whatever frames come back.
 
 use crate::clients::{ClientRecord, ClientStore};
-use crate::jobs::{Event, JobManager, SubmitError};
+use crate::jobs::{Event, JobManager, Submission, SubmitError};
 use crate::pairing_window::{PairingWindow, unix_now};
 use crate::store::StagedImage;
-use krsp::control::{BurnOptions, Control, ErrorCode, telemetry_frame};
+use krsp::control::{BurnOptions, Content, Control, ErrorCode, telemetry_frame};
 use krsp::frame::{Frame, FrameKind};
 use krsp::identity::{ROLE_NODE, ROLE_WORKSTATION, session_proof_message};
 use krsp::manifest::ManifestOffer;
@@ -99,6 +99,7 @@ struct PendingSubmit {
     job: String,
     drive: String,
     label: String,
+    content: Content,
     options: BurnOptions,
 }
 
@@ -236,6 +237,7 @@ impl Session {
                         version: SERVER_VERSION.into(),
                         max_image_bytes: jobs.config.max_image_bytes,
                         free_bytes: free.saturating_sub(jobs.config.min_free_bytes),
+                        file_systems: jobs.file_systems().to_vec(),
                         drives: jobs.drive_infos(),
                     }
                     .to_frame(),
@@ -264,11 +266,11 @@ impl Session {
                 Ok(()) => vec![Control::Drives { drives: jobs.drive_infos() }.to_frame()],
                 Err(e) => vec![error(ErrorCode::DriveBusy, &e, None)],
             },
-            Control::Submit { job, drive, label, options } => {
+            Control::Submit { job, drive, label, content, options } => {
                 if self.upload.is_some() || self.pending.is_some() {
                     return vec![error(ErrorCode::BadRequest, "Finish the current upload first", Some(job))];
                 }
-                self.pending = Some(PendingSubmit { job, drive, label, options });
+                self.pending = Some(PendingSubmit { job, drive, label, content, options });
                 Vec::new()
             }
             Control::Auth { .. } => Vec::new(),
@@ -287,8 +289,15 @@ impl Session {
             Err(_) => return vec![error(ErrorCode::ManifestRejected, "The manifest is malformed", Some(submit.job))],
         };
         let owner = self.owner();
-        match self.ctx.jobs.begin_upload(&owner, &submit.job, &submit.drive, &submit.label, &submit.options, &manifest)
-        {
+        let submission = Submission {
+            owner: &owner,
+            job: &submit.job,
+            drive: &submit.drive,
+            label: &submit.label,
+            content: submit.content,
+            options: &submit.options,
+        };
+        match self.ctx.jobs.begin_upload(&submission, &manifest) {
             Ok(mut staged) => {
                 let mut out = vec![Control::Accepted { job: submit.job.clone() }.to_frame()];
                 let already_complete = staged.is_complete();
@@ -330,6 +339,10 @@ impl Session {
                         format!(
                             "Only 2048-byte data images (ISO/UDF) can be burned remotely; this one uses {s}-byte sectors"
                         ),
+                    ),
+                    SubmitError::MasteringUnavailable => (
+                        ErrorCode::BadRequest,
+                        "This server can’t build discs from folders (on Linux, install xorriso)".to_owned(),
                     ),
                     SubmitError::Io(e) => (ErrorCode::Internal, e),
                 };

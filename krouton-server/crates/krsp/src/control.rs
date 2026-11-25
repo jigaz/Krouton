@@ -34,8 +34,10 @@ use crate::{hex, unhex};
 /// Lifecycle of one burn job on the server. Wire names are lowercase.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum JobState {
-    /// Waiting for (or receiving) the image upload.
+    /// Waiting for (or receiving) the upload.
     Receiving,
+    /// A folder upload is being unpacked and built into a disc image on the server.
+    Mastering,
     /// Upload complete and verified against the manifest root; waiting for the drive.
     Queued,
     Burning,
@@ -46,13 +48,22 @@ pub enum JobState {
 }
 
 impl JobState {
-    pub const ALL: [Self; 7] =
-        [Self::Receiving, Self::Queued, Self::Burning, Self::Verifying, Self::Done, Self::Failed, Self::Cancelled];
+    pub const ALL: [Self; 8] = [
+        Self::Receiving,
+        Self::Mastering,
+        Self::Queued,
+        Self::Burning,
+        Self::Verifying,
+        Self::Done,
+        Self::Failed,
+        Self::Cancelled,
+    ];
 
     #[must_use]
     pub fn wire_name(self) -> &'static str {
         match self {
             Self::Receiving => "receiving",
+            Self::Mastering => "mastering",
             Self::Queued => "queued",
             Self::Burning => "burning",
             Self::Verifying => "verifying",
@@ -140,6 +151,31 @@ pub struct BurnOptions {
 impl Default for BurnOptions {
     fn default() -> Self {
         Self { speed: 0, verify: true, simulate: false, eject: true }
+    }
+}
+
+/// What a `submit` uploads.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Content {
+    /// A finished 2048-byte-sector disc image (ISO/UDF), burned as is.
+    #[default]
+    Image,
+    /// A KRSP bundle (`bundle.rs`) of a folder, which the server masters into an image first.
+    Files,
+}
+
+impl Content {
+    #[must_use]
+    pub fn wire_name(self) -> &'static str {
+        match self {
+            Self::Image => "image",
+            Self::Files => "files",
+        }
+    }
+
+    #[must_use]
+    pub fn from_wire(name: &str) -> Option<Self> {
+        [Self::Image, Self::Files].into_iter().find(|c| c.wire_name() == name)
     }
 }
 
@@ -231,6 +267,7 @@ pub enum Control {
         job: String,
         drive: String,
         label: String,
+        content: Content,
         options: BurnOptions,
     },
     Watch {
@@ -260,6 +297,9 @@ pub enum Control {
         version: String,
         max_image_bytes: u64,
         free_bytes: u64,
+        /// File systems this server builds for `files` jobs (`iso9660`, `joliet`, `rockridge`,
+        /// `udf`); empty when it cannot master folders.
+        file_systems: Vec<String>,
         drives: Vec<DriveInfo>,
     },
     Drives {
@@ -353,10 +393,11 @@ impl Control {
                 put("deviceName", device_name.as_str().into());
             }
             Self::ListDrives | Self::ListJobs => {}
-            Self::Submit { job, drive, label, options } => {
+            Self::Submit { job, drive, label, content, options } => {
                 put("job", job.as_str().into());
                 put("drive", drive.as_str().into());
                 put("label", label.as_str().into());
+                put("content", content.wire_name().into());
                 put("speed", options.speed.into());
                 put("verify", options.verify.into());
                 put("simulate", options.simulate.into());
@@ -367,12 +408,13 @@ impl Control {
             Self::PairStart { device_name } => put("deviceName", device_name.as_str().into()),
             Self::PairHello { hello } => put("hello", hex(hello).into()),
             Self::PairConfirm { accepted } => put("accepted", (*accepted).into()),
-            Self::Welcome { server_name, node_id, version, max_image_bytes, free_bytes, drives } => {
+            Self::Welcome { server_name, node_id, version, max_image_bytes, free_bytes, file_systems, drives } => {
                 put("serverName", server_name.as_str().into());
                 put("nodeId", node_id.as_str().into());
                 put("version", version.as_str().into());
                 put("maxImageBytes", (*max_image_bytes).into());
                 put("freeBytes", (*free_bytes).into());
+                put("fileSystems", file_systems.iter().map(|f| Value::from(f.as_str())).collect::<Vec<_>>().into());
                 put("drives", drives.iter().map(drive_value).collect::<Vec<_>>().into());
             }
             Self::Drives { drives } => put("drives", drives.iter().map(drive_value).collect::<Vec<_>>().into()),
@@ -511,6 +553,10 @@ impl Control {
                 job: ident(v, "job")?,
                 drive: ident(v, "drive")?,
                 label: text(v, "label")?,
+                content: match v.get("content") {
+                    None => Content::Image,
+                    Some(c) => c.as_str().and_then(Content::from_wire).ok_or(ControlError::MissingField("content"))?,
+                },
                 options: BurnOptions {
                     speed: uint32(v, "speed")?,
                     verify: flag(v, "verify")?,
@@ -531,6 +577,15 @@ impl Control {
                 version: text(v, "version")?,
                 max_image_bytes: uint(v, "maxImageBytes")?,
                 free_bytes: uint(v, "freeBytes")?,
+                file_systems: match v.get("fileSystems") {
+                    None => Vec::new(),
+                    Some(_) => list(v, "fileSystems", |f| {
+                        f.as_str()
+                            .filter(|s| is_safe_identifier(s))
+                            .map(str::to_owned)
+                            .ok_or(ControlError::MissingField("fileSystems"))
+                    })?,
+                },
                 drives: list(v, "drives", drive_from)?,
             },
             "drives" => Self::Drives { drives: list(v, "drives", drive_from)? },
@@ -610,6 +665,7 @@ mod tests {
                 job: "j1".into(),
                 drive: "drive-1".into(),
                 label: "L".into(),
+                content: Content::Files,
                 options: BurnOptions::default(),
             },
             Control::Watch { job: "j1".into() },
@@ -625,6 +681,7 @@ mod tests {
                 version: "0.2.0".into(),
                 max_image_bytes: 100_000_000_000,
                 free_bytes: 5,
+                file_systems: vec!["iso9660".into(), "joliet".into()],
                 drives: vec![drive.clone()],
             },
             Control::Drives { drives: vec![drive] },
@@ -647,13 +704,30 @@ mod tests {
 
     #[test]
     fn wire_shape_is_stable() {
-        let text =
-            Control::Submit { job: "j1".into(), drive: "d".into(), label: "L".into(), options: BurnOptions::default() }
-                .to_value()
-                .to_json();
+        let text = Control::Submit {
+            job: "j1".into(),
+            drive: "d".into(),
+            label: "L".into(),
+            content: Content::Image,
+            options: BurnOptions::default(),
+        }
+        .to_value()
+        .to_json();
         assert_eq!(
             text,
-            r#"{"type":"submit","job":"j1","drive":"d","label":"L","speed":0,"verify":true,"simulate":false,"eject":true}"#
+            r#"{"type":"submit","job":"j1","drive":"d","label":"L","content":"image","speed":0,"verify":true,"simulate":false,"eject":true}"#
+        );
+    }
+
+    #[test]
+    fn older_clients_default_to_image_content_and_no_file_systems() {
+        let v = json::parse(br#"{"type":"submit","job":"j","drive":"d","label":"L","speed":0,"verify":true,"simulate":false,"eject":true}"#).unwrap();
+        assert!(matches!(Control::from_value(&v).unwrap(), Control::Submit { content: Content::Image, .. }));
+        let v = json::parse(br#"{"type":"submit","job":"j","drive":"d","label":"L","content":"tarball","speed":0,"verify":true,"simulate":false,"eject":true}"#).unwrap();
+        assert_eq!(Control::from_value(&v), Err(ControlError::MissingField("content")));
+        let v = json::parse(br#"{"type":"welcome","serverName":"s","nodeId":"n","version":"1","maxImageBytes":1,"freeBytes":1,"drives":[]}"#).unwrap();
+        assert!(
+            matches!(Control::from_value(&v).unwrap(), Control::Welcome { file_systems, .. } if file_systems.is_empty())
         );
     }
 

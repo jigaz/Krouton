@@ -6,7 +6,7 @@
 //! PowerShell host, so writing shows as indeterminate; read-back verification reports a real
 //! percentage afterwards.
 
-use super::{Backend, BurnRequest, Drive, Progress, Stage, run_capture, run_tool, verify_readback};
+use super::{Backend, BurnRequest, Drive, Progress, Stage, master, run_capture, run_tool, verify_readback};
 use crate::config::BackendKind;
 use krsp::control::MediaState;
 use std::path::{Path, PathBuf};
@@ -17,9 +17,12 @@ const SCRIPT_NAME: &str = "krouton-imapi2.ps1";
 
 /// The IMAPI2 helper. `MEDIA:`, `DRIVE:`, `MESSAGE:` and `ERROR:` prefixes are parsed by the server.
 pub const IMAPI2_SCRIPT: &str = r#"param(
-  [Parameter(Mandatory = $true)][ValidateSet('list', 'status', 'burn', 'eject')][string]$Action,
+  [Parameter(Mandatory = $true)][ValidateSet('list', 'status', 'burn', 'eject', 'master')][string]$Action,
   [string]$Drive = '',
-  [string]$Image = ''
+  [string]$Image = '',
+  [string]$Tree = '',
+  [string]$Label = '',
+  [int]$FileSystems = 7
 )
 $ErrorActionPreference = 'Stop'
 function Find-Recorder([string]$Letter) {
@@ -75,6 +78,47 @@ public static class KroutonStream {
       Write-Output 'MESSAGE:Written'
     }
     'eject' { (Find-Recorder $Drive).EjectMedia() }
+    'master' {
+      Add-Type -TypeDefinition @'
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
+public static class KroutonImage {
+  public static void Save(object image, string path, long totalBytes) {
+    IStream source = (IStream)image;
+    byte[] buffer = new byte[1048576];
+    IntPtr read = Marshal.AllocCoTaskMem(4);
+    long done = 0;
+    long lastPercent = -1;
+    try {
+      using (FileStream file = File.Create(path)) {
+        while (true) {
+          source.Read(buffer, buffer.Length, read);
+          int n = Marshal.ReadInt32(read);
+          if (n <= 0) { break; }
+          file.Write(buffer, 0, n);
+          done += n;
+          long percent = totalBytes > 0 ? done * 100 / totalBytes : 0;
+          if (percent != lastPercent) { lastPercent = percent; Console.WriteLine("PERCENT:" + percent); }
+        }
+      }
+    } finally { Marshal.FreeCoTaskMem(read); }
+  }
+}
+'@
+      $fsi = New-Object -ComObject IMAPI2FS.MsftFileSystemImage
+      $fsi.FileSystemsToCreate = $FileSystems
+      if ($FileSystems -band 4) { $fsi.UDFRevision = 0x250 }
+      $fsi.FreeMediaBlocks = [int]::MaxValue
+      $fsi.VolumeName = $Label
+      Write-Output 'MESSAGE:Adding files'
+      $fsi.Root.AddTree($Tree, $false)
+      $result = $fsi.CreateResultImage()
+      $total = [long]$result.TotalBlocks * [long]$result.BlockSize
+      Write-Output 'MESSAGE:Writing the image'
+      [KroutonImage]::Save($result.ImageStream, $Image, $total)
+    }
   }
   exit 0
 } catch {
@@ -121,6 +165,18 @@ impl WindowsBackend {
         }
         Ok(cmd)
     }
+}
+
+/// IMAPI2FS volume names: at most 15 characters, and only letters, digits, spaces, `_` and `-`
+/// (never leading `-`, which PowerShell would read as a parameter name).
+#[must_use]
+pub fn imapi_volume_name(label: &str) -> String {
+    let name: String = master::unicode_volume_name(label, 15)
+        .chars()
+        .map(|c| if c.is_alphanumeric() || c == ' ' || c == '_' || c == '-' { c } else { '_' })
+        .collect();
+    let name = name.trim_start_matches('-').trim().to_owned();
+    if name.is_empty() { "Krouton".into() } else { name }
 }
 
 /// `D:` style, nothing else.
@@ -222,6 +278,38 @@ impl Backend for WindowsBackend {
         }
     }
 
+    fn file_systems(&self) -> Vec<&'static str> {
+        // IMAPI2FS ships with every Windows 10/11 install.
+        vec![master::ISO9660, master::JOLIET, master::UDF]
+    }
+
+    fn master(
+        &self,
+        request: &super::MasterRequest<'_>,
+        progress: &mut dyn FnMut(Option<f64>),
+    ) -> Result<Vec<&'static str>, String> {
+        let _ = std::fs::remove_file(request.output);
+        // ISO 9660 and Joliet cannot hold a file of 4 GiB or more; IMAPI2FS then refuses the
+        // whole image, so such folders get UDF 2.50 alone.
+        let udf_only = request.largest_file >= master::ISO_FILE_LIMIT;
+        let mut cmd = self.command("master", None, Some(request.output))?;
+        cmd.arg("-Tree").arg(request.tree);
+        cmd.args(["-Label", &imapi_volume_name(request.label)]);
+        cmd.args(["-FileSystems", if udf_only { "4" } else { "7" }]);
+        let mut errors = Vec::new();
+        let code = run_tool(cmd, request.cancel, &mut |line| {
+            let line = line.trim();
+            if let Some(p) = line.strip_prefix("PERCENT:") {
+                progress(p.parse::<f64>().ok().map(|p| (p / 100.0).clamp(0.0, 1.0)));
+            } else if let Some(e) = line.strip_prefix("ERROR:") {
+                errors.push(e.to_owned());
+            }
+        })
+        .map_err(|e| format!("Could not run PowerShell: {e}"))?;
+        master::finish(request, code, errors, "IMAPI2FS")?;
+        Ok(if udf_only { vec![master::UDF] } else { vec![master::ISO9660, master::JOLIET, master::UDF] })
+    }
+
     fn diagnose(&self) -> Vec<String> {
         let mut problems = Vec::new();
         if let Err(e) = self.script() {
@@ -251,6 +339,21 @@ mod tests {
         assert_eq!(parse_media_line("ERROR:x"), MediaState::Unknown);
         assert!(is_drive_letter("Z:"));
         assert!(!is_drive_letter("ZZ:") && !is_drive_letter("C:\\") && !is_drive_letter("1:"));
+    }
+
+    #[test]
+    fn volume_names_are_safe_powershell_arguments() {
+        assert_eq!(imapi_volume_name("--Holiday 2026 / Ünïcode"), "Holiday 2026");
+        assert_eq!(imapi_volume_name("A/B:C"), "A_B_C");
+        assert_eq!(imapi_volume_name("-"), "Krouton");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn imapi2fs_builds_a_disc() {
+        let tmp = crate::testutil::TempDir::new("imapi-state");
+        let backend = WindowsBackend::new("powershell.exe".into(), tmp.path().to_path_buf(), Vec::new());
+        master::tests::check_real_master(true, "IMAPI2FS", &|r, p| backend.master(r, p));
     }
 
     #[test]

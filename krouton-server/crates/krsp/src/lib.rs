@@ -8,6 +8,7 @@
 //!
 //! Zero third-party dependencies.
 
+pub mod bundle;
 pub mod control;
 pub mod endpoint;
 pub mod frame;

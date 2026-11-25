@@ -12,7 +12,8 @@
     clippy::panic
 )]
 
-use krsp::control::{BurnOptions, Control, ErrorCode, JobState};
+use krsp::bundle::BundleWriter;
+use krsp::control::{BurnOptions, Content, Control, ErrorCode, JobState};
 use krsp::frame::{Frame, FrameDecoder, FrameKind};
 use krsp::identity::{ROLE_NODE, ROLE_WORKSTATION, session_proof_message};
 use krsp::manifest::{ManifestOffer, TransferManifest};
@@ -343,6 +344,7 @@ fn pair_upload_resume_burn_and_isolation() {
         job: job.clone(),
         drive: "sim-1".into(),
         label: "Holiday".into(),
+        content: Content::Image,
         options: BurnOptions::default(),
     };
     c.send(&[submit.to_frame(), ManifestOffer::encode(&manifest).unwrap()]);
@@ -361,6 +363,7 @@ fn pair_upload_resume_burn_and_isolation() {
         job: job.clone(),
         drive: "sim-1".into(),
         label: "Holiday".into(),
+        content: Content::Image,
         options: BurnOptions::default(),
     };
     c.send(&[submit.to_frame(), ManifestOffer::encode(&manifest).unwrap()]);
@@ -442,6 +445,7 @@ fn rejects_unsupported_images_and_unknown_drives() {
             job: "a1".into(),
             drive: "sim-1".into(),
             label: "CD".into(),
+            content: Content::Image,
             options: BurnOptions::default(),
         }
         .to_frame(),
@@ -455,8 +459,14 @@ fn rejects_unsupported_images_and_unknown_drives() {
 
     let data = TransferManifest::from_image(&vec![0u8; 2048 * 8], 2048, 4).unwrap();
     c.send(&[
-        Control::Submit { job: "a2".into(), drive: "nope".into(), label: "X".into(), options: BurnOptions::default() }
-            .to_frame(),
+        Control::Submit {
+            job: "a2".into(),
+            drive: "nope".into(),
+            label: "X".into(),
+            content: Content::Image,
+            options: BurnOptions::default(),
+        }
+        .to_frame(),
         ManifestOffer::encode(&data).unwrap(),
     ]);
     assert!(matches!(
@@ -484,6 +494,7 @@ fn resubmitting_a_failed_job_reuses_the_staged_image() {
         job: "retry-1".into(),
         drive: "sim-2".into(),
         label: "Retry".into(),
+        content: Content::Image,
         options: options.clone(),
     };
     c.send(&[submit.to_frame(), ManifestOffer::encode(&manifest).unwrap()]);
@@ -493,11 +504,83 @@ fn resubmitting_a_failed_job_reuses_the_staged_image() {
     c.expect_control("cancelled", |m| matches!(m, Control::Job(j) if j.state.is_terminal()));
 
     // The same job again: accepted at once, the sender completes from the bitmap alone, and it burns.
-    let submit = Control::Submit { job: "retry-1".into(), drive: "sim-2".into(), label: "Retry".into(), options };
+    let submit = Control::Submit {
+        job: "retry-1".into(),
+        drive: "sim-2".into(),
+        label: "Retry".into(),
+        content: Content::Image,
+        options,
+    };
     c.send(&[submit.to_frame(), ManifestOffer::encode(&manifest).unwrap()]);
     c.expect_control("accepted again", |m| matches!(m, Control::Accepted { .. }));
     let sender = upload(&mut c, &image, &manifest, None);
     assert!(sender.acknowledged().is_complete());
     let done = c.expect_control("done", |m| matches!(m, Control::Job(j) if j.state == JobState::Done));
     assert!(matches!(done, Control::Job(_)));
+}
+
+/// A folder (`files` job): uploaded as a bundle, unpacked and mastered on the server, then burned.
+/// A bundle whose names collide fails in the mastering step with a message naming the file.
+#[test]
+fn folder_jobs_are_mastered_then_burned() {
+    let h = start_server();
+    let mac = [0x81; 32];
+    let pin = [0x82; 32];
+    assert!(matches!(pair(&h, mac, pin, true), Control::PairResult { accepted: true, .. }));
+    let mut c = authenticate(&h, mac, pin, [8; 32]);
+    let welcome = c.expect_control("welcome", |m| matches!(m, Control::Welcome { .. }));
+    let Control::Welcome { file_systems, .. } = welcome else { unreachable!() };
+    assert_eq!(file_systems, ["iso9660", "joliet", "udf"]);
+
+    let bundle = |entries: &[(&str, &[u8])]| {
+        let mut w = BundleWriter::new(Vec::new());
+        w.directory("Photos", 1_767_225_600).unwrap();
+        for (path, data) in entries {
+            w.file(path, data.len() as u64, 1_767_225_601, &mut &data[..]).unwrap();
+        }
+        w.finish().unwrap()
+    };
+    let options = BurnOptions { speed: 0, verify: true, simulate: false, eject: false };
+
+    let good = bundle(&[("Photos/IMG_0001.JPG", &[7u8; 50_000]), ("README.txt", b"Burned by Krouton.\n")]);
+    let manifest = TransferManifest::from_image(&good, 2048, 4).unwrap();
+    let submit = Control::Submit {
+        job: "folder-1".into(),
+        drive: "sim-1".into(),
+        label: "Photos 2026".into(),
+        content: Content::Files,
+        options: options.clone(),
+    };
+    c.send(&[submit.to_frame(), ManifestOffer::encode(&manifest).unwrap()]);
+    c.expect_control("accepted", |m| matches!(m, Control::Accepted { .. }));
+    upload(&mut c, &good, &manifest, None);
+    c.expect_control("mastering", |m| matches!(m, Control::Job(j) if j.state == JobState::Mastering));
+    let queued = c.expect_control("queued after mastering", |m| {
+        matches!(m, Control::Job(j) if j.job == "folder-1" && (j.state == JobState::Queued || j.state.is_terminal()))
+    });
+    let Control::Job(queued) = queued else { unreachable!() };
+    assert_eq!(queued.state, JobState::Queued, "{}", queued.message);
+    assert!(queued.message.contains("ISO 9660 + Joliet + UDF"), "{}", queued.message);
+    let done =
+        c.expect_control("done", |m| matches!(m, Control::Job(j) if j.job == "folder-1" && j.state.is_terminal()));
+    let Control::Job(done) = done else { unreachable!() };
+    assert_eq!(done.state, JobState::Done, "{}", done.message);
+
+    let clash = bundle(&[("Photos/a.jpg", b"1"), ("photos/A.JPG", b"2")]);
+    let manifest = TransferManifest::from_image(&clash, 2048, 4).unwrap();
+    let submit = Control::Submit {
+        job: "folder-2".into(),
+        drive: "sim-1".into(),
+        label: "Clash".into(),
+        content: Content::Files,
+        options,
+    };
+    c.send(&[submit.to_frame(), ManifestOffer::encode(&manifest).unwrap()]);
+    c.expect_control("accepted", |m| matches!(m, Control::Accepted { .. }));
+    upload(&mut c, &clash, &manifest, None);
+    let failed =
+        c.expect_control("failed", |m| matches!(m, Control::Job(j) if j.job == "folder-2" && j.state.is_terminal()));
+    let Control::Job(failed) = failed else { unreachable!() };
+    assert_eq!(failed.state, JobState::Failed);
+    assert!(failed.message.contains("appears twice"), "{}", failed.message);
 }

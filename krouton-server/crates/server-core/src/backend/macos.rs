@@ -130,6 +130,22 @@ impl Backend for MacBackend {
         }
     }
 
+    fn file_systems(&self) -> Vec<&'static str> {
+        if std::path::Path::new(&self.hdiutil).exists() {
+            vec![super::master::ISO9660, super::master::JOLIET, super::master::UDF]
+        } else {
+            Vec::new()
+        }
+    }
+
+    fn master(
+        &self,
+        request: &super::MasterRequest<'_>,
+        progress: &mut dyn FnMut(Option<f64>),
+    ) -> Result<Vec<&'static str>, String> {
+        super::master::hdiutil_master(&self.hdiutil, request, progress)
+    }
+
     fn diagnose(&self) -> Vec<String> {
         let mut problems = Vec::new();
         if !std::path::Path::new(&self.hdiutil).exists() {

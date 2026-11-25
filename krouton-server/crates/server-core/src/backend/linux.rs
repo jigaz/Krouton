@@ -130,6 +130,22 @@ impl Backend for LinuxBackend {
         }
     }
 
+    fn file_systems(&self) -> Vec<&'static str> {
+        if super::master::xorriso_available(&self.xorriso) {
+            vec![super::master::ISO9660, super::master::JOLIET, super::master::ROCK_RIDGE]
+        } else {
+            Vec::new()
+        }
+    }
+
+    fn master(
+        &self,
+        request: &super::MasterRequest<'_>,
+        progress: &mut dyn FnMut(Option<f64>),
+    ) -> Result<Vec<&'static str>, String> {
+        super::master::xorriso_master(&self.xorriso, request, progress)
+    }
+
     fn diagnose(&self) -> Vec<String> {
         let mut problems = Vec::new();
         let mut cmd = Command::new(&self.xorriso);

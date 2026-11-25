@@ -6,6 +6,8 @@
 //! * Job metadata lives in `<spool>/<job>/job.json`, so queued jobs and half-finished uploads
 //!   survive a restart (a burn interrupted by a restart is marked failed: the disc is unknown).
 //! * Events go only to connections of the Mac that owns the job; other Macs cannot see or touch it.
+//! * `files` jobs (a folder rather than an image) pass through one mastering worker
+//!   (`jobs/mastering.rs`) between the upload and the drive queue.
 //! * Finished images are deleted right away; failed, cancelled and abandoned ones are kept for
 //!   `keep_incomplete_hours` so the app can retry or resume without uploading again.
 
@@ -13,7 +15,7 @@ use crate::backend::{Backend, BurnRequest, Drive, Progress, Stage};
 use crate::config::Config;
 use crate::pairing_window::unix_now;
 use crate::store::{IMAGE_FILE, StagedImage};
-use krsp::control::{BurnOptions, DriveInfo, JobInfo, JobState, MediaState};
+use krsp::control::{BurnOptions, Content, DriveInfo, JobInfo, JobState, MediaState};
 use krsp::json::{self, Value};
 use krsp::telemetry::{TelemetryPhase, TelemetrySample};
 use std::collections::HashMap;
@@ -23,7 +25,13 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
+mod mastering;
+
 const JOB_FILE: &str = "job.json";
+/// The image a `files` job burns, built from the uploaded bundle (`store::IMAGE_FILE`).
+pub const MASTERED_FILE: &str = "disc.iso";
+const MASTER_TEMP: &str = "mastering.iso";
+const TREE_DIR: &str = "tree";
 const MEDIA_CACHE: Duration = Duration::from_secs(10);
 const TELEMETRY_INTERVAL: Duration = Duration::from_millis(250);
 
@@ -40,6 +48,7 @@ pub struct Job {
     pub owner: String,
     pub drive: String,
     pub label: String,
+    pub content: Content,
     pub options: BurnOptions,
     pub state: JobState,
     pub fraction: Option<f64>,
@@ -64,10 +73,22 @@ pub struct JobManager {
     pub config: Config,
     backend: Box<dyn Backend>,
     drives: Vec<Drive>,
+    file_systems: Vec<String>,
     state: Mutex<State>,
     wake: Condvar,
     seq: AtomicU64,
     next_subscriber: AtomicU64,
+}
+
+/// A client's `submit`, as `begin_upload` takes it.
+#[derive(Clone, Copy, Debug)]
+pub struct Submission<'a> {
+    pub owner: &'a str,
+    pub job: &'a str,
+    pub drive: &'a str,
+    pub label: &'a str,
+    pub content: Content,
+    pub options: &'a BurnOptions,
 }
 
 /// Why a submission was refused, mapped to a protocol error code by the session.
@@ -77,8 +98,13 @@ pub enum SubmitError {
     UnknownJob,
     AlreadySubmitted,
     TooLarge,
-    NoSpace { free: u64, needed: u64 },
+    NoSpace {
+        free: u64,
+        needed: u64,
+    },
     UnsupportedSectorSize(u32),
+    /// A `files` job on a server whose backend cannot build images (no xorriso).
+    MasteringUnavailable,
     Io(String),
 }
 
@@ -88,10 +114,12 @@ impl JobManager {
     pub fn new(config: Config, backend: Box<dyn Backend>) -> std::io::Result<Arc<Self>> {
         std::fs::create_dir_all(&config.spool_dir)?;
         let drives = backend.discover();
+        let file_systems = backend.file_systems().into_iter().map(str::to_owned).collect();
         let manager = Arc::new(Self {
             config,
             backend,
             drives,
+            file_systems,
             state: Mutex::new(State::default()),
             wake: Condvar::new(),
             seq: AtomicU64::new(1),
@@ -108,6 +136,12 @@ impl JobManager {
     #[must_use]
     pub fn drives(&self) -> &[Drive] {
         &self.drives
+    }
+
+    /// What this server can build from folders (empty: `files` jobs are refused).
+    #[must_use]
+    pub fn file_systems(&self) -> &[String] {
+        &self.file_systems
     }
 
     #[must_use]
@@ -129,6 +163,10 @@ impl JobManager {
             if let Err(e) = std::thread::Builder::new().name(name).spawn(move || me.drive_loop(&drive)) {
                 crate::log(&format!("could not start a drive worker: {e}"));
             }
+        }
+        let me = Arc::clone(self);
+        if let Err(e) = std::thread::Builder::new().name("mastering".into()).spawn(move || me.mastering_loop()) {
+            crate::log(&format!("could not start the mastering worker: {e}"));
         }
         let me = Arc::clone(self);
         std::thread::Builder::new()
@@ -188,7 +226,7 @@ impl JobManager {
 
     fn run_job(&self, drive: &Drive, job: &Job) {
         let cancel = self.lock().cancels.get(&job.id).cloned().unwrap_or_default();
-        let image = self.job_dir(&job.id).join(IMAGE_FILE);
+        let image = self.job_dir(&job.id).join(Self::burn_file(job.content));
         let total_lba = job.image_bytes / 2048;
         let mut last_sent = Instant::now().checked_sub(TELEMETRY_INTERVAL).unwrap_or_else(Instant::now);
         let mut last_stage = Stage::Preparing;
@@ -265,8 +303,9 @@ impl JobManager {
         self.lock().cancels.remove(&job.id);
         self.lock().media.remove(&drive.id);
         if state == JobState::Done {
-            // The disc is the deliverable; the staged copy can go.
-            let _ = std::fs::remove_file(&image);
+            // The disc is the deliverable; the staged copies can go.
+            let _ = std::fs::remove_file(self.job_dir(&job.id).join(IMAGE_FILE));
+            let _ = std::fs::remove_file(self.job_dir(&job.id).join(MASTERED_FILE));
         }
         self.publish_queue(&drive.id);
     }
@@ -276,15 +315,15 @@ impl JobManager {
     /// Validates a submission and opens (or resumes) its staging directory.
     pub fn begin_upload(
         &self,
-        owner: &str,
-        job_id: &str,
-        drive: &str,
-        label: &str,
-        options: &BurnOptions,
+        submission: &Submission<'_>,
         manifest: &krsp::manifest::TransferManifest,
     ) -> Result<StagedImage, SubmitError> {
+        let Submission { owner, job: job_id, drive, label, content, options } = *submission;
         if !self.drives.iter().any(|d| d.id == drive) {
             return Err(SubmitError::UnknownDrive);
+        }
+        if content == Content::Files && self.file_systems.is_empty() {
+            return Err(SubmitError::MasteringUnavailable);
         }
         if manifest.sector_size != 2048 {
             return Err(SubmitError::UnsupportedSectorSize(manifest.sector_size));
@@ -309,7 +348,9 @@ impl JobManager {
         let already = StagedImage::open(&dir, manifest).ok().map_or(0, |s| {
             u64::try_from(s.committed().committed_count()).unwrap_or(0).saturating_mul(manifest.extent_bytes())
         });
-        let needed = bytes.saturating_sub(already).saturating_add(self.config.min_free_bytes);
+        // A folder needs room for the upload, the unpacked files and the image built from them.
+        let copies = if content == Content::Files { 3 } else { 1 };
+        let needed = bytes.saturating_mul(copies).saturating_sub(already).saturating_add(self.config.min_free_bytes);
         let free = crate::fsutil::free_bytes(&self.config.spool_dir).unwrap_or(0);
         if free < needed {
             return Err(SubmitError::NoSpace { free, needed });
@@ -321,6 +362,7 @@ impl JobManager {
             owner: owner.to_owned(),
             drive: drive.to_owned(),
             label: label.to_owned(),
+            content,
             options: options.clone(),
             state: JobState::Receiving,
             fraction: Some(0.0),
@@ -343,16 +385,23 @@ impl JobManager {
         self.update(job_id, |j| j.fraction = Some(f), true);
     }
 
-    /// Called once the last extent is durable: seals the image and queues the burn.
+    /// Called once the last extent is durable: seals the upload and queues the burn (or, for a
+    /// folder, the mastering step).
     pub fn finish_upload(&self, job_id: &str, staged: &mut StagedImage) -> std::io::Result<()> {
         staged.seal()?;
         let drive = self.lock().jobs.get(job_id).map(|j| j.drive.clone()).unwrap_or_default();
         self.update(
             job_id,
             |j| {
-                j.state = JobState::Queued;
-                j.fraction = None;
-                j.message = "Waiting for the drive".into();
+                if j.content == Content::Files {
+                    j.state = JobState::Mastering;
+                    j.fraction = Some(0.0);
+                    j.message = "Waiting to build the disc".into();
+                } else {
+                    j.state = JobState::Queued;
+                    j.fraction = None;
+                    j.message = "Waiting for the drive".into();
+                }
                 j.seq = self.seq.fetch_add(1, Ordering::SeqCst);
             },
             true,
@@ -383,6 +432,11 @@ impl JobManager {
     pub fn cancel(&self, owner: &str, job_id: &str) -> bool {
         let state = self.lock();
         let Some(job) = state.jobs.get(job_id).filter(|j| j.owner == owner) else { return false };
+        if let (JobState::Mastering, Some(flag)) = (job.state, state.cancels.get(job_id)) {
+            // The mastering worker has it: it stops and marks the job cancelled.
+            flag.store(true, Ordering::SeqCst);
+            return true;
+        }
         match job.state {
             JobState::Burning | JobState::Verifying => {
                 if let Some(flag) = state.cancels.get(job_id) {
@@ -390,7 +444,7 @@ impl JobManager {
                 }
                 true
             }
-            JobState::Receiving | JobState::Queued => {
+            JobState::Receiving | JobState::Mastering | JobState::Queued => {
                 let drive = job.drive.clone();
                 drop(state);
                 self.update(
@@ -431,7 +485,11 @@ impl JobManager {
                 let (queue, busy) = {
                     let state = self.lock();
                     let active = |j: &&Job| {
-                        j.drive == d.id && matches!(j.state, JobState::Queued | JobState::Burning | JobState::Verifying)
+                        j.drive == d.id
+                            && matches!(
+                                j.state,
+                                JobState::Mastering | JobState::Queued | JobState::Burning | JobState::Verifying
+                            )
                     };
                     let queue = state.jobs.values().filter(active).count();
                     let busy = state
@@ -489,7 +547,8 @@ impl JobManager {
                     !matches!(job.state, JobState::Burning | JobState::Verifying)
                 }
                 JobState::Queued => {
-                    job.state == JobState::Receiving || (job.state == JobState::Queued && o.seq < job.seq)
+                    matches!(job.state, JobState::Receiving | JobState::Mastering)
+                        || (job.state == JobState::Queued && o.seq < job.seq)
                 }
                 _ => false,
             })
@@ -528,7 +587,9 @@ impl JobManager {
             state
                 .jobs
                 .values()
-                .filter(|j| j.drive == drive && matches!(j.state, JobState::Receiving | JobState::Queued))
+                .filter(|j| {
+                    j.drive == drive && matches!(j.state, JobState::Receiving | JobState::Mastering | JobState::Queued)
+                })
                 .map(|j| (j.owner.clone(), Self::info(&state, j)))
                 .collect()
         };
@@ -543,6 +604,7 @@ impl JobManager {
             ("owner", job.owner.as_str().into()),
             ("drive", job.drive.as_str().into()),
             ("label", job.label.as_str().into()),
+            ("content", job.content.wire_name().into()),
             ("speed", job.options.speed.into()),
             ("verify", job.options.verify.into()),
             ("simulate", job.options.simulate.into()),
@@ -579,7 +641,12 @@ impl JobManager {
                 job.fraction = None;
                 job.message = "The server restarted during this burn; check the disc".into();
             }
-            if job.state == JobState::Queued && !entry.path().join(IMAGE_FILE).exists() {
+            let needs = match job.state {
+                JobState::Mastering => Some(IMAGE_FILE),
+                JobState::Queued => Some(Self::burn_file(job.content)),
+                _ => None,
+            };
+            if needs.is_some_and(|file| !entry.path().join(file).exists()) {
                 job.state = JobState::Failed;
                 job.message = "The staged image is missing".into();
             }
@@ -590,6 +657,14 @@ impl JobManager {
         drop(state);
         for job in changed {
             self.persist(&job);
+        }
+    }
+
+    /// The file a job's burn reads.
+    fn burn_file(content: Content) -> &'static str {
+        match content {
+            Content::Image => IMAGE_FILE,
+            Content::Files => MASTERED_FILE,
         }
     }
 
@@ -629,6 +704,7 @@ fn parse_job(v: &Value) -> Option<Job> {
         owner: s("owner")?,
         drive: s("drive")?,
         label: s("label")?,
+        content: s("content").map_or(Some(Content::Image), |c| Content::from_wire(&c))?,
         options: BurnOptions {
             speed: u32::try_from(n("speed")?).ok()?,
             verify: b("verify")?,

@@ -73,6 +73,18 @@ impl Backend for SimulatedBackend {
         Ok(())
     }
 
+    fn file_systems(&self) -> Vec<&'static str> {
+        vec![super::master::ISO9660, super::master::JOLIET, super::master::UDF]
+    }
+
+    fn master(
+        &self,
+        request: &super::MasterRequest<'_>,
+        progress: &mut dyn FnMut(Option<f64>),
+    ) -> Result<Vec<&'static str>, String> {
+        super::master::simulate_master(request, progress)
+    }
+
     fn diagnose(&self) -> Vec<String> {
         Vec::new()
     }
