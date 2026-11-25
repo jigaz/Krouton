@@ -8,9 +8,12 @@ on:
 
 jobs:
   verify-macos:
-    runs-on: macos-15
+    # Matches the toolchain Krouton is developed on (Xcode 26 / Swift 6.2 SDK annotations).
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
+      - name: Toolchain
+        run: swift --version && xcodebuild -version
       - name: Build All Targets
         run: swift build
       - name: Run Unit Tests
