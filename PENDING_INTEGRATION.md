@@ -23,12 +23,13 @@ Format: `- `TypeName` — owner · decide-by date · plan`.
 - **`KroutonDiscReadbackVerifier`: was already used** by `KroutonDiscImageBurner`. It now has its own file, so the
   ratchet sees the caller.
 - **`ScriptedOpticalDrive`: moved** to KroutonVerify, where Suite 30 uses it to test the scheduler.
-- **Deleted:** `BurnClaimPolicy` and `BurnPoolSnapshot` (the scheduler claims discs itself), and the pure-Swift
+- **Deleted:** `BurnClaimPolicy` (the scheduler claims discs itself), and the pure-Swift
   ISO writer (`KroutonHybridISO9660Writer`, `HybridISOFileInput`, `HybridSynthesizedISOImage`), which duplicated
   `hdiutil makehybrid`, the builder the app ships.
 
 ## Burn pool
 
+- `BurnPoolSnapshot` — me · 2027-01-31 · show `BurnClaimLedger.snapshot()` in the burn-set sheet, or delete it with the ledger (OpticalCore/Burning/BurnPoolQueue.swift)
 - `DriveBufferSample` — me · 2027-01-31 · feed DiscRecording buffer-fill telemetry into the scheduler's arbiter (`record`), or delete (BurnKit/BurnPowerAndBandwidthArbiter.swift)
 - `KroutonPoolDriveDescriptor` — me · 2027-01-31 · route the card pool through `KroutonDrivePoolState.populateAndAssignInitialSlots`, or delete it with that API (OpticalCore/Burning/BurnPoolQueue.swift)
 

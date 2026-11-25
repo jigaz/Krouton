@@ -281,6 +281,32 @@ extension KroutonOpticalDriveInfo {
 
 // MARK: - Late-Binding BurnClaimLedger
 
+public struct BurnPoolSnapshot: Sendable, Equatable {
+    public struct Slot: Sendable, Equatable {
+        public let drive: DriveID
+        public let discIndex: Int
+        public let isCommitted: Bool
+        public let awaitingOperator: Bool
+
+        public init(drive: DriveID, discIndex: Int, isCommitted: Bool, awaitingOperator: Bool) {
+            self.drive = drive
+            self.discIndex = discIndex
+            self.isCommitted = isCommitted
+            self.awaitingOperator = awaitingOperator
+        }
+    }
+
+    public let active: [Slot]
+    public let waiting: [Int]
+    public let finished: [Int]
+
+    public init(active: [Slot] = [], waiting: [Int] = [], finished: [Int] = []) {
+        self.active = active
+        self.waiting = waiting
+        self.finished = finished
+    }
+}
+
 public struct BurnClaimLedger: Sendable, Equatable {
     public private(set) var waiting: [Int]
     public private(set) var offered: [DriveID: Int] = [:]
