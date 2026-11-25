@@ -106,19 +106,7 @@ extension KroutonStateStore {
         }
         switch target.kind {
         case .networkBurner:
-            driveManager.setManualInlinePin(for: "network-spool-drive", isPinned: true)
-            let _ = await SpoolRemoteNodeClient.shared.executeSpoolAndBurn(
-                endpoint: target.hardwareOrPath,
-                stagedFiles: stagedFiles,
-                audioTracks: redBookTracks,
-                volumeTitle: discVolumeTitle,
-                performer: discPerformer,
-                mcnBarcode: discMCNBarcode,
-                requestedSpeedLabel: target.speedOrCodec,
-                simulationMode: target.simulationMode,
-                driveManager: driveManager,
-                targetDriveKey: "network-spool-drive"
-            )
+            await runNetworkBurn(target, driveManager: driveManager)
         case .physicalBurner:
             if self.forceDVDROMBookType, !target.targetDriveID.isEmpty {
                 driveManager.stampDVDROMBookType(for: target.targetDriveID, vendorProfile: bitsetVendorProfile)

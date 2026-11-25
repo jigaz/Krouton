@@ -58,8 +58,8 @@ extension KroutonDestinationCardView {
                                     }
                                 case .networkBurner:
                                     qItem.targetDriveID = ""
-                                    if !spoolClient.discoveredNodes.map(\.hostPort).contains(qItem.hardwareOrPath) {
-                                        qItem.hardwareOrPath = spoolClient.discoveredNodes.first?.hostPort ?? "localhost:7420"
+                                    if spoolClient.server(withID: qItem.hardwareOrPath) == nil {
+                                        qItem.hardwareOrPath = spoolClient.pairedServers.first?.nodeID ?? ""
                                     }
                                 case .discImage:
                                     let imgTarget = store.defaultDiscImageTarget

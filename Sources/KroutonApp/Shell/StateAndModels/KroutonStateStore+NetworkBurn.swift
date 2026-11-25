@@ -1,0 +1,92 @@
+import DriveKit
+import Foundation
+import ImageKit
+import NetworkSpool
+import OpticalCore
+
+// MARK: - Burning on a Krouton Server
+
+@MainActor
+extension KroutonStateStore {
+    /// Masters the staged files into an ISO-9660 + Joliet + UDF image and sends it to the Krouton
+    /// Server and drive chosen on the destination card. Telemetry streams into the card's Phase Scope.
+    func runNetworkBurn(_ target: KroutonBakeBatchItem, driveManager: KroutonOpticalDriveBank) async {
+        let telemetryKey = "network-spool-drive"
+        driveManager.setManualInlinePin(for: telemetryKey, isPinned: true)
+        let started = Date()
+        guard redBookTracks.isEmpty else {
+            driveManager.completionReport = networkReport(ok: false, title: "Audio CDs Burn on This Mac",
+                                                          summary: "Krouton Server burns data images. Burn audio CDs on a drive connected to this Mac.",
+                                                          server: "", drive: "", bytes: 0, started: started)
+            return
+        }
+        guard let image = await masterImageForNetworkBurn() else {
+            driveManager.completionReport = networkReport(ok: false, title: "Could Not Build the Disc Image",
+                                                          summary: "Add files to the disc, then try again.",
+                                                          server: "", drive: "", bytes: 0, started: started)
+            return
+        }
+        defer { try? FileManager.default.removeItem(at: image.deletingLastPathComponent()) }
+        let bytes = (try? FileManager.default.attributesOfItem(atPath: image.path)[.size] as? Int64) ?? 0
+        let options = SpoolBurnOptions(speed: Int(target.speedOrCodec.prefix { $0.isNumber }) ?? 0,
+                                       verify: target.verifyAfterBurn, simulate: target.simulationMode, eject: true)
+        let outcome: SpoolRemoteBurnOutcome = await SpoolRemoteNodeClient.shared.burnImage(
+            at: image, label: discVolumeTitle, serverID: target.hardwareOrPath, driveID: target.targetDriveID,
+            options: options, telemetry: driveManager, telemetryKey: telemetryKey
+        )
+        driveManager.completionReport = networkReport(
+            ok: outcome.succeeded,
+            title: outcome.succeeded ? "Burned on \(outcome.serverName)" : "Remote Burn Did Not Finish",
+            summary: outcome.message, server: outcome.serverName, drive: outcome.driveName, bytes: bytes, started: started
+        )
+    }
+
+    /// Stages the files and builds the image in a fresh temporary folder. The HFS+ tree is left out:
+    /// a server burns 2048-byte-sector data images (ISO/UDF), which every OS can read.
+    func masterImageForNetworkBurn() async -> URL? {
+        guard !stagedFiles.isEmpty else { return nil }
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("KroutonNetworkBurn_\(UUID().uuidString)", isDirectory: true)
+        let tree = root.appendingPathComponent("Tree", isDirectory: true)
+        let output = root.appendingPathComponent("disc.iso")
+        let items = stagedFiles.map { KroutonBurnStageItem(source: $0.url, name: $0.name) }
+        if let stagingError = await KroutonBurnStager.stage(items, into: tree) {
+            KroutonDiagnostics.masteringLogger.error("Network burn staging failed: \(stagingError, privacy: .public)")
+            try? FileManager.default.removeItem(at: root)
+            return nil
+        }
+        do {
+            let built = try await KroutonHybridImageBuilder.build(
+                sourceDirectory: tree,
+                outputURL: output,
+                options: KroutonHybridImageOptions(volumeName: discVolumeTitle, finderLayout: finderLayoutBlueprint)
+            )
+            try? FileManager.default.removeItem(at: tree)
+            return built.url
+        } catch {
+            KroutonDiagnostics.masteringLogger.error("Network burn mastering failed: \(error.localizedDescription, privacy: .public)")
+            try? FileManager.default.removeItem(at: root)
+            return nil
+        }
+    }
+
+    private func networkReport(ok: Bool, title: String, summary: String, server: String, drive: String,
+                               bytes: Int64, started: Date) -> KroutonBurnSessionReport {
+        let elapsed = max(1, Int(Date().timeIntervalSince(started)))
+        return KroutonBurnSessionReport(
+            isSuccess: ok,
+            title: title,
+            summary: summary,
+            driveModel: drive.isEmpty ? "Krouton Server" : drive,
+            firmwareRevision: server.isEmpty ? "-" : server,
+            mediaFormattedName: "Data disc (ISO 9660 + Joliet + UDF)",
+            volumeName: discVolumeTitle,
+            sectorsWrittenLBA: ok ? bytes / 2048 : 0,
+            bytesWritten: ok ? bytes : 0,
+            averageSpeedText: "-",
+            peakSpeedText: "-",
+            elapsedDurationText: String(format: "%02d:%02d", elapsed / 60, elapsed % 60),
+            diagnosticAdvice: ok ? "The server verified the disc after writing it."
+                : "See Settings › Burners & Network › Save Log, and the server's log (`krouton-server check`)."
+        )
+    }
+}

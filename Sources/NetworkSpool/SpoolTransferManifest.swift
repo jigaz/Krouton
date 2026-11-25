@@ -110,46 +110,6 @@ public struct ExtentBitmap: Sendable, Equatable {
     public var missing: [Int] { (0..<count).filter { !contains($0) } }
 }
 
-// MARK: - Extent Commit Journal (append-only, torn-write safe)
-
-public struct ExtentCommitRecord: Sendable, Equatable {
-    public static let byteCount = 44
-
-    public let extentIndex: UInt32
-    public let leafDigest: [UInt8]
-
-    public init(extentIndex: UInt32, leafDigest: [UInt8]) {
-        self.extentIndex = extentIndex
-        self.leafDigest = leafDigest
-    }
-
-    public func encoded() -> [UInt8] {
-        var body: [UInt8] = []
-        SpoolBytes.append(extentIndex, to: &body)
-        body.append(contentsOf: leafDigest.prefix(32))
-        return body + Self.check(body)
-    }
-
-    static func check(_ body: [UInt8]) -> [UInt8] {
-        Array(SHA256.hash(data: body).prefix(8))
-    }
-
-    public static func replay(_ journal: [UInt8], against manifest: SpoolTransferManifest) -> ExtentBitmap {
-        var bitmap = ExtentBitmap(count: manifest.extentCount)
-        var offset = 0
-        while offset + byteCount <= journal.count {
-            let body = Array(journal[offset..<(offset + 36)])
-            guard Array(journal[(offset + 36)..<(offset + byteCount)]) == check(body) else { break }
-            let index = Int(SpoolBytes.read(UInt32.self, from: body, at: 0))
-            if index < manifest.extentCount, Array(body[4..<36]) == manifest.leafDigests[index] {
-                bitmap.insert(index)
-            }
-            offset += byteCount
-        }
-        return bitmap
-    }
-}
-
 // MARK: - Decision D3: Wire ManifestOffer (Kind 10) Encode & Decode
 
 public extension SpoolTransferManifest {

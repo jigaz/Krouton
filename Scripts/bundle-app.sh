@@ -75,6 +75,12 @@ cat << PLIST > "$CONTENTS_DIR/Info.plist"
   <array>
     <string>${SWIFT_ARCH}</string>
   </array>
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>Krouton finds Krouton Servers on your local network and sends discs to them to burn.</string>
+  <key>NSBonjourServices</key>
+  <array>
+    <string>_krouton-spool._tcp</string>
+  </array>
   <key>NSHighResolutionCapable</key>
   <true/>
 </dict>

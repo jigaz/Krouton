@@ -33,6 +33,7 @@ final class KroutonVerifyTests: XCTestCase {
     func testAudioAndVideoSuites() { runSuites { $0.runVerifyAudioAndVideoSuites() } }
     func testMasteringDomainModelsSuite() { runSuites { $0.runVerifyMasteringDomainModelsSuite() } }
     func testHardwareAndBurnSuites() { runSuites { $0.runVerifyHardwareAndBurnSuites() } }
+    func testBurnSetSchedulerSuite() { runSuites { $0.runVerifyBurnSetSchedulerSuite() } }
     func testLabelAndPersistenceSuites() { runSuites { $0.runVerifyLabelAndPersistenceSuites() } }
 
     // MARK: - The function-length scanner itself

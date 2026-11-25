@@ -2,17 +2,17 @@ import CryptoKit
 import Foundation
 import NetworkSpool
 
-// MARK: - VerifyHarness — Suite 29: KRSP Golden Vectors (Swift <-> Rust spoold parity)
+// MARK: - VerifyHarness — Suite 29: KRSP Golden Vectors (Swift <-> Rust Krouton Server parity)
 //
-// Reads Vectors/krsp-golden-v1.txt, the same file krouton-spoold-verify (Rust) checks. An
-// independent Python implementation produced it (tools/gen_golden_vectors.py in the spoold repo).
-// If this suite and the Rust harness both pass, the two daemons agree byte for byte.
+// Reads Vectors/krsp-golden-v1.txt, the same file `cargo test` checks in krouton-server
+// (crates/krsp/tests/golden.rs). An independent Python implementation produced it. If this suite
+// and the Rust tests both pass, the app and the server agree byte for byte.
 
 extension KroutonTestHarness {
     mutating func runVerifySpooldGoldenVectorSuite() {
         let url = Self.repositoryRoot.appendingPathComponent("Vectors/krsp-golden-v1.txt")
         let vectors = Self.goldenVectors(at: url)
-        self.runSuite("29. KRSP Golden Vectors: Byte Parity With krouton-spoold (Rust)") { h in
+        self.runSuite("29. KRSP Golden Vectors: Byte Parity With Krouton Server (Rust)") { h in
             h.check(vectors.count >= 30, "Golden vector file loads from \(url.path)")
             Self.verifyGoldenFramesAndManifest(&h, vectors)
             Self.verifyGoldenIdentityAndPairing(&h, vectors)
@@ -48,7 +48,7 @@ extension KroutonTestHarness {
             h.check(Self.goldenHex(record) == v["journal.record_5"], "44-byte commit record matches")
             let offer = manifest.encodeManifestOffer()
             let decodedOffer = offer.flatMap { SpoolTransferManifest(manifestOffer: $0) }
-            h.check(decodedOffer == manifest, "Kind-10 ManifestOffer frame round-trips identically to Rust spoold-proto")
+            h.check(decodedOffer == manifest, "Kind-10 ManifestOffer frame round-trips identically to the Rust krsp crate")
         }
     }
 

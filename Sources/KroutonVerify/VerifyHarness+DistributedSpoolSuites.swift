@@ -13,18 +13,17 @@ struct SpoolLoopbackRun {
     var resumeLBAs: [UInt64]
 }
 
-// MARK: - VerifyHarness — Suite 27: Distributed Spool Framing, Leases, Resume & Partition Recovery
+// MARK: - VerifyHarness — Suite 27: Krouton Server Client (framing, resume, faults)
 
 extension KroutonTestHarness {
     mutating func runVerifyDistributedSpoolSuite() {
-        self.runSuite("27. Distributed Spool Framing, Lease Fencing, Resumable Bitmap & Partition Recovery") { h in
+        self.runSuite("27. Krouton Server Client: Framing, Resumable Upload, Pairing & Control Channel") { h in
             Self.verifySpoolFraming(&h)
             Self.verifySpoolManifestAndJournal(&h)
             Self.verifySpoolLoopbackFaults(&h)
-            Self.verifySpoolLeases(&h)
-            Self.verifySpoolCutover(&h)
             Self.verifySpoolEndpointPolicy(&h)
             Self.verifySpoolPairingAndTelemetry(&h)
+            Self.verifyKroutonServerClientWire(&h)
         }
     }
 

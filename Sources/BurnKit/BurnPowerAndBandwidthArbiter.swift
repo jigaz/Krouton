@@ -119,6 +119,7 @@ public struct BusArbitrationState: Sendable, Equatable {
 public actor BurnPowerAndBandwidthArbiter {
     private var state: BusArbitrationState
     private var waiters: [DriveID: CheckedContinuation<Void, Never>] = [:]
+    private var recheckScheduled = false
     private let origin = ContinuousClock.now
 
     public init(policy: BusArbitrationState.Policy = .init()) {
@@ -160,5 +161,19 @@ public actor BurnPowerAndBandwidthArbiter {
         while let granted = state.grant(at: now) {
             waiters.removeValue(forKey: granted)?.resume()
         }
+        // Spacing and starvation holds expire with time, not with an event: while anyone is waiting,
+        // look again shortly, or a second drive would wait until the first one finished its disc.
+        if !waiters.isEmpty, !recheckScheduled {
+            recheckScheduled = true
+            Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(500))
+                await self?.recheck()
+            }
+        }
+    }
+
+    private func recheck() {
+        recheckScheduled = false
+        grantDue()
     }
 }

@@ -71,7 +71,8 @@ struct KroutonSettingsWindowView: View {
     @State var isShowingSpoolFileExporter: Bool = false
     @State var isShowingScratchFolderImporter: Bool = false
     @State var spoolExportDocument: SpoolPlainTextFileDocument = SpoolPlainTextFileDocument(text: "")
-    @State var spoolExportDefaultFilename: String = "Spool_Export.log"
+    @State var spoolExportDefaultFilename: String = "Krouton Burn Server Log.txt"
+    @State var burnServerAddressDraft: String = ""
     @State var searchText: String = ""
 
     @State var formatFilter: KroutonWorkflowFilterGroup = .all

@@ -59,6 +59,9 @@ struct KroutonDestinationCardView: View {
                     isInlineVisible: isInlineVisible,
                     onUpdateHost: { newHost in
                         store.updateQueueItem(cardID) { $0.hardwareOrPath = newHost }
+                    },
+                    onUpdateDrive: { driveID in
+                        store.updateQueueItem(cardID) { $0.targetDriveID = driveID }
                     }
                 )
             } else if item.kind == .discImage {

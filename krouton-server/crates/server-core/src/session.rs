@@ -89,6 +89,9 @@ struct Upload {
     staged: StagedImage,
     receiver: StagingReceiver,
     last_progress: Instant,
+    /// Every extent was already on the server (a resubmission after the upload had finished):
+    /// the bitmap query is still answered, so the app's sender completes, but nothing is queued twice.
+    already_complete: bool,
 }
 
 #[derive(Debug)]
@@ -288,16 +291,24 @@ impl Session {
         {
             Ok(mut staged) => {
                 let mut out = vec![Control::Accepted { job: submit.job.clone() }.to_frame()];
-                if staged.is_complete() {
-                    // A retry of a failed job whose image is still staged: no upload needed.
+                let already_complete = staged.is_complete();
+                if already_complete {
+                    // A retry of a failed job whose image is still staged, or a resubmission after the
+                    // last extent landed: no upload needed, the burn is queued right away.
                     if let Err(e) = self.ctx.jobs.finish_upload(&submit.job, &mut staged) {
                         out.push(error(ErrorCode::Internal, &e.to_string(), Some(submit.job)));
+                        return out;
                     }
-                    return out;
                 }
                 let receiver = StagingReceiver::new(manifest, staged.committed().clone(), UPLOAD_WINDOW);
-                crate::log(&format!("{}: upload {} started", self.peer.address, submit.job));
-                self.upload = Some(Upload { job: submit.job, staged, receiver, last_progress: Instant::now() });
+                crate::log(&format!(
+                    "{}: upload {} {}",
+                    self.peer.address,
+                    submit.job,
+                    if already_complete { "already complete" } else { "started" }
+                ));
+                self.upload =
+                    Some(Upload { job: submit.job, staged, receiver, last_progress: Instant::now(), already_complete });
                 out
             }
             Err(e) => {
@@ -332,6 +343,14 @@ impl Session {
         let Some(upload) = self.upload.as_mut() else {
             return vec![error(ErrorCode::BadRequest, "No upload in progress", None)];
         };
+        if upload.already_complete {
+            // Answer the bitmap query (all present); there is nothing to persist.
+            let replies = upload.receiver.handle_frame(frame, |_, _| false);
+            if frame.header.kind == FrameKind::BitmapQuery {
+                self.upload = None;
+            }
+            return replies;
+        }
         let still_wanted =
             self.ctx.jobs.job_info(&owner, &upload.job).is_some_and(|j| j.state == krsp::control::JobState::Receiving);
         if !still_wanted {

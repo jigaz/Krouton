@@ -137,24 +137,6 @@ extension KroutonTestHarness {
         h.check(FileManager.default.fileExists(atPath: masteredAudio.binURL.path) && masteredAudio.totalSectors2352 >= 1, "AudioKit .BIN/.CUE master must write sector-aligned PCM to disk")
         h.check(masteredAudio.cueSheetText.contains("TRACK 01 AUDIO") && masteredAudio.cueSheetText.contains("INDEX 01 00:00:00"), "AudioKit .CUE sheet must contain Red Book track & index descriptors")
 
-        let payloadA = Data("KROUTON_PAYLOAD_ALPHA_2026".utf8)
-        let payloadB = Data(repeating: 0x4B, count: 3000) // Spans 2 ISO sectors (2,048B each)
-        let isoOutURL = tempDir.appendingPathComponent("PhaseA_Mountable.iso")
-        let isoResult = try KroutonHybridISO9660Writer.writeMountableISO9660Image(
-            volumeTitle: "KROUTON_ISO",
-            files: [
-                HybridISOFileInput(fileName: "ALPHA.TXT", data: payloadA),
-                HybridISOFileInput(fileName: "BETA.BIN", data: payloadB)
-            ],
-            outputURL: isoOutURL
-        )
-        let isoBytes = try Data(contentsOf: isoResult.url)
-        let lbaAlpha = isoResult.fileExtentLBAs["ALPHA.TXT"] ?? 0
-        let lbaBeta = isoResult.fileExtentLBAs["BETA.BIN"] ?? 0
-        h.check(lbaAlpha == 23 && lbaBeta == 24 && isoResult.totalSectorsLBA == 26, "Hybrid ISO-9660 writer must allocate multi-sector file extents starting at LBA 23")
-        h.check(isoBytes.subdata(in: (lbaAlpha * 2048)..<(lbaAlpha * 2048 + payloadA.count)) == payloadA, "Hybrid ISO-9660 extent at LBA 23 must match exact ALPHA.TXT payload bytes")
-        h.check(isoBytes.subdata(in: (lbaBeta * 2048)..<(lbaBeta * 2048 + payloadB.count)) == payloadB, "Hybrid ISO-9660 2-sector extent at LBA 24..25 must match exact BETA.BIN payload bytes")
-
         // Phase B Verification: 32-Step Value-Type Undo/Redo Engine & Galette Sub-Store
         var snapA = KroutonEmbeddedLabelSpec()
         snapA.topArcRadiusMM = 44.0

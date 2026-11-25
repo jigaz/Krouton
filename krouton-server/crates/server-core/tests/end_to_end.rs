@@ -363,6 +363,7 @@ fn pair_upload_resume_burn_and_isolation() {
     c.expect_control("accepted again", |m| matches!(m, Control::Accepted { .. }));
     let sender = upload(&mut c, &image, &manifest, None);
     assert!(sender.acknowledged().is_complete());
+    assert_eq!(sender.acknowledged().committed_count(), manifest.extent_count());
 
     // Queued → burning (with telemetry) → done.
     c.expect_control("burning", |m| matches!(m, Control::Job(j) if j.state == JobState::Burning));
@@ -461,4 +462,38 @@ fn rejects_unsupported_images_and_unknown_drives() {
 
     c.send_control(Control::Ping { n: 77 });
     assert!(matches!(c.expect_control("pong", |m| matches!(m, Control::Pong { .. })), Control::Pong { n: 77 }));
+}
+
+#[test]
+fn resubmitting_a_failed_job_reuses_the_staged_image() {
+    let h = start_server();
+    let mac = [0x71; 32];
+    let pin = [0x72; 32];
+    assert!(matches!(pair(&h, mac, pin, true), Control::PairResult { accepted: true, .. }));
+    let mut c = authenticate(&h, mac, pin, [4; 32]);
+    c.expect_control("welcome", |m| matches!(m, Control::Welcome { .. }));
+    let image = test_image();
+    let manifest = TransferManifest::from_image(&image, 2048, 16).unwrap();
+    // A test burn is refused by nothing in the simulator, so cancel the queued job to make it "failed".
+    let options = BurnOptions { speed: 0, verify: false, simulate: false, eject: false };
+    let submit = Control::Submit {
+        job: "retry-1".into(),
+        drive: "sim-2".into(),
+        label: "Retry".into(),
+        options: options.clone(),
+    };
+    c.send(&[submit.to_frame(), ManifestOffer::encode(&manifest).unwrap()]);
+    c.expect_control("accepted", |m| matches!(m, Control::Accepted { .. }));
+    upload(&mut c, &image, &manifest, None);
+    c.send_control(Control::Cancel { job: "retry-1".into() });
+    c.expect_control("cancelled", |m| matches!(m, Control::Job(j) if j.state.is_terminal()));
+
+    // The same job again: accepted at once, the sender completes from the bitmap alone, and it burns.
+    let submit = Control::Submit { job: "retry-1".into(), drive: "sim-2".into(), label: "Retry".into(), options };
+    c.send(&[submit.to_frame(), ManifestOffer::encode(&manifest).unwrap()]);
+    c.expect_control("accepted again", |m| matches!(m, Control::Accepted { .. }));
+    let sender = upload(&mut c, &image, &manifest, None);
+    assert!(sender.acknowledged().is_complete());
+    let done = c.expect_control("done", |m| matches!(m, Control::Job(j) if j.state == JobState::Done));
+    assert!(matches!(done, Control::Job(_)));
 }
