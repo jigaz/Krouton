@@ -4,7 +4,8 @@ set -euo pipefail
 # Pure single-architecture native build matrix (no fat/universal lipo binaries).
 export PATH="$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SPOOLD_DIR="$ROOT_DIR/krouton-spoold"
+# Standalone checkout of github.com/jigaz/krouton-spoold (sibling dir by default).
+SPOOLD_DIR="${SPOOLD_DIR:-$ROOT_DIR/../krouton-spoold}"
 DIST_DIR="$ROOT_DIR/dist"
 
 rm -rf "$DIST_DIR/macos-universal"

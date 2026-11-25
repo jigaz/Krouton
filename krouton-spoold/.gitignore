@@ -1,6 +1,0 @@
-/target
-*.key
-*.p12
-spool/
-clients.pins
-.DS_Store

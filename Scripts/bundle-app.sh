@@ -39,9 +39,11 @@ swift build -c release --arch "$SWIFT_ARCH" --product Krouton
 SWIFT_BIN="$(swift build -c release --arch "$SWIFT_ARCH" --show-bin-path)/Krouton"
 
 echo "=== 2. Building Native $RUST_TARGET krouton-spoold Helper Daemon ==="
-cd "$ROOT_DIR/krouton-spoold"
+# Standalone checkout of github.com/jigaz/krouton-spoold (sibling dir by default).
+SPOOLD_DIR="${SPOOLD_DIR:-$ROOT_DIR/../krouton-spoold}"
+cd "$SPOOLD_DIR"
 MACOSX_DEPLOYMENT_TARGET=12.0 cargo build --release -p krouton-spoold --target "$RUST_TARGET"
-SPOOLD_BIN="$ROOT_DIR/krouton-spoold/target/$RUST_TARGET/release/krouton-spoold"
+SPOOLD_BIN="$SPOOLD_DIR/target/$RUST_TARGET/release/krouton-spoold"
 
 echo "=== 3. Assembling Pure Single-Architecture $SWIFT_ARCH Krouton.app Bundle ==="
 rm -rf "$APP_DIR"
