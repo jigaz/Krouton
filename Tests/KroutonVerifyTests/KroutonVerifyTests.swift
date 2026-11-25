@@ -16,7 +16,7 @@ public func XCTFail(_ msg: String = "", file: StaticString = #file, line: UInt =
 final class KroutonVerifyTests: XCTestCase {
     private func runSuites(
         _ suites: (inout KroutonTestHarness) -> Void,
-        file: StaticString = #file,
+        file: StaticString = #filePath,
         line: UInt = #line
     ) {
         var harness = KroutonTestHarness()
