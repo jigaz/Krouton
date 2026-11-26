@@ -226,6 +226,8 @@ struct KroutonWorkspaceCommands: Commands {
             .keyboardShortcut("m", modifiers: [.command, .shift])
             .disabled(wm.driveManager.availableDrives.isEmpty)
 
+            Toggle(KroutonL10n.tr("Leave Disc Open for More Sessions"), isOn: Bindable(wm.store).leaveDiscOpenForMoreSessions)
+
             Button(KroutonL10n.tr("Copy Archival Quality Certificate")) {
                 let drv = wm.driveManager.availableDrives.first
                 let lba = max(150, Int64((drv?.usedBytes ?? wm.store.totalStagedBytes) / 2048))

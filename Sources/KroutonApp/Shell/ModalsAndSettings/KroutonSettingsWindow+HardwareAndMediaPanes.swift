@@ -11,7 +11,12 @@ extension KroutonSettingsWindowView {
 
     var discImageDepotPane: some View {
         VStack(alignment: .leading, spacing: 18) {
-            settingsCard(title: "Disc Image Depot — Subscribed Channels & Repositories") {
+            settingsCard(title: "Disc Image Depot — Sections from depot.krouton.app") {
+                if store.depotChannels.isEmpty {
+                    Text(store.depotFeedStatus ?? "The depot list hasn't loaded yet.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
                 ForEach(Array(store.depotChannels.enumerated()), id: \.element.id) { idx, channel in
                     VStack(spacing: 8) {
                         HStack(spacing: 12) {
@@ -43,18 +48,26 @@ extension KroutonSettingsWindowView {
                 }
             }
 
-            settingsCard(title: "Verification, Virtualization Test-Boot & Custom Feeds") {
-                Toggle(KroutonL10n.tr("Automatically verify SHA-256 / PGP signatures on downloaded Depot images before burning"), isOn: Bindable(store).autoVerifyDepotSHA256)
+            settingsCard(title: "Checksums, Test-Boot & Feed") {
+                Text(KroutonL10n.tr("Every depot download is checked against the SHA-256 depot.krouton.app recorded for it. A file that doesn't match is deleted, never burned."))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
                 Divider()
                 Toggle(KroutonL10n.tr("Enable Apple Virtualization.framework 'Test-Boot in VM' button for El Torito / UEFI images"), isOn: Bindable(store).enableVMTestBootInDepot)
                 Divider()
                 HStack {
-                    Text(KroutonL10n.tr("Custom Community Depot Manifest URL"))
+                    Text(KroutonL10n.tr("Depot feed address"))
                     Spacer()
                     TextField("https://...", text: Bindable(store).customDepotFeedURL)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 320)
+                    Button(KroutonL10n.tr("Refresh")) {
+                        Task { await store.refreshDepotFeed() }
+                    }
                 }
+                Text(store.depotFeedGenerated.map { "List last checked by the depot on \($0)." } ?? "")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
             }
         }
     }

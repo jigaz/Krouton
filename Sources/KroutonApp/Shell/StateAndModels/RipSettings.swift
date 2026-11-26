@@ -25,6 +25,9 @@ final class RipSettings {
     var serverRingBufferMB: Double = 256.0
     var preStageImageToServerSSD: Bool = true
     var forceDVDROMBookType: Bool = true
+    /// Burn without closing the disc, so more sessions can be added later (Puppy Linux saves
+    /// itself back onto the disc it booted from this way). Set by the Depot for such images.
+    var leaveDiscOpenForMoreSessions: Bool = false
     var disableBDDefectManagementForVideo: Bool = true
 
     init() {}

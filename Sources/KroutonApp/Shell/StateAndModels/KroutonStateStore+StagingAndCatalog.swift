@@ -226,64 +226,7 @@ extension KroutonStateStore {
         }
     }
 
-    func downloadAndStageDepotItem(id: String, jumpToInspector: Bool = false) {
-        guard let idx = self.depotItems.firstIndex(where: { $0.id == id }) else { return }
-        let item = self.depotItems[idx]
-        let cacheDir = (FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory).appendingPathComponent("Krouton/DepotCache", isDirectory: true)
-        try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
-        let safeFilename = item.id + "-" + item.version.replacingOccurrences(of: " ", with: "_") + ".iso"
-        let isoURL = cacheDir.appendingPathComponent(safeFilename)
-
-        if FileManager.default.fileExists(atPath: isoURL.path) {
-            self.depotItems[idx].isDownloaded = true
-            stageDepotItemForBurning(self.depotItems[idx], jumpToInspector: jumpToInspector)
-            return
-        }
-
-        if self.depotDownloadProgress[id] != nil { return }
-        self.depotDownloadProgress[id] = 0.08
-        rejectedDropNotice = nil
-
-        Task { @MainActor in
-            for step in [0.22, 0.48, 0.76, 0.94] {
-                try? await Task.sleep(nanoseconds: 70_000_000)
-                if self.depotDownloadProgress[id] != nil {
-                    self.depotDownloadProgress[id] = step
-                }
-            }
-
-            do {
-                try await Self.materializeDepotImageToCache(item: item, destinationURL: isoURL)
-                self.depotDownloadProgress.removeValue(forKey: id)
-                if let currentIdx = self.depotItems.firstIndex(where: { $0.id == id }) {
-                    self.depotItems[currentIdx].isDownloaded = true
-                    self.stageDepotItemForBurning(self.depotItems[currentIdx], jumpToInspector: jumpToInspector)
-                    self.announceForVoiceOver("Staged \(item.title) into burn queue.")
-                }
-            } catch {
-                self.depotDownloadProgress.removeValue(forKey: id)
-                self.rejectedDropNotice = "Failed to prepare '\(item.title)': \(error.localizedDescription)"
-            }
-        }
-    }
-
-    func stageDepotItemForBurning(_ item: KroutonDepotCatalogItem, jumpToInspector: Bool = false) {
-        let cacheDir = (FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory).appendingPathComponent("Krouton/DepotCache", isDirectory: true)
-        let safeFilename = item.id + "-" + item.version.replacingOccurrences(of: " ", with: "_") + ".iso"
-        let isoURL = cacheDir.appendingPathComponent(safeFilename)
-        guard FileManager.default.fileExists(atPath: isoURL.path) else {
-            downloadAndStageDepotItem(id: item.id, jumpToInspector: jumpToInspector)
-            return
-        }
-        stagedFiles = [KroutonOpticalDriveBank.inspectFileOrFolder(url: isoURL)]
-        self.stagedDepotItemID = item.id
-        discVolumeTitle = String(item.id.uppercased().replacingOccurrences(of: "-", with: "_").prefix(32))
-        if jumpToInspector {
-            selectedCategory = .burn
-            selectedTaskID = "image-burn"
-        }
-    }
-
+    // Depot downloads and staging live in KroutonStateStore+DepotFeed.swift.
 }
 
 // MARK: - Staged files -> hybrid disc image

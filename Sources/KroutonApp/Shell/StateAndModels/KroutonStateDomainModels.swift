@@ -204,6 +204,8 @@ struct KroutonDepotCatalogItem: Identifiable, Hashable, Sendable {
     var sha256Short: String
     var sfSymbol: String
     var isDownloaded: Bool
+    /// The depot.krouton.app entry this card shows; nil for Internet Archive search results.
+    var feed: KroutonDepotFeed.Item? = nil
 }
 
 struct KroutonDepotFeedSubscription: Identifiable, Hashable, Sendable {

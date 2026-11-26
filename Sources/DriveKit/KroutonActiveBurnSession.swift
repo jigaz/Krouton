@@ -24,6 +24,11 @@ struct KroutonBurnJobContext {
     let simulationMode: Bool
     let verifyDisc: Bool
     let overwriteExistingData: Bool
+    /// Leave the disc open for later sessions (DRBurnAppendableKey), as Puppy Linux multisession needs.
+    var leaveDiscOpen: Bool = false
+    /// Set when the one staged item is a disc image: it is burned as an image, sector for sector,
+    /// instead of being copied onto a data disc as a file.
+    var imageFileURL: URL? = nil
 
     /// KB/s at 1x for this media family.
     var speedDivisor: Double {

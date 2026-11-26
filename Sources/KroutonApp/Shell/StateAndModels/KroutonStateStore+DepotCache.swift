@@ -5,7 +5,8 @@ import OpticalCore
 // MARK: - KroutonStateStore — DepotCache
 
 extension KroutonStateStore {
-    /// Downloads live Internet Archive ISO images or builds a spec-compliant ISO-9660 + El Torito bootable master image in `/tmp/KroutonDepotCache`.
+    /// Downloads an Internet Archive search result's disc image. Depot feed items go through
+    /// `KroutonDepotDownloader`, which checks every file against the feed's SHA-256.
     static func materializeDepotImageToCache(item: KroutonDepotCatalogItem, destinationURL: URL) async throws {
         if item.id.hasPrefix("ia-") {
             let identifier = String(item.id.dropFirst(3))
@@ -30,17 +31,9 @@ extension KroutonStateStore {
             }
         }
 
-        let manifest = """
-        KROUTON DISC IMAGE DEPOT — VERIFIED OPTICAL MASTER
-        Title: \(item.title) (v\(item.version))
-        Channel: \(item.channel)
-        Architecture: \(item.architecture)
-        Boot Standard: \(item.bootStandard)
-        SHA-256 Digest: \(item.sha256Short)
-        Contents:
-        \(item.blueprintRootFiles.map { "  - " + $0 }.joined(separator: "\n"))
-        """
-        try DiscImageDepotOperations.writeBootableDepotISO(volumeID: item.id, manifestText: manifest, destinationURL: destinationURL)
+        throw CocoaError(.fileNoSuchFile, userInfo: [
+            NSLocalizedDescriptionKey: "\(item.title) has no disc image on the Internet Archive that Krouton can download.",
+        ])
     }
 
     /// Queries the live Internet Archive REST API (archive.org/advancedsearch.php) for optical ISO / CDR / BIN-CUE items

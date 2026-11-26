@@ -14,6 +14,7 @@ final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.setActivationPolicy(.regular)
         let store = KroutonWindowManager.shared.store
         applyDynamicDockIcon(for: store)
+        store.loadDepotFeed()
         bindBurnTelemetryAndPowerGuard()
 
         bindDockIconObservation()

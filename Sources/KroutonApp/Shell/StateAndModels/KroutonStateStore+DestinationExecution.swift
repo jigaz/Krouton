@@ -119,7 +119,8 @@ extension KroutonStateStore {
                     requestedSpeedLabel: target.speedOrCodec,
                     simulationMode: target.simulationMode,
                     verifyDisc: target.verifyAfterBurn,
-                    allowOverwriteOfWrittenMedia: !isAutoLoadedCopy
+                    allowOverwriteOfWrittenMedia: !isAutoLoadedCopy,
+                    leaveDiscOpen: self.leaveDiscOpenForMoreSessions
                 ) { report in
                     continuation.resume(returning: report.isSuccess)
                 }
