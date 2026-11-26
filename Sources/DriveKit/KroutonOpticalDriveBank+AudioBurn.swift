@@ -78,13 +78,15 @@ extension KroutonOpticalDriveBank {
                 return
             }
             session.audioProducers.append(producer)
-            guard let track = DRTrack(producer: producer) else {
+            guard let track = DRTrack(producer: producer),
+                  let length = DRMSF(frames: UInt32(item.frames)),
+                  let pregap = DRMSF(frames: UInt32(item.pregapFrames)) else {
                 fail("Could Not Prepare Burn", "DiscRecording refused track \(tracks.count + 1).", "Nothing was written. Try the burn again.")
                 return
             }
             var props: [String: Any] = [
-                DRTrackLengthKey: DRMSF(frames: UInt32(item.frames)),
-                DRPreGapLengthKey: DRMSF(frames: UInt32(item.pregapFrames)),
+                DRTrackLengthKey: length,
+                DRPreGapLengthKey: pregap,
                 DRBlockSizeKey: NSNumber(value: 2352),
                 DRBlockTypeKey: NSNumber(value: 0),
                 DRDataFormKey: NSNumber(value: 0),
