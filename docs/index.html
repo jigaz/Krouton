@@ -14,6 +14,7 @@
     <a class="name" href="/">Krouton</a>
     <nav aria-label="Site">
       <a href="/" aria-current="page">The app</a>
+      <a href="/manual/">Manual</a>
       <a href="/server/">Krouton Server</a>
       <a href="https://archive.krouton.app/">Archive</a>
       <a href="/drives/">Report a drive</a>
@@ -58,21 +59,24 @@
     <div class="facts">
       <div>
         <h3>Builds the disc</h3>
-        <p>Data discs readable on Mac, Windows and Linux, audio CDs with CD-Text and gapless tracks, and DVD-Video, including shrinking a dual-layer DVD onto a single-layer one with its menus intact.</p>
+        <p>Data discs readable on Mac, Windows and Linux, audio CDs with CD-Text, gapless joins and shaped crossfades, and copies of disc images you already have, boot sectors and all.</p>
       </div>
       <div>
         <h3>Proves the burn</h3>
         <p>After writing, Krouton reads the disc back and compares it with the image byte for byte. A disc that only looks finished is reported as a failure.</p>
       </div>
       <div>
-        <h3>Rescues old discs</h3>
-        <p>Copies scratched and failing discs sector by sector, coming back to unreadable areas with repeated attempts, and grades how well a disc is holding up so you know which to copy first.</p>
+        <h3>Keeps discs readable for decades</h3>
+        <p>Every disc in a set carries a standard BagIt checksum list, so any one disc can be checked years from now without Krouton. Rescuing damaged discs is next on the list.</p>
       </div>
       <div>
         <h3>Burns a set</h3>
         <p>Splits a large folder across as many discs as it needs and burns them on every drive you have at once. A disc that fails is the only one burned again.</p>
       </div>
     </div>
+
+    <h2>Learning it</h2>
+    <p>The <a href="/manual/">Krouton manual</a> covers data discs, audio CDs, burners, labels, the command line and what to do when a burn fails. It is the same manual you get in the app with ⌘?.</p>
 
     <h2>Burning on another computer</h2>
     <p>Apple has been retiring its disc frameworks one at a time. Krouton Server is our answer: a small program for a Raspberry Pi, a Linux box, a NAS, a Windows PC or an older Mac with a burner plugged in. Pair it once with a six-digit code, then choose it like any other drive. It can also build the disc from a folder, so a device that can’t make disc images itself can still burn.</p>

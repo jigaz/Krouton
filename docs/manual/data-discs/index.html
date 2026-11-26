@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data discs and disc images — Krouton manual</title>
+<meta name="description" content="Pick a data format in the Format Chooser, under Data &amp; Archival Media, or from the Format menu.">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" href="/assets/disc.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="site">
+  <header class="masthead">
+    <a class="name" href="/">Krouton</a>
+    <nav aria-label="Site">
+      <a href="/">The app</a>
+      <a href="/manual/" aria-current="page">Manual</a>
+      <a href="/server/">Krouton Server</a>
+      <a href="https://archive.krouton.app/">Archive</a>
+      <a href="/drives/">Report a drive</a>
+      <a href="https://github.com/jigaz/Krouton">Source</a>
+    </nav>
+  </header>
+
+  <main class="manual">
+    <nav class="chapters" aria-label="Manual chapters">
+      <ol>
+        <li><a href="/manual/getting-started/">Getting started</a></li>
+        <li><a href="/manual/data-discs/" aria-current="page">Data discs and disc images</a></li>
+        <li><a href="/manual/audio-cds/">Audio CDs</a></li>
+        <li><a href="/manual/burners/">Burners, copies and the queue</a></li>
+        <li><a href="/manual/krouton-server/">Burning on another computer</a></li>
+        <li><a href="/manual/labels/">Disc labels</a></li>
+        <li><a href="/manual/video-and-more/">Video, copying and other formats</a></li>
+        <li><a href="/manual/automation/">Command line and Shortcuts</a></li>
+        <li><a href="/manual/keyboard-shortcuts/">Keyboard shortcuts</a></li>
+        <li><a href="/manual/troubleshooting/">Settings, files and troubleshooting</a></li>
+        <li><a href="/manual/glossary/">Glossary</a></li>
+      </ol>
+    </nav>
+    <article>
+    <h1>Data discs and disc images</h1>
+    <h2>Choosing a file system</h2>
+    <p>Pick a data format in the Format Chooser, under <strong>Data &amp; Archival Media</strong>, or from the <strong>Format</strong> menu.</p>
+    <ul>
+      <li><strong>Hybrid ISO-9660 + Joliet + UDF</strong> (⌃⌘1) is the right choice almost every time. Windows, macOS, Linux and most DVD and Blu-ray players can read it. Long file names and Unicode survive through Joliet and UDF.</li>
+      <li><strong>UDF 2.60 Optical Volume</strong> is for files of 4 GiB or more, which ISO-9660 can't hold. Modern Windows, macOS and Linux read it; old systems and many players don't.</li>
+      <li><strong>M-DISC 1,000-Year Archival Vault</strong> (⌃⌘5) is a hybrid disc meant for M-DISC blanks, with optional PAR2 parity files so a scratched disc can still be repaired. Set the share of parity with <strong>M-DISC PAR2 Parity Percentage</strong>.</li>
+      <li><strong>Burn Disc Image</strong> (⌃⌘6) writes an existing .iso, .cue/.bin or .dmg exactly as it is.</li>
+    </ul>
+    <p>Older formats are there for old machines: strict 8.3 upper-case names for DOS, Windows 95 and System 7, and an Apple Partition Map with classic HFS for Mac OS 9.</p>
+    <h2>Which computers see which files</h2>
+    <p>Each staged item has <strong>Mac</strong> and <strong>PC</strong> visibility pills. Turn one off to hide that item from that kind of computer, for example a Windows installer that Mac users don't need. By default Krouton leaves out macOS clutter: .DS_Store files and the ._ files that hold resource forks. Turn on <strong>Preserve macOS xattr &amp; Resource Forks</strong> to keep them.</p>
+    <p><strong>Customize Finder Layout</strong> sets how the disc looks when a Mac opens it: icon or list view, icon positions, icon size and a background picture.</p>
+    <h2>Files that don't fit on one disc</h2>
+    <p>When the staged files are larger than the disc size chosen at the top of the deck, Krouton plans a set. It packs the biggest files first so the set uses as few discs as possible, and the capacity bar shows one segment per disc. To decide yourself where a disc ends, right-click an item and choose <strong>Insert Disc Break</strong>. Krouton then keeps your order.</p>
+    <p>Every disc in a set is laid out as a BagIt bag (RFC 8493): your files sit under data/, next to:</p>
+    <ul>
+      <li>bagit.txt and bag-info.txt, which describe the bag;</li>
+      <li>manifest-sha256.txt, a SHA-256 checksum for every file on that disc;</li>
+      <li>krouton-set-index.json, which lists every disc in the set and the files on each.</li>
+    </ul>
+    <p>So any single disc can be checked on its own with standard BagIt tools, years from now, without Krouton, and the index tells you which disc to fetch for a given file.</p>
+    <p>A file larger than the chosen disc can't be split. Pick a bigger disc size, or use UDF 2.60 on a Blu-ray.</p>
+    <h2>Burning a disc image</h2>
+    <p>Drop an .iso, .cue/.bin or .dmg on the deck, or choose <strong>Burn Disc Image</strong>. A .cue file must sit next to the .bin files it names. Krouton writes the image sector for sector, including its boot catalog, so a bootable installer stays bootable.</p>
+    <h2>The Disc Image Depot</h2>
+    <p>The Depot (⌘2) is a library of disc images you have made or collected. Select an image to see:</p>
+    <ul>
+      <li>whether it can boot (El Torito for PCs, Apple Partition Map for Macs) and which file systems it holds;</li>
+      <li>the <strong>LBA Sector Map</strong>: where each structure sits on the disc, in 2048-byte sectors;</li>
+      <li>the <strong>Sector Hex Inspector</strong>, for looking at the raw bytes of any sector;</li>
+      <li>its SHA-256 checksum, to compare with the one a download page publishes.</li>
+    </ul>
+    <p>The search field can also search the Internet Archive for CD and DVD images and add the results to the Depot.</p>
+    <p><strong>View › Inspect Hybrid ISO/UDF LBA Layout</strong> (⌃⌘L) shows the same map for the disc you are building now, before you burn it.</p>
+    <h2>Making an image instead of a disc</h2>
+    <p>Add a <strong>Disc Image File</strong> destination (⇧⌘D, then choose the kind) to save the disc as an .iso instead of burning it. You can burn the image later, here or on another machine, or keep it as an archive copy.</p>
+    <nav class="pager" aria-label="Chapters"><a href="/manual/getting-started/" rel="prev">Previous: Getting started</a><a href="/manual/audio-cds/" rel="next">Next: Audio CDs</a></nav>
+    </article>
+  </main>
+
+  <footer class="colophon">
+    <p>This manual is also built into Krouton: choose Help › Krouton User Manual, or press ⌘?. Corrections are welcome at <a href="https://github.com/jigaz/Krouton/tree/main/Sources/KroutonApp/Resources/Manual">github.com/jigaz/Krouton</a>.</p>
+    <p>This site sets no cookies and loads nothing from anyone else. <a href="/privacy/">Privacy</a></p>
+  </footer>
+</div>
+</body>
+</html>

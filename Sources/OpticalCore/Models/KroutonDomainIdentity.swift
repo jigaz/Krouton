@@ -9,8 +9,10 @@ public enum KroutonDomainIdentity: Sendable {
     public static let reverseDNSPrefix = "app.krouton"
 
     // MARK: - Web Endpoints (krouton.app)
-    public static let documentationURL = URL(string: "https://krouton.app/docs")!
-    public static let archivalVerifyURL = URL(string: "https://krouton.app/verify")!
+    /// The user manual; each chapter lives at `manual/<slug>/` (built from Resources/Manual).
+    public static let manualURL = URL(string: "https://krouton.app/manual/")!
+    public static let driveReportURL = URL(string: "https://krouton.app/drives/")!
+    public static let problemReportURL = URL(string: "https://github.com/jigaz/Krouton/issues/new")!
 
     // MARK: - Uniform Type Identifiers (UTIs)
     public enum UTI: String, Sendable, CaseIterable {

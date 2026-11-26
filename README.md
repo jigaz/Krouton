@@ -1,38 +1,79 @@
-# Krouton (`app.krouton`)
+# Krouton
 
-**Krouton** is a native macOS optical disc mastering, extraction, bad-sector rescue, and distributed burn-pool suite written in **Swift 6** with a 100% Pure-SwiftUI interface.
+Krouton is a Mac app for making CDs, DVDs and Blu-ray discs: data discs that open on any computer, audio CDs with CD-Text and shaped crossfades, copies of existing disc images, and printable disc labels. It can also burn on a drive attached to another computer, through **Krouton Server**, and it is meant to keep working long after the big disc-burning apps have gone.
 
-## Highlights
-- **11-Module Clean Architecture (21 SPM Targets):** Strictly isolated hardware I/O (`DriveKit`), APFS copy-on-write burn staging (`BurnKit`), hybrid ISO-9660 / Joliet / UDF / El Torito LBA planning (`ImageKit`), 75 fps Red Book CD-DA & lock-free crossfade auditioning (`AudioKit`), DVD-9 to DVD-5 menu-preserving shrink (`VideoKit`), adaptive bad-sector recovery (`RescueKit`), 300-DPI vector disc labels (`LabelKit`), and remote burning on **Krouton Server** (`NetworkSpool` in the app, `krouton-server/` in Rust).
-- **Deterministic Verification Harness (`krouton-verify`):** verification suites enforcing architectural boundaries, domain math, 500-frame telemetry fuzzing, loopback fault injection, and integration reachability ratchets in under 0.5 seconds.
+- Website: [krouton.app](https://krouton.app)
+- User manual: [krouton.app/manual](https://krouton.app/manual/), also built into the app (Help › Krouton User Manual, ⌘?)
+- Optical disc archive (specs, drivers, longevity data): [archive.krouton.app](https://archive.krouton.app)
+
+## Status
+
+Krouton has no published release yet. Data discs, disc-image burns, audio CDs, ripping, labels, Krouton Server, the `krouton` command and the Shortcuts actions work and are tested. DVD shrinking, video extraction, damaged-disc rescue, AVCHD and the retro-console formats are still being built; the manual's [Getting started](https://krouton.app/manual/getting-started/) chapter keeps the current list.
 
 ## Requirements
-- macOS 14.0 (Sonoma) or later
-- Swift 6.0 / Xcode 16+
 
-## Build, Test & Verify
-```bash
-# Build all targets
-swift build
+- macOS 14 Sonoma or later, Apple silicon or Intel
+- To build: Xcode 26 (Swift 6.2 toolchain). CI builds on `macos-26`.
+- Optional: `ffmpeg` (Homebrew) for the video workflows
+- Krouton Server: Rust 1.88 or later
 
-# Run unit tests
-swift test
-
-# Run the deterministic verification harness
-swift run krouton-verify
-
-# Launch Krouton
-swift run Krouton
-```
-
-## Krouton Server (burn on another computer)
-`krouton-server/` is a small Rust server for a Raspberry Pi, Linux box, Proxmox host, NAS, Windows 10/11 PC or older Mac with a burner attached. Pair it once from **Settings › Burners & Network**, then pick it as the destination when burning. See [krouton-server/README.md](krouton-server/README.md) for downloads, installers and the security model.
+## Build and run
 
 ```bash
-cd krouton-server && cargo test --workspace
+swift build                 # all targets
+swift run Krouton           # the app
+swift run Krouton --help    # the command-line tool
 ```
 
-## Packaging a Release `.app` Bundle
+Before sending a change, run the full gate (see [CONTRIBUTING.md](CONTRIBUTING.md)):
+
 ```bash
-./Scripts/bundle-app.sh
+swift test && swift run krouton-verify
+python3 Scripts/build-manual.py --check
 ```
+
+## Packaging the app
+
+```bash
+./Scripts/bundle-app.sh                   # this Mac's architecture
+ARCH=x86_64 VERSION=1.1.0 ./Scripts/bundle-app.sh
+```
+
+This writes `dist/macos-<arch>/Krouton.app` and `dist/Krouton-<version>-macOS-<arch>.zip`, signs with a Developer ID certificate when one is in the keychain (ad hoc otherwise), and prints the zip's SHA-256 for the Homebrew cask in `Packaging/Homebrew/Casks/`. The formula in `Packaging/Homebrew/Formula/` installs the command-line tool and its man page.
+
+## Krouton Server
+
+`krouton-server/` is a small Rust server for a Raspberry Pi, Linux box, Proxmox host, NAS, Windows 10/11 PC or older Mac with a burner attached. Pair it once from **Settings › Burners & Network**, then add it as a destination. It burns disc images, and builds discs from folders the app sends. See [krouton-server/README.md](krouton-server/README.md).
+
+```bash
+cd krouton-server && cargo test --workspace && cargo clippy --workspace --all-targets
+```
+
+## Repository map
+
+| Path | What it is |
+|---|---|
+| `Sources/` | The Swift package: ten library modules, the app (`KroutonApp`) and the verification harness (`KroutonVerify`). See [ARCHITECTURE.md](ARCHITECTURE.md). |
+| `Sources/KroutonApp/Resources/Manual/` | The user manual in Markdown. The app shows it; `Scripts/build-manual.py` renders it into `docs/manual/`. |
+| `Tests/` | XCTest targets, one per module. |
+| `krouton-server/` | Krouton Server (Rust): `krsp` protocol crate, `server-core`, the binary, installers. |
+| `Vectors/` | Golden test vectors for the KRSP protocol and folder bundles, checked by both Swift and Rust. |
+| `docs/` | The krouton.app website (GitHub Pages). |
+| `Packaging/` | Homebrew cask and formula, man page. |
+| `Scripts/` | `bundle-app.sh`, `build-server.sh`, `build-manual.py`. |
+| `XcodeHost/` | The app's Info.plist and entitlements. |
+| `KroutonPaletteKit/` | The locked colour palette the interface is drawn from. |
+| `dev-notes/` | Working logs and the original specification (historical). |
+| `PENDING_INTEGRATION.md` | Public types that have no caller yet, each with an owner and a date. |
+
+## Documentation
+
+- [ARCHITECTURE.md](ARCHITECTURE.md): modules, dependency rules and the verification suites
+- [CONTRIBUTING.md](CONTRIBUTING.md): how to build, test and send a change
+- [SECURITY.md](SECURITY.md): reporting vulnerabilities and the network threat model
+- [CHANGELOG.md](CHANGELOG.md)
+- [CLAUDE.md](CLAUDE.md): the same rules, written for AI coding agents
+
+## License
+
+MIT. See [LICENSE](LICENSE).

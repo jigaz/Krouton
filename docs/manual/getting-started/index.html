@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting started — Krouton manual</title>
+<meta name="description" content="Krouton makes CDs, DVDs and Blu-ray discs on a Mac. It burns data discs that open on any computer, audio CDs that play in any CD player, and disc images you already have. It rips audio CDs, prints…">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" href="/assets/disc.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="site">
+  <header class="masthead">
+    <a class="name" href="/">Krouton</a>
+    <nav aria-label="Site">
+      <a href="/">The app</a>
+      <a href="/manual/" aria-current="page">Manual</a>
+      <a href="/server/">Krouton Server</a>
+      <a href="https://archive.krouton.app/">Archive</a>
+      <a href="/drives/">Report a drive</a>
+      <a href="https://github.com/jigaz/Krouton">Source</a>
+    </nav>
+  </header>
+
+  <main class="manual">
+    <nav class="chapters" aria-label="Manual chapters">
+      <ol>
+        <li><a href="/manual/getting-started/" aria-current="page">Getting started</a></li>
+        <li><a href="/manual/data-discs/">Data discs and disc images</a></li>
+        <li><a href="/manual/audio-cds/">Audio CDs</a></li>
+        <li><a href="/manual/burners/">Burners, copies and the queue</a></li>
+        <li><a href="/manual/krouton-server/">Burning on another computer</a></li>
+        <li><a href="/manual/labels/">Disc labels</a></li>
+        <li><a href="/manual/video-and-more/">Video, copying and other formats</a></li>
+        <li><a href="/manual/automation/">Command line and Shortcuts</a></li>
+        <li><a href="/manual/keyboard-shortcuts/">Keyboard shortcuts</a></li>
+        <li><a href="/manual/troubleshooting/">Settings, files and troubleshooting</a></li>
+        <li><a href="/manual/glossary/">Glossary</a></li>
+      </ol>
+    </nav>
+    <article>
+    <h1>Getting started</h1>
+    <p>Krouton makes CDs, DVDs and Blu-ray discs on a Mac. It burns data discs that open on any computer, audio CDs that play in any CD player, and disc images you already have. It rips audio CDs, prints disc labels, and can burn on a drive attached to another computer on your network.</p>
+    <h2>What you need</h2>
+    <ul>
+      <li>A Mac with macOS 14 Sonoma or later, Apple silicon or Intel.</li>
+      <li>An optical burner. Apple's own drives and almost any USB burner work. Krouton finds drives through macOS, so a drive that shows up in Finder shows up in Krouton.</li>
+      <li>Blank discs that match the drive: CD-R or CD-RW for CDs, DVD±R for DVDs, BD-R for Blu-ray.</li>
+    </ul>
+    <p>If the burner is plugged into a Raspberry Pi, a Linux box, a Windows PC or an older Mac instead, see <strong>Burning on another computer</strong>.</p>
+    <h2>Burn your first disc</h2>
+    <ol>
+      <li>Choose what you are making in the <strong>Format Chooser</strong> on the left. For files and folders, pick <strong>Hybrid ISO-9660 + Joliet + UDF</strong>. It opens on macOS, Windows and Linux.</li>
+      <li>Drag files and folders onto the middle of the window, or choose <strong>File › Add Files or Disc Images…</strong> (⇧⌘A).</li>
+      <li>Watch the <strong>capacity bar</strong> at the bottom of the middle column. It shows how full the disc is. If the files don't fit, Krouton plans a set of discs for you.</li>
+      <li>Put a blank disc in the burner. Its card appears on the right under <strong>Active Burners</strong>.</li>
+      <li>Choose <strong>Disc › Execute Active Queue / Burn Now</strong> (⌘B).</li>
+    </ol>
+    <p>Krouton copies your files to a private staging area first, so a file you change or move during the burn can't spoil the disc. When the burn finishes, Krouton reads the disc back to check it if <strong>Verify</strong> is on, then ejects it.</p>
+    <h2>The window</h2>
+    <p>The main window has three columns.</p>
+    <ul>
+      <li><strong>Format Chooser</strong> (left). Every kind of disc Krouton can make, grouped by family: data, audio, video, retro consoles. Hide it with ⌃⌘S.</li>
+      <li><strong>Mastering deck</strong> (middle). What goes on the disc: files, tracks or a disc image, plus the settings for that kind of disc and the capacity bar.</li>
+      <li><strong>Destination queue</strong> (right). Where the result goes. A destination can be a burner on this Mac, a burner on a Krouton Server, a disc image file, an audio rip folder or a label printer. Hide it with ⌥⌘S.</li>
+    </ul>
+    <p>The five workspaces have their own shortcuts: ⌘1 Burn Station, ⌘2 Disc Image Depot, ⌘3 Copy, Rip &amp; Rescue, ⌘4 Polar Disc Label Studio and ⌘5 Audio CD Ripper.</p>
+    <h2>Projects</h2>
+    <p>Krouton remembers what you were working on and restores it the next time you open it. To keep a disc layout for later, choose <strong>File › Save Project (.krut)…</strong> (⌘S). A project file stores the file list, track order and transitions, disc breaks and label. It refers to your files where they are; it does not copy them.</p>
+    <h2>What works today</h2>
+    <p>Krouton is young. These parts are finished and tested on real drives:</p>
+    <ul>
+      <li>Data discs (hybrid ISO-9660, Joliet and UDF) and discs spanned across several blanks.</li>
+      <li>Burning existing disc images (.iso, .cue/.bin, .dmg).</li>
+      <li>Audio CDs with pauses, gapless joins, crossfades and CD-Text.</li>
+      <li>Ripping audio CDs, with MusicBrainz lookup and per-track checksums.</li>
+      <li>Disc labels exported as 1:1 PDF or 300-DPI PNG.</li>
+      <li>Burning on a Krouton Server.</li>
+      <li>The <code>krouton</code> command-line tool and Shortcuts actions.</li>
+    </ul>
+    <p>These are still being built. Their screens are there so you can see where Krouton is going, but they may not do the whole job yet:</p>
+    <ul>
+      <li>Shrinking a dual-layer DVD onto a single-layer disc, and extracting video from discs.</li>
+      <li>AVCHD discs.</li>
+      <li>Re-reading damaged sectors (rescue). A rip reports a track with read errors as failed rather than repairing it.</li>
+      <li>Quality grading of a burned disc. Without a C1/C2 error scan the certificate says the disc was not measured.</li>
+      <li>Retro console disc formats.</li>
+    </ul>
+    <h2>Getting help</h2>
+    <ul>
+      <li>Choose <strong>Help › Interactive Guided Tutorials</strong> for a tour that highlights the controls on screen.</li>
+      <li>Every chapter of this manual is also online at krouton.app/manual.</li>
+      <li><strong>Help › Report a Problem</strong> opens the project's issue tracker on GitHub.</li>
+      <li><strong>Help › Report a Drive</strong> explains how to share what your burner can do, so people with the same model know what to expect.</li>
+    </ul>
+    <nav class="pager" aria-label="Chapters"><span></span><a href="/manual/data-discs/" rel="next">Next: Data discs and disc images</a></nav>
+    </article>
+  </main>
+
+  <footer class="colophon">
+    <p>This manual is also built into Krouton: choose Help › Krouton User Manual, or press ⌘?. Corrections are welcome at <a href="https://github.com/jigaz/Krouton/tree/main/Sources/KroutonApp/Resources/Manual">github.com/jigaz/Krouton</a>.</p>
+    <p>This site sets no cookies and loads nothing from anyone else. <a href="/privacy/">Privacy</a></p>
+  </footer>
+</div>
+</body>
+</html>

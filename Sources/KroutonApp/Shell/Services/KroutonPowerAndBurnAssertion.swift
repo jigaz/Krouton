@@ -1,6 +1,7 @@
 import Foundation
 import IOKit.pwr_mgt
 import OSLog
+import OpticalCore
 import os
 
 /// Prevents macOS system idle sleep, display sleep, App Nap, and Sudden Termination
@@ -8,7 +9,7 @@ import os
 final class KroutonPowerAndBurnAssertion: Sendable {
     static let shared = KroutonPowerAndBurnAssertion()
 
-    static let logger = Logger(subsystem: "com.krouton.opticalstudio", category: "HardwareBurnGuard")
+    static let logger = Logger(subsystem: KroutonDomainIdentity.Module.kroutonApp.subsystem, category: "HardwareBurnGuard")
     static let signposter = OSSignposter(logger: logger)
 
     private struct AssertionState {

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disc labels — Krouton manual</title>
+<meta name="description" content="The Polar Disc Label Studio (⌘4) designs printable disc faces at true size: 120 mm for standard discs, 80 mm for mini discs, with the centre hole shown so nothing important lands on it.">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" href="/assets/disc.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="site">
+  <header class="masthead">
+    <a class="name" href="/">Krouton</a>
+    <nav aria-label="Site">
+      <a href="/">The app</a>
+      <a href="/manual/" aria-current="page">Manual</a>
+      <a href="/server/">Krouton Server</a>
+      <a href="https://archive.krouton.app/">Archive</a>
+      <a href="/drives/">Report a drive</a>
+      <a href="https://github.com/jigaz/Krouton">Source</a>
+    </nav>
+  </header>
+
+  <main class="manual">
+    <nav class="chapters" aria-label="Manual chapters">
+      <ol>
+        <li><a href="/manual/getting-started/">Getting started</a></li>
+        <li><a href="/manual/data-discs/">Data discs and disc images</a></li>
+        <li><a href="/manual/audio-cds/">Audio CDs</a></li>
+        <li><a href="/manual/burners/">Burners, copies and the queue</a></li>
+        <li><a href="/manual/krouton-server/">Burning on another computer</a></li>
+        <li><a href="/manual/labels/" aria-current="page">Disc labels</a></li>
+        <li><a href="/manual/video-and-more/">Video, copying and other formats</a></li>
+        <li><a href="/manual/automation/">Command line and Shortcuts</a></li>
+        <li><a href="/manual/keyboard-shortcuts/">Keyboard shortcuts</a></li>
+        <li><a href="/manual/troubleshooting/">Settings, files and troubleshooting</a></li>
+        <li><a href="/manual/glossary/">Glossary</a></li>
+      </ol>
+    </nav>
+    <article>
+    <h1>Disc labels</h1>
+    <p>The Polar Disc Label Studio (⌘4) designs printable disc faces at true size: 120 mm for standard discs, 80 mm for mini discs, with the centre hole shown so nothing important lands on it.</p>
+    <h2>Starting from your music or files</h2>
+    <p>Click <strong>Auto Label</strong>. Krouton looks for artwork among the files you staged: a picture file, cover art embedded in a music or video file, or a cover.jpg, folder.jpg or front.jpg next to them. It picks a colour palette from the picture and uses Apple's Vision framework to find the subject, so a face or logo is kept clear of the centre hole. The title and artist come from the disc's details.</p>
+    <p>Everything Auto Label places can be changed afterwards.</p>
+    <h2>Text that follows the disc</h2>
+    <ul>
+      <li><strong>Edit › Add Curved Text Layer</strong> (⌘T) adds text that runs along an arc of the disc.</li>
+      <li><strong>Edit › Duplicate Selected Text Layer</strong> (⌘D) copies it to the opposite side, turned so it reads upright at the bottom too.</li>
+      <li><strong>Edit › Delete Selected Text Layer</strong> (⌘⌫) removes it.</li>
+    </ul>
+    <p>Set the radius, start angle, size and font in the text inspector. Shapes you draw freehand are tidied into clean vector lines and circles.</p>
+    <h2>Lining things up</h2>
+    <p><strong>View › Show 10mm Alignment Grid</strong> (⌘G) overlays a millimetre grid. Zoom with ⌘+ and ⌘−; ⌥⌘0 returns to actual size.</p>
+    <h2>Printing</h2>
+    <ul>
+      <li><strong>Export 1:1 PDF</strong> makes a vector sheet at exact millimetre scale, for a printer with a disc tray or for sticker label sheets.</li>
+      <li><strong>Export 300-DPI PNG</strong> makes a picture for printers or services that want an image.</li>
+    </ul>
+    <p>Printers that print directly on discs rarely place the disc exactly where the driver expects. Print one test on paper, measure how far off the circle is, and save the X and Y offsets as a preset in Settings › Labels &amp; Printers. A preset for the Epson EcoTank ET-8550 and standard trays is included; add one for each printer you use.</p>
+    <p>Print on printable discs only: they have a matte white or silver face made to take ink. Let the ink dry before putting the disc in a drive.</p>
+    <nav class="pager" aria-label="Chapters"><a href="/manual/krouton-server/" rel="prev">Previous: Burning on another computer</a><a href="/manual/video-and-more/" rel="next">Next: Video, copying and other formats</a></nav>
+    </article>
+  </main>
+
+  <footer class="colophon">
+    <p>This manual is also built into Krouton: choose Help › Krouton User Manual, or press ⌘?. Corrections are welcome at <a href="https://github.com/jigaz/Krouton/tree/main/Sources/KroutonApp/Resources/Manual">github.com/jigaz/Krouton</a>.</p>
+    <p>This site sets no cookies and loads nothing from anyone else. <a href="/privacy/">Privacy</a></p>
+  </footer>
+</div>
+</body>
+</html>

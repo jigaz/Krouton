@@ -1,94 +1,75 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Builds a strictly single-architecture native Krouton.app bundle for the target CPU
-# (ARCH=arm64 or ARCH=x86_64; defaults to host `uname -m`) with its matching native
-# `krouton-spoold` helper binary embedded at Contents/Helpers/krouton-spoold.
+# Builds Krouton.app for one CPU architecture and zips it for a release.
+#
+#   ./Scripts/bundle-app.sh                    # this Mac's architecture, version 1.0.0
+#   ARCH=x86_64 VERSION=1.1.0 ./Scripts/bundle-app.sh
+#
+# Output: dist/macos-<arch>/Krouton.app and dist/Krouton-<version>-macOS-<arch>.zip, the file
+# the Homebrew cask in Packaging/Homebrew/Casks downloads. Signs with a "Developer ID
+# Application" certificate for team D3BJL3F92P when the keychain has one, otherwise ad hoc
+# (fine for your own Mac, not for distribution). Notarize the zip separately with notarytool.
 
-export PATH="$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ARCH="${ARCH:-$(uname -m)}"
 VERSION="${VERSION:-1.0.0}"
+BUILD_NUMBER="${BUILD_NUMBER:-$(git -C "$ROOT_DIR" rev-list --count HEAD 2>/dev/null || echo 1)}"
+TEAM_ID="D3BJL3F92P"
 
 case "$ARCH" in
-  arm64|aarch64)
-    SWIFT_ARCH="arm64"
-    RUST_TARGET="aarch64-apple-darwin"
-    MIN_MACOS="14.0"
-    ;;
-  x86_64)
-    SWIFT_ARCH="x86_64"
-    RUST_TARGET="x86_64-apple-darwin"
-    MIN_MACOS="14.0"
-    ;;
-  *)
-    echo "Unsupported macOS architecture: $ARCH (expected arm64 or x86_64)" >&2
-    exit 1
-    ;;
+  arm64|aarch64) SWIFT_ARCH="arm64" ;;
+  x86_64)        SWIFT_ARCH="x86_64" ;;
+  *) echo "Unsupported architecture: $ARCH (expected arm64 or x86_64)" >&2; exit 1 ;;
 esac
 
 APP_DIR="$ROOT_DIR/dist/macos-$SWIFT_ARCH/Krouton.app"
 CONTENTS_DIR="$APP_DIR/Contents"
-MACOS_DIR="$CONTENTS_DIR/MacOS"
-HELPERS_DIR="$CONTENTS_DIR/Helpers"
-RESOURCES_DIR="$CONTENTS_DIR/Resources"
+ZIP_PATH="$ROOT_DIR/dist/Krouton-$VERSION-macOS-$SWIFT_ARCH.zip"
 
-echo "=== 1. Building Native $SWIFT_ARCH Krouton Swift Executable ==="
+echo "=== 1. Building Krouton for $SWIFT_ARCH ==="
 cd "$ROOT_DIR"
 swift build -c release --arch "$SWIFT_ARCH" --product Krouton
-SWIFT_BIN="$(swift build -c release --arch "$SWIFT_ARCH" --show-bin-path)/Krouton"
+BIN_DIR="$(swift build -c release --arch "$SWIFT_ARCH" --show-bin-path)"
 
-echo "=== 2. Building Native $RUST_TARGET krouton-spoold Helper Daemon ==="
-cd "$ROOT_DIR/krouton-spoold"
-MACOSX_DEPLOYMENT_TARGET=12.0 cargo build --release -p krouton-spoold --target "$RUST_TARGET"
-SPOOLD_BIN="$ROOT_DIR/krouton-spoold/target/$RUST_TARGET/release/krouton-spoold"
-
-echo "=== 3. Assembling Pure Single-Architecture $SWIFT_ARCH Krouton.app Bundle ==="
+echo "=== 2. Assembling Krouton.app ==="
 rm -rf "$APP_DIR"
-mkdir -p "$MACOS_DIR" "$HELPERS_DIR" "$RESOURCES_DIR"
-cp "$SWIFT_BIN" "$MACOS_DIR/Krouton"
-cp "$SPOOLD_BIN" "$HELPERS_DIR/krouton-spoold"
-chmod +x "$MACOS_DIR/Krouton" "$HELPERS_DIR/krouton-spoold"
+mkdir -p "$CONTENTS_DIR/MacOS" "$CONTENTS_DIR/Resources"
+cp "$BIN_DIR/Krouton" "$CONTENTS_DIR/MacOS/Krouton"
+cp "XcodeHost/Info.plist" "$CONTENTS_DIR/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$CONTENTS_DIR/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$CONTENTS_DIR/Info.plist"
+cp "Resources/PrivacyInfo.xcprivacy" "$CONTENTS_DIR/Resources/"
+for icns in AppIcon AppIcon-Dark AppIcon-Light AppIcon-Clear AppIcon-Tinted; do
+  if [ -f "Resources/$icns.icns" ]; then cp "Resources/$icns.icns" "$CONTENTS_DIR/Resources/"; fi
+done
+# SwiftPM's resource bundle: the manual, localization catalog and asset catalog. Without it the
+# app only finds its resources on the machine that built it.
+RESOURCE_BUNDLE="$BIN_DIR/krouton_KroutonApp.bundle"
+if [ ! -d "$RESOURCE_BUNDLE" ]; then
+  echo "Missing $RESOURCE_BUNDLE" >&2
+  exit 1
+fi
+cp -R "$RESOURCE_BUNDLE" "$CONTENTS_DIR/Resources/"
 
-cat << PLIST > "$CONTENTS_DIR/Info.plist"
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>CFBundleExecutable</key>
-  <string>Krouton</string>
-  <key>CFBundleIdentifier</key>
-  <string>com.krouton.opticalstudio</string>
-  <key>CFBundleName</key>
-  <string>Krouton</string>
-  <key>CFBundleDisplayName</key>
-  <string>Krouton</string>
-  <key>CFBundlePackageType</key>
-  <string>APPL</string>
-  <key>CFBundleShortVersionString</key>
-  <string>${VERSION}</string>
-  <key>CFBundleVersion</key>
-  <string>${VERSION}</string>
-  <key>LSMinimumSystemVersion</key>
-  <string>${MIN_MACOS}</string>
-  <key>LSArchitecturePriority</key>
-  <array>
-    <string>${SWIFT_ARCH}</string>
-  </array>
-  <key>NSLocalNetworkUsageDescription</key>
-  <string>Krouton finds Krouton Servers on your local network and sends discs to them to burn.</string>
-  <key>NSBonjourServices</key>
-  <array>
-    <string>_krouton-spool._tcp</string>
-  </array>
-  <key>NSHighResolutionCapable</key>
-  <true/>
-</dict>
-</plist>
-PLIST
+echo "=== 3. Signing ==="
+DEV_ID_CERT="$(security find-identity -v -p codesigning 2>/dev/null | grep "Developer ID Application" | grep "$TEAM_ID" | head -n 1 | awk -F '"' '{print $2}' || true)"
+if [ -n "$DEV_ID_CERT" ]; then
+  echo "Developer ID: $DEV_ID_CERT (hardened runtime)"
+  codesign --force --deep --options runtime --timestamp \
+    --entitlements "XcodeHost/Krouton.entitlements" --sign "$DEV_ID_CERT" "$APP_DIR"
+else
+  echo "No Developer ID certificate for $TEAM_ID in the keychain; signing ad hoc"
+  codesign --force --deep --entitlements "XcodeHost/Krouton.entitlements" --sign - "$APP_DIR"
+fi
+codesign --verify --strict "$APP_DIR"
 
-echo "=== 4. Ad-Hoc Signing Native $SWIFT_ARCH Bundle ==="
-codesign --force --deep --sign - "$APP_DIR"
+echo "=== 4. Checking ==="
+file "$CONTENTS_DIR/MacOS/Krouton"
+"$CONTENTS_DIR/MacOS/Krouton" --version
 
-echo "=== 5. Verifying Native Single-Architecture Headers ==="
-file "$MACOS_DIR/Krouton" "$HELPERS_DIR/krouton-spoold"
+echo "=== 5. Zipping ==="
+rm -f "$ZIP_PATH"
+ditto -c -k --keepParent "$APP_DIR" "$ZIP_PATH"
+shasum -a 256 "$ZIP_PATH"
+echo "Done: $ZIP_PATH"

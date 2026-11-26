@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video, copying and other formats — Krouton manual</title>
+<meta name="description" content="Parts of this chapter describe features that are still being built. Each section says where things stand.">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" href="/assets/disc.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="site">
+  <header class="masthead">
+    <a class="name" href="/">Krouton</a>
+    <nav aria-label="Site">
+      <a href="/">The app</a>
+      <a href="/manual/" aria-current="page">Manual</a>
+      <a href="/server/">Krouton Server</a>
+      <a href="https://archive.krouton.app/">Archive</a>
+      <a href="/drives/">Report a drive</a>
+      <a href="https://github.com/jigaz/Krouton">Source</a>
+    </nav>
+  </header>
+
+  <main class="manual">
+    <nav class="chapters" aria-label="Manual chapters">
+      <ol>
+        <li><a href="/manual/getting-started/">Getting started</a></li>
+        <li><a href="/manual/data-discs/">Data discs and disc images</a></li>
+        <li><a href="/manual/audio-cds/">Audio CDs</a></li>
+        <li><a href="/manual/burners/">Burners, copies and the queue</a></li>
+        <li><a href="/manual/krouton-server/">Burning on another computer</a></li>
+        <li><a href="/manual/labels/">Disc labels</a></li>
+        <li><a href="/manual/video-and-more/" aria-current="page">Video, copying and other formats</a></li>
+        <li><a href="/manual/automation/">Command line and Shortcuts</a></li>
+        <li><a href="/manual/keyboard-shortcuts/">Keyboard shortcuts</a></li>
+        <li><a href="/manual/troubleshooting/">Settings, files and troubleshooting</a></li>
+        <li><a href="/manual/glossary/">Glossary</a></li>
+      </ol>
+    </nav>
+    <article>
+    <h1>Video, copying and other formats</h1>
+    <p>Parts of this chapter describe features that are still being built. Each section says where things stand.</p>
+    <h2>DVD-Video and Blu-ray</h2>
+    <p>Choose <strong>DVD-Video (VIDEO_TS)</strong> (⌃⌘3) or a Blu-ray size (⌃⌘4 for a 25 GB single-layer disc) and add a disc that is already authored: a VIDEO_TS folder for DVD, a BDMV folder for Blu-ray. Krouton writes it with the file system those players expect. <strong>View › Inspect Video Bitrate Budget</strong> (⌃⌘B) shows whether the video fits the disc at its bitrate.</p>
+    <p>Authoring menus and chapters from plain video files is not part of Krouton yet.</p>
+    <h2>Copying a disc and fitting DVD-9 onto DVD-5</h2>
+    <p><strong>Format › Copy, Rip &amp; Rescue Workflows › Duplicate Disc / Fit-to-Disc DVD-9 Shrink</strong> (⇧⌘K) is meant to copy a dual-layer DVD onto a cheaper single-layer blank while keeping its menus. The shrink re-encodes the video with ffmpeg, which you install separately (for example with Homebrew: brew install ffmpeg). This workflow is still being finished; check the result in a player before relying on it.</p>
+    <h2>Extracting video</h2>
+    <p><strong>Video Disc Extractor</strong> (⇧⌘V) will save a disc's titles as video files. It is not finished: don't rely on it yet.</p>
+    <h2>Rescue</h2>
+    <p><strong>Optical Bad-Sector Rescue &amp; Recovery</strong> (⌥⌘D) will copy everything readable from a damaged disc and keep retrying the bad areas. Today a read error is reported rather than repaired. Until rescue is ready, a dedicated tool such as ddrescue is the better choice for a disc that matters.</p>
+    <h2>AVCHD</h2>
+    <p><strong>AVCHD High-Definition</strong> puts high-definition camcorder video on a DVD blank so some Blu-ray players can play it. This is in development and waits for testing on real players.</p>
+    <h2>Retro consoles and old computers</h2>
+    <p>The <strong>Retro Console Optical Media</strong> menu lists formats for the Wii, GameCube, PlayStation 1 and 2 and the original Xbox. Console discs are a preview: Krouton can lay out and inspect them, but most consoles need more than a correct image to play a burned disc, and Krouton doesn't promise that a given console will accept it. Only make copies of games you own.</p>
+    <p>The Data menu also has formats for old computers: Mac OS 9 discs with classic HFS and an Apple Partition Map, and strict 8.3 file names for DOS and Windows 95. Test such a disc on the machine it is for before burning a stack.</p>
+    <nav class="pager" aria-label="Chapters"><a href="/manual/labels/" rel="prev">Previous: Disc labels</a><a href="/manual/automation/" rel="next">Next: Command line and Shortcuts</a></nav>
+    </article>
+  </main>
+
+  <footer class="colophon">
+    <p>This manual is also built into Krouton: choose Help › Krouton User Manual, or press ⌘?. Corrections are welcome at <a href="https://github.com/jigaz/Krouton/tree/main/Sources/KroutonApp/Resources/Manual">github.com/jigaz/Krouton</a>.</p>
+    <p>This site sets no cookies and loads nothing from anyone else. <a href="/privacy/">Privacy</a></p>
+  </footer>
+</div>
+</body>
+</html>

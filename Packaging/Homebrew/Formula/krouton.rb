@@ -1,10 +1,11 @@
 class Krouton < Formula
-  desc "Optical media mastering suite and headless CLI for CD, DVD, Blu-ray, and BDXL"
-  homepage "https://github.com/used/krouton"
-  url "https://github.com/used/krouton/archive/refs/tags/v1.0.0.tar.gz"
+  desc "Command-line tool for planning, inspecting and building CD, DVD and Blu-ray images"
+  homepage "https://krouton.app/"
+  # Set url and sha256 to the first tagged release; until then use `brew install --HEAD`.
+  url "https://github.com/jigaz/Krouton/archive/refs/tags/v1.0.0.tar.gz"
   sha256 "0000000000000000000000000000000000000000000000000000000000000000"
   license "MIT"
-  head "https://github.com/used/krouton.git", branch: "main"
+  head "https://github.com/jigaz/Krouton.git", branch: "main"
 
   depends_on :macos => :sonoma
 
@@ -20,7 +21,7 @@ class Krouton < Formula
   test do
     assert_match "krouton 1.0.0", shell_output("#{bin}/krouton --version")
     formats_json = shell_output("#{bin}/krouton formats --json")
-    assert_match "data-universal", formats_json
+    assert_match "data-hybrid", formats_json
     assert_match "bd-on-dvd", formats_json
   end
 end

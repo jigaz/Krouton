@@ -43,8 +43,9 @@ locally with `cargo build --release -p krouton-server`.
 
    The installer sets up the service, creates the keys, and runs `krouton-server check`.
 2. Pair your Mac. On the server run `krouton-server pair`. The Linux installer prints the
-   exact command, which must run as the service user. In Krouton, open **Settings › Burn
-   Servers › Add Server** and choose the server. Both screens show a 6-digit code; confirm it on
+   exact command, which must run as the service user. In Krouton, open **Settings › Burners &
+   Network**, find the server under **Krouton Servers** (or use **Pair by Address**) and click
+   **Connect**. Both screens show a 6-digit code; confirm it on
    both. That's it.
 3. To try everything without a burner, set `backend = simulate` in `server.conf`.
 

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Burners, copies and the queue — Krouton manual</title>
+<meta name="description" content="The right-hand column lists where the disc goes. Each destination is a card. Add Output (⇧⌘D) adds one; right-click a card for Remove Destination Card, Eject and Execute Only This Destination.">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" href="/assets/disc.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="site">
+  <header class="masthead">
+    <a class="name" href="/">Krouton</a>
+    <nav aria-label="Site">
+      <a href="/">The app</a>
+      <a href="/manual/" aria-current="page">Manual</a>
+      <a href="/server/">Krouton Server</a>
+      <a href="https://archive.krouton.app/">Archive</a>
+      <a href="/drives/">Report a drive</a>
+      <a href="https://github.com/jigaz/Krouton">Source</a>
+    </nav>
+  </header>
+
+  <main class="manual">
+    <nav class="chapters" aria-label="Manual chapters">
+      <ol>
+        <li><a href="/manual/getting-started/">Getting started</a></li>
+        <li><a href="/manual/data-discs/">Data discs and disc images</a></li>
+        <li><a href="/manual/audio-cds/">Audio CDs</a></li>
+        <li><a href="/manual/burners/" aria-current="page">Burners, copies and the queue</a></li>
+        <li><a href="/manual/krouton-server/">Burning on another computer</a></li>
+        <li><a href="/manual/labels/">Disc labels</a></li>
+        <li><a href="/manual/video-and-more/">Video, copying and other formats</a></li>
+        <li><a href="/manual/automation/">Command line and Shortcuts</a></li>
+        <li><a href="/manual/keyboard-shortcuts/">Keyboard shortcuts</a></li>
+        <li><a href="/manual/troubleshooting/">Settings, files and troubleshooting</a></li>
+        <li><a href="/manual/glossary/">Glossary</a></li>
+      </ol>
+    </nav>
+    <article>
+    <h1>Burners, copies and the queue</h1>
+    <h2>Destination cards</h2>
+    <p>The right-hand column lists where the disc goes. Each destination is a card. <strong>Add Output</strong> (⇧⌘D) adds one; right-click a card for <strong>Remove Destination Card</strong>, <strong>Eject</strong> and <strong>Execute Only This Destination</strong>.</p>
+    <p>A burner card has:</p>
+    <ul>
+      <li><strong>Speed</strong>. The fastest speed isn't always best. On cheap media, or for discs meant for old players, half the rated speed often gives fewer errors.</li>
+      <li><strong>Verify</strong>, which reads the disc back after burning and compares it with what was written. Leave it on unless you are short of time.</li>
+      <li><strong>Simulate Burn</strong>, which runs the whole burn with the laser at reading power. Use it to test a new drive or a new kind of blank without wasting one. Not every drive supports it.</li>
+      <li><strong>Copies</strong>, from 1 to 99.</li>
+      <li><strong>Eject</strong>, and for rewritable discs <strong>Quick Erase</strong> or <strong>Full Erase</strong>. A full erase takes as long as a burn but clears every sector.</li>
+    </ul>
+    <h2>Several burners at once</h2>
+    <p>Each connected burner gets a card under <strong>Active Burners</strong>. When you ask for more copies than there are burners, or burn a set of several discs, the rest wait in the <strong>Waiting Burn Pool</strong> below.</p>
+    <p>A burner only takes the next disc once a blank is actually in its tray and checked. A burner you haven't loaded never holds up the others.</p>
+    <p>The pool header switches between:</p>
+    <ul>
+      <li><strong>Auto-Assign (Next Free)</strong>: whichever burner is ready first takes the next disc;</li>
+      <li><strong>Ask / Manual</strong>: you choose. Click <strong>Promote</strong> (↑) on a waiting disc to move it to the front, or <strong>Assign ↑</strong> to give it to a particular burner.</li>
+    </ul>
+    <p>Turn on <strong>Auto-Load Next Disc</strong> in Settings › Burners &amp; Network to make a hands-free duplicator: Krouton ejects each finished disc and starts the next as soon as you put a fresh blank in.</p>
+    <p>Several USB burners on one Mac compete for power and bandwidth. Krouton starts them 10 seconds apart, so their laser calibrations don't all draw power at once, and holds back the next drive while one that is already burning runs short of data.</p>
+    <h2>Old DVD players and game consoles</h2>
+    <p>Some old DVD players and early game consoles only accept discs that say they are DVD-ROM. With <strong>Stamp DVD-ROM Book Type</strong> (⇧⌘M, or the <strong>DVD-ROM Bitset</strong> switch on a card), Krouton marks DVD+R and DVD+R DL discs that way before burning. It only works on drives whose firmware supports it. Pick your drive's family under <strong>MMC Bitsetting Command Profile</strong> in Settings, or leave it on Auto-Detect.</p>
+    <h2>After the burn</h2>
+    <p>When a burn ends, the burn report shows the drive, the disc, the speed it reached, how long it took and whether verification passed. <strong>Disc › Copy Archival Quality Certificate</strong> (⌥⌘C) copies a summary you can keep with the disc.</p>
+    <p>A real quality grade needs a C1/C2 error scan of the disc, which few drives can do. Without one, the certificate says the disc was <strong>not measured</strong>, rather than guessing.</p>
+    <h2>Watching a burn</h2>
+    <p><strong>Window › Open Floating Phase Scope Telemetry</strong> (⌥⌘P) shows a live view of the drive: write speed, buffer fill and progress. <strong>Disc › Run Phase Scope Diagnostic Sweep</strong> (⇧⌘P) runs a short test of the drive you have selected.</p>
+    <h2>Stopping</h2>
+    <p><strong>Disc › Abort Active Operation</strong> (⌘.) stops what Krouton is doing. Stopping during a burn usually leaves the disc unusable. A rewritable disc can be erased and used again.</p>
+    <nav class="pager" aria-label="Chapters"><a href="/manual/audio-cds/" rel="prev">Previous: Audio CDs</a><a href="/manual/krouton-server/" rel="next">Next: Burning on another computer</a></nav>
+    </article>
+  </main>
+
+  <footer class="colophon">
+    <p>This manual is also built into Krouton: choose Help › Krouton User Manual, or press ⌘?. Corrections are welcome at <a href="https://github.com/jigaz/Krouton/tree/main/Sources/KroutonApp/Resources/Manual">github.com/jigaz/Krouton</a>.</p>
+    <p>This site sets no cookies and loads nothing from anyone else. <a href="/privacy/">Privacy</a></p>
+  </footer>
+</div>
+</body>
+</html>

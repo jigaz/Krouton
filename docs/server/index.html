@@ -14,6 +14,7 @@
     <a class="name" href="/">Krouton</a>
     <nav aria-label="Site">
       <a href="/">The app</a>
+      <a href="/manual/">Manual</a>
       <a href="/server/" aria-current="page">Krouton Server</a>
       <a href="https://archive.krouton.app/">Archive</a>
       <a href="/drives/">Report a drive</a>
@@ -43,7 +44,7 @@
     <h2>Setting it up</h2>
     <ol>
       <li>Copy the build onto the computer with the burner and run its installer: <code>sudo deploy/linux/install.sh ./krouton-server</code> on Linux, <code>deploy/macos/install.sh ./krouton-server</code> on a Mac, or <code>deploy\windows\install.ps1</code> in an administrator PowerShell on Windows. The installer starts the service and runs a self-check.</li>
-      <li>Open pairing on the server with <code>krouton-server pair</code>. In Krouton, open Settings, go to Burners &amp; Network and choose the server under Burn Servers.</li>
+      <li>Open pairing on the server with <code>krouton-server pair</code>. In Krouton, open Settings, go to Burners &amp; Network and choose the server under Krouton Servers.</li>
       <li>Both screens show the same six-digit code. Confirm it on both, and the server is paired.</li>
     </ol>
     <p>To try the whole flow without a burner, set <code>backend = simulate</code> in the server’s <code>server.conf</code>.</p>

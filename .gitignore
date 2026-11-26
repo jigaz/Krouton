@@ -13,3 +13,4 @@ DerivedData/
 
 # Cross-platform release artifacts
 dist/
+__pycache__/

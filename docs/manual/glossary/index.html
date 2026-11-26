@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glossary — Krouton manual</title>
+<meta name="description" content="">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" href="/assets/disc.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="site">
+  <header class="masthead">
+    <a class="name" href="/">Krouton</a>
+    <nav aria-label="Site">
+      <a href="/">The app</a>
+      <a href="/manual/" aria-current="page">Manual</a>
+      <a href="/server/">Krouton Server</a>
+      <a href="https://archive.krouton.app/">Archive</a>
+      <a href="/drives/">Report a drive</a>
+      <a href="https://github.com/jigaz/Krouton">Source</a>
+    </nav>
+  </header>
+
+  <main class="manual">
+    <nav class="chapters" aria-label="Manual chapters">
+      <ol>
+        <li><a href="/manual/getting-started/">Getting started</a></li>
+        <li><a href="/manual/data-discs/">Data discs and disc images</a></li>
+        <li><a href="/manual/audio-cds/">Audio CDs</a></li>
+        <li><a href="/manual/burners/">Burners, copies and the queue</a></li>
+        <li><a href="/manual/krouton-server/">Burning on another computer</a></li>
+        <li><a href="/manual/labels/">Disc labels</a></li>
+        <li><a href="/manual/video-and-more/">Video, copying and other formats</a></li>
+        <li><a href="/manual/automation/">Command line and Shortcuts</a></li>
+        <li><a href="/manual/keyboard-shortcuts/">Keyboard shortcuts</a></li>
+        <li><a href="/manual/troubleshooting/">Settings, files and troubleshooting</a></li>
+        <li><a href="/manual/glossary/" aria-current="page">Glossary</a></li>
+      </ol>
+    </nav>
+    <article>
+    <h1>Glossary</h1>
+    <ul>
+      <li><strong>BagIt</strong>: a simple, standard way (RFC 8493) to package files with a list of their checksums, used by libraries and archives. Every disc in a Krouton set is a bag.</li>
+      <li><strong>BD-R, BD-RE</strong>: recordable and rewritable Blu-ray discs. 25 GB single-layer, 50 GB dual-layer.</li>
+      <li><strong>BDXL</strong>: Blu-ray with three or four layers, 100 or 128 GB. Needs a BDXL-capable drive.</li>
+      <li><strong>Book type</strong>: a field on a DVD that says what kind of disc it is. Some old players only accept discs marked DVD-ROM.</li>
+      <li><strong>CD-Text</strong>: titles and artist names stored on an audio CD, shown by many car stereos and players.</li>
+      <li><strong>Crossfade</strong>: one track fading out while the next fades in.</li>
+      <li><strong>CUE sheet</strong>: a text file that describes the tracks of a CD image, next to the .bin file holding the data.</li>
+      <li><strong>DAO, SAO, TAO</strong>: ways to write a CD. Disc-at-once writes the whole disc without stopping and is what audio CDs need.</li>
+      <li><strong>DVD-5, DVD-9</strong>: single-layer (4.7 GB) and dual-layer (8.5 GB) DVDs.</li>
+      <li><strong>El Torito</strong>: the part of a CD or DVD that makes it bootable on a PC.</li>
+      <li><strong>Gapless</strong>: tracks that run into each other with no silence.</li>
+      <li><strong>ISO-9660</strong>: the original CD file system, readable everywhere, limited to files under 4 GiB.</li>
+      <li><strong>ISRC</strong>: a code that identifies a single recording.</li>
+      <li><strong>Joliet</strong>: an addition to ISO-9660 that allows long, Unicode file names for Windows.</li>
+      <li><strong>LBA</strong>: a sector's number on the disc. Data discs have 2048-byte sectors.</li>
+      <li><strong>M-DISC</strong>: blanks with a mineral-like recording layer, made for very long storage.</li>
+      <li><strong>OPC</strong>: the drive's laser power test before writing, done on a calibration area of the disc.</li>
+      <li><strong>PAR2</strong>: parity files that can rebuild damaged parts of other files.</li>
+      <li><strong>Pre-gap</strong>: the pause before an audio track.</li>
+      <li><strong>Red Book</strong>: the standard for audio CDs. 75 frames per second, each 2352 bytes of 44.1 kHz 16-bit stereo sound.</li>
+      <li><strong>SHA-256</strong>: a checksum. Two files with the same SHA-256 are identical.</li>
+      <li><strong>Spanning</strong>: splitting a collection of files across several discs.</li>
+      <li><strong>UDF</strong>: the file system of DVDs and Blu-ray discs. Version 2.50 and later hold files of any size.</li>
+    </ul>
+    <nav class="pager" aria-label="Chapters"><a href="/manual/troubleshooting/" rel="prev">Previous: Settings, files and troubleshooting</a></nav>
+    </article>
+  </main>
+
+  <footer class="colophon">
+    <p>This manual is also built into Krouton: choose Help › Krouton User Manual, or press ⌘?. Corrections are welcome at <a href="https://github.com/jigaz/Krouton/tree/main/Sources/KroutonApp/Resources/Manual">github.com/jigaz/Krouton</a>.</p>
+    <p>This site sets no cookies and loads nothing from anyone else. <a href="/privacy/">Privacy</a></p>
+  </footer>
+</div>
+</body>
+</html>

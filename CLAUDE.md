@@ -8,8 +8,10 @@ This file provides canonical architectural context, build/verification commands,
 - **Run Deterministic Verification Harness:** `swift run krouton-verify`
 - **Krouton Server (Rust):** `cd krouton-server && cargo test --workspace && cargo clippy --workspace --all-targets`
 - **Launch macOS App:** `swift run Krouton`
+- **User Manual:** chapters are Markdown in `Sources/KroutonApp/Resources/Manual/` (read by the app); after editing run `python3 Scripts/build-manual.py`, and CI runs it with `--check` (also fails if a menu shortcut is missing from `manual-09-keyboard-shortcuts.md`). Describe only what works today.
+- **Package the App:** `./Scripts/bundle-app.sh` (`ARCH`, `VERSION`)
 
-> **Mandatory Verification Rule:** Every code change or architectural proposal MUST pass `swift test && swift run krouton-verify` with zero warnings and zero failures. Changes under `krouton-server/` or `Vectors/` must also pass `cargo test --workspace` and `cargo clippy --workspace --all-targets` (CI runs them on Linux, macOS, Windows and ARM). A wire change regenerates `Vectors/krsp-control-v1.txt` (`KRSP_WRITE_CONTROL_VECTORS=1 cargo test -p krsp --test control_vectors`), and a bundle-format change regenerates `Vectors/krsp-bundle-v1.tar` and `krsp-bundle-names-v1.txt` (`KRSP_WRITE_BUNDLE_VECTORS=1 cargo test -p krsp --test bundle_vectors`); both are checked on both sides.
+> **Mandatory Verification Rule:** Every code change or architectural proposal MUST pass `swift test && swift run krouton-verify` (and `python3 Scripts/build-manual.py --check`) with zero warnings and zero failures. Changes under `krouton-server/` or `Vectors/` must also pass `cargo test --workspace` and `cargo clippy --workspace --all-targets` (CI runs them on Linux, macOS, Windows and ARM). A wire change regenerates `Vectors/krsp-control-v1.txt` (`KRSP_WRITE_CONTROL_VECTORS=1 cargo test -p krsp --test control_vectors`), and a bundle-format change regenerates `Vectors/krsp-bundle-v1.tar` and `krsp-bundle-names-v1.txt` (`KRSP_WRITE_BUNDLE_VECTORS=1 cargo test -p krsp --test bundle_vectors`); both are checked on both sides.
 
 ---
 

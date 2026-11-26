@@ -143,3 +143,19 @@ th { font-family: var(--head); font-weight: 600; font-size: 0.92rem; color: var(
 dl { max-width: var(--measure); }
 dt { margin-top: 0.9rem; }
 dd { margin: 0.2rem 0 0; }
+
+/* ---- Manual ------------------------------------------------------------- */
+
+.manual { display: grid; grid-template-columns: 14rem minmax(0, 1fr); gap: 2rem 3.5rem; margin-top: 2.6rem; }
+.manual .chapters { font-family: var(--head); font-size: 0.95rem; position: sticky; top: 1.5rem; align-self: start; }
+.manual .chapters ol { list-style: none; padding: 0; margin: 0; }
+.manual .chapters li + li { margin-top: 0; }
+.manual .chapters a { display: block; padding: 0.22rem 0; color: var(--ink-soft); text-decoration: none; }
+.manual .chapters a:hover, .manual .chapters a[aria-current="page"] { color: var(--ink); text-decoration: underline; }
+.manual article h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); max-width: none; }
+.manual article h2 { margin-top: 2.4rem; }
+.pager { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--hairline); font-family: var(--head); font-size: 0.95rem; max-width: var(--measure); }
+@media (max-width: 46rem) {
+  .manual { grid-template-columns: 1fr; }
+  .manual .chapters { position: static; border-bottom: 1px solid var(--hairline); padding-bottom: 1rem; }
+}

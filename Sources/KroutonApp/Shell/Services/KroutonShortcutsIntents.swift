@@ -177,10 +177,10 @@ struct KroutonBuildHybridISOIntent: AppIntent {
 
 struct KroutonOpenWorkspaceIntent: AppIntent {
     static let title: LocalizedStringResource = "Open Krouton Mastering Format"
-    static let description = IntentDescription("Opens the Krouton macOS app directly into the specified optical format workspace (e.g., cd-da, dvd-video, bd-on-dvd, data-universal).")
+    static let description = IntentDescription("Opens the Krouton macOS app directly into the specified optical format workspace (e.g., cd-da, dvd-video, bd-on-dvd, data-hybrid).")
     static let openAppWhenRun: Bool = true
 
-    @Parameter(title: "Format ID", default: "data-universal")
+    @Parameter(title: "Format ID", default: "data-hybrid")
     var formatID: String
 
     init() {}
