@@ -11,13 +11,12 @@ import Foundation
 /// - Every local burn goes through `KroutonOpticalDriveBank.startPhysicalDataBurn`, which writes
 ///   either a data disc (DiscRecording: ISO 9660 + Joliet, plus UDF 1.02 on DVD/BD, plus HFS+)
 ///   or, when exactly one burnable image is staged, that image sector for sector.
-///   There is no audio-track, Mode 2 Form 2 or HFS-standard writer, so the formats that need
-///   one are `.notYet`.
-/// - `AudioKit` can already render a Red Book `.bin` + `.cue`
-///   (`KroutonAudioEngine.masterRedBookAudioTracksToDisk`, and `AudioProject.compileCueSheet`
-///   for gaps and CD-Text), and the image path burns `.cue` files. Joining those two is the
-///   shortest way to real audio CDs; crossfades would need the project renderer, not the
-///   simple per-file decoder.
+///   There is no Mode 2 Form 2, CD+G subchannel or HFS-standard writer, so the formats that
+///   need one are `.notYet`.
+/// - Audio CDs (`.audioCD`, since 2026-11): `KroutonAudioDiscRenderer` (AudioKit) renders the
+///   Audio CD editor's project — pauses, crossfades, trims — to one PCM file per track, and
+///   `startPhysicalDataBurn(audioDisc:)` writes them session-at-once with ISRCs, the catalog
+///   number and CD-Text. The burned disc is the editor's project, not the deck's file list.
 public enum KroutonBurnSupport: Sendable, Equatable {
     /// The staged files become a data disc.
     case dataDisc
@@ -25,6 +24,8 @@ public enum KroutonBurnSupport: Sendable, Equatable {
     case discImage
     /// A BDMV folder is written as a UDF 2.50 image (`KroutonUDFImageWriter`), then burned.
     case bluRayVideo
+    /// The Audio CD editor's project is rendered and burned as Red Book audio tracks.
+    case audioCD
     /// Burning the staged files would give the wrong kind of disc; the reason says what to do.
     case notYet(String)
 
@@ -74,8 +75,14 @@ extension KroutonFormatID {
         case .bdOnDVD:
             return .notYet("Click Make Disc Image in the AVCHD panel. It converts the videos, then opens the disc image in Burn Disc Image.")
 
-        case .cdDA, .cdExtra, .dtsCD, .cdG:
-            return .notYet("Krouton can't burn audio CDs yet: burning now would write the audio files as a data disc that CD players don't play. Nothing was written.")
+        case .cdDA:
+            return .audioCD
+        case .cdExtra:
+            return .notYet("Enhanced CDs need a second, data session after the audio, which Krouton can't write yet. Choose Audio CD for the music alone. Nothing was written.")
+        case .dtsCD:
+            return .notYet("DTS CDs must carry the DTS stream bit for bit, and Krouton's audio path decodes and mixes every track, so it can't promise that yet. Nothing was written.")
+        case .cdG:
+            return .notYet("CD+G graphics live in the subchannel, which Krouton can't write yet. Choose Audio CD for the music alone. Nothing was written.")
         case .dvdAudio, .sacdR:
             return .notYet("DVD-Audio and SACD discs can't be made yet. Nothing was written.")
         case .videoSVCD, .vcdSVCD:

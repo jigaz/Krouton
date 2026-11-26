@@ -17,18 +17,30 @@ struct KroutonBurnJobContext {
     let mediaType: String
     let isErasable: Bool
     let volumeTitle: String
-    let itemCount: Int
-    let totalBytes: Int64
-    let totalLBA: Int64
+    var itemCount: Int
+    var totalBytes: Int64
+    var totalLBA: Int64
     let requestedSpeedLabel: String
     let simulationMode: Bool
-    let verifyDisc: Bool
+    var verifyDisc: Bool
     let overwriteExistingData: Bool
     /// Leave the disc open for later sessions (DRBurnAppendableKey), as Puppy Linux multisession needs.
     var leaveDiscOpen: Bool = false
     /// Set when the one staged item is a disc image: it is burned as an image, sector for sector,
     /// instead of being copied onto a data disc as a file.
     var imageFileURL: URL? = nil
+    /// Set for an audio CD: the burn is the disc's tracks, not a file system.
+    var isAudioDisc = false
+
+    /// Sizes the job from the audio tracks. Audio isn't read back afterwards: a drive reads audio
+    /// sectors without a reliable start position, so a byte compare would fail on good discs.
+    mutating func adopt(_ disc: KroutonAudioBurnDisc) {
+        isAudioDisc = true
+        itemCount = disc.tracks.count
+        totalLBA = max(1, disc.totalFrames)
+        totalBytes = disc.tracks.reduce(0) { $0 + $1.frames * 2352 }
+        verifyDisc = false
+    }
 
     /// KB/s at 1x for this media family.
     var speedDivisor: Double {
@@ -49,6 +61,8 @@ final class KroutonActiveBurnSession {
     let stageURL: URL
     var burn: DRBurn?
     var stagingTask: Task<Void, Never>?
+    /// Audio track producers, kept alive until the burn ends.
+    var audioProducers: [AnyObject] = []
     var abortRequestedAt: Date?
     var speedSumX: Double = 0.0
     var speedSampleCount: Int = 0

@@ -113,86 +113,20 @@ extension KroutonStateStore {
         case .networkBurner:
             await runNetworkBurn(target, driveManager: driveManager)
         case .physicalBurner:
-            if self.forceDVDROMBookType, !target.targetDriveID.isEmpty {
-                driveManager.stampDVDROMBookType(for: target.targetDriveID, vendorProfile: bitsetVendorProfile)
-            }
-            // Blu-ray video becomes a UDF 2.50 image first; the drive bank then burns that image.
-            var filesToBurn = stagedFiles
-            var temporaryImageFolder: URL?
-            if activeBurnSupport == .bluRayVideo, case .success(let root) = bluRayVideoRoot() {
-                do {
-                    let image = try await buildBluRayImage(root: root)
-                    filesToBurn = [KroutonOpticalDriveBank.inspectFileOrFolder(url: image)]
-                    temporaryImageFolder = image.deletingLastPathComponent()
-                } catch {
-                    driveManager.completionReport = refusalReport(error.localizedDescription, title: "Could Not Build the Blu-ray Image")
-                    return
-                }
-            }
-            defer { if let temporaryImageFolder { try? FileManager.default.removeItem(at: temporaryImageFolder) } }
-            let burnSucceeded = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
-                driveManager.startPhysicalDataBurn(
-                    driveID: target.targetDriveID.isEmpty ? nil : target.targetDriveID,
-                    stagedFiles: filesToBurn,
-                    volumeTitle: discVolumeTitle,
-                    requestedSpeedLabel: target.speedOrCodec,
-                    simulationMode: target.simulationMode,
-                    verifyDisc: target.verifyAfterBurn,
-                    allowOverwriteOfWrittenMedia: !isAutoLoadedCopy,
-                    leaveDiscOpen: self.leaveDiscOpenForMoreSessions
-                ) { report in
-                    continuation.resume(returning: report.isSuccess)
-                }
-            }
-            if burnSucceeded && (!waitingBurnPool.isEmpty || target.assignedPoolTicket != nil) {
-                let nextTicket = advancePoolAfterCardBurnCompleted(cardID: target.id)
-                if let nextTicket, poolDispatchMode == .autoAssign, autoLoadNextDiscBatchMode {
-                    let driveKey = target.targetDriveID.isEmpty ? (driveManager.selectedDrive?.id ?? "") : target.targetDriveID
-                    driveManager.startBatchAutoLoadMonitor(
-                        for: driveKey,
-                        completedCopy: max(1, nextTicket.sequenceNumber - 1),
-                        totalCopies: max(nextTicket.totalCopies, nextTicket.totalSpannedDiscs),
-                        countdownSeconds: autoLoadCountdownSeconds,
-                        bitsetDVDROM: self.forceDVDROMBookType
-                    ) { [weak self] in
-                        guard let self = self else { return }
-                        if let updatedItem = self.destinationQueue.first(where: { $0.id == target.id }) {
-                            self.executeSingleDestination(
-                                updatedItem,
-                                driveManager: driveManager,
-                                primarySelectedDrive: primarySelectedDrive,
-                                isAutoLoadedCopy: true
-                            )
-                        }
-                    }
-                }
-            } else if burnSucceeded && target.copiesToBurn > 1 && autoLoadNextDiscBatchMode {
-                let finishedCount = target.completedCopies + 1
-                if finishedCount < target.copiesToBurn {
-                    updateQueueItem(target.id) { $0.completedCopies = finishedCount }
-                    let driveKey = target.targetDriveID.isEmpty ? (driveManager.selectedDrive?.id ?? "") : target.targetDriveID
-                    driveManager.startBatchAutoLoadMonitor(
-                        for: driveKey,
-                        completedCopy: finishedCount,
-                        totalCopies: target.copiesToBurn,
-                        countdownSeconds: autoLoadCountdownSeconds,
-                        bitsetDVDROM: self.forceDVDROMBookType
-                    ) { [weak self] in
-                        guard let self = self else { return }
-                        if let updatedItem = self.destinationQueue.first(where: { $0.id == target.id }) {
-                            self.executeSingleDestination(
-                                updatedItem,
-                                driveManager: driveManager,
-                                primarySelectedDrive: primarySelectedDrive,
-                                isAutoLoadedCopy: true
-                            )
-                        }
-                    }
-                } else {
-                    updateQueueItem(target.id) { $0.completedCopies = 0 }
-                }
-            }
+            await runPhysicalBurn(target, driveManager: driveManager, primarySelectedDrive: primarySelectedDrive,
+                                  isAutoLoadedCopy: isAutoLoadedCopy)
         case .discImage:
+            if activeBurnSupport == .audioCD {
+                do {
+                    let cue = try await saveAudioDiscImage(path: target.hardwareOrPath)
+                    driveManager.completionReport = refusalReport(
+                        "Wrote \(cue.lastPathComponent) and its .bin: the audio CD as it will play, ready for Burn Disc Image.",
+                        title: "Audio CD Image Saved", ok: true)
+                } catch {
+                    driveManager.completionReport = refusalReport(error.localizedDescription, title: "Could Not Save the Audio CD Image")
+                }
+                return
+            }
             if activeBurnSupport == .bluRayVideo, case .success(let root) = bluRayVideoRoot() {
                 let path = NSString(string: target.hardwareOrPath).expandingTildeInPath
                 let output = URL(fileURLWithPath: path).pathExtension.lowercased() == "iso"

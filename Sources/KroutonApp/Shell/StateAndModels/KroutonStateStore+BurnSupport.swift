@@ -1,3 +1,4 @@
+import AudioKit
 import DriveKit
 import Foundation
 import ImageKit
@@ -44,7 +45,62 @@ extension KroutonStateStore {
         case .bluRayVideo:
             if case .failure(let error) = bluRayVideoRoot() { return error.message }
             return nil
+        case .audioCD:
+            if kind == .networkBurner {
+                return "Krouton Server burns data discs and disc images. Burn audio CDs on a drive connected to this Mac, or save a disc image (.cue/.bin) and send that. Nothing was written."
+            }
+            return audioController.project.tracks.isEmpty
+                ? "Add tracks in the Audio CD editor first. The CD is burned from the editor's track list. Nothing was written."
+                : nil
         }
+    }
+
+    // MARK: - Audio CD
+
+    /// Renders the Audio CD editor's project off the main actor, into a new temporary folder
+    /// the caller removes. Throws the renderer's own explanation when the project can't be a
+    /// single CD (tracks unanalysed, too long, too short, more than 99).
+    func renderAudioTracks() async throws -> (tracks: [KroutonRenderedAudioTrack], folder: URL) {
+        let project = audioController.project
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("KroutonAudioCD_\(UUID().uuidString)", isDirectory: true)
+        do {
+            let tracks = try await Task.detached(priority: .userInitiated) {
+                try KroutonAudioDiscRenderer.render(project: project, into: folder)
+            }.value
+            return (tracks, folder)
+        } catch {
+            try? FileManager.default.removeItem(at: folder)
+            throw error
+        }
+    }
+
+    /// What the drive bank burns for the rendered tracks.
+    func audioBurnDisc(_ rendered: [KroutonRenderedAudioTrack]) -> KroutonAudioBurnDisc {
+        let project = audioController.project
+        return KroutonAudioBurnDisc(
+            tracks: rendered.map {
+                KroutonAudioBurnTrack(pcm: $0.pcm, frames: $0.frames, pregapFrames: $0.pregapFrames,
+                                      title: $0.title, performer: $0.performer, isrc: $0.isrc)
+            },
+            albumTitle: project.albumTitle,
+            albumPerformer: project.albumPerformer,
+            mediaCatalogNumber: KroutonAudioDiscRenderer.mediaCatalogNumber(project.upc),
+            writeCDText: project.writeCDText)
+    }
+
+    /// Renders the project and saves it as a `.cue` + `.bin` pair at `path`.
+    func saveAudioDiscImage(path: String) async throws -> URL {
+        let project = audioController.project
+        var cue = URL(fileURLWithPath: NSString(string: path).expandingTildeInPath)
+        if cue.pathExtension.lowercased() != "cue" { cue = cue.deletingPathExtension().appendingPathExtension("cue") }
+        let (tracks, folder) = try await renderAudioTracks()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let target = cue
+        try await Task.detached(priority: .userInitiated) {
+            try KroutonAudioDiscRenderer.writeBinCue(tracks, project: project, cueURL: target)
+        }.value
+        return target
     }
 
     // MARK: - Blu-ray Video

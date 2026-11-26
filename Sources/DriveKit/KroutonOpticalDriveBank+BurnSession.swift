@@ -9,13 +9,14 @@ extension KroutonOpticalDriveBank {
     /// How long to wait for the drive to confirm an abort before giving up on it.
     static let burnAbortGraceSeconds: TimeInterval = 60
 
-    /// Starts a burn. A single staged disc image (.iso, .cdr, .dmg, .cue/.bin, .toc) is burned as
-    /// an image; anything else becomes a data disc. `onCompletion` is always called exactly once,
+    /// Starts a burn. With `audioDisc` it burns a Red Book audio CD (see
+    /// `beginAudioBurn`); a single staged disc image (.iso, .cdr, .dmg, .cue/.bin, .toc) is burned
+    /// as an image; anything else becomes a data disc. `onCompletion` is always called exactly once,
     /// including when the burn is refused before it starts or is aborted.
     ///
     /// NOTE(status, 2026-11): this is the only local burn path, and it doesn't know the selected
     /// format. Data discs are DiscRecording's ISO 9660 + Joliet (+ UDF 1.02 on DVD/BD) + HFS+;
-    /// there is no audio-track, Mode 2 Form 2, HFS-standard or UDF 2.x data writer here. The app
+    /// audio CDs come in as rendered PCM tracks (`KroutonAudioBurnDisc`); there is no Mode 2 Form 2, HFS-standard or UDF 2.x data writer here. The app
     /// decides beforehand what may reach it (`KroutonFormatID.burnSupport`,
     /// `KroutonStateStore.burnRefusal(for:)`), and Blu-ray video arrives as a UDF 2.50 image.
     ///
@@ -31,6 +32,7 @@ extension KroutonOpticalDriveBank {
         verifyDisc: Bool,
         allowOverwriteOfWrittenMedia: Bool = false,
         leaveDiscOpen: Bool = false,
+        audioDisc: KroutonAudioBurnDisc? = nil,
         onCompletion: @escaping @MainActor (KroutonBurnSessionReport) -> Void
     ) {
         let requestedID = driveID ?? selectedDrive?.id
@@ -114,6 +116,7 @@ extension KroutonOpticalDriveBank {
         )
         context.leaveDiscOpen = leaveDiscOpen
         context.imageFileURL = Self.soleDiscImage(in: stagedFiles)
+        if let audioDisc { context.adopt(audioDisc) }
         let stageURL = FileManager.default.temporaryDirectory.appendingPathComponent("KroutonHardwareStage_\(UUID().uuidString)")
         let session = KroutonActiveBurnSession(context: context, device: device, stageURL: stageURL, completion: onCompletion)
 
@@ -129,6 +132,11 @@ extension KroutonOpticalDriveBank {
         activeJobPhase = "Staging \(stagedFiles.count) Item(s) for \(driveName)..."
         activeJobDetail = "\(driveName) • \(volumeTitle)"
 
+        // Audio tracks are produced straight from their rendered PCM; nothing to stage.
+        if let audioDisc {
+            beginAudioBurn(session, disc: audioDisc)
+            return
+        }
         // A disc image is read in place by DiscRecording; there is nothing to stage.
         if let imageURL = context.imageFileURL {
             beginImageBurn(session, imageURL: imageURL)
@@ -214,7 +222,7 @@ extension KroutonOpticalDriveBank {
     }
 
     /// Applies the burn settings, writes the layout and starts watching progress.
-    private func startWriting(_ session: KroutonActiveBurnSession, burn: DRBurn, layout: Any) {
+    func startWriting(_ session: KroutonActiveBurnSession, burn: DRBurn, layout: Any) {
         let context = session.context
         var props = burn.properties() as? [String: Any] ?? [:]
         props[DRBurnTestingKey] = NSNumber(value: context.simulationMode)
@@ -383,7 +391,7 @@ extension KroutonOpticalDriveBank {
     }
 
     /// The single exit for every burn. Safe to call more than once; only the first call acts.
-    private func finishBurnSession(_ session: KroutonActiveBurnSession, report: KroutonBurnSessionReport) {
+    func finishBurnSession(_ session: KroutonActiveBurnSession, report: KroutonBurnSessionReport) {
         guard activeBurnSession === session else { return }
         activeBurnSession = nil
         burnMonitorTimer?.invalidate()
@@ -459,7 +467,7 @@ extension KroutonOpticalDriveBank {
         )
     }
 
-    private func makeBurnReport(
+    func makeBurnReport(
         _ context: KroutonBurnJobContext,
         isSuccess: Bool,
         title: String,
