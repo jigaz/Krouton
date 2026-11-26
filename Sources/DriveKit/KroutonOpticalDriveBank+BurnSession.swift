@@ -9,16 +9,6 @@ extension KroutonOpticalDriveBank {
     /// How long to wait for the drive to confirm an abort before giving up on it.
     static let burnAbortGraceSeconds: TimeInterval = 60
 
-    /// Image types DiscRecording burns sector for sector (`DRBurn.layout(forImageFile:)`).
-    public static let burnableImageExtensions: Set<String> = ["iso", "cdr", "dmg", "cue", "toc"]
-
-    /// The disc image to burn as an image, when the staged items are exactly one such file.
-    public static func soleDiscImage(in stagedFiles: [KroutonStagedFileEntry]) -> URL? {
-        guard stagedFiles.count == 1, let only = stagedFiles.first, !only.isDirectory,
-              burnableImageExtensions.contains(only.url.pathExtension.lowercased()) else { return nil }
-        return only.url
-    }
-
     /// Starts a burn. A single staged disc image (.iso, .cdr, .dmg, .cue/.bin, .toc) is burned as
     /// an image; anything else becomes a data disc. `onCompletion` is always called exactly once,
     /// including when the burn is refused before it starts or is aborted.
@@ -52,6 +42,12 @@ extension KroutonOpticalDriveBank {
             onCompletion(report)
         }
 
+        if stagedFiles.count == 1, let only = stagedFiles.first,
+           let reason = Self.unburnableImageExtensions[only.url.pathExtension.lowercased()] {
+            refuse(title: "Can't Burn This Image", summary: reason, media: "—",
+                   advice: "Nothing was written. Krouton burns .iso, .cdr, .dmg, .cue/.bin and .toc images as they are.")
+            return
+        }
         guard activeBurnSession == nil else {
             refuse(title: "Optical Burner Busy", summary: "Another burn is still running.", media: "—",
                    advice: "Wait for the current burn to finish, or abort it, before starting another.")
