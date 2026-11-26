@@ -26,7 +26,7 @@ final class KroutonAVCHDController {
     var ffmpegInstalled: Bool { OpticalDiscVolumeScanner.locateFFmpeg() != nil }
 
     /// Where finished images go: ~/Movies/Krouton.
-    static var outputFolder: URL {
+    nonisolated static var outputFolder: URL {
         (FileManager.default.urls(for: .moviesDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory)
             .appendingPathComponent("Krouton")
     }
