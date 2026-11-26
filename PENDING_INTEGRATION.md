@@ -33,11 +33,6 @@ Format: `- `TypeName` — owner · decide-by date · plan`.
 - `DriveBufferSample` — me · 2027-01-31 · feed DiscRecording buffer-fill telemetry into the scheduler's arbiter (`record`), or delete (BurnKit/BurnPowerAndBandwidthArbiter.swift)
 - `KroutonPoolDriveDescriptor` — me · 2027-01-31 · route the card pool through `KroutonDrivePoolState.populateAndAssignInitialSlots`, or delete it with that API (OpticalCore/Burning/BurnPoolQueue.swift)
 
-## Direct drive access without DiscRecording (prototype, read-only)
-
-- `KroutonMMCDeviceSession` — me · 2027-02-28 · drive identity in Report a drive and the burn log first; then the burn sequence (RESERVE TRACK, WRITE(10), SYNCHRONIZE CACHE, CLOSE TRACK/SESSION) against a scripted drive, then real drives as a DriveKit fallback backend (DriveKit/KroutonMMCDirectAccess.swift)
-- `KroutonMMCDirectAccess` — me · 2027-02-28 · as above (DriveKit/KroutonMMCDirectAccess.swift)
-
 ## Engines behind features the UI already offers (need device or listening tests to wire)
 
 - `AVCHDClipDescriptor` — me · 2027-01-31 · AVCHD workspace: build BDMV/CLIPINF/PLAYLIST for staged .m2ts clips; test on a Blu-ray player (VideoKit/AVCHDOnDVDAuthoringEngine.swift)

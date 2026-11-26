@@ -20,6 +20,7 @@ final class KroutonStateStore {
     let depot = DepotCatalogue()
     let label = LabelDocument()
     let rip = RipSettings()
+    let rescue = KroutonRescueController()
 
     static weak var shared: KroutonStateStore?
     var isHydratingPreferences: Bool = false

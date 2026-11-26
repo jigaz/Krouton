@@ -139,6 +139,15 @@ struct KroutonLeftFormatChooserColumnView: View {
                             badge: "H.265",
                             sfSymbol: "film.stack"
                         )
+                        taskRowButton(
+                            id: "copy-rescue",
+                            category: .copy,
+                            title: "Rescue a Damaged Disc",
+                            shortTitle: "Rescue",
+                            colloquial: "Copy what reads, retry the rest",
+                            badge: "ddrescue",
+                            sfSymbol: "lifepreserver.fill"
+                        )
                     }
 
                     VStack(alignment: .leading, spacing: 4) {

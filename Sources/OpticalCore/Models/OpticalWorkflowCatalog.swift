@@ -99,6 +99,7 @@ public enum KroutonCopyTaskID: String, CaseIterable, Codable, Sendable {
     case duplicateDisc = "copy-duplicate"
     case ripAudioCD = "copy-rip-audio"
     case extractVideoDisc = "copy-rip-video"
+    case rescueDisc = "copy-rescue"
 }
 
 public enum KroutonMasteringWorkspaceKind: String, CaseIterable, Codable, Sendable {

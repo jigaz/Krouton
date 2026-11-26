@@ -68,6 +68,7 @@ struct KroutonCopyAndRipWorkspaceView: View {
     var body: some View {
         let isShrinkTask = (store.selectedCopyTaskID == .duplicateDisc)
         let isAudioRipTask = (store.selectedCopyTaskID == .ripAudioCD)
+        let isRescueTask = (store.selectedCopyTaskID == .rescueDisc)
         let sourceDescription = mountedCDSnapshot != nil
             ? "Mounted CD: \(mountedCDSnapshot!.mountPath) • \(mountedCDSnapshot!.tracks.count) Audio Tracks (\(ByteCountFormatter.string(fromByteCount: mountedCDSnapshot!.totalPCMBytes, countStyle: .file))) • DiscID: \(mountedCDSnapshot!.musicBrainzDiscID)"
             : "Source Drive: \(primarySelectedDrive?.displayName ?? "Optical Drive") — Status: \(primarySelectedDrive?.statusBadgeText ?? "Ready")"
@@ -116,8 +117,14 @@ struct KroutonCopyAndRipWorkspaceView: View {
                 .background(store.activeAccent.opacity(0.12)).clipShape(RoundedRectangle(cornerRadius: 6))
             }
 
-            unifiedOpticalRescueMapCard(showVideoHandoff: !isAudioRipTask)
-            if isAudioRipTask {
+            if isRescueTask {
+                rescueWorkspaceDeck
+            } else {
+                unifiedOpticalRescueMapCard(showVideoHandoff: !isAudioRipTask)
+            }
+            if isRescueTask {
+                EmptyView()
+            } else if isAudioRipTask {
                 audioCDRipWorkspaceDeck
             } else if isShrinkTask {
                 shrinkDVDVideoWorkspaceDeck
@@ -128,7 +135,7 @@ struct KroutonCopyAndRipWorkspaceView: View {
         .onAppear {
             if isAudioRipTask && audioRipTracks.isEmpty {
                 rescanOpticalDiscForCopyTask(isAudioRipTask: true, isShrinkTask: false, fetchMetadata: false)
-            } else if !isAudioRipTask && scannedVideoDisc == nil {
+            } else if !isAudioRipTask && !isRescueTask && scannedVideoDisc == nil {
                 rescanOpticalDiscForCopyTask(isAudioRipTask: false, isShrinkTask: isShrinkTask, fetchMetadata: false)
             }
         }
@@ -145,13 +152,14 @@ struct KroutonCopyAndRipWorkspaceView: View {
 
     @ViewBuilder
     func headerTitleBlock(isAudioRipTask: Bool, isShrinkTask: Bool, subtitle: String) -> some View {
+        let isRescueTask = store.selectedCopyTaskID == .rescueDisc
         HStack(spacing: 8) {
             KroutonStyledIconBadge(
-                sfSymbol: isAudioRipTask ? "waveform.circle.fill" : (isShrinkTask ? "doc.on.doc.fill" : "film.stack.fill"),
+                sfSymbol: isRescueTask ? "lifepreserver.fill" : (isAudioRipTask ? "waveform.circle.fill" : (isShrinkTask ? "doc.on.doc.fill" : "film.stack.fill")),
                 tintColor: store.activeAccent, style: store.iconWidgetStyle, size: 28, symbolSize: 14
             )
             VStack(alignment: .leading, spacing: 1) {
-                Text(KroutonL10n.tr(isAudioRipTask ? "Audio CD Ripper & AccurateRip Archiver" : (isShrinkTask ? "Duplicate Disc & Fit-to-Disc Requantizer" : "Video Disc Extractor (MKV Remux / VideoToolbox)")))
+                Text(KroutonL10n.tr(isRescueTask ? "Rescue a Damaged Disc" : (isAudioRipTask ? "Audio CD Ripper & AccurateRip Archiver" : (isShrinkTask ? "Duplicate Disc & Fit-to-Disc Requantizer" : "Video Disc Extractor (MKV Remux)"))))
                     .font(.title3.bold()).lineLimit(1).minimumScaleFactor(0.8)
                 Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
             }
@@ -286,8 +294,8 @@ struct KroutonCopyAndRipWorkspaceView: View {
         }
     }
 
-    /// What actually happened to each track in the last rip. Krouton reads discs through the mounted
-    /// volume and does not re-read damaged sectors yet, so there is no sector-level rescue map to show.
+    /// What actually happened to each track in the last rip. Audio rips read through the mounted
+    /// volume; sector-level rescue of data discs is its own task (CopyAndRipWorkspaces+RescueUX).
     @ViewBuilder
     func unifiedOpticalRescueMapCard(showVideoHandoff: Bool) -> some View {
         let outcomes = audioRipTracks.map { KroutonRipTrackOutcome(status: $0.arStatus) }
@@ -315,7 +323,7 @@ struct KroutonCopyAndRipWorkspaceView: View {
                     }
                 }
                 if outcomes.isEmpty {
-                    Text("Per-track results appear here after an Audio CD rip. Re-reading damaged sectors is not available yet, so a track with a read error is reported as failed, not repaired.")
+                    Text("Per-track results appear here after an Audio CD rip. A track with a read error is reported as failed; for a damaged data disc, use Rescue a Damaged Disc.")
                         .font(.system(size: 10)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 } else {
                     HStack(spacing: 2) {

@@ -13,6 +13,10 @@ public enum MMCCommand: Sendable, Equatable {
     /// GET CONFIGURATION with RT = 0 (all features) from `startingFeature`.
     case getConfiguration(startingFeature: UInt16, allocation: UInt16)
     case readDiscInformation(allocation: UInt16)
+    /// READ CAPACITY (10): the last readable sector and the sector size.
+    case readCapacity
+    /// READ (10): `blocks` user-data sectors (2048 bytes on a CD-ROM, DVD or BD) from `lba`.
+    case read10(lba: UInt32, blocks: UInt16)
 
     public var operationCode: UInt8 {
         switch self {
@@ -21,6 +25,8 @@ public enum MMCCommand: Sendable, Equatable {
         case .inquiry: 0x12
         case .getConfiguration: 0x46
         case .readDiscInformation: 0x51
+        case .readCapacity: 0x25
+        case .read10: 0x28
         }
     }
 
@@ -30,6 +36,8 @@ public enum MMCCommand: Sendable, Equatable {
         case .testUnitReady: 0
         case .requestSense(let n): Int(n)
         case .inquiry(let n), .getConfiguration(_, let n), .readDiscInformation(let n): Int(n)
+        case .readCapacity: 8
+        case .read10(_, let blocks): Int(blocks) * 2048
         }
     }
 
@@ -46,6 +54,11 @@ public enum MMCCommand: Sendable, Equatable {
             [0x46, 0x00, UInt8(start >> 8), UInt8(start & 0xFF), 0, 0, 0, UInt8(n >> 8), UInt8(n & 0xFF), 0]
         case .readDiscInformation(let n):
             [0x51, 0x00, 0, 0, 0, 0, 0, UInt8(n >> 8), UInt8(n & 0xFF), 0]
+        case .readCapacity:
+            [0x25, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        case .read10(let lba, let blocks):
+            [0x28, 0x00, UInt8(lba >> 24), UInt8((lba >> 16) & 0xFF), UInt8((lba >> 8) & 0xFF), UInt8(lba & 0xFF),
+             0, UInt8(blocks >> 8), UInt8(blocks & 0xFF), 0]
         }
     }
 }

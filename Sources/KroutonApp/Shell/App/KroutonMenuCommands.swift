@@ -153,7 +153,7 @@ struct KroutonWorkspaceCommands: Commands {
                 .keyboardShortcut("v", modifiers: [.command, .shift])
 
                 Button(KroutonL10n.tr("Optical Bad-Sector Rescue & Recovery")) {
-                    selectCopyTask(.duplicateDisc)
+                    selectCopyTask(.rescueDisc)
                 }
                 .keyboardShortcut("d", modifiers: [.command, .option])
             }

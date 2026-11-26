@@ -304,7 +304,7 @@ extension KroutonTestHarness {
     h.check(!ps1.allowedFileExtensions.contains("wbfs"), "PS1 must not allow Wii .wbfs")
 
     // Verify Copy Task IDs
-    h.check(KroutonCopyTaskID.allCases.count == 3, "Expected 3 canonical KroutonCopyTaskID cases")
+    h.check(KroutonCopyTaskID.allCases.count == 4, "Expected 4 canonical KroutonCopyTaskID cases")
     h.check(KroutonFormatID.cdDA.usesRawCueBinImage && KroutonFormatID.consolePS1.usesRawCueBinImage && !KroutonFormatID.dvdVideo.usesRawCueBinImage, "KroutonFormatID.usesRawCueBinImage must classify raw .cue/.bin formats")
     h.check(KroutonFormatID.dataAppleAPFS.usesAppleDiskImage && KroutonFormatID.macos9HFS.usesAppleDiskImage && !KroutonFormatID.dataHybrid.usesAppleDiskImage, "KroutonFormatID.usesAppleDiskImage must classify Apple .dmg formats")
     }
