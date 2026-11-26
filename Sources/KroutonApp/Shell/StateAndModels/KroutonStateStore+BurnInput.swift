@@ -98,6 +98,12 @@ extension KroutonStateStore {
             throw KroutonBurnInputError(message: stagingError)
         }
         let image = folder.appendingPathComponent("disc.iso")
+        do {
+            try Self.ensureScratchSpace(for: input.files.reduce(Int64(0)) { $0 + $1.byteSize })
+        } catch {
+            try? FileManager.default.removeItem(at: folder)
+            throw error
+        }
         let label = discVolumeTitle
         do {
             _ = try await Task.detached(priority: .userInitiated) {
@@ -153,6 +159,20 @@ extension KroutonStateStore {
             try? FileManager.default.removeItem(at: folder)
             throw error
         }
+    }
+}
+
+extension KroutonStateStore {
+    /// Stops before building an image the temporary folder's disk can't hold: a 100 GB UHD
+    /// Blu-ray needs 100 GB free while it is written, and running out halfway fails late.
+    nonisolated static func ensureScratchSpace(for bytes: Int64) throws {
+        let tmp = FileManager.default.temporaryDirectory
+        guard let free = try? tmp.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+            .volumeAvailableCapacityForImportantUsage else { return }
+        let needed = bytes + bytes / 50 + 268_435_456
+        guard needed > free else { return }
+        let format = { (n: Int64) in ByteCountFormatter.string(fromByteCount: n, countStyle: .file) }
+        throw KroutonBurnInputError(message: "Building this disc image needs about \(format(needed)) free on the startup disk, and \(format(free)) is free. Free some space and try again. Nothing was written.")
     }
 }
 

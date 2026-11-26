@@ -11,7 +11,7 @@ import Foundation
 /// - Every local burn goes through `KroutonOpticalDriveBank.startPhysicalDataBurn`, which writes
 ///   either a data disc (DiscRecording: ISO 9660 + Joliet, plus UDF 1.02 on DVD/BD, plus HFS+)
 ///   or, when exactly one burnable image is staged, that image sector for sector.
-///   There is no Mode 2 Form 2, CD+G subchannel or HFS-standard writer, so the formats that
+///   There is no Mode 2 Form 2 or HFS-standard writer, so the formats that
 ///   need one are `.notYet`.
 /// - Audio CDs (`.audioCD`, since 2026-11): `KroutonAudioDiscRenderer` (AudioKit) renders the
 ///   Audio CD editor's project — pauses, crossfades, trims — to one PCM file per track, and
@@ -70,7 +70,7 @@ extension KroutonFormatID {
             // `KroutonUDFImageWriter` (.dvdVideo) here and by Krouton Server's own writer remotely.
             return .dataDisc
 
-        case .imageBurn, .consoleWii, .consoleGC, .consolePS2, .consolePS1, .consolePS3, .consoleXbox,
+        case .imageBurn, .consoleWii, .consoleGC, .consolePS2, .consolePS1, .consoleXbox,
              .consoleSaturn, .console3DO:
             return .discImage
         case .consoleDC:
@@ -89,10 +89,8 @@ extension KroutonFormatID {
             // The audio path, held to bit-exact input: `KroutonStateStore.burnRefusal` accepts only
             // CD-format WAV files and no crossfades, so every sample is copied unchanged.
             return .audioCD
-        case .cdG:
-            return .notYet("CD+G graphics live in the subchannel, which Krouton can't write yet. Choose Audio CD for the music alone. Nothing was written.")
-        case .dvdAudio, .sacdR:
-            return .notYet("DVD-Audio and SACD discs can't be made yet. Nothing was written.")
+        case .dvdAudio:
+            return .notYet("DVD-Audio discs can't be made yet. Nothing was written.")
         case .vcdSVCD:
             return .notYet("Video CDs need Mode 2 Form 2 sectors, which Krouton can't write yet. Nothing was written.")
         case .photoCD:

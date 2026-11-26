@@ -149,11 +149,22 @@ extension KroutonStateStore {
             .appendingPathComponent("KroutonBluRay_\(UUID().uuidString)", isDirectory: true)
             .appendingPathComponent("disc.iso")
         try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if output == nil { try Self.ensureScratchSpace(for: Self.folderBytes(root)) }
         let label = discVolumeTitle
         _ = try await Task.detached(priority: .userInitiated) {
             try KroutonUDFImageWriter.build(folder: root, output: target, label: label)
         }.value
         return target
+    }
+
+    /// Total size of the files under `root`.
+    nonisolated static func folderBytes(_ root: URL) -> Int64 {
+        let walker = FileManager.default.enumerator(at: root, includingPropertiesForKeys: [.fileSizeKey])
+        var total: Int64 = 0
+        while let url = walker?.nextObject() as? URL {
+            total += Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+        }
+        return total
     }
 
     /// A short report for a destination that didn't burn (or, with `ok`, that only wrote a file).

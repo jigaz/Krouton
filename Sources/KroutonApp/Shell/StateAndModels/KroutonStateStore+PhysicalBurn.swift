@@ -49,6 +49,10 @@ extension KroutonStateStore {
             }
         }
         defer { if let temporaryImageFolder { try? FileManager.default.removeItem(at: temporaryImageFolder) } }
+        if audioDisc == nil, let tooBig = discTooSmallMessage(filesToBurn, driveID: target.targetDriveID, driveManager: driveManager) {
+            driveManager.completionReport = refusalReport(tooBig, title: "Too Big for This Disc")
+            return
+        }
         let burnSucceeded = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
             driveManager.startPhysicalDataBurn(
                 driveID: target.targetDriveID.isEmpty ? nil : target.targetDriveID,
@@ -120,5 +124,22 @@ extension KroutonStateStore {
         KroutonNotificationAndCompanionService.shared.dispatchEvent(
             id: "swap", title: "Insert the Next Blank",
             subtitle: "\(discVolumeTitle) finished; the next copy starts when a blank goes in.", store: self)
+    }
+
+    /// Says so before a write that can't fit on the blank in the drive, as reported by the drive.
+    /// A disc image needs its own size; files need a little more for the file systems.
+    /// Nothing is said when the drive hasn't reported its free space (the bank's 4.7 GB and
+    /// 737 MB fallbacks are guesses, not measurements).
+    private func discTooSmallMessage(_ files: [KroutonStagedFileEntry], driveID: String,
+                                     driveManager: KroutonOpticalDriveBank) -> String? {
+        let drive = driveManager.availableDrives.first { $0.id == driveID } ?? driveManager.selectedDrive
+        guard let drive, drive.isMediaPresent, drive.isMediaBlank, drive.freeBytes > 0,
+              ![4_700_372_992, 736_966_656].contains(drive.freeBytes) else { return nil }
+        let content = files.reduce(Int64(0)) { $0 + $1.byteSize }
+        let isImage = KroutonOpticalDriveBank.soleDiscImage(in: files) != nil
+        let needed = isImage ? content : content + content / 50 + 4_194_304
+        guard needed > drive.freeBytes else { return nil }
+        let format = { (n: Int64) in ByteCountFormatter.string(fromByteCount: n, countStyle: .file) }
+        return "This needs about \(format(needed)), and the \(drive.mediaType) in the drive holds \(format(drive.freeBytes)). Use a larger disc (BD-R XL holds 100 or 128 GB) or split the files into a disc set. Nothing was written."
     }
 }

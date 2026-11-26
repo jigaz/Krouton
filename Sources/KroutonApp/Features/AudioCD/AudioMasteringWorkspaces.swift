@@ -43,8 +43,6 @@ struct KroutonRedBookAudioWorkspaceView: View {
         case "cd-extra": return "BLUE BOOK 2-SESSION AUDIO + XA DATA DECK"
         case "dts-cd": return "IEC 61937 5.1 DTS-CD SURROUND MASTERING DECK"
         case "dvd-audio": return "DVD-AUDIO HIGH-RESOLUTION MASTERING DECK (24-BIT / 192 kHz MLP)"
-        case "sacd-r": return "SCARLET BOOK DSD / SACD-R MASTERING DECK (1-BIT DSD64)"
-        case "cd-g": return "RED BOOK CD+G KARAOKE MASTERING DECK (R-W SUBCHANNEL)"
         default: return "RED BOOK AUDIO CD & CD-TEXT MASTERING DECK (44.1 kHz / 16-BIT PCM)"
         }
     }

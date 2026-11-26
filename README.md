@@ -8,7 +8,7 @@ Krouton is a Mac app for making CDs, DVDs and Blu-ray discs: data discs that ope
 
 ## Status
 
-Krouton has no published release yet. Data discs, audio CDs, MP3 CDs, disc-image burns, sector-for-sector disc copies, Blu-ray video, ripping (tagged), video extraction, damaged-disc rescue, AVCHD, labels, the Depot, Krouton Server, the `krouton` command and the Shortcuts actions work. Several legacy formats (CD-Extra, CD+G, Video CD, Mac OS 9) and DVD/Blu-ray menu authoring are still being built, and Krouton refuses to burn those formats rather than write the wrong disc. The manual's [Getting started](https://krouton.app/manual/getting-started/) chapter keeps the current list.
+Krouton has no published release yet. Data discs, audio CDs, MP3 CDs, disc-image burns, sector-for-sector disc copies, Blu-ray video, ripping (tagged), video extraction, damaged-disc rescue, AVCHD, labels, the Depot, Krouton Server, the `krouton` command and the Shortcuts actions work. Several legacy formats (CD-Extra, Video CD, Mac OS 9, Dreamcast) and DVD/Blu-ray menu authoring are still being built, and Krouton refuses to burn those formats rather than write the wrong disc. The manual's [Getting started](https://krouton.app/manual/getting-started/) chapter keeps the current list.
 
 ## Requirements
 
