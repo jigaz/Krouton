@@ -6,6 +6,12 @@ import OpticalCore
 /// Where rescued sectors go. Writes may arrive out of order; unwritten areas read back as zeros.
 public protocol KroutonSectorSink: Sendable {
     func write(_ bytes: [UInt8], atByte offset: Int64) throws
+    /// Flushes and releases the destination once the rescue ends.
+    func close() throws
+}
+
+extension KroutonSectorSink {
+    public func close() throws {}
 }
 
 /// An image file on disk. Unread sectors stay zero-filled (sparse on APFS).

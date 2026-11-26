@@ -57,6 +57,8 @@ final class KroutonRescueController {
                 self.status = bad == 0
                     ? "Every sector was copied. The image is \(imageURL.lastPathComponent); eject the disc to use it again."
                     : "Finished with \(bad) unreadable sector\(bad == 1 ? "" : "s"), saved as zeros. Clean the disc or try another drive, then start again with the same name to retry only those."
+            case .failure(KroutonSectorReadError.driveFailed(let reason)):
+                self.status = "The drive stopped answering: \(reason). Check its cable and power, then start again with the same name to carry on."
             case .failure(let error):
                 self.status = error is CancellationError
                     ? "Stopped. Start again with the same name to carry on where it stopped."
@@ -94,7 +96,7 @@ final class KroutonRescueController {
         let source = MMCSectorSource(transport: session)
         do {
             let sectors = try await source.sectorCount()
-            let sink = try KroutonImageFileSink(url: imageURL, totalBytes: sectors * Int64(KroutonSector.size))
+            let sink: any KroutonSectorSink = try KroutonImageFileSink(url: imageURL, totalBytes: sectors * Int64(KroutonSector.size))
             defer { try? sink.close() }
             let saver = KroutonMapSaver(url: mapURL)
             let rescuer = KroutonDiscRescuer(source: source, sink: sink, plan: plan)
