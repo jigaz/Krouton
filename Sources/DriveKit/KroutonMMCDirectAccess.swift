@@ -87,10 +87,15 @@ public enum KroutonMMCDirectAccess {
 /// One drive held with exclusive access. Each command is its own SCSI task, released at once.
 /// IOKit's calls here are synchronous; the actor keeps them off every other thread's way.
 public actor KroutonMMCDeviceSession: MMCTransport {
-    private var plugin: UnsafeMutablePointer<UnsafeMutablePointer<IOCFPlugInInterface>?>?
-    private var mmc: UnsafeMutablePointer<UnsafeMutablePointer<MMCDeviceInterface>?>?
-    private var device: UnsafeMutablePointer<UnsafeMutablePointer<SCSITaskDeviceInterface>?>?
+    // Interface addresses, kept as integers so `deinit` (nonisolated) may release them.
+    private var pluginAddress: UInt = 0
+    private var mmcAddress: UInt = 0
+    private var deviceAddress: UInt = 0
     private var exclusive = false
+
+    private var device: UnsafeMutablePointer<UnsafeMutablePointer<SCSITaskDeviceInterface>?>? {
+        UnsafeMutablePointer(bitPattern: deviceAddress)
+    }
 
     public init(registryID: UInt64) throws(MMCTransportError) {
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IORegistryEntryIDMatching(registryID))
@@ -103,18 +108,18 @@ public actor KroutonMMCDeviceSession: MMCTransport {
         guard created == KERN_SUCCESS, let pluginRef else {
             throw .unavailable(String(format: "IOKit has no MMC interface for this drive (0x%08X)", created))
         }
-        plugin = pluginRef
+        pluginAddress = UInt(bitPattern: pluginRef)
 
         var mmcRaw: LPVOID?
         let queried = pluginRef.pointee?.pointee.QueryInterface?(pluginRef, CFUUIDGetUUIDBytes(Self.mmcInterface), &mmcRaw)
         guard queried == 0, let mmcRaw else { throw .unavailable("The drive's MMC interface could not be opened") }
         let mmcRef = mmcRaw.assumingMemoryBound(to: UnsafeMutablePointer<MMCDeviceInterface>?.self)
-        mmc = mmcRef
+        mmcAddress = UInt(bitPattern: mmcRef)
 
         guard let deviceRef = mmcRef.pointee?.pointee.GetSCSITaskDeviceInterface?(mmcRef) else {
             throw .unavailable("The drive's SCSI task interface could not be opened")
         }
-        device = deviceRef
+        deviceAddress = UInt(bitPattern: deviceRef)
         guard deviceRef.pointee?.pointee.ObtainExclusiveAccess?(deviceRef) == KERN_SUCCESS else {
             throw .unavailable("The drive is in use. Eject or unmount its disc, quit other burning apps, and try again.")
         }
@@ -159,23 +164,18 @@ public actor KroutonMMCDeviceSession: MMCTransport {
 
     /// Gives the drive back to the system (which remounts a disc it had to let go of).
     public func close() {
-        Self.release(plugin: plugin, mmc: mmc, device: device, exclusive: exclusive)
-        device = nil
-        mmc = nil
-        plugin = nil
-        exclusive = false
+        Self.release(plugin: pluginAddress, mmc: mmcAddress, device: deviceAddress, exclusive: exclusive)
+        (pluginAddress, mmcAddress, deviceAddress, exclusive) = (0, 0, 0, false)
     }
 
     deinit {
-        Self.release(plugin: plugin, mmc: mmc, device: device, exclusive: exclusive)
+        Self.release(plugin: pluginAddress, mmc: mmcAddress, device: deviceAddress, exclusive: exclusive)
     }
 
-    private static func release(
-        plugin: UnsafeMutablePointer<UnsafeMutablePointer<IOCFPlugInInterface>?>?,
-        mmc: UnsafeMutablePointer<UnsafeMutablePointer<MMCDeviceInterface>?>?,
-        device: UnsafeMutablePointer<UnsafeMutablePointer<SCSITaskDeviceInterface>?>?,
-        exclusive: Bool
-    ) {
+    private static func release(plugin pluginAddress: UInt, mmc mmcAddress: UInt, device deviceAddress: UInt, exclusive: Bool) {
+        let device = UnsafeMutablePointer<UnsafeMutablePointer<SCSITaskDeviceInterface>?>(bitPattern: deviceAddress)
+        let mmc = UnsafeMutablePointer<UnsafeMutablePointer<MMCDeviceInterface>?>(bitPattern: mmcAddress)
+        let plugin = UnsafeMutablePointer<UnsafeMutablePointer<IOCFPlugInInterface>?>(bitPattern: pluginAddress)
         if let device {
             if exclusive { _ = device.pointee?.pointee.ReleaseExclusiveAccess?(device) }
             _ = device.pointee?.pointee.Release?(device)
