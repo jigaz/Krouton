@@ -81,7 +81,6 @@ Format: `- `TypeName` — owner · decide-by date · plan`.
 - `KroutonSectorRescueAction` — me · 2027-01-31 · make internal or keep (RescueKit/RescueEngine.swift)
 - `KroutonShrunkDVD5CellEntry` — me · 2027-01-31 · make internal or keep (VideoKit/VideoAuthoringEngine.swift)
 - `KroutonStreamProbeResult` — me · 2027-01-31 · make internal or keep (OpticalCore/InspectorsAndPrep/KroutonMediaPrepAndColorEngine.swift)
-- `KroutonWorkflowCodecRow` — me · 2027-01-31 · make internal or keep (OpticalCore/InspectorsAndPrep/KroutonMediaPrepAndColorEngine.swift)
 - `LaunchVerdict` — me · 2027-01-31 · make internal or keep (Persistence/SessionStore.swift)
 - `RestoreDecision` — me · 2027-01-31 · make internal or keep (Persistence/SessionStore.swift)
 - `Sourced` — me · 2027-01-31 · make internal or keep (AudioKit/HonestTrackData.swift)
