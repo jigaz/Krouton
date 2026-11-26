@@ -186,7 +186,6 @@ extension KroutonOpticalDriveBank {
             : UInt32(DRFilesystemInclusionMaskISO9660 | DRFilesystemInclusionMaskJoliet | DRFilesystemInclusionMaskUDF)
         let macMask: UInt32 = UInt32(DRFilesystemInclusionMaskHFSPlus)
         rootFolder.setExplicitFilesystemMask(DRFilesystemMask(macMask | pcMask))
-        // ISO 9660 Level 1: 8.3 uppercase names and 8 directory levels, for DOS and Windows 3.1.
         if context.isoLevel1 { rootFolder.setProperty(NSNumber(value: 1), forKey: DRISOLevel, inFilesystem: DRISO9660) }
 
         // Per-file OS visibility (Mac HFS+ vs PC ISO/Joliet/UDF)

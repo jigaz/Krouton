@@ -150,6 +150,7 @@ extension KroutonCopyAndRipWorkspaceView {
         baseTags.discNumber = Int(cdInfoDiscNumber) ?? 0
         baseTags.discTotal = Int(cdInfoDiscTotal) ?? 0
         baseTags.isCompilation = cdInfoIsCompilation
+        let albumTags = baseTags
         let token = KroutonRipCancelToken()
         ripCancelToken = token
         isRippingCD = true
@@ -208,7 +209,7 @@ extension KroutonCopyAndRipWorkspaceView {
                         }
                     }
                     okCount += 1
-                    var tags = baseTags
+                    var tags = albumTags
                     tags.title = trk.title
                     tags.artist = trk.performer.isEmpty ? albPerf : trk.performer
                     tags.trackNumber = trk.trackNumber

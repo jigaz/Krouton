@@ -31,7 +31,7 @@ struct KroutonBurnJobContext {
     var imageFileURL: URL? = nil
     /// Set for an audio CD: the burn is the disc's tracks, not a file system.
     var isAudioDisc = false
-    /// Restrict the ISO 9660 tree to Level 1 (8.3 names).
+    /// Restrict the ISO 9660 tree to Level 1 (8.3 upper-case names, 8 levels), for DOS and Windows 3.1.
     var isoLevel1 = false
 
     /// Sizes the job from the audio tracks. Audio isn't read back afterwards: a drive reads audio

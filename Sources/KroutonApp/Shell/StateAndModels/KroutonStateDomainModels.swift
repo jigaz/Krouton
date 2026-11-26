@@ -57,19 +57,6 @@ enum KroutonRoastAppearanceMode: String, CaseIterable, Identifiable, Sendable {
     case light = "Light"
     var id: String { rawValue }
 
-    /// What the destination does, in the words the card and the notifications use.
-    var title: String {
-        switch self {
-        case .physicalBurner: return "Burner on This Mac"
-        case .networkBurner: return "Krouton Server"
-        case .discImage: return "Disc Image File"
-        case .audioRip: return "Audio Rip (FLAC / ALAC / WAV / AIFF)"
-        case .videoExtract: return "Video Extract (MKV / MPEG)"
-        case .discPrinter: return "Label Print Sheet (PDF + PNG)"
-        case .pdfVector: return "Vector PDF Label"
-        }
-    }
-
     var sfSymbol: String {
         switch self {
         case .auto: return "circle.lefthalf.filled"
@@ -265,6 +252,19 @@ enum KroutonBurnDestinationKind: String, CaseIterable, Identifiable, Codable, Se
     case discPrinter = "Disc Printer (Epson ET-8550)"
     case pdfVector = "Vector PDF Label"
     var id: String { rawValue }
+
+    /// What the destination does, in the words the card and the notifications use.
+    var title: String {
+        switch self {
+        case .physicalBurner: return "Burner on This Mac"
+        case .networkBurner: return "Krouton Server"
+        case .discImage: return "Disc Image File"
+        case .audioRip: return "Audio Rip (FLAC / ALAC / WAV / AIFF)"
+        case .videoExtract: return "Video Extract (MKV / MPEG)"
+        case .discPrinter: return "Label Print Sheet (PDF + PNG)"
+        case .pdfVector: return "Vector PDF Label"
+        }
+    }
 
     var sfSymbol: String {
         switch self {

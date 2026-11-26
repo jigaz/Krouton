@@ -127,7 +127,7 @@ extension KroutonTestHarness {
         h.check(KroutonAudioTagWriter.writeBlocking(tags, to: wav), "Tags: WAV written")
         let after = try Data(contentsOf: wav)
         let riff = after.subdata(in: 4..<8).withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }
-        h.check(after.prefix(before.count) == before && UInt32(littleEndian: riff) == UInt32(after.count - 8)
+        h.check(after.subdata(in: 8..<before.count) == before.subdata(in: 8..<before.count) && UInt32(littleEndian: riff) == UInt32(after.count - 8)
                 && after.range(of: Data("INAMSolar".utf8)) == nil && after.range(of: Data("Solar Echoes".utf8)) != nil
                 && after.range(of: Data("LIST".utf8)) != nil,
                 "Tags: WAV gets a LIST/INFO chunk after the audio, RIFF size fixed, audio untouched")
