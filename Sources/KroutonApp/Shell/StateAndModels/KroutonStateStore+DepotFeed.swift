@@ -27,48 +27,48 @@ extension KroutonStateStore {
     }
 
     func refreshDepotFeed() async {
-        guard let url = URL(string: customDepotFeedURL), url.scheme == "https" else {
-            depotFeedStatus = "The feed address must start with https://."
+        guard let url = URL(string: self.customDepotFeedURL), url.scheme == "https" else {
+            self.depotFeedStatus = "The feed address must start with https://."
             return
         }
         do {
             let (data, response) = try await URLSession.shared.data(from: url)
             guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-                depotFeedStatus = "The depot didn't answer. Showing the list from \(depotFeedGenerated ?? "an earlier visit")."
+                self.depotFeedStatus = "The depot didn't answer. Showing the list from \(self.depotFeedGenerated ?? "an earlier visit")."
                 return
             }
             let feed = try KroutonDepotFeed.decode(data)
             applyDepotFeed(feed)
             try? FileManager.default.createDirectory(at: Self.depotFeedCacheURL.deletingLastPathComponent(), withIntermediateDirectories: true)
             try? data.write(to: Self.depotFeedCacheURL, options: .atomic)
-            depotFeedStatus = nil
+            self.depotFeedStatus = nil
         } catch {
-            depotFeedStatus = "Couldn't update the depot list: \(error.localizedDescription)"
+            self.depotFeedStatus = "Couldn't update the depot list: \(error.localizedDescription)"
         }
     }
 
     func applyDepotFeed(_ feed: KroutonDepotFeed) {
-        let enabled = Dictionary(depotChannels.map { ($0.id, $0.isEnabled) }, uniquingKeysWith: { first, _ in first })
-        depotChannels = feed.channels.map { channel in
+        let enabled = Dictionary(self.depotChannels.map { ($0.id, $0.isEnabled) }, uniquingKeysWith: { first, _ in first })
+        self.depotChannels = feed.channels.map { channel in
             KroutonDepotFeedSubscription(
                 id: channel.id, name: channel.title, description: channel.about,
                 itemCount: feed.items.filter { $0.channel == channel.id }.count,
                 isEnabled: enabled[channel.id] ?? true, sfSymbol: (channel.symbol ?? "opticaldisc") + ".fill"
             )
         }
-        let symbols = Dictionary(depotChannels.map { ($0.id, $0.sfSymbol) }, uniquingKeysWith: { first, _ in first })
-        let searchResults = depotItems.filter { $0.feed == nil }
-        depotItems = feed.items.map { item in
+        let symbols = Dictionary(self.depotChannels.map { ($0.id, $0.sfSymbol) }, uniquingKeysWith: { first, _ in first })
+        let searchResults = self.depotItems.filter { $0.feed == nil }
+        self.depotItems = feed.items.map { item in
             let cached = KroutonDepotDownloader.imageURL(for: item).map { FileManager.default.fileExists(atPath: $0.path) } ?? false
             return item.catalogItem(channelSymbols: symbols, isDownloaded: cached)
         } + searchResults
-        depotFeedGenerated = feed.generated.map { String($0.prefix(10)) }
+        self.depotFeedGenerated = feed.generated.map { String($0.prefix(10)) }
     }
 
     // MARK: - Getting an Item
 
     func downloadAndStageDepotItem(id: String, jumpToInspector: Bool = false) {
-        guard let item = depotItems.first(where: { $0.id == id }) else { return }
+        guard let item = self.depotItems.first(where: { $0.id == id }) else { return }
         guard let feedItem = item.feed else {
             downloadInternetArchiveResult(item, jumpToInspector: jumpToInspector)
             return
@@ -83,8 +83,8 @@ extension KroutonStateStore {
         default:
             break
         }
-        if depotDownloadProgress[id] != nil { return }
-        depotDownloadProgress[id] = 0.01
+        if self.depotDownloadProgress[id] != nil { return }
+        self.depotDownloadProgress[id] = 0.01
         rejectedDropNotice = nil
         Task { @MainActor in
             do {
@@ -95,12 +95,12 @@ extension KroutonStateStore {
                         }
                     }
                 }.value
-                depotDownloadProgress.removeValue(forKey: id)
-                if let index = depotItems.firstIndex(where: { $0.id == id }) { depotItems[index].isDownloaded = true }
+                self.depotDownloadProgress.removeValue(forKey: id)
+                if let index = self.depotItems.firstIndex(where: { $0.id == id }) { self.depotItems[index].isDownloaded = true }
                 stageDepotImage(imageURL, for: item, jumpToInspector: jumpToInspector)
                 announceForVoiceOver("\(item.title) downloaded, checked and staged.")
             } catch {
-                depotDownloadProgress.removeValue(forKey: id)
+                self.depotDownloadProgress.removeValue(forKey: id)
                 rejectedDropNotice = "Couldn't get \(item.title): \(error.localizedDescription)"
             }
         }
@@ -117,8 +117,8 @@ extension KroutonStateStore {
 
     private func stageDepotImage(_ url: URL, for item: KroutonDepotCatalogItem, jumpToInspector: Bool) {
         stagedFiles = [KroutonOpticalDriveBank.inspectFileOrFolder(url: url)]
-        stagedDepotItemID = item.id
-        leaveDiscOpenForMoreSessions = item.feed?.burn?.leaveOpen ?? false
+        self.stagedDepotItemID = item.id
+        self.leaveDiscOpenForMoreSessions = item.feed?.burn?.leaveOpen ?? false
         discVolumeTitle = String(item.id.uppercased().replacingOccurrences(of: "-", with: "_")
             .replacingOccurrences(of: ".", with: "_").prefix(32))
         if jumpToInspector {
@@ -135,16 +135,16 @@ extension KroutonStateStore {
             stageDepotImage(target, for: item, jumpToInspector: jumpToInspector)
             return
         }
-        if depotDownloadProgress[item.id] != nil { return }
-        depotDownloadProgress[item.id] = 0.05
+        if self.depotDownloadProgress[item.id] != nil { return }
+        self.depotDownloadProgress[item.id] = 0.05
         Task { @MainActor in
             do {
                 try await Self.materializeDepotImageToCache(item: item, destinationURL: target)
-                depotDownloadProgress.removeValue(forKey: item.id)
+                self.depotDownloadProgress.removeValue(forKey: item.id)
                 stageDepotImage(target, for: item, jumpToInspector: jumpToInspector)
                 rejectedDropNotice = "\(item.title) came from an Internet Archive search, so it has no checksum to confirm it against."
             } catch {
-                depotDownloadProgress.removeValue(forKey: item.id)
+                self.depotDownloadProgress.removeValue(forKey: item.id)
                 rejectedDropNotice = "Couldn't get \(item.title): \(error.localizedDescription)"
             }
         }
