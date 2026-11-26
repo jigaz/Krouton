@@ -48,12 +48,10 @@ extension KroutonSettingsWindowView {
                 }
             }
 
-            settingsCard(title: "Checksums, Test-Boot & Feed") {
+            settingsCard(title: "Checksums & Feed") {
                 Text(KroutonL10n.tr("Every depot download is checked against the SHA-256 depot.krouton.app recorded for it. A file that doesn't match is deleted, never burned."))
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                Divider()
-                Toggle(KroutonL10n.tr("Enable Apple Virtualization.framework 'Test-Boot in VM' button for El Torito / UEFI images"), isOn: Bindable(store).enableVMTestBootInDepot)
                 Divider()
                 HStack {
                     Text(KroutonL10n.tr("Depot feed address"))
@@ -74,113 +72,26 @@ extension KroutonSettingsWindowView {
 
     var audioVideoPane: some View {
         VStack(alignment: .leading, spacing: 18) {
-            settingsCard(title: "Red Book Audio CD & Crossfade Defaults") {
-                Toggle(KroutonL10n.tr("Analyze BPM & Beat Grid automatically via Apple SoundAnalysis on import"), isOn: Bindable(store).autoBeatmatchSoundAnalysis)
-                Divider()
-                HStack {
-                    Text(String(format: "Default Equal-Power Crossfade Overlap: %.1f seconds", store.defaultCrossfadeSec))
-                    Spacer()
-                    Slider(value: Bindable(store).defaultCrossfadeSec, in: 0.0...8.0, step: 0.5)
-                        .frame(width: 220)
-                }
-                Divider()
-                Toggle(KroutonL10n.tr("Car-Stereo Safe MP3 Mode (Enforce ID3v2.3 & strip hidden macOS ._* files)"), isOn: Bindable(store).carSafeMP3Mode)
-            }
-
-            settingsCard(title: "Video Authoring & Menu Defaults") {
-                Toggle(KroutonL10n.tr("Single Video Track: Play immediately on disc insert (skip menu)"), isOn: Bindable(store).singleVideoFirstPlay)
-                Divider()
-                Toggle(KroutonL10n.tr("Use Apple Silicon VideoToolbox 2-Pass Hardware VBR for Blu-ray & DVD encoding"), isOn: Bindable(store).videoToolboxTwoPassVBR)
-            }
-
-            settingsCard(title: "Fit-to-Disc Compression Defaults (DVD-9 to 4.7 GB DVD-5 & BD-50 to BD-25)") {
-                Toggle(KroutonL10n.tr("Always preserve interactive Menus, Chapter Tables & Bonus Featurettes when shrinking"), isOn: Bindable(store).fitToDiscPreserveMenus)
-                Divider()
-                Toggle(KroutonL10n.tr("Automatically strip foreign audio dubs (retain Original Language + English) to maximize video bitrate"), isOn: Bindable(store).fitToDiscStripForeignDubs)
-            }
-
-            settingsCard(title: "Universal Hardware & Software Decoder Matrix") {
-                HStack {
-                    Label(KroutonL10n.tr("Apple Silicon VideoToolbox ASIC + Accelerate vDSP + libavformat/libavcodec Active"), systemImage: "cpu.fill")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.green)
-                    Spacer()
-                    Text(KroutonL10n.tr("Zero-Copy GPU & SIMD Pipeline"))
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                }
-                Divider()
-                ForEach(KroutonMediaPrepEngine.liveHardwareCodecMatrix) { row in
-                    VStack(alignment: .leading, spacing: 3) {
-                        HStack {
-                            Image(systemName: row.isHardwareAccelerated ? "bolt.shield.fill" : "cpu")
-                                .foregroundStyle(row.isHardwareAccelerated ? .green : store.activeAccent)
-                                .font(.system(size: 12))
-                            Text(row.category)
-                                .font(.system(size: 12, weight: .semibold))
-                            Spacer()
-                            Text(row.hardwareStatus)
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 2)
-                                .background(Color.green.opacity(0.16))
-                                .foregroundStyle(.green)
-                                .clipShape(Capsule())
-                        }
-                        HStack {
-                            Text("Formats: \(row.formatsAndExtensions)")
-                                .font(.system(size: 10, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text("Engine: \(row.primaryEngine)")
-                                .font(.system(size: 10, design: .monospaced))
-                                .foregroundStyle(store.activeAccent)
-                        }
-                    }
-                    .padding(.vertical, 2)
-                    Divider()
-                }
+            settingsCard(title: "DVD-9 to DVD-5 Shrink (Copy › Duplicate Disc)") {
+                Toggle(KroutonL10n.tr("Keep the menus and extras when shrinking (otherwise only the main feature is kept)"), isOn: Bindable(store).preserveMenusAndExtras)
+                Text(KroutonL10n.tr("Pauses, crossfades and the MP3 CD options are set in their own workspaces."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
     }
 
     var rippingTranscodingPane: some View {
         VStack(alignment: .leading, spacing: 18) {
-            settingsCard(title: "Optical Drive Read Offset & Error Recovery (CD / DVD / BD Ripping)") {
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text(KroutonL10n.tr("Drive Sample Read Offset Correction"))
-                        Text(KroutonL10n.tr("Compensates for physical laser lead-in/lead-out offset on Matshita/Pioneer/LG drives"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    TextField("Offset", value: Bindable(store).driveReadOffsetSamples, format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 80)
-                    Text(KroutonL10n.tr("samples"))
-                        .font(.caption)
-                }
-                Divider()
-                HStack {
-                    Text(KroutonL10n.tr("Paranoia Scratched Sector Re-Read Retries"))
-                    Spacer()
-                    Stepper("\(store.paranoiaErrorRetries) passes", value: Bindable(store).paranoiaErrorRetries, in: 1...64)
-                }
-                Divider()
-                Toggle(KroutonL10n.tr("Verify ripped audio tracks against AccurateRip & MusicBrainz database"), isOn: Bindable(store).verifyAccurateRip)
-                Divider()
-                Toggle(KroutonL10n.tr("Generate archival .cue sheet and extraction .log alongside ALAC / FLAC rips"), isOn: Bindable(store).writeCueSheetLog)
+            settingsCard(title: "Checking Rips") {
+                Toggle(KroutonL10n.tr("Check each ripped track against the AccurateRip database"), isOn: Bindable(store).verifyAccurateRip)
+                Text(KroutonL10n.tr("Sends only the disc's AccurateRip ID. A match means other people's rips of the same CD came out identical."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
-            settingsCard(title: "Video Disc Extraction & Hardware VideoToolbox") {
-                Toggle(KroutonL10n.tr("Hardware Motion-Compensated Deinterlacing (480i / 1080i -> Progressive H.265)"), isOn: Bindable(store).hardwareDeinterlaceVideo)
-                Divider()
-                Toggle(KroutonL10n.tr("Passthrough lossless Dolby Atmos / TrueHD / DTS-HD Master Audio bitstreams"), isOn: Bindable(store).passthroughAtmosTrueHD)
-            }
-
-            settingsCard(title: "Smart File & Track Naming Pattern (Zero-Script Token Builder)") {
-                Text(KroutonL10n.tr("Click tokens below to append to your active naming pattern, or click any active token pill to remove it:"))
+            settingsCard(title: "Ripped File Names") {
+                Text(KroutonL10n.tr("Ripped tracks are named with this pattern. Click a token to add it; click a token in the pattern to remove it. A / makes a folder."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -224,7 +135,7 @@ extension KroutonSettingsWindowView {
                     }
                 }
 
-                Text("Live Output Preview: \(store.namingPreviewString)")
+                Text("Example: \(store.namingPreviewString)")
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .foregroundStyle(store.activeAccent)
             }

@@ -69,7 +69,6 @@ struct KroutonSettingsWindowView: View {
     var driveManager: KroutonOpticalDriveBank
     var spoolClient: SpoolRemoteNodeClient = .shared
     @State var isShowingSpoolFileExporter: Bool = false
-    @State var isShowingScratchFolderImporter: Bool = false
     @State var spoolExportDocument: SpoolPlainTextFileDocument = SpoolPlainTextFileDocument(text: "")
     @State var spoolExportDefaultFilename: String = "Krouton Burn Server Log.txt"
     @State var burnServerAddressDraft: String = ""

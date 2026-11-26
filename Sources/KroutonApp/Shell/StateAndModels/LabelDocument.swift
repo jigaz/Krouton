@@ -46,9 +46,6 @@ final class LabelDocument {
     ]
     var selectedLabelPresetIndex: Int = 0
     var defaultAutoLabelStyle: String = "Full-Bleed Artwork + Arc Typography"
-    var visionHoleAvoidance: Bool = true
-    var customTMDBKey: String = ""
-    var customFanartKey: String = ""
 
     init() {}
 }

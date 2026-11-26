@@ -11,14 +11,82 @@ extension KroutonStateStore {
     /// The files a data burn or disc image should carry. Usually the deck as staged; for an MP3
     /// CD, the folder `KroutonCarAudioDiscPreparer` builds from it with the workspace's options
     /// (converted, renamed, with a playlist); for M-DISC with PAR2 on, a copy of the deck with
-    /// par2 recovery files beside it. `folder` is temporary and the caller removes it.
+    /// par2 recovery files beside it. Then, on data discs, the Finder layout's `.DS_Store` when
+    /// that switch is on, and for the large-file UDF format the whole set as one UDF 2.50 image
+    /// (`KroutonUDFImageWriter`), which the drive bank burns as an image. `folder` is temporary
+    /// and the caller removes it.
     func burnInputFiles() async throws -> (files: [KroutonStagedFileEntry], folder: URL?) {
         guard activeBurnSupport != nil else { return (stagedFiles, nil) }
-        switch activeFormatSpec().formatID {
-        case .mp3CD: return try await carMP3Files()
-        case .mdiscVault where mdiscParityPercent > 0: return try await filesWithParity()
-        default: return (stagedFiles, nil)
+        let format = activeFormatSpec().formatID
+        var input: (files: [KroutonStagedFileEntry], folder: URL?)
+        switch format {
+        case .mp3CD: input = try await carMP3Files()
+        case .mdiscVault where mdiscParityPercent > 0: input = try await filesWithParity()
+        default: input = try asISONamedImage((stagedFiles, nil))
         }
+        if activeBurnSupport == .dataDisc, format != .mp3CD, enableCustomFinderLayoutTab {
+            input = try withFinderLayout(input)
+        }
+        if format == .dataUDFModern { input = try await asUDFImage(input) }
+        return input
+    }
+
+    // MARK: - Finder Layout, UDF 2.50 and Renamed Images
+
+    /// A GameCube `.gcm` is a plain ISO image under another name; DiscRecording and Krouton
+    /// Server go by the name, so a clone named `.iso` is burned instead (instant on APFS).
+    private func asISONamedImage(
+        _ input: (files: [KroutonStagedFileEntry], folder: URL?)
+    ) throws -> (files: [KroutonStagedFileEntry], folder: URL?) {
+        guard input.files.count == 1, let only = input.files.first, only.url.pathExtension.lowercased() == "gcm" else { return input }
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("KroutonGCM_\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let iso = folder.appendingPathComponent(only.url.deletingPathExtension().lastPathComponent).appendingPathExtension("iso")
+        try FileManager.default.copyItem(at: only.url, to: iso)
+        return ([KroutonOpticalDriveBank.inspectFileOrFolder(url: iso)], folder)
+    }
+
+    /// Adds the `.DS_Store` that gives the disc's root window the Finder View tab's layout.
+    private func withFinderLayout(
+        _ input: (files: [KroutonStagedFileEntry], folder: URL?)
+    ) throws -> (files: [KroutonStagedFileEntry], folder: URL?) {
+        let folder = input.folder ?? FileManager.default.temporaryDirectory
+            .appendingPathComponent("KroutonLayout_\(UUID().uuidString)", isDirectory: true)
+        let layout = folder.appendingPathComponent("Layout", isDirectory: true)
+        try FileManager.default.createDirectory(at: layout, withIntermediateDirectories: true)
+        let names = input.files.map(\.name).filter { !$0.hasPrefix(".") }.sorted()
+        let store = layout.appendingPathComponent(".DS_Store")
+        try finderLayoutBlueprint.serializeDSStore(itemNames: names).write(to: store, options: .atomic)
+        return (input.files.filter { $0.name != ".DS_Store" } + [KroutonOpticalDriveBank.inspectFileOrFolder(url: store)], folder)
+    }
+
+    /// Stages the files and writes them as one UDF 2.50 image, which holds files of any size
+    /// and is read by macOS, Windows 10 and later, and Linux.
+    private func asUDFImage(
+        _ input: (files: [KroutonStagedFileEntry], folder: URL?)
+    ) async throws -> (files: [KroutonStagedFileEntry], folder: URL?) {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("KroutonUDF_\(UUID().uuidString)", isDirectory: true)
+        defer { if let old = input.folder { try? FileManager.default.removeItem(at: old) } }
+        let tree = folder.appendingPathComponent("Tree", isDirectory: true)
+        let items = input.files.map { KroutonBurnStageItem(source: $0.url, name: $0.name) }
+        if let stagingError = await KroutonBurnStager.stage(items, into: tree) {
+            try? FileManager.default.removeItem(at: folder)
+            throw KroutonBurnInputError(message: stagingError)
+        }
+        let image = folder.appendingPathComponent("disc.iso")
+        let label = discVolumeTitle
+        do {
+            _ = try await Task.detached(priority: .userInitiated) {
+                try KroutonUDFImageWriter.build(folder: tree, output: image, label: label)
+            }.value
+        } catch {
+            try? FileManager.default.removeItem(at: folder)
+            throw error
+        }
+        try? FileManager.default.removeItem(at: tree)
+        return ([KroutonOpticalDriveBank.inspectFileOrFolder(url: image)], folder)
     }
 
     private func filesWithParity() async throws -> (files: [KroutonStagedFileEntry], folder: URL?) {

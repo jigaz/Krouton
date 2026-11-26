@@ -7,12 +7,12 @@ Open Settings with ⌘,. The search field at the top finds a setting by any word
 - **General**: appearance, accent colours, language, and whether Krouton reopens your last project.
 - **Format Chooser**: which disc formats appear in the sidebar.
 - **Disc Image Depot**: where images are kept.
-- **Audio & Video**: default pauses and crossfades, MP3 settings, video options.
-- **Ripping & Transcoding**: rip formats and folders.
+- **Audio & Video**: whether the DVD-9 shrink keeps menus and extras.
+- **Ripping & Transcoding**: AccurateRip checking and the pattern ripped files are named by.
 - **Burners & Network**: connected drives, Auto-Load and Krouton Servers.
 - **Labels & Printers**: disc sizes and printer tray offsets.
-- **Notifications**: alerts when a burn finishes or fails, including on iPhone and Apple Watch.
-- **Accessibility & Language**: contrast and motion, spoken progress for VoiceOver, and the app's language. Translation into nine languages has started with a handful of labels; most of the app and this manual are in English for now.
+- **Notifications**: a banner and a sound when a burn or rip starts, finishes or fails, when Auto-Load wants the next blank, and when a Depot download is checked.
+- **Accessibility & Language**: higher contrast, spoken progress for VoiceOver, and the app's language. Translation into nine languages has started with a handful of labels; most of the app and this manual are in English for now.
 
 ## Where Krouton keeps things
 

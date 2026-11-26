@@ -5,7 +5,7 @@
 Pick a data format in the Format Chooser, under **Data & Archival Media**, or from the **Format** menu.
 
 - **Hybrid ISO-9660 + Joliet + UDF** (⌃⌘1) is the right choice almost every time. Windows, macOS, Linux and most DVD and Blu-ray players can read it. Long file names and Unicode survive through Joliet and UDF.
-- **UDF 2.60 Optical Volume** is for files of 4 GiB or more, which ISO-9660 can't hold. It writes the same hybrid disc, whose UDF side (version 1.02, not 2.60) holds the large files; modern Windows, macOS and Linux read them, old systems don't.
+- **UDF 2.50 Large-File Volume** is for files of 4 GiB or more, which ISO-9660 can't hold. Krouton writes the files as a UDF 2.50 disc of its own, with no ISO-9660 side: macOS, Windows 10 and later and Linux read it, older systems and most players don't.
 - **M-DISC 1,000-Year Archival Vault** (⌃⌘5) is a hybrid disc meant for M-DISC blanks. With **PAR2** above Off, Krouton adds recovery files (KROUTON_RECOVERY.par2 and its volume) holding that percentage of the data, so damaged files can be rebuilt from the disc itself with `par2 repair`. This needs par2, which you install separately (Homebrew: brew install par2).
 - **Burn Disc Image** (⌃⌘6) writes an existing .iso, .cue/.bin or .dmg exactly as it is.
 

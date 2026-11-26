@@ -111,7 +111,7 @@ extension KroutonCopyAndRipWorkspaceView {
                             Text("Out: \(copyOutputFolderPath)").font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                         }
                         HStack(spacing: 12) {
-                            Toggle(KroutonL10n.tr("AccurateRip + CRC32"), isOn: $audioRipAccurateRip).toggleStyle(.checkbox).font(.caption).fixedSize()
+                            Toggle(KroutonL10n.tr("Check With AccurateRip"), isOn: Bindable(store).verifyAccurateRip).toggleStyle(.checkbox).font(.caption).fixedSize()
                             Toggle(KroutonL10n.tr("Write .CUE + .LOG"), isOn: $audioRipGenerateCueLog).toggleStyle(.checkbox).font(.caption).fixedSize()
                             Spacer(minLength: 0)
                         }
@@ -163,8 +163,8 @@ extension KroutonCopyAndRipWorkspaceView {
             }
             Spacer(minLength: 6)
 
-            if audioRipAccurateRip {
-                let badgeColor: Color = item.arStatus.contains("Cancelled") || item.arStatus.contains("Error")
+            if store.verifyAccurateRip {
+                let badgeColor: Color = item.arStatus.contains("Cancelled") || item.arStatus.contains("Error") || item.arStatus.contains("✗")
                     ? .red
                     : (item.arStatus.contains("CRC") ? .cyan : .green)
                 Text(item.arStatus)

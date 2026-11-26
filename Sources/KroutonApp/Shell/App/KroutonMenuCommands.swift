@@ -110,7 +110,7 @@ struct KroutonWorkspaceCommands: Commands {
             Menu(KroutonL10n.tr("Data & Archival Media")) {
                 Button(KroutonL10n.tr("Hybrid ISO-9660 + Joliet + UDF")) { selectBurnFormat(.dataHybrid) }
                     .keyboardShortcut("1", modifiers: [.command, .control])
-                Button(KroutonL10n.tr("UDF 2.60 Optical Volume")) { selectBurnFormat(.dataUDFModern) }
+                Button(KroutonL10n.tr("UDF 2.50 Large-File Volume")) { selectBurnFormat(.dataUDFModern) }
                 Button(KroutonL10n.tr("M-DISC 1,000-Year Archival Vault")) { selectBurnFormat(.mdiscVault) }
                     .keyboardShortcut("5", modifiers: [.command, .control])
                 Button(KroutonL10n.tr("Burn Disc Image (.iso / .cue / .dmg)")) { selectBurnFormat(.imageBurn) }

@@ -48,13 +48,17 @@ Check the result with **View › Inspect Compiled Red Book CUE Sheet** (⌃⌘U)
 
 Converting needs ffmpeg, which you install separately (Homebrew: brew install ffmpeg). Choose **Files As They Are** to burn the files unconverted, still numbered and listed.
 
+**DTS-CD (5.1)** burns DTS-encoded WAV files (44.1 kHz, 16-bit stereo, as DTS-CD files are made) exactly as they are, so a DTS decoder finds the surround stream. Krouton refuses any other file, and crossfades, because converting or mixing would destroy the stream. Pauses and gapless joins are fine.
+
 **Blue Book CD-Extra** (audio tracks plus a data session) can't be made yet.
 
 ## Ripping a CD
 
 1. Insert an audio CD and open the Audio CD Ripper (⌘5).
 2. Choose **Disc › Scan Audio CD TOC & Lookup MusicBrainz** (⌥⌘R). Krouton reads the track list and fetches album and track names from MusicBrainz. Only the disc's ID is sent.
-3. Pick a format: FLAC or ALAC to keep every bit, AAC for smaller files.
+3. Pick a format: FLAC or ALAC keep every bit in less space; WAV and AIFF are uncompressed.
 4. Choose **Disc › Rip Selected Audio CD Tracks** (⇧⌘R).
 
-Tracks are saved in ~/Music/Krouton Rips, in a folder per album, tagged with the album, artist, track and the fields in **CD Info** (⌘I): composer, genre, year, disc number and compilation (Vorbis comments in FLAC, iTunes tags in ALAC and AAC, INFO chunks in WAV, text chunks in AIFF). The rip log records each track's CRC-32 and AccurateRip v1 checksums, so you can compare your rip with other people's rips of the same CD. A track with read errors is reported as failed; Krouton doesn't yet re-read damaged sectors to repair it.
+Tracks are saved in ~/Music/Krouton Rips, in a folder per album, named by the pattern in Settings › Ripping (01 - Artist - Title to start with; a / in the pattern makes folders), and tagged with the album, artist, track and the fields in **CD Info** (⌘I): composer, genre, year, disc number and compilation (Vorbis comments in FLAC, iTunes tags in ALAC, INFO chunks in WAV, text chunks in AIFF). The rip log records each track's CRC-32.
+
+When every track of the disc is ripped and **Check With AccurateRip** is on, Krouton looks the disc up in the AccurateRip database (only the disc's ID is sent) and compares each track. The track list then shows **AR ✓** with the number of other rips that came out identical, or **AR ✗** when the database has the track but your rip differs, which usually means a scratch. macOS doesn't correct a drive's read offset, so Krouton finds your drive's offset from the database and reports it in the log. Krouton checks AccurateRip v1 checksums; a disc whose only entries are v2 won't match yet. A track with read errors is reported as failed; Krouton doesn't yet re-read damaged sectors to repair it.

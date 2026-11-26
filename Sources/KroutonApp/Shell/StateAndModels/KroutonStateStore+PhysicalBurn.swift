@@ -69,7 +69,8 @@ extension KroutonStateStore {
             let nextTicket = advancePoolAfterCardBurnCompleted(cardID: target.id)
             if let nextTicket, poolDispatchMode == .autoAssign, autoLoadNextDiscBatchMode {
                 let driveKey = target.targetDriveID.isEmpty ? (driveManager.selectedDrive?.id ?? "") : target.targetDriveID
-                driveManager.startBatchAutoLoadMonitor(
+                notifyInsertNextBlank()
+            driveManager.startBatchAutoLoadMonitor(
                     for: driveKey,
                     completedCopy: max(1, nextTicket.sequenceNumber - 1),
                     totalCopies: max(nextTicket.totalCopies, nextTicket.totalSpannedDiscs),
@@ -91,7 +92,8 @@ extension KroutonStateStore {
             if finishedCount < target.copiesToBurn {
                 updateQueueItem(target.id) { $0.completedCopies = finishedCount }
                 let driveKey = target.targetDriveID.isEmpty ? (driveManager.selectedDrive?.id ?? "") : target.targetDriveID
-                driveManager.startBatchAutoLoadMonitor(
+                notifyInsertNextBlank()
+            driveManager.startBatchAutoLoadMonitor(
                     for: driveKey,
                     completedCopy: finishedCount,
                     totalCopies: target.copiesToBurn,
@@ -111,5 +113,12 @@ extension KroutonStateStore {
                 updateQueueItem(target.id) { $0.completedCopies = 0 }
             }
         }
+    }
+
+    /// Auto-Load has ejected a finished copy and waits for the next blank.
+    private func notifyInsertNextBlank() {
+        KroutonNotificationAndCompanionService.shared.dispatchEvent(
+            id: "swap", title: "Insert the Next Blank",
+            subtitle: "\(discVolumeTitle) finished; the next copy starts when a blank goes in.", store: self)
     }
 }

@@ -15,7 +15,6 @@ final class DepotCatalogue {
     var depotFeedGenerated: String? = nil
     var customDepotFeedURL: String = "https://depot.krouton.app/v1/manifest.json"
     var autoVerifyDepotSHA256: Bool = true
-    var enableVMTestBootInDepot: Bool = true
     var stagedDepotItemID: String? = nil
     var selectedDepotHeroItemID: String? = nil
     var depotDownloadProgress: [String: Double] = [:]

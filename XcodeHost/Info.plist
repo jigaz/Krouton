@@ -111,5 +111,19 @@
             </dict>
         </dict>
     </array>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <!-- AccurateRip serves its database over plain HTTP only; nothing private is sent. -->
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>accuraterip.com</key>
+            <dict>
+                <key>NSIncludesSubdomains</key>
+                <true/>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+            </dict>
+        </dict>
+    </dict>
 </dict>
 </plist>

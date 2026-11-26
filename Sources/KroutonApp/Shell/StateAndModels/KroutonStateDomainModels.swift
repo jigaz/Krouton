@@ -231,8 +231,6 @@ struct KroutonKitchenEventRow: Identifiable, Hashable, Sendable {
     var eventTitle: String
     var eventSubtitle: String
     var bannerEnabled: Bool
-    var iPhoneEnabled: Bool
-    var watchEnabled: Bool
     var soundEnabled: Bool
 }
 

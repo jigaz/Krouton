@@ -34,7 +34,7 @@ extension KroutonStateStore {
         if fmt?.usesRawCueBinImage == true {
             return ("~/Desktop/\(cleanTitle).cue", "2,352-Byte Raw .BIN + .CUE Image")
         } else if fmt?.usesAppleDiskImage == true {
-            return ("~/Desktop/\(cleanTitle).dmg", "Apple HFS+ / APFS Disk Image")
+            return ("~/Desktop/\(cleanTitle).dmg", "Apple HFS+ Disk Image")
         }
         return ("~/Desktop/\(cleanTitle).iso", "Sector-Exact .ISO Optical Image")
     }

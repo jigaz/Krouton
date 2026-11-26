@@ -151,6 +151,11 @@ extension KroutonCopyAndRipWorkspaceView {
         baseTags.discTotal = Int(cdInfoDiscTotal) ?? 0
         baseTags.isCompilation = cdInfoIsCompilation
         let albumTags = baseTags
+        let namingTokens = store.namingTokens
+        let year = cdInfoYear
+        let checkAccurateRip = store.verifyAccurateRip
+        let arDisc = KroutonAccurateRipDiscID(trackStarts: cd.tracks.map(\.startBlockLBA), leadout: cd.leadoutBlockLBA)
+        let discTrackNumbers = cd.tracks.map(\.trackNumber)
         let token = KroutonRipCancelToken()
         ripCancelToken = token
         isRippingCD = true
@@ -176,6 +181,7 @@ extension KroutonCopyAndRipWorkspaceView {
             var cueLines = ["REM DISCID \(cd.musicBrainzDiscID)", "PERFORMER \"\(albPerf)\"", "TITLE \"\(albTitle)\""]
             let totalTracks = Double(selected.count)
             var okCount = 0, errCount = 0, cancelCount = 0
+            var rippedURLs: [Int: URL] = [:]
             for (idx, trk) in selected.enumerated() {
                 if token.isCancelled {
                     cancelCount += 1
@@ -197,6 +203,10 @@ extension KroutonCopyAndRipWorkspaceView {
                 do {
                     let res = try KroutonRealCDExtractor.extractSingleTrack(
                         track: trk, codecLabel: chosenCodec, outputDirectory: outDir,
+                        fileStem: RipSettings.ripFileStem(
+                            tokens: namingTokens, number: trk.trackNumber,
+                            artist: trk.performer.isEmpty ? albPerf : trk.performer,
+                            album: albTitle, title: trk.title.isEmpty ? "Track" : trk.title, year: year),
                         shouldCancel: { token.isCancelled || token.cancelledTracks.contains(trk.trackNumber) }
                     ) { trackFrac, bytesDone in
                         let overall = (Double(idx) + trackFrac) / totalTracks
@@ -209,15 +219,16 @@ extension KroutonCopyAndRipWorkspaceView {
                         }
                     }
                     okCount += 1
+                    rippedURLs[trk.trackNumber] = res.outputURL
                     var tags = albumTags
                     tags.title = trk.title
                     tags.artist = trk.performer.isEmpty ? albPerf : trk.performer
                     tags.trackNumber = trk.trackNumber
                     let tagged = KroutonAudioTagWriter.writeBlocking(tags, to: res.outputURL)
                     if !tagged { logLines.append("Track \(trk.trackNumber): audio saved, but the tags could not be written") }
-                    let statusBadge = "CRC \(res.crc32Hex) • AR \(res.accurateRipV1Hex)"
-                    logLines.append(String(format: "Track %02d : %@ | %lld bytes | CRC32: %@ | AccurateRip: %@", trk.trackNumber, res.outputURL.lastPathComponent, res.bytesWritten, res.crc32Hex, res.accurateRipV1Hex))
-                    cueLines.append("FILE \"\(res.outputURL.lastPathComponent)\" WAVE")
+                    let statusBadge = "CRC \(res.crc32Hex)"
+                    logLines.append(String(format: "Track %02d : %@ | %lld bytes | CRC32: %@", trk.trackNumber, res.outputURL.lastPathComponent, res.bytesWritten, res.crc32Hex))
+                    cueLines.append("FILE \"\(res.outputURL.path.replacingOccurrences(of: outDir.path + "/", with: ""))\" WAVE")
                     cueLines.append(String(format: "  TRACK %02d AUDIO", trk.trackNumber))
                     cueLines.append("    TITLE \"\(trk.title)\"")
                     cueLines.append("    INDEX 01 00:00:00")
@@ -236,6 +247,31 @@ extension KroutonCopyAndRipWorkspaceView {
                             audioRipTracks[rowIdx].arStatus = isCancelledErr ? "Cancelled" : "Read Error"
                         }
                     }
+                }
+            }
+            // AccurateRip compares whole discs, so it runs only when every track was ripped.
+            if checkAccurateRip, discTrackNumbers.allSatisfy({ rippedURLs[$0] != nil }) {
+                DispatchQueue.main.async { copyStatusBanner = "Checking the rip against AccurateRip…" }
+                let files = discTrackNumbers.compactMap { rippedURLs[$0] }
+                switch KroutonAccurateRipVerifier.checkBlocking(files: files, disc: arDisc) {
+                case .checked(let report):
+                    logLines.append("AccurateRip (v1): drive read offset \(report.driveOffset) samples")
+                    for result in report.tracks {
+                        let number = discTrackNumbers[result.number - 1]
+                        let verdict = result.confidence > 0
+                            ? "accurate (confidence \(result.confidence))"
+                            : (result.bestConfidence > 0 ? "NOT accurate (database has confidence \(result.bestConfidence))" : "no entry for this track")
+                        logLines.append(String(format: "Track %02d : AccurateRip %08X %@", number, result.crc, verdict))
+                        DispatchQueue.main.async {
+                            if let row = audioRipTracks.firstIndex(where: { $0.num == number }) {
+                                audioRipTracks[row].arStatus = result.confidence > 0 ? "AR ✓ \(result.confidence)" : "AR ✗"
+                            }
+                        }
+                    }
+                case .notInDatabase:
+                    logLines.append("AccurateRip: this disc isn't in the database.")
+                case .failed(let why):
+                    logLines.append("AccurateRip: couldn't check (\(why)).")
                 }
             }
             if writeCueLog && okCount > 0 {

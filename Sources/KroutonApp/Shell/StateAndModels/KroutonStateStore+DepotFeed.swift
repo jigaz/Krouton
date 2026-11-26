@@ -99,7 +99,9 @@ extension KroutonStateStore {
                 self.depotDownloadProgress.removeValue(forKey: id)
                 if let index = self.depotItems.firstIndex(where: { $0.id == id }) { self.depotItems[index].isDownloaded = true }
                 stageDepotImage(imageURL, for: item, jumpToInspector: jumpToInspector)
-                announceForVoiceOver("\(item.title) downloaded, checked and staged.")
+                KroutonNotificationAndCompanionService.shared.dispatchEvent(
+                    id: "depot", title: "Depot Download Checked",
+                    subtitle: "\(item.title) matched its SHA-256 and is on the deck.", store: self)
             } catch {
                 self.depotDownloadProgress.removeValue(forKey: id)
                 rejectedDropNotice = "Couldn't get \(item.title): \(error.localizedDescription)"

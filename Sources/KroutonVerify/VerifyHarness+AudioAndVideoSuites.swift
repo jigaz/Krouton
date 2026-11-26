@@ -23,9 +23,7 @@ extension KroutonTestHarness {
 
     private mutating func runVerifyAudioSuitesPart() {
 
-    self.runSuite("8. Hardware Acceleration Codec Matrix & Container Stream Probing") { h in
-    let matrix = KroutonMediaPrepEngine.liveHardwareCodecMatrix
-    h.check(matrix.count >= 6, "Expected at least 6 codec rows in hardware matrix")
+    self.runSuite("8. Container Stream Probing") { h in
 
     let mkvProbe = KroutonMediaPrepEngine.probeFile(URL(fileURLWithPath: "/tmp/concert.mkv"))
     h.check(mkvProbe.fileExtension == "MKV" && mkvProbe.isHardwareAccelerated, "MKV hardware probe")

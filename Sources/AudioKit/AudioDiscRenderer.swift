@@ -76,7 +76,9 @@ public enum KroutonAudioDiscRenderer {
             if let hit = cache[j] { return hit }
             let data: Data
             do {
-                data = try KroutonAudioEngine.decodeAudioFileToRedBookPCM(url: tracks[j].source)
+                // A WAV already in CD format is read as raw bytes, so its samples are exact.
+                data = try rawRedBookWAVSamples(tracks[j].source)
+                    ?? KroutonAudioEngine.decodeAudioFileToRedBookPCM(url: tracks[j].source)
             } catch {
                 throw KroutonAudioRenderError.decodeFailed(tracks[j].source.lastPathComponent)
             }
@@ -149,6 +151,48 @@ public enum KroutonAudioDiscRenderer {
                 isrc: track.isrc))
         }
         return rendered
+    }
+
+    /// True when `url` is a WAV file already in CD audio's own format (PCM, 44.1 kHz, 16-bit,
+    /// stereo), so rendering copies its samples unchanged. DTS-CD depends on that: its DTS
+    /// stream is hidden in the sample bits, and any conversion or fade would destroy it.
+    public static func isRedBookWAV(_ url: URL) -> Bool {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
+        defer { try? handle.close() }
+        guard let head = try? handle.read(upToCount: 4096), head.count >= 12 else { return false }
+        let b = [UInt8](head)
+        func le16(_ at: Int) -> Int { Int(b[at]) | Int(b[at + 1]) << 8 }
+        func le32(_ at: Int) -> Int { le16(at) | le16(at + 2) << 16 }
+        guard String(decoding: b[0..<4], as: UTF8.self) == "RIFF", String(decoding: b[8..<12], as: UTF8.self) == "WAVE" else { return false }
+        var at = 12
+        while at + 8 <= b.count {
+            let id = String(decoding: b[at..<(at + 4)], as: UTF8.self)
+            let size = le32(at + 4)
+            if id == "fmt ", at + 8 + 16 <= b.count {
+                let f = at + 8
+                return le16(f) == 1 && le16(f + 2) == 2 && le32(f + 4) == 44_100 && le16(f + 14) == 16
+            }
+            at += 8 + size + (size & 1)
+        }
+        return false
+    }
+
+    /// The sample bytes of a CD-format WAV file, or nil for any other file.
+    static func rawRedBookWAVSamples(_ url: URL) throws -> Data? {
+        guard isRedBookWAV(url) else { return nil }
+        let bytes = try Data(contentsOf: url, options: .mappedIfSafe)
+        func le32(_ at: Int) -> Int {
+            Int(bytes[at]) | Int(bytes[at + 1]) << 8 | Int(bytes[at + 2]) << 16 | Int(bytes[at + 3]) << 24
+        }
+        var at = 12
+        while at + 8 <= bytes.count {
+            let size = le32(at + 4)
+            if bytes[at..<(at + 4)].elementsEqual("data".utf8) {
+                return bytes.subdata(in: (at + 8)..<min(bytes.count, at + 8 + size))
+            }
+            at += 8 + size + (size & 1)
+        }
+        return nil
     }
 
     /// The 13-digit Media Catalog Number for a UPC-A (12 digits, given a leading 0) or an EAN-13,

@@ -85,7 +85,7 @@ extension KroutonDataAndArchivalWorkspaceView {
                                 .foregroundStyle(.green)
                                 .lineLimit(1)
                         } else if activeSpec.id == "data-udf-modern" {
-                            Label("UDF 1.02 + ISO 9660 (Files over 4 GiB on the UDF side)", systemImage: "checkmark.seal.fill")
+                            Label("UDF 2.50: Files of Any Size (No ISO 9660 for Old Systems)", systemImage: "checkmark.seal.fill")
                                 .font(.caption.bold())
                                 .foregroundStyle(.green)
                                 .lineLimit(1)
@@ -197,7 +197,7 @@ extension KroutonDataAndArchivalWorkspaceView {
                                     .foregroundStyle(.green)
                                     .lineLimit(1)
                             } else if activeSpec.id == "data-udf-modern" {
-                                Label("UDF 1.02 (>4 GiB Files)", systemImage: "checkmark.seal.fill")
+                                Label("UDF 2.50 (Any File Size)", systemImage: "checkmark.seal.fill")
                                     .font(.caption.bold())
                                     .foregroundStyle(.green)
                                     .lineLimit(1)

@@ -60,8 +60,6 @@ final class AppearancePreferences {
     var appLanguage: KroutonLanguage = .english
     var voiceOverSpokenTelemetry: Bool = true
     var a11yIncreaseContrast: Bool = false
-    var a11yDifferentiateWithoutColor: Bool = true
-    var a11yReduceMotion: Bool = false
     var rememberLastTaskOnLaunch: Bool = true
     var useBase10Units: Bool = true
 

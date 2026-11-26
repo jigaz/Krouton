@@ -49,6 +49,8 @@ Format: `- `TypeName` — owner · decide-by date · plan`.
 - `KroutonCarAudioError` — me · 2027-01-31 · thrown by `KroutonCarAudioDiscPreparer`; the app shows its message. Make internal or keep (VideoKit/CarAudioDiscPreparer.swift)
 - `KroutonParityError` — me · 2027-01-31 · thrown by `KroutonParityWriter`; the app shows its message. Make internal or keep (ImageKit/ParityRecoveryWriter.swift)
 - `KroutonAudioTagError` — me · 2027-01-31 · thrown by `KroutonAudioTagWriter.write`; the ripper only logs that tagging failed. Make internal or keep (AudioKit/AudioTagWriter.swift)
+- `KroutonAccurateRipReport` — me · 2027-01-31 · returned by `KroutonAccurateRipVerifier`; the ripper reads its fields. Make internal or keep (AudioKit/AccurateRipVerifier.swift)
+- `KroutonAccurateRipTrackResult` — me · 2027-01-31 · inside `KroutonAccurateRipReport`. Make internal or keep (AudioKit/AccurateRipVerifier.swift)
 - `KroutonAudioRenderError` — me · 2027-01-31 · thrown by `KroutonAudioDiscRenderer`; the app shows its message, Suite 37 matches on it. Make internal or keep (AudioKit/AudioDiscRenderer.swift)
 - `AudioMasteredDiscResult` — me · 2027-01-31 · make internal or keep (AudioKit/AudioSampleDecoder.swift)
 - `AutoLabelComposition` — me · 2027-01-31 · make internal or keep (LabelKit/AutoLabelEngine.swift)

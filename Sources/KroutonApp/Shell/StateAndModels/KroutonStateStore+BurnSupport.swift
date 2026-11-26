@@ -38,11 +38,11 @@ extension KroutonStateStore {
                 return "Add one disc image: .iso, .cue (with its .bin), .dmg, .cdr or .toc. Nothing was written."
             }
             let ext = only.url.pathExtension.lowercased()
-            if kind == .networkBurner, !["iso", "cdr"].contains(ext) {
+            if kind == .networkBurner, !["iso", "cdr", "gcm"].contains(ext) {
                 return "Krouton Server burns .iso images. Burn this .\(ext) image on a drive connected to this Mac."
             }
             // Recognised-but-unburnable images (.cdi, .wbfs…) are refused by the drive bank with their own advice.
-            let known = KroutonOpticalDriveBank.burnableImageExtensions.contains(ext)
+            let known = ext == "gcm" || KroutonOpticalDriveBank.burnableImageExtensions.contains(ext)
                 || KroutonOpticalDriveBank.unburnableImageExtensions[ext] != nil
             return known ? nil : "Krouton can't burn a .\(ext) file as a disc image. Add an .iso, .cue/.bin, .dmg, .cdr or .toc."
         case .bluRayVideo:
@@ -52,9 +52,19 @@ extension KroutonStateStore {
             if kind == .networkBurner {
                 return "Krouton Server burns data discs and disc images. Burn audio CDs on a drive connected to this Mac, or save a disc image (.cue/.bin) and send that. Nothing was written."
             }
-            return audioController.project.tracks.isEmpty
-                ? "Add tracks in the Audio CD editor first. The CD is burned from the editor's track list. Nothing was written."
-                : nil
+            let project = audioController.project
+            if project.tracks.isEmpty {
+                return "Add tracks in the Audio CD editor first. The CD is burned from the editor's track list. Nothing was written."
+            }
+            if activeFormatSpec().formatID == .dtsCD {
+                if let track = project.tracks.first(where: { !KroutonAudioDiscRenderer.isRedBookWAV($0.source) }) {
+                    return "\(track.source.lastPathComponent) isn't a 44.1 kHz 16-bit stereo WAV. A DTS CD needs the DTS-encoded WAV files exactly as they are; converting them would destroy the DTS stream. Nothing was written."
+                }
+                if project.tracks.dropLast().contains(where: { $0.transitionToNext.isCrossfading }) {
+                    return "A crossfade would mix two DTS streams into noise. Use pauses or gapless joins on a DTS CD. Nothing was written."
+                }
+            }
+            return nil
         }
     }
 
@@ -144,15 +154,6 @@ extension KroutonStateStore {
             try KroutonUDFImageWriter.build(folder: root, output: target, label: label)
         }.value
         return target
-    }
-
-    /// The `.DS_Store` that gives the disc's root window the layout from the Finder View tab, when
-    /// that tab is on. Network burns get it from `KroutonHybridImageBuilder` instead; burns on a
-    /// drive on this Mac don't carry it yet.
-    func finderLayoutRootFiles() -> [String: Data] {
-        guard enableCustomFinderLayoutTab else { return [:] }
-        let names = stagedFiles.map(\.name).filter { !$0.hasPrefix(".") }.sorted()
-        return [".DS_Store": finderLayoutBlueprint.serializeDSStore(itemNames: names)]
     }
 
     /// A short report for a destination that didn't burn (or, with `ok`, that only wrote a file).

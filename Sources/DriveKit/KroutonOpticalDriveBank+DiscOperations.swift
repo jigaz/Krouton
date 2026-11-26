@@ -145,8 +145,7 @@ extension KroutonOpticalDriveBank {
         stagedFiles: [KroutonStagedFileEntry],
         volumeTitle: String,
         outputPathString: String,
-        compressImage: Bool,
-        extraRootFiles: [String: Data] = [:]
+        compressImage: Bool
     ) async -> KroutonBurnSessionReport {
         isExecutingQueue = true
         jobStartTime = Date()
@@ -167,12 +166,6 @@ extension KroutonOpticalDriveBank {
                 throw KroutonDiscImageError.staging(stagingError)
             }
             activeJobProgress = 0.5
-
-            // Files the app adds at the root, such as the Finder layout's .DS_Store
-            // (`KroutonFinderLayoutBlueprint`, which this module can't import).
-            for (name, data) in extraRootFiles {
-                try data.write(to: tempRoot.appendingPathComponent(name), options: .atomic)
-            }
 
             let expandedPath = NSString(string: outputPathString).expandingTildeInPath
             let isISO = expandedPath.lowercased().hasSuffix(".iso") || expandedPath.lowercased().hasSuffix(".cdr")

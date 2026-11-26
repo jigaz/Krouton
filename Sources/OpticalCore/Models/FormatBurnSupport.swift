@@ -51,11 +51,11 @@ extension KroutonFormatID {
             // with ffmpeg's LAME, renamed in play order, with PLAYLIST.M3U.
             return .dataDisc
         case .dataUDFModern:
-            // NOTE: DiscRecording writes UDF 1.02, not 2.60. Files over 4 GiB still land on the
-            // UDF side. KroutonUDFImageWriter (UDF 2.50) could replace this path.
+            // The staged files as one UDF 2.50 image (`KroutonUDFImageWriter`), burned as an
+            // image: files of any size, no ISO 9660 side (`KroutonStateStore.burnInputFiles`).
             return .dataDisc
         case .dataAppleAPFS:
-            // NOTE: HFS+ (not APFS) alongside ISO/Joliet/UDF; no resource-fork or xattr handling.
+            // The hybrid disc (HFS+ beside ISO/Joliet/UDF); there is no APFS on optical media.
             return .dataDisc
         case .dataRetroISO:
             // ISO 9660 Level 1 (8.3 names) via DiscRecording's DRISOLevel, on this Mac's burners
@@ -88,7 +88,9 @@ extension KroutonFormatID {
         case .cdExtra:
             return .notYet("Enhanced CDs need a second, data session after the audio, which Krouton can't write yet. Choose Audio CD for the music alone. Nothing was written.")
         case .dtsCD:
-            return .notYet("DTS CDs must carry the DTS stream bit for bit, and Krouton's audio path decodes and mixes every track, so it can't promise that yet. Nothing was written.")
+            // The audio path, held to bit-exact input: `KroutonStateStore.burnRefusal` accepts only
+            // CD-format WAV files and no crossfades, so every sample is copied unchanged.
+            return .audioCD
         case .cdG:
             return .notYet("CD+G graphics live in the subchannel, which Krouton can't write yet. Choose Audio CD for the music alone. Nothing was written.")
         case .dvdAudio, .sacdR:

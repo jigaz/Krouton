@@ -225,7 +225,7 @@ struct KroutonVideoBitratePopoverView: View {
         let shrinkPlan = KroutonVideoAuthoringEngine.planDVD9ToDVD5Shrink(
             mainFeatureBytes: mainBytes,
             menusAndExtrasBytes: extrasBytes,
-            preserveMenusAndExtras: store.fitToDiscPreserveMenus
+            preserveMenusAndExtras: store.preserveMenusAndExtras
         )
 
         VStack(alignment: .leading, spacing: 10) {
@@ -293,7 +293,7 @@ struct KroutonVideoBitratePopoverView: View {
             }
             let blueprint = KroutonVideoAuthoringEngine.buildDVD9ToDVD5MenuShrinkBlueprint(
                 menuVobBytes: extrasBytes,
-                preserveMenus: store.fitToDiscPreserveMenus,
+                preserveMenus: store.preserveMenusAndExtras,
                 sourceCells: sampleCells
             )
 

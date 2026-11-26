@@ -73,26 +73,12 @@ extension KroutonSettingsWindowView {
                     }
                 }
             }
-
-            settingsCard(title: "Automatic Label Artwork Lookup & Vision Hole-Avoidance") {
-                Toggle(KroutonL10n.tr("Use Apple Vision Subject Detection to keep faces/logos out of the 18mm center hole"), isOn: Bindable(store).visionHoleAvoidance)
-                Divider()
-                Text(KroutonL10n.tr("Zero-Key Databases Enabled: MusicBrainz / Cover Art Archive, Apple iTunes, TVMaze, GameTDB"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                HStack(spacing: 12) {
-                    TextField("Optional TMDB API Key (Movies & TV)", text: Bindable(store).customTMDBKey)
-                        .textFieldStyle(.roundedBorder)
-                    TextField("Optional Fanart.tv Key (Transparent Circular Disc Art)", text: Bindable(store).customFanartKey)
-                        .textFieldStyle(.roundedBorder)
-                }
-            }
         }
     }
 
     var notificationsPane: some View {
         VStack(alignment: .leading, spacing: 16) {
-            settingsCard(title: "Alerts, iPhone Live Activities & Apple Watch Notifications") {
+            settingsCard(title: "Notifications") {
                 ForEach(Array(store.notificationMatrix.enumerated()), id: \.element.id) { idx, row in
                     VStack(spacing: 8) {
                         HStack {
@@ -111,18 +97,8 @@ extension KroutonSettingsWindowView {
                                     isOn: Bindable(store).notificationMatrix[idx].bannerEnabled
                                 )
                                 iconCircleToggle(
-                                    sfSymbol: "iphone",
-                                    helpText: "iPhone Live Activity",
-                                    isOn: Bindable(store).notificationMatrix[idx].iPhoneEnabled
-                                )
-                                iconCircleToggle(
-                                    sfSymbol: "applewatch",
-                                    helpText: "Apple Watch Smart Stack & Wrist Tap",
-                                    isOn: Bindable(store).notificationMatrix[idx].watchEnabled
-                                )
-                                iconCircleToggle(
                                     sfSymbol: "speaker.wave.2.fill",
-                                    helpText: "Play Audio Alert Sound",
+                                    helpText: "Play a Sound",
                                     isOn: Bindable(store).notificationMatrix[idx].soundEnabled
                                 )
                             }
@@ -132,48 +108,20 @@ extension KroutonSettingsWindowView {
                         }
                     }
                 }
-            }
-
-            settingsCard(title: "iPhone Live Activity & Apple Watch Smart Stack Telemetry Feed") {
-                let comp = KroutonNotificationAndCompanionService.shared.latestCompanionPayload
-                HStack(spacing: 14) {
-                    Image(systemName: "applewatch.watchface")
-                        .font(.system(size: 28))
-                        .foregroundStyle(store.activeAccent)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("\(comp.title) • \(Int(comp.progressFraction * 100))%")
-                            .font(.system(size: 12, weight: .bold))
-                        Text("\(comp.subtitle) (\(comp.driveName) • \(comp.speedLabel))")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                        Text(KroutonNotificationAndCompanionService.shared.lastDispatchedBannerText)
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(store.activeAccent)
-                    }
+                Divider()
+                HStack {
+                    Text(KroutonNotificationAndCompanionService.shared.lastDispatchedBannerText)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.secondary)
                     Spacer()
-                    pillToggleButton(title: "Send Test Alert", sfSymbol: "bell.badge.fill", isSelected: false) {
+                    pillToggleButton(title: "Send Test Notification", sfSymbol: "bell.badge.fill", isSelected: false) {
                         KroutonNotificationAndCompanionService.shared.dispatchEvent(
-                            id: "done",
-                            title: "Krouton Mastering Verified",
-                            subtitle: "Optical Disc & Companion Telemetry Online",
-                            progress: 1.0,
-                            driveName: driveManager.selectedDrive?.displayName ?? "ATAPI iHAS124 F",
-                            speedLabel: "16.0x CAV",
-                            store: store
+                            id: "done", title: "Krouton Test Notification",
+                            subtitle: "Notifications are working.", store: store
                         )
                     }
                 }
             }
-
-            HStack(spacing: 20) {
-                Label(KroutonL10n.tr("macOS Notification Center"), systemImage: "bell.fill")
-                Label(KroutonL10n.tr("iPhone Live Activity"), systemImage: "iphone")
-                Label(KroutonL10n.tr("Apple Watch Alert"), systemImage: "applewatch")
-                Label(KroutonL10n.tr("Sound Effect"), systemImage: "speaker.wave.2.fill")
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 6)
         }
     }
 
@@ -203,10 +151,9 @@ extension KroutonSettingsWindowView {
 
             settingsCard(title: "Display, Contrast & Motion Accessibility") {
                 Toggle(KroutonL10n.tr("Increase Contrast (High-contrast borders on Format Chooser, Tracklists & Phase Scope)"), isOn: Bindable(store).a11yIncreaseContrast)
-                Divider()
-                Toggle(KroutonL10n.tr("Differentiate Without Color (Show explicit status symbols alongside green/amber/red LEDs)"), isOn: Bindable(store).a11yDifferentiateWithoutColor)
-                Divider()
-                Toggle(KroutonL10n.tr("Reduce Motion (Disable continuous disc rotation & smooth Phase Scope sweeps)"), isOn: Bindable(store).a11yReduceMotion)
+                Text(KroutonL10n.tr("For reduced motion and status shown without colour, Krouton follows System Settings › Accessibility › Display."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
             }
 

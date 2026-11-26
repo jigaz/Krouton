@@ -51,6 +51,9 @@ extension KroutonTestHarness {
                 }.max() ?? 0
                 h.check(peak > 1_000, "Audio CD: the rendered track holds the tone, not silence")
             }
+            let toneBytes = try Data(contentsOf: urls[0]).subdata(in: 44..<(44 + 375 * 2352))
+            h.check(KroutonAudioDiscRenderer.isRedBookWAV(urls[0]) && (try? Data(contentsOf: tracks[0].pcm)) == toneBytes,
+                    "Audio CD: a CD-format WAV with no fade is burned bit for bit (what DTS-CD relies on)")
             h.check(tracks[0].isrc == "USK7R2600001" && tracks[1].title == "Tone 2", "Audio CD: titles and ISRCs carried per track")
 
             let cue = dir.appendingPathComponent("disc.cue")
@@ -73,6 +76,7 @@ extension KroutonTestHarness {
             h.check(refused, "Audio CD: a track under 4 s stops the render with an explanation")
             try Self.verifyCarMP3Preparer(&h, dir: dir, tones: urls)
             try Self.verifyTagWriter(&h, dir: dir, tone: urls[0])
+            try Self.verifyAccurateRip(&h, dir: dir)
         }
     }
 
@@ -144,5 +148,66 @@ extension KroutonTestHarness {
         h.check(out.count > 42 && out[4] == 0x00 && out[42] == 0x84 && text.contains("TITLE=Solar Echoes")
                 && text.contains("TRACKNUMBER=3") && !text.contains("old") && Array(out.suffix(5)) == [0xFF, 0xF8, 1, 2, 3],
                 "Tags: FLAC's old comment replaced after STREAMINFO, last-block flag moved, frames untouched")
+    }
+
+    /// A synthetic three-track disc whose "database" was made from reads shifted by 6 samples:
+    /// the verifier must find that offset and match every track, and must not match a rip
+    /// with one sample changed.
+    private static func verifyAccurateRip(_ h: inout KroutonTestHarness, dir: URL) throws {
+        let lengths = [20_000, 15_000, 22_000]
+        var rng: UInt64 = 0x9E37_79B9_7F4A_7C15
+        func next() -> UInt32 { rng = rng &* 6364136223846793005 &+ 1442695040888963407; return UInt32(truncatingIfNeeded: rng >> 32) }
+        let disc = (0..<lengths.reduce(0, +)).map { _ in next() }
+        let offset = 6
+        func truth(_ t: Int) -> UInt32 {
+            let start = lengths.prefix(t).reduce(0, +), n = lengths[t]
+            let lo = t == 0 ? 2_939 : 0, hi = t == lengths.count - 1 ? n - 2_940 : n
+            var crc: UInt32 = 0
+            for i in lo..<hi {
+                let k = start + i + offset
+                crc &+= (k >= 0 && k < disc.count ? disc[k] : 0) &* UInt32(i + 1)
+            }
+            return crc
+        }
+        func wav(_ samples: ArraySlice<UInt32>, _ url: URL) throws {
+            var d = Data("RIFF".utf8)
+            func le(_ v: UInt32) { withUnsafeBytes(of: v.littleEndian) { d.append(contentsOf: $0) } }
+            func le16(_ v: UInt16) { withUnsafeBytes(of: v.littleEndian) { d.append(contentsOf: $0) } }
+            le(UInt32(36 + samples.count * 4)); d.append(contentsOf: Array("WAVEfmt ".utf8)); le(16)
+            le16(1); le16(2); le(44_100); le(176_400); le16(4); le16(16)
+            d.append(contentsOf: Array("data".utf8)); le(UInt32(samples.count * 4))
+            for s in samples { le(s) }
+            try d.write(to: url)
+        }
+        var files: [URL] = []
+        var start = 0
+        for (t, n) in lengths.enumerated() {
+            let url = dir.appendingPathComponent("ar\(t + 1).wav")
+            try wav(disc[start..<(start + n)], url)
+            files.append(url)
+            start += n
+        }
+        // dBAR: one chunk, header (count, id1, id2, cddb), then confidence + CRC + frame-450 CRC per track.
+        var db = Data([UInt8(lengths.count)] + [UInt8](repeating: 0, count: 12))
+        for t in 0..<lengths.count {
+            db.append(UInt8(7 + t))
+            withUnsafeBytes(of: truth(t).littleEndian) { db.append(contentsOf: $0) }
+            db.append(contentsOf: [0, 0, 0, 0])
+        }
+        let report = try KroutonAccurateRipVerifier.verify(files: files, database: db)
+        h.check(report.driveOffset == offset && report.allAccurate && report.tracks.map(\.confidence) == [7, 8, 9],
+                "AccurateRip: the drive's read offset is found and every track matches at it")
+
+        var damaged = disc
+        damaged[lengths[0] + 500] ^= 1
+        try wav(damaged[lengths[0]..<(lengths[0] + lengths[1])], files[1])
+        let bad = try KroutonAccurateRipVerifier.verify(files: files, database: db)
+        h.check(bad.tracks[1].confidence == 0 && bad.tracks[1].bestConfidence == 8 && bad.tracks[0].confidence == 7,
+                "AccurateRip: one changed sample makes that track inaccurate and leaves the others matched")
+
+        let id = KroutonAccurateRipDiscID(trackStarts: [0, 13_000, 27_000], leadout: 40_000)
+        h.check(id.id1 == 80_000 && id.id2 == 1 + 26_000 + 81_000 + 160_000
+                && id.url.absoluteString.hasPrefix("http://www.accuraterip.com/accuraterip/0/8/8/dBAR-003-00013880-"),
+                "AccurateRip: disc IDs and the entry's address follow the published scheme")
     }
 }

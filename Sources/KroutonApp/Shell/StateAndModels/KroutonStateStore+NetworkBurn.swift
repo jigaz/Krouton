@@ -12,7 +12,7 @@ extension KroutonStateStore {
     /// streams into the card's Phase Scope. What is sent:
     /// - one staged .iso/.cdr: that image, as it is (wrapping it in a new data disc, as this used
     ///   to, burned the image as a file);
-    /// - Blu-ray video: a UDF 2.50 image from `KroutonUDFImageWriter`;
+    /// - Blu-ray video and large-file UDF data: a UDF 2.50 image from `KroutonUDFImageWriter`;
     /// - DVD-Video: the files themselves (`burnFolder`), so the server's own writer builds the
     ///   disc with VIDEO_TS first and in player order, as hdiutil can't promise;
     /// - anything else: an ISO 9660 + Joliet + UDF image of the staged files (`hdiutil makehybrid`).
@@ -25,7 +25,17 @@ extension KroutonStateStore {
             await runNetworkFolderBurn(target, driveManager: driveManager, started: started)
             return
         }
-        let sole = KroutonOpticalDriveBank.soleDiscImage(in: stagedFiles)
+        // MP3 conversion, PAR2, the Finder layout, large-file UDF and .gcm renaming happen here.
+        let input: (files: [KroutonStagedFileEntry], folder: URL?)
+        do {
+            input = try await burnInputFiles()
+        } catch {
+            driveManager.completionReport = networkReport(ok: false, title: "Could Not Prepare the Disc", summary: error.localizedDescription,
+                                                          server: "", drive: "", bytes: 0, started: started)
+            return
+        }
+        defer { if let folder = input.folder { try? FileManager.default.removeItem(at: folder) } }
+        let sole = KroutonOpticalDriveBank.soleDiscImage(in: input.files)
         if let sole, !["iso", "cdr"].contains(sole.pathExtension.lowercased()) {
             driveManager.completionReport = networkReport(ok: false, title: "Burn This Image on This Mac",
                                                           summary: "Krouton Server burns .iso images; .\(sole.pathExtension) images burn on a drive connected to this Mac.",
@@ -38,15 +48,7 @@ extension KroutonStateStore {
         } else if activeBurnSupport == .bluRayVideo, case .success(let root) = bluRayVideoRoot() {
             built = try? await buildBluRayImage(root: root)
         } else {
-            do {
-                let input = try await burnInputFiles()
-                built = await masterImageForNetworkBurn(input.files)
-                if let folder = input.folder { try? FileManager.default.removeItem(at: folder) }
-            } catch {
-                driveManager.completionReport = networkReport(ok: false, title: "Could Not Prepare the Disc", summary: error.localizedDescription,
-                                                              server: "", drive: "", bytes: 0, started: started)
-                return
-            }
+            built = await masterImageForNetworkBurn(input.files)
         }
         guard let image = built else {
             driveManager.completionReport = networkReport(ok: false, title: "Could Not Build the Disc Image",
