@@ -49,17 +49,17 @@ extension KroutonTestHarness {
                 t += [UInt8](repeating: 0, count: 16) + le(sizeCode) + [UInt8](repeating: 0, count: 29 + 5) + le(0)
                 return t
             }
-            func cdi(dataStart: UInt32) -> [UInt8] {
+            func cdiDescriptor(dataStart: UInt32) -> [UInt8] {
                 let end = [UInt8](repeating: 0, count: 13)
                 return [2, 0] + [1, 0] + cdiTrack(pregap: 150, frames: 302, mode: 0, start: 0, sizeCode: 2) + end
                     + [1, 0] + cdiTrack(pregap: 150, frames: 1_000, mode: 2, start: dataStart, sizeCode: 1) + end
             }
-            let image = try? KroutonDiscJugglerImage.parse(descriptor: cdi(dataStart: 11_702),
+            let image = try? KroutonDiscJugglerImage.parse(descriptor: cdiDescriptor(dataStart: 11_702),
                                                            version: KroutonDiscJugglerImage.version3, fileLength: 10_000_000)
             let plan = try? image?.audioDataPlan()
             h.lint(plan?.audio.count == 1 && plan?.data.startLBA == 11_702 && plan?.data.fileOffset == Int64(452 * 2352 + 150 * 2336)
                    && plan?.data.userDataOffset == 8, "An audio/data .cdi must give its tracks, file offsets and a burn plan")
-            let misplaced = try? KroutonDiscJugglerImage.parse(descriptor: cdi(dataStart: 11_700),
+            let misplaced = try? KroutonDiscJugglerImage.parse(descriptor: cdiDescriptor(dataStart: 11_700),
                                                                version: KroutonDiscJugglerImage.version3, fileLength: 10_000_000)
             h.lint(misplaced != nil && (try? misplaced?.audioDataPlan()) == nil,
                    "A .cdi whose data wouldn't land where it was mastered must be refused")
