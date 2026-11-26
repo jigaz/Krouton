@@ -129,9 +129,17 @@ table { border-collapse: collapse; width: 100%; font-size: 0.98rem; }
 th, td { text-align: left; vertical-align: top; padding: 0.55rem 1rem 0.55rem 0; border-bottom: 1px solid var(--hairline); }
 th { font-family: var(--head); font-weight: 600; font-size: 0.92rem; color: var(--ink-soft); }
 .wide { max-width: none; }
+.catalog { table-layout: fixed; }
+.catalog th:nth-child(1) { width: 47%; }
+.catalog th:nth-child(2) { width: 33%; }
+@media (max-width: 40rem) { .catalog { table-layout: auto; } }
 
 .kept, .linked { font-family: var(--head); font-size: 0.86rem; white-space: nowrap; }
 .kept { color: var(--cyanine); }
 .linked { color: var(--ink-soft); }
 
 .note { color: var(--ink-soft); font-size: 0.95rem; }
+
+dl { max-width: var(--measure); }
+dt { margin-top: 0.9rem; }
+dd { margin: 0.2rem 0 0; }
