@@ -28,6 +28,7 @@ extension KroutonStateStore {
             input = try withFinderLayout(input)
         }
         if format == .dataUDFModern { input = try await asUDFImage(input, profile: .bluRay) }
+        if format == .macos9HFS { input = try await asHFSImage(input) }
         if format == .dvdVideo {
             guard let items = dvdVideoItems(input.files) else {
                 throw KroutonBurnInputError(message: "Add the folder that holds VIDEO_TS (or VIDEO_TS and AUDIO_TS themselves). Nothing was written.")
@@ -65,6 +66,36 @@ extension KroutonStateStore {
         let store = layout.appendingPathComponent(".DS_Store")
         try finderLayoutBlueprint.serializeDSStore(itemNames: names).write(to: store, options: .atomic)
         return (input.files.filter { $0.name != ".DS_Store" } + [KroutonOpticalDriveBank.inspectFileOrFolder(url: store)], folder)
+    }
+
+    /// Stages the files and writes them as a classic HFS volume in an Apple Partition Map
+    /// (`KroutonHFSImageWriter`), resource forks and Finder info included, for Mac OS 9 and
+    /// earlier. The image is a `.cdr`, which the drive bank burns as it is.
+    private func asHFSImage(
+        _ input: (files: [KroutonStagedFileEntry], folder: URL?)
+    ) async throws -> (files: [KroutonStagedFileEntry], folder: URL?) {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("KroutonHFS_\(UUID().uuidString)", isDirectory: true)
+        defer { if let old = input.folder { try? FileManager.default.removeItem(at: old) } }
+        let tree = folder.appendingPathComponent("Tree", isDirectory: true)
+        let items = input.files.map { KroutonBurnStageItem(source: $0.url, name: $0.name) }
+        if let stagingError = await KroutonBurnStager.stage(items, into: tree) {
+            try? FileManager.default.removeItem(at: folder)
+            throw KroutonBurnInputError(message: stagingError)
+        }
+        let image = folder.appendingPathComponent("disc.cdr")
+        let label = discVolumeTitle
+        do {
+            try Self.ensureScratchSpace(for: input.files.reduce(Int64(0)) { $0 + $1.byteSize })
+            _ = try await Task.detached(priority: .userInitiated) {
+                try KroutonHFSImageWriter.build(folder: tree, output: image, label: label)
+            }.value
+        } catch {
+            try? FileManager.default.removeItem(at: folder)
+            throw error
+        }
+        try? FileManager.default.removeItem(at: tree)
+        return ([KroutonOpticalDriveBank.inspectFileOrFolder(url: image)], folder)
     }
 
     /// The deck's items with VIDEO_TS at the top: a lone folder holding VIDEO_TS stands for its

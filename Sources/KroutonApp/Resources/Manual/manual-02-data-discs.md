@@ -9,7 +9,7 @@ Pick a data format in the Format Chooser, under **Data & Archival Media**, or fr
 - **M-DISC 1,000-Year Archival Vault** (⌃⌘5) is a hybrid disc meant for M-DISC blanks. With **PAR2** above Off, Krouton adds recovery files (KROUTON_RECOVERY.par2 and its volume) holding that percentage of the data, so damaged files can be rebuilt from the disc itself with `par2 repair`. This needs par2, which you install separately (Homebrew: brew install par2).
 - **Burn Disc Image** (⌃⌘6) writes an existing .iso, .cue/.bin or .dmg exactly as it is.
 
-Older formats are there for old machines. **DOS 8.3** writes ISO 9660 Level 1, with 8.3 upper-case names, for DOS and Windows 3.1; it burns on a drive connected to this Mac only. Mac OS 9 discs (classic HFS with an Apple Partition Map) can't be made yet.
+Older formats are there for old machines. **DOS 8.3** writes ISO 9660 Level 1, with 8.3 upper-case names, for DOS and Windows 3.1; it burns on a drive connected to this Mac only. **Mac OS 9 (HFS)** writes a classic HFS disc inside an Apple Partition Map, the way Mac CDs were made for System 7 to Mac OS 9, and keeps what a classic Mac needs: each file's resource fork and its Finder type and creator, so programs run and documents open with the right application. Names are shortened to 31 characters. A folder holding a System file and a Finder is blessed and its boot blocks are written, which New World Macs (Mac OS 8.5–9.2) need to start up from the disc; older Macs also need CD driver partitions, which Krouton doesn't write. macOS 10.15 and later can't read HFS discs at all.
 
 ## Which computers see which files
 

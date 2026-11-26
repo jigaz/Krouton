@@ -22,6 +22,17 @@ jobs:
         run: swift test
       - name: Run Deterministic Verification Harness
         run: swift run krouton-verify
+        env:
+          KROUTON_HFS_OUT: ${{ runner.temp }}/hfs
+      - name: An independent reader checks the classic HFS image (Suite 38)
+        run: python3 Scripts/check-hfs-image.py "$RUNNER_TEMP/hfs/classic.cdr"
+      - name: Keep the classic HFS image for the Linux mount
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hfs-image
+          path: ${{ runner.temp }}/hfs/classic.cdr
+          if-no-files-found: ignore
 
   avchd-real-encode:
     # The AVCHD pipeline end to end: ffmpeg makes two test clips (30 and 25 fps, stereo and 5.1),
@@ -61,6 +72,26 @@ jobs:
         with:
           name: dvd-vector
           path: ${{ runner.temp }}/avchd/out/dvd-vector.iso
+
+  hfs-linux-mount:
+    # Linux's own HFS driver mounts the classic HFS image Suite 38 wrote (macOS can't read
+    # HFS Standard any more), and the files read back as written.
+    needs: verify-macos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: hfs-image
+      - name: Mount and read it
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq "linux-modules-extra-$(uname -r)" || true
+          sudo modprobe hfs
+          sudo mkdir -p /mnt/hfs
+          sudo mount -t hfs -o loop,ro,offset=32768 classic.cdr /mnt/hfs
+          ls -laR /mnt/hfs
+          printf 'Read me first\r' | cmp - '/mnt/hfs/Read Me'
+          test "$(stat -c %s '/mnt/hfs/System Folder/Extensions/apple Ext')" = 70000
+          sudo umount /mnt/hfs
 
   ipados-portable-core:
     # The libraries an iPad app would share (krouton-verify Suite 31) must compile for iPadOS.

@@ -95,7 +95,7 @@ extension KroutonDataAndArchivalWorkspaceView {
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
                         } else if isClassicHFS {
-                            Label("Apple Partition Map (APM) + Blessed Classic HFS (System 7 / Mac OS 9)", systemImage: "desktopcomputer")
+                            Label("Classic HFS in a Partition Map: Resource Forks, Types & Creators Kept", systemImage: "desktopcomputer")
                                 .font(.caption.bold())
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)

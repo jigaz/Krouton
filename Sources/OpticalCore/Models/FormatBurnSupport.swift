@@ -11,7 +11,7 @@ import Foundation
 /// - Every local burn goes through `KroutonOpticalDriveBank.startPhysicalDataBurn`, which writes
 ///   either a data disc (DiscRecording: ISO 9660 + Joliet, plus UDF 1.02 on DVD/BD, plus HFS+)
 ///   or, when exactly one burnable image is staged, that image sector for sector.
-///   There is no Mode 2 Form 2 or HFS-standard writer, so the formats that
+///   There is no Mode 2 Form 2 writer, so the formats that
 ///   need one are `.notYet`.
 /// - Audio CDs (`.audioCD`, since 2026-11): `KroutonAudioDiscRenderer` (AudioKit) renders the
 ///   Audio CD editor's project — pauses, crossfades, trims — to one PCM file per track, and
@@ -96,7 +96,9 @@ extension KroutonFormatID {
         case .photoCD:
             return .notYet("Kodak Photo CD discs can't be made. Nothing was written.")
         case .macos9HFS:
-            return .notYet("Classic HFS discs with an Apple Partition Map can't be made yet; a data disc (HFS+) would not boot or open on Mac OS 9. Nothing was written.")
+            // A classic HFS volume in an Apple Partition Map with resource forks and Finder info
+            // (`KroutonHFSImageWriter`), burned as a .cdr image.
+            return .dataDisc
         }
     }
 }

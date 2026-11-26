@@ -149,9 +149,9 @@ extension KroutonStateStore {
             }
             defer { if let folder = input.folder { try? FileManager.default.removeItem(at: folder) } }
             // Large-file UDF and DVD-Video arrive as a finished image from Krouton's writer.
-            if [.dataUDFModern, .dvdVideo].contains(activeFormatSpec().formatID), let image = input.files.first?.url {
+            if [.dataUDFModern, .dvdVideo, .macos9HFS].contains(activeFormatSpec().formatID), let image = input.files.first?.url {
                 let path = NSString(string: target.hardwareOrPath).expandingTildeInPath
-                let output = URL(fileURLWithPath: path).deletingPathExtension().appendingPathExtension("iso")
+                let output = URL(fileURLWithPath: path).deletingPathExtension().appendingPathExtension(image.pathExtension)
                 do {
                     try? FileManager.default.removeItem(at: output)
                     try FileManager.default.moveItem(at: image, to: output)

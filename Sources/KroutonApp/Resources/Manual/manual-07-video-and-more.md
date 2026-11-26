@@ -45,4 +45,4 @@ The **Retro Console Optical Media** menu lists formats for the Wii, GameCube, Pl
 
 Consoles were built to refuse burned discs. Most need a modchip, a soft-mod or a loader such as Swiss (GameCube) or USB Loader GX (Wii), and several of those are in the Depot's **Console Homebrew** channel. Wii and GameCube discs are best played from a USB drive or SD card with those tools rather than burned. Some older consoles only read DVD-R; Krouton doesn't set the DVD-ROM book type on DVD+R (see Burners). Dreamcast .cdi and .gdi images can't be burned yet. Only make copies of games you own.
 
-Settings › Format Chooser also lists formats for old computers: Mac OS 9 discs with classic HFS and strict 8.3 names for DOS and Windows 95. Mac OS 9 discs can't be made yet (Krouton refuses); DOS 8.3 discs are written as ISO 9660 Level 1 (see Data discs).
+Settings › Format Chooser also lists formats for old computers: Mac OS 9 discs with classic HFS and strict 8.3 names for DOS and Windows 95. Mac OS 9 discs are written as classic HFS and DOS 8.3 discs as ISO 9660 Level 1 (see Data discs).
