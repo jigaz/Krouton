@@ -39,7 +39,11 @@ Krouton remembers what you were working on and restores it the next time you ope
 Krouton is young. These parts are finished and tested on real drives:
 
 - Data discs (hybrid ISO-9660, Joliet and UDF) and discs spanned across several blanks.
-- Burning existing disc images (.iso, .cue/.bin, .dmg).
+- Burning existing disc images (.iso, .cdr, .dmg, .cue/.bin, .toc), including bootable ones, and leaving a disc open for more sessions.
+- The Depot: a checked list of downloadable discs, from old live CDs to console homebrew.
+- Rescuing a damaged data disc into an image, with a ddrescue-style map so you can retry later.
+- Saving a DVD's titles as MKV files (with ffmpeg) or as MPEG files.
+- Identifying console disc images (Wii, GameCube, PlayStation, Dreamcast, Saturn, Xbox) and burning them as they are.
 - Audio CDs with pauses, gapless joins, crossfades and CD-Text.
 - Ripping audio CDs, with MusicBrainz lookup and per-track checksums.
 - Disc labels exported as 1:1 PDF or 300-DPI PNG.
@@ -48,11 +52,10 @@ Krouton is young. These parts are finished and tested on real drives:
 
 These are still being built. Their screens are there so you can see where Krouton is going, but they may not do the whole job yet:
 
-- Shrinking a dual-layer DVD onto a single-layer disc, and extracting video from discs.
+- Shrinking a dual-layer DVD onto a single-layer disc while keeping its menus. It hasn't been checked on many players yet.
 - AVCHD discs.
-- Re-reading damaged sectors (rescue). A rip reports a track with read errors as failed rather than repairing it.
 - Quality grading of a burned disc. Without a C1/C2 error scan the certificate says the disc was not measured.
-- Retro console disc formats.
+- Burning .cdi and .gdi images (Dreamcast) and compressed images (.wbfs, .rvz, .chd). Krouton names these and explains how to convert them, but can't burn them yet.
 
 ## Getting help
 

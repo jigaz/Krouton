@@ -31,6 +31,10 @@ Several USB burners on one Mac compete for power and bandwidth. Krouton starts t
 
 Some old DVD players and early game consoles only accept discs that say they are DVD-ROM. With **Stamp DVD-ROM Book Type** (⇧⌘M, or the **DVD-ROM Bitset** switch on a card), Krouton marks DVD+R and DVD+R DL discs that way before burning. It only works on drives whose firmware supports it. Pick your drive's family under **MMC Bitsetting Command Profile** in Settings, or leave it on Auto-Detect.
 
+## Leaving a disc open
+
+**Disc › Leave Disc Open for More Sessions** burns without closing the disc, so another session can be added later. Depot entries that rely on this, such as a live CD that saves its settings back to its own disc, turn it on for you. Turn it off for discs meant for players or other computers: many can only read a closed disc.
+
 ## After the burn
 
 When a burn ends, the burn report shows the drive, the disc, the speed it reached, how long it took and whether verification passed. **Disc › Copy Archival Quality Certificate** (⌥⌘C) copies a summary you can keep with the disc.

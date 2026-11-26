@@ -33,11 +33,21 @@ A file larger than the chosen disc can't be split. Pick a bigger disc size, or u
 
 ## Burning a disc image
 
-Drop an .iso, .cue/.bin or .dmg on the deck, or choose **Burn Disc Image**. A .cue file must sit next to the .bin files it names. Krouton writes the image sector for sector, including its boot catalog, so a bootable installer stays bootable.
+Drop an .iso, .cdr, .dmg, .cue/.bin or .toc on the deck, or choose **Burn Disc Image**. A .cue file must sit next to the .bin files it names. When the deck holds a single disc image, Krouton writes the image sector for sector, including its boot catalog, so a bootable installer stays bootable. It doesn't wrap the image in a new file system.
+
+Krouton refuses images it can't burn faithfully, such as .cdi, .gdi, .wbfs, .rvz and .chd, and says why, instead of copying the file onto a data disc.
+
+**Disc › Leave Disc Open for More Sessions** burns without closing the disc, so more sessions can be added later. Some live CDs, such as Puppy Linux, use this to save your changes back to the same CD-R or DVD±R. Most players and older drives read only closed discs, so leave it off otherwise.
 
 ## The Disc Image Depot
 
-The Depot (⌘2) is a library of disc images you have made or collected. Select an image to see:
+The Depot (⌘2) lists discs you can download and burn, grouped as **The Shelf** (operating systems and live CDs from the years when a CD-ROM was the exciting way to try something), **Strange and Wonderful** (odd and tiny systems, including live CDs that write back to their own disc), **Fix-It Discs** (repair, backup, partitioning and memory-testing tools) and **Console Homebrew** (open-source tools such as CleanRip and USB Loader GX for the Wii, Swiss for the GameCube and Open PS2 Loader).
+
+The list comes from depot.krouton.app and is refreshed when Krouton starts; the last copy is kept so the Depot works offline. Each entry is checked every month: the download is fetched, its SHA-256 recorded, and the image inside checked for a valid header. Entries whose source stopped working are dropped until they're fixed. When you choose one, Krouton downloads it, checks it against that SHA-256, unpacks the image if it came in a .zip or .7z, and puts it on the deck ready to burn, with the blank it needs. Entries the Depot can't fetch for you open their own download page instead. You can point Krouton at another feed in Settings.
+
+The Depot holds free software only: no commercial games or operating systems.
+
+You can also open any disc image you already have. Select an image to see:
 
 - whether it can boot (El Torito for PCs, Apple Partition Map for Macs) and which file systems it holds;
 - the **LBA Sector Map**: where each structure sits on the disc, in 2048-byte sectors;

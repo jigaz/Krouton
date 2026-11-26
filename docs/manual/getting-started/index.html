@@ -71,7 +71,11 @@
     <p>Krouton is young. These parts are finished and tested on real drives:</p>
     <ul>
       <li>Data discs (hybrid ISO-9660, Joliet and UDF) and discs spanned across several blanks.</li>
-      <li>Burning existing disc images (.iso, .cue/.bin, .dmg).</li>
+      <li>Burning existing disc images (.iso, .cdr, .dmg, .cue/.bin, .toc), including bootable ones, and leaving a disc open for more sessions.</li>
+      <li>The Depot: a checked list of downloadable discs, from old live CDs to console homebrew.</li>
+      <li>Rescuing a damaged data disc into an image, with a ddrescue-style map so you can retry later.</li>
+      <li>Saving a DVD's titles as MKV files (with ffmpeg) or as MPEG files.</li>
+      <li>Identifying console disc images (Wii, GameCube, PlayStation, Dreamcast, Saturn, Xbox) and burning them as they are.</li>
       <li>Audio CDs with pauses, gapless joins, crossfades and CD-Text.</li>
       <li>Ripping audio CDs, with MusicBrainz lookup and per-track checksums.</li>
       <li>Disc labels exported as 1:1 PDF or 300-DPI PNG.</li>
@@ -80,11 +84,10 @@
     </ul>
     <p>These are still being built. Their screens are there so you can see where Krouton is going, but they may not do the whole job yet:</p>
     <ul>
-      <li>Shrinking a dual-layer DVD onto a single-layer disc, and extracting video from discs.</li>
+      <li>Shrinking a dual-layer DVD onto a single-layer disc while keeping its menus. It hasn't been checked on many players yet.</li>
       <li>AVCHD discs.</li>
-      <li>Re-reading damaged sectors (rescue). A rip reports a track with read errors as failed rather than repairing it.</li>
       <li>Quality grading of a burned disc. Without a C1/C2 error scan the certificate says the disc was not measured.</li>
-      <li>Retro console disc formats.</li>
+      <li>Burning .cdi and .gdi images (Dreamcast) and compressed images (.wbfs, .rvz, .chd). Krouton names these and explains how to convert them, but can't burn them yet.</li>
     </ul>
     <h2>Getting help</h2>
     <ul>

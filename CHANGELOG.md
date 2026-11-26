@@ -4,6 +4,17 @@ All notable changes to Krouton and Krouton Server. Dates are when the work lande
 
 ## [Unreleased]
 
+### Discs, rescue, video and consoles
+- Fixed: **Burn Disc Image** burned the image as a file on a data disc. A single .iso, .cdr, .dmg, .cue or .toc on the deck is now burned sector for sector; .cdi, .gdi, .wbfs, .rvz and .chd are refused with a reason.
+- **Leave Disc Open for More Sessions** (Disc menu), for multisession live CDs.
+- **The Depot** now lists real, downloadable discs from the feed at depot.krouton.app (checked monthly, SHA-256 verified, unpacked from .zip/.7z on download). The made-up catalogue and placeholder images are gone.
+- **Rescue a Damaged Disc**: ddrescue-style copy, trim, scrape and retry over direct drive reads, with a GNU ddrescue mapfile so a rescue can resume or be finished by ddrescue.
+- **Video Disc Extractor** saves DVD titles as MKV (ffmpeg remux, all audio and subtitles) or joined MPEG files.
+- **DVD-9 shrink** writes real DVD navigation packs (ffmpeg's dvd muxer); still needs checking on players.
+- **Console discs**: Krouton identifies Wii, GameCube, PlayStation, Dreamcast, Saturn and Xbox images and says what each console needs to play a burned disc. The console toggles that did nothing were removed.
+- Published JSON Schemas for the set index, `.krut` and the depot feed at krouton.app/schema (Suite 33).
+- AVCHD is still not written.
+
 ### Krouton Server (new)
 - A Rust server that burns discs for Krouton on another computer: Raspberry Pi (ARMv6 to ARM64), x86 and x86-64 Linux, Proxmox, NAS boxes, Windows 10 and 11 (x64, x86, ARM64) and macOS 12 or later. It burns with `xorriso` on Linux, `hdiutil` on macOS and IMAPI2 on Windows, or simulates.
 - KRSP v1: 64-byte framed messages over pinned mutual TLS 1.3, with Ed25519 session proofs, commit-then-reveal pairing confirmed with a six-digit code, and resumable uploads checked against a Merkle manifest.
