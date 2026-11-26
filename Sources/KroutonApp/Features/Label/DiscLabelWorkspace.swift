@@ -43,7 +43,6 @@ struct KroutonDiscLabelWorkspaceView: View {
     @State var activeTool: KroutonStage1Tool = .background
     @State var newPresetName: String = ""
     @State var workingGeometryOverride: KroutonDiscLabelGeometry? = nil
-    @State var statusBanner: String = ""
 
     init(store: KroutonStateStore) {
         self.store = store
@@ -206,12 +205,10 @@ struct KroutonDiscLabelWorkspaceView: View {
     // MARK: - Subviews & Helper Methods
 
     func showTransientBanner(_ message: String) {
-        statusBanner = message
         store.labelWorkspaceSubStore.transientStatusBanner = message
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 3_000_000_000)
-            if statusBanner == message {
-                statusBanner = ""
+            if store.labelWorkspaceSubStore.transientStatusBanner == message {
                 store.labelWorkspaceSubStore.transientStatusBanner = ""
             }
         }

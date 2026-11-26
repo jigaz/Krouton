@@ -14,12 +14,10 @@ final class DepotCatalogue {
     /// The day the feed was last checked by the depot (yyyy-mm-dd).
     var depotFeedGenerated: String? = nil
     var customDepotFeedURL: String = "https://depot.krouton.app/v1/manifest.json"
-    var autoVerifyDepotSHA256: Bool = true
     var stagedDepotItemID: String? = nil
     var selectedDepotHeroItemID: String? = nil
     var depotDownloadProgress: [String: Double] = [:]
     var isSearchingInternetArchive: Bool = false
-    var archiveOrgLiveCount: Int = 0
 
     init() {}
 }

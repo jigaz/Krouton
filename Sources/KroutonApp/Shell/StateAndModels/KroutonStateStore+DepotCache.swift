@@ -63,7 +63,7 @@ extension KroutonStateStore {
                         let itemID = "ia-" + ident.prefix(24)
                         if self.depotItems.contains(where: { $0.id == itemID }) { continue }
                         let year = (doc["year"] as? String) ?? "Archive.org"
-                        let descRaw = (doc["description"] as? String) ?? "Verified Internet Archive Optical Software Item (archive.org/details/\(ident))"
+                        let descRaw = (doc["description"] as? String) ?? "Internet Archive item (archive.org/details/\(ident)); not checked by the Depot"
                         let cleanDesc = descRaw.components(separatedBy: .newlines).joined(separator: " ").prefix(135)
                         let newItem = KroutonDepotCatalogItem(
                             id: String(itemID),
@@ -81,11 +81,10 @@ extension KroutonStateStore {
                         self.depotItems.insert(newItem, at: 0)
                         addedCount += 1
                     }
-                    self.archiveOrgLiveCount = addedCount
                     self.announceForVoiceOver("Loaded \(addedCount) optical disc images from Internet Archive.")
                 }
             } catch {
-                self.archiveOrgLiveCount = -1
+                self.announceForVoiceOver("The Internet Archive search didn't answer.")
             }
         }
     }

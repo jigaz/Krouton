@@ -213,8 +213,8 @@ extension KroutonDiscLabelWorkspaceView {
 
             Spacer()
 
-            if !statusBanner.isEmpty {
-                Text(statusBanner)
+            if !store.labelWorkspaceSubStore.transientStatusBanner.isEmpty {
+                Text(store.labelWorkspaceSubStore.transientStatusBanner)
                     .font(.caption2.bold())
                     .foregroundStyle(.green)
                     .lineLimit(1)

@@ -67,7 +67,8 @@ extension KroutonStateStore {
         driveManager.completionReport = networkReport(
             ok: outcome.succeeded,
             title: outcome.succeeded ? "Burned on \(outcome.serverName)" : "Remote Burn Did Not Finish",
-            summary: outcome.message, server: outcome.serverName, drive: outcome.driveName, bytes: bytes, started: started
+            summary: outcome.message, server: outcome.serverName, drive: outcome.driveName, bytes: bytes, started: started,
+            verified: target.verifyAfterBurn
         )
     }
 
@@ -97,7 +98,8 @@ extension KroutonStateStore {
         driveManager.completionReport = networkReport(
             ok: outcome.succeeded,
             title: outcome.succeeded ? "Burned on \(outcome.serverName)" : "Remote Burn Did Not Finish",
-            summary: outcome.message, server: outcome.serverName, drive: outcome.driveName, bytes: bytes, started: started
+            summary: outcome.message, server: outcome.serverName, drive: outcome.driveName, bytes: bytes, started: started,
+            verified: target.verifyAfterBurn
         )
     }
 
@@ -130,7 +132,7 @@ extension KroutonStateStore {
     }
 
     private func networkReport(ok: Bool, title: String, summary: String, server: String, drive: String,
-                               bytes: Int64, started: Date) -> KroutonBurnSessionReport {
+                               bytes: Int64, started: Date, verified: Bool = false) -> KroutonBurnSessionReport {
         let elapsed = max(1, Int(Date().timeIntervalSince(started)))
         return KroutonBurnSessionReport(
             isSuccess: ok,
@@ -138,15 +140,26 @@ extension KroutonStateStore {
             summary: summary,
             driveModel: drive.isEmpty ? "Krouton Server" : drive,
             firmwareRevision: server.isEmpty ? "-" : server,
-            mediaFormattedName: "Data disc (ISO 9660 + Joliet + UDF)",
+            mediaFormattedName: networkDiscDescription,
             volumeName: discVolumeTitle,
             sectorsWrittenLBA: ok ? bytes / 2048 : 0,
             bytesWritten: ok ? bytes : 0,
             averageSpeedText: "-",
             peakSpeedText: "-",
             elapsedDurationText: String(format: "%02d:%02d", elapsed / 60, elapsed % 60),
-            diagnosticAdvice: ok ? "The server verified the disc after writing it."
+            diagnosticAdvice: ok ? (verified ? "The server read the disc back and it matched." : "Verify was off, so the disc wasn't read back.")
                 : "See Settings › Burners & Network › Save Log, and the server's log (`krouton-server check`)."
         )
+    }
+
+    /// What a network burn put on the disc, for its report.
+    private var networkDiscDescription: String {
+        switch activeFormatSpec().formatID {
+        case .dvdVideo: return "DVD-Video (ISO 9660 + UDF 1.02, mastered by the server)"
+        case .dataUDFModern: return "UDF 2.50 data disc"
+        case .bd25, .bd50, .bdUHD: return "Blu-ray video (UDF 2.50)"
+        default: return activeBurnSupport == .discImage || stagedFiles.count == 1 && KroutonOpticalDriveBank.soleDiscImage(in: stagedFiles) != nil
+            ? "Disc image, as it is" : "Data disc (ISO 9660 + Joliet + UDF)"
+        }
     }
 }

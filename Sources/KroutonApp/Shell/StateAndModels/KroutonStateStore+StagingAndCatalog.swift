@@ -288,7 +288,6 @@ extension KroutonStateStore {
         let allowed = KroutonSpanningDiscMedium.allowedMedia(forFormatID: formatID)
         let resolved = allowed.contains(medium) ? medium : KroutonSpanningDiscMedium.defaultMedium(forFormatID: formatID)
         targetDiscMediumByTask[formatID] = resolved
-        dataTargetDiscMedium = resolved
         let spec = discFormats.first(where: { $0.id == formatID })
         if spec?.workspaceKind == .redBookAudio {
             audioController.targetDiscMediumBinding.wrappedValue = resolved

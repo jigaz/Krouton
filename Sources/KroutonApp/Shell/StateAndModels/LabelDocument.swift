@@ -23,15 +23,12 @@ final class LabelDocument {
     var labelBottomArcRadiusMM: Double = 45.0
     var labelArcLetterSpacing: Double = 1.0
     var labelVectorShapes: [KroutonVectorShapeLayer] = []
-    var drawAutoSnap: Bool = true
-    var isVectorDrawMode: Bool = false
     var labelGPUSeedPattern: KroutonGPUSeedPattern = .neonLaserPrism
     var labelKaleidoscopeFacets: Int = 8
     var labelKaleidoscopeRig: KroutonKaleidoscopeMirrorRig = .twoMirrorRosette
     var labelChamberTumble: Double = 0.35
     var labelTinyPlanetRadius: Double = 0.75
     var labelUseVisionForeground: Bool = false
-    var polarSymmetryCount: Int = 1
     var labelTextElements: [KroutonLabelTextElement] = []
     var labelSelectedTextID: UUID? = nil
     var labelBgAdjustments: KroutonBackgroundAdjustments = KroutonBackgroundAdjustments()
@@ -45,7 +42,6 @@ final class LabelDocument {
         KroutonDiscLabelGeometry(name: "80mm Mini-CD / GameCube (80mm / 18mm)", outerDiameterMM: 80.0, innerDiameterMM: 18.0, offsetXMM: 0.0, offsetYMM: 0.0)
     ]
     var selectedLabelPresetIndex: Int = 0
-    var defaultAutoLabelStyle: String = "Full-Bleed Artwork + Arc Typography"
 
     init() {}
 }

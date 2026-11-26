@@ -62,12 +62,6 @@ final class KroutonStateStore {
 
     var discPerformer: String = ""
     var discMCNBarcode: String = ""
-    var carSafeZeroPadPrefix: Bool = true
-    var carSafeStripAppleDouble: Bool = true
-    var carSafeGenerateM3U: Bool = true
-    var includeUDFBridge: Bool = true
-    var includeJolietNames: Bool = true
-    var allowATIPOverburn: Bool = false
     var dualLayerBreakSectorLBA: Int64 = 2_086_912
     var enableCustomFinderLayoutTab: Bool = false
     var fitToDiscDVD9Shrink: Bool = true
@@ -79,7 +73,6 @@ final class KroutonStateStore {
     var carAudioOptions = KroutonCarAudioOptions()
     /// M-DISC recovery data as a percentage of the files (0 = none); see `burnInputFiles()`.
     var mdiscParityPercent: Double = 10
-    var dataTargetDiscMedium: KroutonSpanningDiscMedium = .dvd5Single
     var targetDiscMediumByTask: [String: KroutonSpanningDiscMedium] = [:]
     var dataDiscVolumeOverrides: [Int: String] = [:]
     var finderLayoutBlueprint = KroutonFinderLayoutBlueprint()
