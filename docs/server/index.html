@@ -50,7 +50,7 @@
     <p>To try the whole flow without a burner, set <code>backend = simulate</code> in the server’s <code>server.conf</code>.</p>
 
     <h2>Folders, not just disc images</h2>
-    <p>Krouton can send a folder and let the server build the disc. The server checks every file name first, so a name Windows or a disc can’t hold is reported before anything is burned. Linux servers write ISO 9660 with Joliet and Rock Ridge; Mac and Windows servers add UDF.</p>
+    <p>Krouton can send a folder and let the server build the disc. The server checks every file name first, so a name Windows or a disc can’t hold is reported before anything is burned. Every server writes ISO 9660, Joliet and UDF, so the disc reads on Windows, Macs and Linux. A folder with a <code>VIDEO_TS</code> folder at the top becomes a DVD-Video disc laid out the way players expect (UDF 1.02), and one with <code>BDMV</code> becomes a Blu-ray disc (UDF 2.50).</p>
 
     <h2>Security</h2>
     <ul>

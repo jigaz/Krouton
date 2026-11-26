@@ -18,7 +18,8 @@ All notable changes to Krouton and Krouton Server. Dates are when the work lande
 ### Krouton Server (new)
 - A Rust server that burns discs for Krouton on another computer: Raspberry Pi (ARMv6 to ARM64), x86 and x86-64 Linux, Proxmox, NAS boxes, Windows 10 and 11 (x64, x86, ARM64) and macOS 12 or later. It burns with `xorriso` on Linux, `hdiutil` on macOS and IMAPI2 on Windows, or simulates.
 - KRSP v1: 64-byte framed messages over pinned mutual TLS 1.3, with Ed25519 session proofs, commit-then-reveal pairing confirmed with a six-digit code, and resumable uploads checked against a Merkle manifest.
-- Folder jobs: the app can send a folder as a bundle and the server builds the disc itself (ISO 9660 with Joliet and Rock Ridge on Linux; UDF hybrids on macOS and Windows).
+- Folder jobs: the app can send a folder as a bundle and the server builds the disc itself.
+- Its own disc writer, with no outside tool: ISO 9660 + Joliet + UDF 2.01 for data, ISO 9660 + UDF 1.02 with the video files in player order for a `VIDEO_TS` folder, and UDF 2.50 with a mirrored metadata partition for a `BDMV` folder. Linux uses it for every folder (Linux itself can't write UDF 2.50, and xorriso writes no UDF); macOS and Windows use it for DVD-Video and Blu-ray folders and their own tools otherwise. CI mounts its images with the Linux, macOS and Windows drivers and compares every file.
 - Installers and services for Linux (systemd), macOS (LaunchAgent) and Windows (a startup task running as SYSTEM); `krouton-server check` diagnoses drives, tools, space and keys.
 
 ### App
