@@ -70,7 +70,7 @@ def main(path):
     header = catalog[0:512]
     if header[8] != 1:
         fail("catalog node 0 is not a header node")
-    depth, root, nrecs, first, last, nodesize, keylen = struct.unpack(">HIIIIHH", header[14:34])
+    depth, root, nrecs, first, last, nodesize, keylen = struct.unpack(">HIIIIHH", header[14:36])
     if nodesize != 512 or keylen != 37:
         fail("catalog node size or key length wrong")
     # Walk the leaves left to right.
