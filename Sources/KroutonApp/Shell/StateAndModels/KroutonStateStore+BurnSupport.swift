@@ -26,6 +26,9 @@ extension KroutonStateStore {
         case .notYet(let reason):
             return reason
         case .dataDisc:
+            if activeFormatSpec().formatID == .dataRetroISO, kind != .physicalBurner {
+                return "DOS 8.3 discs are written by a burner on this Mac, which can limit the names to ISO 9660 Level 1. Nothing was written."
+            }
             return nil
         case .discImage:
             if kind == .discImage {

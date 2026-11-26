@@ -140,8 +140,16 @@ extension KroutonStateStore {
                 }
                 return
             }
+            let input: (files: [KroutonStagedFileEntry], folder: URL?)
+            do {
+                input = try await burnInputFiles()
+            } catch {
+                driveManager.completionReport = refusalReport(error.localizedDescription, title: "Could Not Prepare the Disc")
+                return
+            }
+            defer { if let folder = input.folder { try? FileManager.default.removeItem(at: folder) } }
             let _ = await driveManager.createDiscImageFile(
-                stagedFiles: stagedFiles,
+                stagedFiles: input.files,
                 volumeTitle: discVolumeTitle,
                 outputPathString: target.hardwareOrPath,
                 compressImage: target.compressAfterCreation,

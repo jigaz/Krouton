@@ -77,6 +77,10 @@ final class KroutonStateStore {
     var cdTextAlbumTitle: String = ""
     var cdTextAlbumPerformer: String = ""
     var discVolumeTitle: String = ""
+    /// The MP3 CD workspace's switches; `burnInputFiles()` applies them before every MP3 CD burn.
+    var carAudioOptions = KroutonCarAudioOptions()
+    /// M-DISC recovery data as a percentage of the files (0 = none); see `burnInputFiles()`.
+    var mdiscParityPercent: Double = 10
     var dataTargetDiscMedium: KroutonSpanningDiscMedium = .dvd5Single
     var targetDiscMediumByTask: [String: KroutonSpanningDiscMedium] = [:]
     var dataDiscVolumeOverrides: [Int: String] = [:]

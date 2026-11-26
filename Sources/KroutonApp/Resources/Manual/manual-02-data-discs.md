@@ -5,17 +5,17 @@
 Pick a data format in the Format Chooser, under **Data & Archival Media**, or from the **Format** menu.
 
 - **Hybrid ISO-9660 + Joliet + UDF** (⌃⌘1) is the right choice almost every time. Windows, macOS, Linux and most DVD and Blu-ray players can read it. Long file names and Unicode survive through Joliet and UDF.
-- **UDF 2.60 Optical Volume** is for files of 4 GiB or more, which ISO-9660 can't hold. Today it writes the same hybrid disc (its UDF side is version 1.02, which holds large files); modern Windows, macOS and Linux read them, old systems don't.
-- **M-DISC 1,000-Year Archival Vault** (⌃⌘5) is a hybrid disc meant for M-DISC blanks. The PAR2 parity setting isn't applied yet: add parity files yourself (for example with par2cmdline) if you want them.
+- **UDF 2.60 Optical Volume** is for files of 4 GiB or more, which ISO-9660 can't hold. It writes the same hybrid disc, whose UDF side (version 1.02, not 2.60) holds the large files; modern Windows, macOS and Linux read them, old systems don't.
+- **M-DISC 1,000-Year Archival Vault** (⌃⌘5) is a hybrid disc meant for M-DISC blanks. With **PAR2** above Off, Krouton adds recovery files (KROUTON_RECOVERY.par2 and its volume) holding that percentage of the data, so damaged files can be rebuilt from the disc itself with `par2 repair`. This needs par2, which you install separately (Homebrew: brew install par2).
 - **Burn Disc Image** (⌃⌘6) writes an existing .iso, .cue/.bin or .dmg exactly as it is.
 
-Older formats are there for old machines: strict 8.3 upper-case names for DOS, Windows 95 and System 7, and an Apple Partition Map with classic HFS for Mac OS 9.
+Older formats are there for old machines. **DOS 8.3** writes ISO 9660 Level 1, with 8.3 upper-case names, for DOS and Windows 3.1; it burns on a drive connected to this Mac only. Mac OS 9 discs (classic HFS with an Apple Partition Map) can't be made yet.
 
 ## Which computers see which files
 
-Each staged item has **Mac** and **PC** visibility pills. Turn one off to hide that item from that kind of computer, for example a Windows installer that Mac users don't need. By default Krouton leaves out macOS clutter: .DS_Store files and the ._ files that hold resource forks. Turn on **Preserve macOS xattr & Resource Forks** to keep them.
+Each staged item has **Mac** and **PC** visibility pills. Turn one off to hide that item from that kind of computer, for example a Windows installer that Mac users don't need.
 
-**Customize Finder Layout** sets how the disc looks when a Mac opens it: icon or list view, icon positions, icon size and a background picture.
+**Customize Finder Layout** sets how the disc looks when a Mac opens it: icon or list view, icon positions, icon size and a background picture. It is written into disc images and Krouton Server burns, not yet into discs burned on a drive connected to this Mac.
 
 ## Files that don't fit on one disc
 

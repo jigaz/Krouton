@@ -1,6 +1,6 @@
 # Krouton
 
-Krouton is a Mac app for making CDs, DVDs and Blu-ray discs: data discs that open on any computer, already-authored DVD and Blu-ray video, high-definition video on DVD (AVCHD), copies of existing disc images, and printable disc labels. Audio CDs with CD-Text and shaped crossfades are being built. It can also burn on a drive attached to another computer, through **Krouton Server**, and it is meant to keep working long after the big disc-burning apps have gone.
+Krouton is a Mac app for making CDs, DVDs and Blu-ray discs: data discs that open on any computer, already-authored DVD and Blu-ray video, high-definition video on DVD (AVCHD), audio CDs with CD-Text and shaped crossfades, MP3 CDs for the car, copies of existing disc images, and printable disc labels. It can also burn on a drive attached to another computer, through **Krouton Server**, and it is meant to keep working long after the big disc-burning apps have gone.
 
 - Website: [krouton.app](https://krouton.app)
 - User manual: [krouton.app/manual](https://krouton.app/manual/), also built into the app (Help › Krouton User Manual, ⌘?)
@@ -8,7 +8,7 @@ Krouton is a Mac app for making CDs, DVDs and Blu-ray discs: data discs that ope
 
 ## Status
 
-Krouton has no published release yet. Data discs, disc-image burns, Blu-ray video, ripping, video extraction, damaged-disc rescue, AVCHD, labels, the Depot, Krouton Server, the `krouton` command and the Shortcuts actions work. Burning audio CDs, several legacy formats and some workspace options (MP3 conversion, PAR2 parity, menus) are still being built, and Krouton refuses to burn those formats rather than write the wrong disc. The manual's [Getting started](https://krouton.app/manual/getting-started/) chapter keeps the current list.
+Krouton has no published release yet. Data discs, audio CDs, MP3 CDs, disc-image burns, sector-for-sector disc copies, Blu-ray video, ripping (tagged), video extraction, damaged-disc rescue, AVCHD, labels, the Depot, Krouton Server, the `krouton` command and the Shortcuts actions work. Several legacy formats (CD-Extra, CD+G, Video CD, Mac OS 9) and DVD/Blu-ray menu authoring are still being built, and Krouton refuses to burn those formats rather than write the wrong disc. The manual's [Getting started](https://krouton.app/manual/getting-started/) chapter keeps the current list.
 
 ## Requirements
 

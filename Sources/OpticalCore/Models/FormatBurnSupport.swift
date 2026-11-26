@@ -44,7 +44,11 @@ extension KroutonFormatID {
     public var burnSupport: KroutonBurnSupport {
         switch self {
         // Data discs. Some promise more than DiscRecording gives them; see each note.
-        case .dataHybrid, .mp3CD, .dvdRAM:
+        case .dataHybrid, .dvdRAM:
+            return .dataDisc
+        case .mp3CD:
+            // A data disc of the folder `KroutonCarAudioDiscPreparer` (VideoKit) builds: converted
+            // with ffmpeg's LAME, renamed in play order, with PLAYLIST.M3U.
             return .dataDisc
         case .dataUDFModern:
             // NOTE: DiscRecording writes UDF 1.02, not 2.60. Files over 4 GiB still land on the
@@ -54,10 +58,12 @@ extension KroutonFormatID {
             // NOTE: HFS+ (not APFS) alongside ISO/Joliet/UDF; no resource-fork or xattr handling.
             return .dataDisc
         case .dataRetroISO:
-            // NOTE: no 8.3 enforcement; DiscRecording's ISO names may be long for DOS.
+            // ISO 9660 Level 1 (8.3 names) via DiscRecording's DRISOLevel, on this Mac's burners
+            // only; disc images and Krouton Server are refused for it.
             return .dataDisc
         case .mdiscVault:
-            // NOTE: a plain data disc; the PAR2 slider in the workspace creates no parity files.
+            // A data disc with par2 recovery files beside the data when the PAR2 slider is above
+            // Off (`KroutonParityWriter`, needs par2 from Homebrew).
             return .dataDisc
         case .dvdVideo:
             // NOTE: on a drive on this Mac, VIDEO_TS goes on DiscRecording's UDF 1.02 + ISO without

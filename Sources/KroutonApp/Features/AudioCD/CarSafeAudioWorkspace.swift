@@ -2,6 +2,7 @@ import Foundation
 import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
+import VideoKit
 
 // MARK: - CarSafeAudioWorkspace
 
@@ -12,20 +13,20 @@ struct KroutonCarSafeAudioWorkspaceView: View {
     @Binding var isDropTargeted: Bool
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 
-    // NOTE(status, 2026-11): these options are display-only. The burn writes the staged files
-    // as they are on a data disc (`KroutonFormatID.mp3CD.burnSupport == .dataDisc`): nothing is
-    // transcoded, renamed, retagged, stripped or filtered, and no .m3u is written. The track list's
-    // "001 - Name.mp3" and "320k CBR" are previews of what the options would do. Wiring them means
-    // staging converted copies (AVAudioConverter or ffmpeg for MP3, an ID3v2.3 writer) before
-    // `startPhysicalDataBurn`; until then the manual does not describe them.
-    @State private var carSafeZeroPadNumbers: Bool = true
-    @State private var carSafeStripAppleDouble: Bool = true
-    @State private var carSafeEnforceID3v23: Bool = true
-    @State private var carSafeGenerateM3U: Bool = true
-    @State private var carSafeStripArtwork: Bool = true
-    @State private var carSafeForceJointStereo: Bool = true
-    @State private var carSafeLowPassFilter: Bool = true
-    @State private var carSafeTranscodeTarget: String = "320 kbps CBR MP3 (Universal Car Deck)"
+    // The switches live in `store.carAudioOptions`; `KroutonCarAudioDiscPreparer` (VideoKit)
+    // applies them when the disc is burned or saved as an image. The track list previews the
+    // names the disc will get.
+    private var options: Binding<KroutonCarAudioOptions> { Bindable(store).carAudioOptions }
+
+    private var profileLabel: String {
+        let o = store.carAudioOptions
+        switch o.profile {
+        case .cbr320: return "\(o.enforceID3v23 ? "ID3v2.3" : "ID3v2.4") • 320k CBR"
+        case .cbr192: return "\(o.enforceID3v23 ? "ID3v2.3" : "ID3v2.4") • 192k CBR"
+        case .vbrLong: return "\(o.enforceID3v23 ? "ID3v2.3" : "ID3v2.4") • VBR ~115k"
+        case .passthrough: return "copied as it is"
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -36,7 +37,8 @@ struct KroutonCarSafeAudioWorkspaceView: View {
                         Text(isCenterWorkspaceNarrow ? "CAR-SAFE ISO9660 + JOLIET" : "CAR-SAFE ISO9660 + JOLIET AUDIO ENGINE (OEM HEAD-UNIT SAFE)")
                             .font(.system(size: 10, weight: .heavy, design: .monospaced)).foregroundStyle(.secondary).lineLimit(1)
                         Spacer(minLength: 4)
-                        Text("AppleDouble Purged").font(.system(size: 9, weight: .bold, design: .monospaced)).foregroundStyle(.green)
+                        Text("No hidden files").font(.system(size: 9, weight: .bold, design: .monospaced)).foregroundStyle(.green)
+                            .help("Only the audio is put on the disc: no .DS_Store or ._ files.")
                     }
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 230), alignment: .leading)], spacing: 8) {
                         HStack(spacing: 6) {
@@ -45,22 +47,22 @@ struct KroutonCarSafeAudioWorkspaceView: View {
                         }
                         HStack(spacing: 6) {
                             Text("Profile:").font(.caption.bold())
-                            Picker("", selection: $carSafeTranscodeTarget) {
-                                Text("320 kbps CBR MP3 (Car Safe)").tag("320 kbps CBR MP3 (Universal Car Deck)")
-                                Text("192 kbps CBR MP3 (12-Hr Trip)").tag("192 kbps CBR MP3 (Extended 12-Hour Roadtrip)")
-                                Text("~112 kbps VBR MP3 (Super Long Play)").tag("~112 kbps VBR MP3 (Joint Stereo • 19 kHz LPF)")
-                                Text("16-Bit FLAC / WAV Direct").tag("16-Bit FLAC / WAV Passthrough (Modern Head Units)")
+                            Picker("", selection: options.profile) {
+                                Text("320 kbps CBR MP3 (Car Safe)").tag(KroutonCarAudioOptions.Profile.cbr320)
+                                Text("192 kbps CBR MP3 (12-Hr Trip)").tag(KroutonCarAudioOptions.Profile.cbr192)
+                                Text("~115 kbps VBR MP3 (Super Long Play)").tag(KroutonCarAudioOptions.Profile.vbrLong)
+                                Text("Files As They Are (No Conversion)").tag(KroutonCarAudioOptions.Profile.passthrough)
                             }.labelsHidden().font(.caption)
                         }
                     }
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 225), alignment: .leading)], spacing: 6) {
-                        Toggle(KroutonL10n.tr("Zero-Pad Prefixes (001 - Title.mp3)"), isOn: $carSafeZeroPadNumbers).toggleStyle(.checkbox).font(.caption.bold())
-                        Toggle(KroutonL10n.tr("Strip macOS .DS_Store & ._* Forks"), isOn: $carSafeStripAppleDouble).toggleStyle(.checkbox).font(.caption.bold())
-                        Toggle(KroutonL10n.tr("Write Root .M3U Playlist"), isOn: $carSafeGenerateM3U).toggleStyle(.checkbox).font(.caption)
-                        Toggle(KroutonL10n.tr("Enforce ID3v2.3 ISO-8859-1 Tags"), isOn: $carSafeEnforceID3v23).toggleStyle(.checkbox).font(.caption)
-                        Toggle(KroutonL10n.tr("Strip ID3 Cover Art & Lyrics (Max Capacity)"), isOn: $carSafeStripArtwork).toggleStyle(.checkbox).font(.caption).foregroundStyle(carSafeTranscodeTarget.contains("112") ? .primary : .secondary)
-                        Toggle(KroutonL10n.tr("Force Joint Stereo (Phase Correlated)"), isOn: $carSafeForceJointStereo).toggleStyle(.checkbox).font(.caption).foregroundStyle(carSafeTranscodeTarget.contains("112") ? .primary : .secondary)
-                        Toggle(KroutonL10n.tr("19 kHz Lame Low-Pass Filter"), isOn: $carSafeLowPassFilter).toggleStyle(.checkbox).font(.caption).foregroundStyle(carSafeTranscodeTarget.contains("112") ? .primary : .secondary)
+                        let converting = store.carAudioOptions.needsFFmpeg
+                        Toggle(KroutonL10n.tr("Zero-Pad Prefixes (001 - Title.mp3)"), isOn: options.zeroPadNumbers).toggleStyle(.checkbox).font(.caption.bold())
+                        Toggle(KroutonL10n.tr("Write Root .M3U Playlist"), isOn: options.generateM3U).toggleStyle(.checkbox).font(.caption)
+                        Toggle(KroutonL10n.tr("ID3v2.3 + ID3v1 Tags"), isOn: options.enforceID3v23).toggleStyle(.checkbox).font(.caption).disabled(!converting)
+                        Toggle(KroutonL10n.tr("Strip Cover Art & Lyrics"), isOn: options.stripArtwork).toggleStyle(.checkbox).font(.caption).disabled(!converting)
+                        Toggle(KroutonL10n.tr("Joint Stereo"), isOn: options.forceJointStereo).toggleStyle(.checkbox).font(.caption).disabled(!converting)
+                        Toggle(KroutonL10n.tr("19 kHz Low-Pass Filter"), isOn: options.lowPass19kHz).toggleStyle(.checkbox).font(.caption).disabled(!converting)
                     }
                 }
             }
@@ -103,13 +105,12 @@ struct KroutonCarSafeAudioWorkspaceView: View {
                                     )
                                 }
                                 ForEach(Array(disc.items.enumerated()), id: \.element.id) { idx, entry in
-                                let baseName = entry.url.deletingPathExtension().lastPathComponent
-                                let displayFile = carSafeZeroPadNumbers ? String(format: "%03d - %@.mp3", idx + 1, String(baseName.prefix(48))) : "\(baseName).mp3"
+                                let displayFile = KroutonCarAudioDiscPreparer.discName(for: entry.url, index: idx, options: store.carAudioOptions)
                                 HStack(spacing: 10) {
                                     Text(String(format: "#%03d", idx + 1)).font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundStyle(store.activeAccent).frame(width: 44, alignment: .leading)
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(displayFile).font(.system(size: 12, weight: .semibold, design: .monospaced)).lineLimit(1)
-                                        Text("Source: \(entry.name) • \(carSafeEnforceID3v23 ? "ID3v2.3 • 320k CBR" : "ID3v2.4 • Passthrough")").font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
+                                        Text("Source: \(entry.name) • \(profileLabel)").font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
                                     }
                                     Spacer()
                                     Text("\(entry.sectorsLBA) LBA").font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundStyle(store.activeAccent)

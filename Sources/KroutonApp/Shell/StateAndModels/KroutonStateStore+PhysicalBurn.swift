@@ -16,8 +16,14 @@ extension KroutonStateStore {
         primarySelectedDrive: KroutonOpticalDriveInfo?,
         isAutoLoadedCopy: Bool
     ) async {
-        var filesToBurn = stagedFiles
+        var filesToBurn: [KroutonStagedFileEntry]
         var temporaryImageFolder: URL?
+        do {
+            (filesToBurn, temporaryImageFolder) = try await burnInputFiles()
+        } catch {
+            driveManager.completionReport = refusalReport(error.localizedDescription, title: "Could Not Prepare the Disc")
+            return
+        }
         var audioDisc: KroutonAudioBurnDisc?
         // An audio CD is the editor's project rendered to one PCM file per track.
         if activeBurnSupport == .audioCD {
@@ -53,7 +59,8 @@ extension KroutonStateStore {
                 verifyDisc: target.verifyAfterBurn,
                 allowOverwriteOfWrittenMedia: !isAutoLoadedCopy,
                 leaveDiscOpen: self.leaveDiscOpenForMoreSessions,
-                audioDisc: audioDisc
+                audioDisc: audioDisc,
+                isoLevel1: activeBurnSupport != nil && activeFormatSpec().formatID == .dataRetroISO
             ) { report in
                 continuation.resume(returning: report.isSuccess)
             }

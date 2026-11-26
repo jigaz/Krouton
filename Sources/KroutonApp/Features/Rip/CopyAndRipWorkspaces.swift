@@ -38,9 +38,8 @@ struct KroutonCopyAndRipWorkspaceView: View {
     @State var audioRipCodec: String = "FLAC (Lossless)"
     @State var audioRipAccurateRip: Bool = true
     @State var audioRipGenerateCueLog: Bool = true
-    // NOTE(status, 2026-11): display-only. Rips read the AIFF files macOS mounts for an audio CD,
-    // so there is no separate error-correction pass to switch.
-    @State var audioRipErrorCorrection: Bool = true
+    // No error-correction switch: rips read the AIFF files macOS mounts for an audio CD, and
+    // the drive's own error correction is all there is on that path.
     @State var audioRipSelectedTracks: Set<Int> = Set(1...99)
     @State var videoExtractMode: String = "Lossless MKV Remux"
     @State var videoExtractMinSeconds: Int = 120
@@ -58,12 +57,11 @@ struct KroutonCopyAndRipWorkspaceView: View {
     @State var perTrackProgress: [Int: Double] = [:]
     @State var ripCancelToken = KroutonRipCancelToken()
     @State var showCDInfoPopover: Bool = false
-    // NOTE(status, 2026-11): none of these album fields is written into the ripped files:
-    // `KroutonRealCDExtractor.extractSingleTrack` writes audio only (ExtAudioFile), named
-    // "NN Title.ext" from the track list. Tagging needs an AVMutableMetadataItem export (ALAC/M4A)
-    // and a Vorbis-comment writer (FLAC).
+    // These album fields, with the album title and artist and each track's name, are written
+    // into every ripped file after it is saved (`KroutonAudioTagWriter`: Vorbis comments in FLAC,
+    // iTunes metadata in M4A, LIST/INFO in WAV, NAME/AUTH/ANNO in AIFF).
     @State var cdInfoComposer: String = ""
-    @State var cdInfoGenre: String = "Rock"
+    @State var cdInfoGenre: String = ""
     @State var cdInfoYear: String = ""
     @State var cdInfoDiscNumber: String = "1"
     @State var cdInfoDiscTotal: String = "1"
@@ -96,7 +94,8 @@ struct KroutonCopyAndRipWorkspaceView: View {
                     if isScanningTOC {
                         ProgressView().controlSize(.small)
                     }
-                    Text(copyStatusBanner)
+                    // A sector copy reports through the rescue engine that does it.
+                    Text(isShrinkTask && store.rescue.isRunning ? store.rescue.status : copyStatusBanner)
                         .font(.system(size: 11, weight: .semibold, design: .monospaced))
                         .foregroundStyle(store.activeAccent)
                         .lineLimit(1)

@@ -27,7 +27,7 @@ Pairing happens once. From then on the two computers recognise each other by the
 
 ## Burning on the server
 
-Add a destination with **Add Output** and choose **Network Server Burner**, then pick the server and one of its drives. Speed, Verify and Simulate work as they do for a local burner.
+Add a destination with **Add Output** and choose **Krouton Server**, then pick the server and one of its drives. Speed, Verify and Simulate work as they do for a local burner.
 
 Krouton Server burns data discs and disc images. Audio CDs burn on a drive connected to this Mac.
 

@@ -38,7 +38,15 @@ extension KroutonStateStore {
         } else if activeBurnSupport == .bluRayVideo, case .success(let root) = bluRayVideoRoot() {
             built = try? await buildBluRayImage(root: root)
         } else {
-            built = await masterImageForNetworkBurn()
+            do {
+                let input = try await burnInputFiles()
+                built = await masterImageForNetworkBurn(input.files)
+                if let folder = input.folder { try? FileManager.default.removeItem(at: folder) }
+            } catch {
+                driveManager.completionReport = networkReport(ok: false, title: "Could Not Prepare the Disc", summary: error.localizedDescription,
+                                                              server: "", drive: "", bytes: 0, started: started)
+                return
+            }
         }
         guard let image = built else {
             driveManager.completionReport = networkReport(ok: false, title: "Could Not Build the Disc Image",
@@ -87,12 +95,12 @@ extension KroutonStateStore {
 
     /// Stages the files and builds the image in a fresh temporary folder. The HFS+ tree is left out:
     /// a server burns 2048-byte-sector data images (ISO/UDF), which every OS can read.
-    func masterImageForNetworkBurn() async -> URL? {
-        guard !stagedFiles.isEmpty else { return nil }
+    func masterImageForNetworkBurn(_ files: [KroutonStagedFileEntry]) async -> URL? {
+        guard !files.isEmpty else { return nil }
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("KroutonNetworkBurn_\(UUID().uuidString)", isDirectory: true)
         let tree = root.appendingPathComponent("Tree", isDirectory: true)
         let output = root.appendingPathComponent("disc.iso")
-        let items = stagedFiles.map { KroutonBurnStageItem(source: $0.url, name: $0.name) }
+        let items = files.map { KroutonBurnStageItem(source: $0.url, name: $0.name) }
         if let stagingError = await KroutonBurnStager.stage(items, into: tree) {
             KroutonDiagnostics.masteringLogger.error("Network burn staging failed: \(stagingError, privacy: .public)")
             try? FileManager.default.removeItem(at: root)

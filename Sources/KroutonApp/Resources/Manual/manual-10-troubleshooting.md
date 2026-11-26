@@ -39,7 +39,7 @@ Open Settings with ⌘,. The search field at the top finds a setting by any word
 
 - For data, use Hybrid ISO-9660 + Joliet + UDF. UDF-only discs and Mac-only formats can't be read everywhere.
 - For an old DVD player, try DVD-R instead of DVD+R.
-- Car stereos often want MP3 CDs with ID3v2.3 tags and short names, or a plain audio CD.
+- Car stereos often want MP3 at a constant bit rate with ID3v2.3 tags: use the 320 or 192 kbps profile, or burn a plain audio CD.
 
 ## Reporting a problem
 

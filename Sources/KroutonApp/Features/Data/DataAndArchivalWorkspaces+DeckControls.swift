@@ -23,12 +23,12 @@ extension KroutonDataAndArchivalWorkspaceView {
                                 .font(.system(size: 10, weight: .heavy, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
-                            Text("PAR2: \(Int(mdiscPar2RedundancyPct))%")
+                            Text(store.mdiscParityPercent == 0 ? "PAR2: Off" : "PAR2: \(Int(store.mdiscParityPercent))%")
                                 .font(.caption.bold())
                                 .foregroundStyle(store.activeAccent)
-                            Slider(value: $mdiscPar2RedundancyPct, in: 5...30, step: 5)
+                            Slider(value: Bindable(store).mdiscParityPercent, in: 0...30, step: 5)
                                 .frame(width: 130)
-                            Text(KroutonL10n.tr("• Reed-Solomon .par2 + SHA-256"))
+                            Text(KroutonL10n.tr("• par2 recovery files on the disc"))
                                 .font(.system(size: 10, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
@@ -44,17 +44,17 @@ extension KroutonDataAndArchivalWorkspaceView {
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
                                 Spacer(minLength: 4)
-                                Text("PAR2: \(Int(mdiscPar2RedundancyPct))%")
+                                Text(store.mdiscParityPercent == 0 ? "PAR2: Off" : "PAR2: \(Int(store.mdiscParityPercent))%")
                                     .font(.caption.bold())
                                     .foregroundStyle(store.activeAccent)
                                     .fixedSize(horizontal: true, vertical: false)
                             }
                             HStack(spacing: 8) {
-                                Slider(value: $mdiscPar2RedundancyPct, in: 5...30, step: 5)
+                                Slider(value: Bindable(store).mdiscParityPercent, in: 0...30, step: 5)
                                     .frame(maxWidth: 135)
                                     .accessibilityLabel("M-DISC PAR2 Parity Percentage")
-                                    .accessibilityValue("\(Int(mdiscPar2RedundancyPct)) percent")
-                                Text(KroutonL10n.tr("Reed-Solomon .par2 + SHA-256"))
+                                    .accessibilityValue("\(Int(store.mdiscParityPercent)) percent")
+                                Text(KroutonL10n.tr("par2 recovery files on the disc"))
                                     .font(.system(size: 10, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
@@ -80,19 +80,19 @@ extension KroutonDataAndArchivalWorkspaceView {
                         .fixedSize(horizontal: true, vertical: false)
 
                         if activeSpec.id == "dvd-ram" {
-                            Label("Zoned CLV Defect Management (UDF 1.50 / 2.01 Hardware Verified)", systemImage: "memorychip.fill")
+                            Label("Rewritable Data Disc (ISO 9660 + Joliet + UDF 1.02)", systemImage: "memorychip.fill")
                                 .font(.caption.bold())
                                 .foregroundStyle(.green)
                                 .lineLimit(1)
                         } else if activeSpec.id == "data-udf-modern" {
-                            Label("Pure UDF 2.60 (Files >4 GiB up to 128 GB)", systemImage: "checkmark.seal.fill")
+                            Label("UDF 1.02 + ISO 9660 (Files over 4 GiB on the UDF side)", systemImage: "checkmark.seal.fill")
                                 .font(.caption.bold())
                                 .foregroundStyle(.green)
                                 .lineLimit(1)
                         } else if isAppleOnly {
-                            Toggle(KroutonL10n.tr("Preserve macOS Extended Attributes (xattr) & Resource Forks"), isOn: $preserveMacExtendedAttributes)
-                                .toggleStyle(.checkbox)
+                            Label("HFS+ for Macs, beside ISO 9660 + Joliet + UDF", systemImage: "apple.logo")
                                 .font(.caption.bold())
+                                .foregroundStyle(.secondary)
                                 .lineLimit(1)
                         } else if isClassicHFS {
                             Label("Apple Partition Map (APM) + Blessed Classic HFS (System 7 / Mac OS 9)", systemImage: "desktopcomputer")
@@ -105,12 +105,12 @@ extension KroutonDataAndArchivalWorkspaceView {
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
                         } else if isRetro83 {
-                            Toggle(KroutonL10n.tr("Enforce Strict 8.3 Uppercase Filenames (DOS / Win95 / System 7)"), isOn: $enforce8Dot3RetroCompatibility)
-                                .toggleStyle(.checkbox)
+                            Label("ISO 9660 Level 1: 8.3 Uppercase Names for DOS / Win 3.1", systemImage: "checkmark.seal.fill")
                                 .font(.caption.bold())
+                                .foregroundStyle(.green)
                                 .lineLimit(1)
                         } else {
-                            Label("4-Way Universal Bridge (macOS HFS+ • Windows Joliet/UDF • Linux Rock Ridge)", systemImage: "globe")
+                            Label("Every OS: HFS+ • ISO 9660 + Joliet • UDF", systemImage: "globe")
                                 .font(.caption.bold())
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
@@ -192,19 +192,19 @@ extension KroutonDataAndArchivalWorkspaceView {
 
                         HStack(spacing: 8) {
                             if activeSpec.id == "dvd-ram" {
-                                Label("UDF 2.01 Zoned Defect Mgmt", systemImage: "memorychip.fill")
+                                Label("Rewritable: ISO + UDF 1.02", systemImage: "memorychip.fill")
                                     .font(.caption.bold())
                                     .foregroundStyle(.green)
                                     .lineLimit(1)
                             } else if activeSpec.id == "data-udf-modern" {
-                                Label("Pure UDF 2.60 (>4 GiB Files)", systemImage: "checkmark.seal.fill")
+                                Label("UDF 1.02 (>4 GiB Files)", systemImage: "checkmark.seal.fill")
                                     .font(.caption.bold())
                                     .foregroundStyle(.green)
                                     .lineLimit(1)
                             } else if isAppleOnly {
-                                Toggle(KroutonL10n.tr("Preserve macOS xattr & Resource Forks"), isOn: $preserveMacExtendedAttributes)
-                                    .toggleStyle(.checkbox)
+                                Label("HFS+ beside ISO + UDF", systemImage: "apple.logo")
                                     .font(.caption.bold())
+                                    .foregroundStyle(.secondary)
                                     .lineLimit(1)
                             } else if isClassicHFS {
                                 Label("APM + Blessed Classic HFS", systemImage: "desktopcomputer")
@@ -217,12 +217,12 @@ extension KroutonDataAndArchivalWorkspaceView {
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
                             } else if isRetro83 {
-                                Toggle(KroutonL10n.tr("Enforce 8.3 Uppercase Filenames"), isOn: $enforce8Dot3RetroCompatibility)
-                                    .toggleStyle(.checkbox)
+                                Label("ISO Level 1: 8.3 Names", systemImage: "checkmark.seal.fill")
                                     .font(.caption.bold())
+                                    .foregroundStyle(.green)
                                     .lineLimit(1)
                             } else {
-                                Label("4-Way: HFS+ • UDF • Rock Ridge", systemImage: "globe")
+                                Label("HFS+ • ISO + Joliet • UDF", systemImage: "globe")
                                     .font(.caption.bold())
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)

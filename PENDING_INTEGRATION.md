@@ -46,6 +46,9 @@ Format: `- `TypeName` — owner · decide-by date · plan`.
 ## Supporting types reached only through return values or `throws` (lower priority)
 
 - `AudioAnalysisError` — me · 2027-01-31 · make internal or keep (AudioKit/AudioAnalysisService.swift)
+- `KroutonCarAudioError` — me · 2027-01-31 · thrown by `KroutonCarAudioDiscPreparer`; the app shows its message. Make internal or keep (VideoKit/CarAudioDiscPreparer.swift)
+- `KroutonParityError` — me · 2027-01-31 · thrown by `KroutonParityWriter`; the app shows its message. Make internal or keep (ImageKit/ParityRecoveryWriter.swift)
+- `KroutonAudioTagError` — me · 2027-01-31 · thrown by `KroutonAudioTagWriter.write`; the ripper only logs that tagging failed. Make internal or keep (AudioKit/AudioTagWriter.swift)
 - `KroutonAudioRenderError` — me · 2027-01-31 · thrown by `KroutonAudioDiscRenderer`; the app shows its message, Suite 37 matches on it. Make internal or keep (AudioKit/AudioDiscRenderer.swift)
 - `AudioMasteredDiscResult` — me · 2027-01-31 · make internal or keep (AudioKit/AudioSampleDecoder.swift)
 - `AutoLabelComposition` — me · 2027-01-31 · make internal or keep (LabelKit/AutoLabelEngine.swift)
@@ -76,7 +79,6 @@ Format: `- `TypeName` — owner · decide-by date · plan`.
 - `KroutonSectorRescueAction` — me · 2027-01-31 · make internal or keep (RescueKit/RescueEngine.swift)
 - `KroutonShrunkDVD5CellEntry` — me · 2027-01-31 · make internal or keep (VideoKit/VideoAuthoringEngine.swift)
 - `KroutonStreamProbeResult` — me · 2027-01-31 · make internal or keep (OpticalCore/InspectorsAndPrep/KroutonMediaPrepAndColorEngine.swift)
-- `KroutonVideoChapterMarker` — me · 2027-01-31 · make internal or keep (VideoKit/VideoAuthoringEngine+SubtitlesAndMuxing.swift)
 - `KroutonWorkflowCodecRow` — me · 2027-01-31 · make internal or keep (OpticalCore/InspectorsAndPrep/KroutonMediaPrepAndColorEngine.swift)
 - `LaunchVerdict` — me · 2027-01-31 · make internal or keep (Persistence/SessionStore.swift)
 - `RestoreDecision` — me · 2027-01-31 · make internal or keep (Persistence/SessionStore.swift)

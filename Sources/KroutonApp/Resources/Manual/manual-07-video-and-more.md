@@ -6,11 +6,11 @@ Parts of this chapter describe features that are still being built. Each section
 
 Choose **DVD-Video (VIDEO_TS)** (⌃⌘3) or a Blu-ray size (⌃⌘4 for a 25 GB single-layer disc) and add a disc that is already authored: a VIDEO_TS folder for DVD, a BDMV folder for Blu-ray. For DVD, Krouton burns the VIDEO_TS folder on a data disc with UDF 1.02 and ISO 9660, which most DVD players read; check one disc in your player first. For Blu-ray, Krouton writes the BDMV folder as a UDF 2.50 image (what Blu-ray players need) and burns that; add the folder that holds BDMV, or BDMV on its own. **View › Inspect Video Bitrate Budget** (⌃⌘B) shows whether the video fits the disc at its bitrate.
 
-Authoring menus and chapters from plain video files is not part of Krouton yet.
+Authoring menus and chapters from plain video files is not part of Krouton yet, so the workspace has no menu, video-standard or layer-break settings. On a Krouton Server, a DVD-Video folder is sent as files and the server writes it with the VIDEO_TS files first and in the order players expect.
 
 ## Copying a disc and fitting DVD-9 onto DVD-5
 
-**Format › Copy, Rip & Rescue Workflows › Duplicate Disc / Fit-to-Disc DVD-9 Shrink** (⇧⌘K) copies a disc's files into an .iso on your Desktop. It's a copy of the files, not of every sector: a bootable disc won't stay bootable (rescue it into an image instead), and audio CDs can't be copied this way. When a dual-layer DVD doesn't fit a single-layer blank, Krouton re-encodes the video with ffmpeg, which you install separately (for example with Homebrew: brew install ffmpeg), and rewrites the disc's navigation files so the menus still point at the right places. This hasn't been checked on many players yet, so play the image in a player before burning a stack. Krouton doesn't remove copy protection, so it can only copy unprotected discs.
+**Format › Copy, Rip & Rescue Workflows › Duplicate Disc / Fit-to-Disc DVD-9 Shrink** (⇧⌘K) copies the disc in the drive sector by sector into an .iso on your Desktop, so a bootable disc stays bootable and a Blu-ray keeps its UDF 2.50. It uses the rescue engine, so a scratch is retried and recorded rather than stopping the copy (see Rescue, below). Audio CDs can't be copied this way; rip them instead. A folder chosen with **Folder…** is copied file by file. When a dual-layer DVD doesn't fit a single-layer blank, Krouton re-encodes the video with ffmpeg, which you install separately (for example with Homebrew: brew install ffmpeg), and rewrites the disc's navigation files so the menus still point at the right places. This hasn't been checked on many players yet, so play the image in a player before burning a stack. Krouton doesn't remove copy protection, so it can only copy unprotected discs.
 
 ## Extracting video
 
@@ -45,4 +45,4 @@ The **Retro Console Optical Media** menu lists formats for the Wii, GameCube, Pl
 
 Consoles were built to refuse burned discs. Most need a modchip, a soft-mod or a loader such as Swiss (GameCube) or USB Loader GX (Wii), and several of those are in the Depot's **Console Homebrew** channel. Wii and GameCube discs are best played from a USB drive or SD card with those tools rather than burned. Some older consoles only read DVD-R; Krouton doesn't set the DVD-ROM book type on DVD+R (see Burners). Dreamcast .cdi and .gdi images can't be burned yet. Only make copies of games you own.
 
-Settings › Format Chooser also lists formats for old computers: Mac OS 9 discs with classic HFS and strict 8.3 names for DOS and Windows 95. Mac OS 9 discs can't be made yet (Krouton refuses), and the 8.3 option isn't applied yet: the disc gets the usual hybrid file systems.
+Settings › Format Chooser also lists formats for old computers: Mac OS 9 discs with classic HFS and strict 8.3 names for DOS and Windows 95. Mac OS 9 discs can't be made yet (Krouton refuses); DOS 8.3 discs are written as ISO 9660 Level 1 (see Data discs).

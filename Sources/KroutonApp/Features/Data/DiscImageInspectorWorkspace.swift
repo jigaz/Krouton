@@ -13,11 +13,8 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
     let onPromptToAddFiles: () -> Void
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 
-    // NOTE(status, 2026-11): display-only. `DRBurn.layout(forImageFile:)` chooses the write mode
-    // itself, and nothing hashes the image before burning (the inspector's SHA-256 button does,
-    // on request). Verify after burning is the destination card's Verify switch.
-    @State private var discImageWriteMethod: String = "DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)"
-    @State private var verifyImageSHA256BeforeBurn: Bool = true
+    // There is no write-mode picker: `DRBurn.layout(forImageFile:)` picks the mode the image
+    // needs. Verifying after the burn is the destination card's Verify switch.
     @State private var selectedDepotEntryID: UUID? = nil
     @State private var inspectedImageLBA: Int = 16
     @State private var customLBAText: String = "16"
@@ -46,15 +43,8 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                             .font(.system(size: 9, weight: .bold, design: .monospaced))
                             .foregroundStyle(imageActionStatusBanner.isEmpty ? .secondary : store.activeAccent).lineLimit(1)
                     }
-                    HStack(spacing: 12) {
-                        Picker(KroutonL10n.tr("Laser Write Topology:"), selection: $discImageWriteMethod) {
-                            Text("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)").tag("DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)")
-                            Text("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)").tag("RAW DAO/96 (2,352 B/sec + Subchannel PQ/RW Intact)")
-                            Text("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)").tag("DVD+R / BD-R Seamless Layer Break (16-Sector ECC Aligned)")
-                        }.font(.caption.bold())
-                        Toggle(KroutonL10n.tr("Verify SHA-256 Digest Before Write"), isOn: $verifyImageSHA256BeforeBurn).toggleStyle(.checkbox).font(.caption.bold())
-                        Spacer(minLength: 0)
-                    }
+                    Text("Burned as it is: DiscRecording picks the write mode the image needs (disc-at-once for .cue/.bin).")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
 

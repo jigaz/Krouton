@@ -59,8 +59,6 @@ extension KroutonCopyAndRipWorkspaceView {
             }
             Toggle(KroutonL10n.tr("Album is a compilation of songs by various artists"), isOn: $cdInfoIsCompilation)
                 .toggleStyle(.checkbox).font(.caption)
-            Toggle(KroutonL10n.tr("Use error correction when reading Audio CDs"), isOn: $audioRipErrorCorrection)
-                .toggleStyle(.checkbox).font(.caption)
             HStack {
                 Spacer()
                 Button(KroutonL10n.tr("OK")) { showCDInfoPopover = false }
@@ -113,7 +111,6 @@ extension KroutonCopyAndRipWorkspaceView {
                             Text("Out: \(copyOutputFolderPath)").font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                         }
                         HStack(spacing: 12) {
-                            Toggle(KroutonL10n.tr("Error Correction"), isOn: $audioRipErrorCorrection).toggleStyle(.checkbox).font(.caption.bold()).fixedSize()
                             Toggle(KroutonL10n.tr("AccurateRip + CRC32"), isOn: $audioRipAccurateRip).toggleStyle(.checkbox).font(.caption).fixedSize()
                             Toggle(KroutonL10n.tr("Write .CUE + .LOG"), isOn: $audioRipGenerateCueLog).toggleStyle(.checkbox).font(.caption).fixedSize()
                             Spacer(minLength: 0)

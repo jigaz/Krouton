@@ -24,12 +24,9 @@ struct KroutonDataAndArchivalWorkspaceView: View {
 
     @State var showHybridLBAMapPopover: Bool = false
     @State var activeDataWorkspaceTab: Int = 0
-    // NOTE(status, 2026-11): display-only. No PAR2 parity is created (M-DISC burns a plain data
-    // disc), extended attributes aren't handled specially (DiscRecording's HFS+ keeps what it
-    // keeps), and 8.3 names aren't enforced. See `KroutonFormatID.burnSupport` for each format.
-    @State var mdiscPar2RedundancyPct: Double = 15.0
-    @State var preserveMacExtendedAttributes: Bool = true
-    @State var enforce8Dot3RetroCompatibility: Bool = false
+    // The M-DISC parity slider is `store.mdiscParityPercent`, applied by `burnInputFiles()`
+    // (par2 files written beside the data). The DOS 8.3 format always burns ISO 9660 Level 1.
+    // The other labels say what DiscRecording writes; see `KroutonFormatID.burnSupport`.
 
     var body: some View {
         return VStack(alignment: .leading, spacing: 10) {
@@ -78,7 +75,7 @@ struct KroutonDataAndArchivalWorkspaceView: View {
                             symbolSize: 34,
                             headline: "Drag & Drop Files or Folders Here to Author a New Data Disc",
                             subtitle: isUniversalHybrid
-                                ? "Shared data extents are linked into HFS+ (Mac), Joliet/UDF (Windows), and Rock Ridge (Linux) simultaneously. Toggle [Mac] / [PC] to hide platform-specific installers."
+                                ? "One set of files appears in HFS+ (Mac), Joliet and UDF (Windows, Linux) at once. Toggle [Mac] / [PC] to hide platform-specific installers."
                                 : "Add files and directories from Finder to build the optical volume directory tree."
                         )
                     } else {

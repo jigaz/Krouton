@@ -1,6 +1,7 @@
 import AudioKit
 import Foundation
 import OpticalCore
+import VideoKit
 
 // MARK: - VerifyHarness — Suite 37: Audio CD Rendering
 
@@ -70,6 +71,78 @@ extension KroutonTestHarness {
                 if case .blocked? = error as? KroutonAudioRenderError { refused = true }
             }
             h.check(refused, "Audio CD: a track under 4 s stops the render with an explanation")
+            try Self.verifyCarMP3Preparer(&h, dir: dir, tones: urls)
+            try Self.verifyTagWriter(&h, dir: dir, tone: urls[0])
         }
+    }
+
+    /// The MP3 CD folder: names in play order, Joliet-safe, the playlist, no hidden files, and
+    /// the encoder settings each switch stands for.
+    private static func verifyCarMP3Preparer(_ h: inout KroutonTestHarness, dir: URL, tones: [URL]) throws {
+        var options = KroutonCarAudioOptions()
+        let odd = URL(fileURLWithPath: "/tmp/AC/DC: Back?In*Black.flac")
+        h.check(KroutonCarAudioDiscPreparer.discName(for: odd, index: 6, options: options) == "007 - DC_ Back_In_Black.mp3",
+                "MP3 CD: zero-padded play order, characters Joliet refuses replaced")
+        let args = KroutonCarAudioDiscPreparer.ffmpegArguments(input: odd, output: URL(fileURLWithPath: "/tmp/o.mp3"), options: options)
+        h.check(args.contains("320k") && args.contains("-joint_stereo") && args.contains("19000") && args.contains("-write_id3v1")
+                && !args.contains("attached_pic"), "MP3 CD: 320k CBR, joint stereo, 19 kHz low-pass, ID3v2.3 + v1, art dropped")
+        options.profile = .vbrLong
+        options.stripArtwork = false
+        options.enforceID3v23 = false
+        let vbr = KroutonCarAudioDiscPreparer.ffmpegArguments(input: odd, output: URL(fileURLWithPath: "/tmp/o.mp3"), options: options)
+        h.check(vbr.contains("-q:a") && vbr.contains("attached_pic") && vbr.contains("4"), "MP3 CD: VBR, art kept, ID3v2.4 when asked")
+
+        let album = dir.appendingPathComponent("Album", isDirectory: true)
+        try FileManager.default.createDirectory(at: album, withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: tones[1], to: album.appendingPathComponent("02 b.wav"))
+        try FileManager.default.copyItem(at: tones[2], to: album.appendingPathComponent("01 a.wav"))
+        try Data("x".utf8).write(to: album.appendingPathComponent("._01 a.wav"))
+        try Data("x".utf8).write(to: album.appendingPathComponent("cover.jpg"))
+        var copy = KroutonCarAudioOptions()
+        copy.profile = .passthrough
+        let out = try KroutonCarAudioDiscPreparer.prepare(sources: [tones[0], album], options: copy,
+                                                          into: dir.appendingPathComponent("car"), ffmpeg: nil)
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: out.path).sorted()) ?? []
+        h.check(names == ["001 - tone1.wav", "002 - 01 a.wav", "003 - 02 b.wav", "PLAYLIST.M3U"],
+                "MP3 CD: deck order, folders opened by name, no hidden or non-audio files, a playlist")
+        var mp3 = KroutonCarAudioOptions()
+        mp3.profile = .cbr192
+        var missing = false
+        do { _ = try KroutonCarAudioDiscPreparer.prepare(sources: [tones[0]], options: mp3, into: dir.appendingPathComponent("car2"), ffmpeg: nil) }
+        catch { missing = (error as? KroutonCarAudioError) == .ffmpegMissing }
+        h.check(missing, "MP3 CD: converting without ffmpeg stops with advice")
+    }
+
+    /// Tags go into each container's own place, and the audio bytes are left alone.
+    private static func verifyTagWriter(_ h: inout KroutonTestHarness, dir: URL, tone: URL) throws {
+        var tags = KroutonAudioTags()
+        tags.title = "Solar Echoes"
+        tags.artist = "Krouton"
+        tags.album = "Verify"
+        tags.trackNumber = 3
+
+        let wav = dir.appendingPathComponent("tagged.wav")
+        try FileManager.default.copyItem(at: tone, to: wav)
+        let before = try Data(contentsOf: wav)
+        h.check(KroutonAudioTagWriter.writeBlocking(tags, to: wav), "Tags: WAV written")
+        let after = try Data(contentsOf: wav)
+        let riff = after.subdata(in: 4..<8).withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }
+        h.check(after.prefix(before.count) == before && UInt32(littleEndian: riff) == UInt32(after.count - 8)
+                && after.range(of: Data("INAMSolar".utf8)) == nil && after.range(of: Data("Solar Echoes".utf8)) != nil
+                && after.range(of: Data("LIST".utf8)) != nil,
+                "Tags: WAV gets a LIST/INFO chunk after the audio, RIFF size fixed, audio untouched")
+
+        // A minimal FLAC: marker, a STREAMINFO (34 bytes), an old comment, then frame bytes.
+        var flac: [UInt8] = Array("fLaC".utf8) + [0x00, 0, 0, 34] + [UInt8](repeating: 7, count: 34)
+        flac += [0x84, 0, 0, 11] + [3, 0, 0, 0] + Array("old".utf8) + [0, 0, 0, 0]
+        flac += [0xFF, 0xF8, 1, 2, 3]
+        let flacURL = dir.appendingPathComponent("tagged.flac")
+        try Data(flac).write(to: flacURL)
+        h.check(KroutonAudioTagWriter.writeBlocking(tags, to: flacURL), "Tags: FLAC written")
+        let out = [UInt8]((try? Data(contentsOf: flacURL)) ?? Data())
+        let text = String(decoding: out, as: UTF8.self)
+        h.check(out.count > 42 && out[4] == 0x00 && out[42] == 0x84 && text.contains("TITLE=Solar Echoes")
+                && text.contains("TRACKNUMBER=3") && !text.contains("old") && Array(out.suffix(5)) == [0xFF, 0xF8, 1, 2, 3],
+                "Tags: FLAC's old comment replaced after STREAMINFO, last-block flag moved, frames untouched")
     }
 }

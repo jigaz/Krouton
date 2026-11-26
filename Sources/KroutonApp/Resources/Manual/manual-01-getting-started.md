@@ -47,14 +47,17 @@ Krouton is young. These parts are finished and tested on real drives:
 - Already-authored DVD-Video (a VIDEO_TS folder) and Blu-ray video (a BDMV folder, written as UDF 2.50).
 - Identifying console disc images (Wii, GameCube, PlayStation, Dreamcast, Saturn, Xbox) and burning them as they are.
 - Ripping audio CDs, with MusicBrainz lookup and per-track checksums.
+- Audio CDs burned from the Audio CD editor, pauses, crossfades, ISRCs and CD-Text included, or saved as .cue/.bin.
+- MP3 CDs converted for the car (with ffmpeg), and M-DISC data discs with PAR2 recovery files (with par2).
 - Disc labels exported as 1:1 PDF or 300-DPI PNG.
 - Burning on a Krouton Server.
 - The `krouton` command-line tool and Shortcuts actions.
 
 These are still being built. Their screens are there so you can see where Krouton is going, but they may not do the whole job yet. Where burning would give the wrong kind of disc, Krouton refuses and says why instead of writing anything:
 
-- Burning audio CDs. The workspace lays out tracks, pauses, gapless joins, crossfades and CD-Text and previews the result, but Burn doesn't make the audio CD yet. CD-Extra, CD+G, DTS-CD, DVD-Audio, SACD, Video CD, Photo CD and Mac OS 9 (HFS) discs can't be made yet either.
-- Options that are shown but not applied yet: the MP3 CD conversions (bit rate, ID3v2.3, artwork, short names), M-DISC PAR2 parity, strict 8.3 names, DVD and Blu-ray menus and video settings, and the extra album fields when ripping (composer, genre, disc number).
+- Audio CDs on many players and drives. Krouton burns them session-at-once with CD-Text, but this hasn't been tried on many drives yet; burn one and play it before making more.
+- CD-Extra, CD+G, DTS-CD, DVD-Audio, SACD, Video CD, Photo CD and Mac OS 9 (HFS) discs can't be made yet.
+- Authoring DVD or Blu-ray menus from plain video files.
 - Shrinking a dual-layer DVD onto a single-layer disc while keeping its menus. It hasn't been checked on many players yet.
 - AVCHD discs on players: the format follows the Blu-ray specification and libbluray reads it, but it hasn't been checked on many players yet.
 - Quality grading of a burned disc. Without a C1/C2 error scan the certificate says the disc was not measured.

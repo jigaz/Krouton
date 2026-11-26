@@ -140,6 +140,16 @@ extension KroutonCopyAndRipWorkspaceView {
         let writeCueLog = audioRipGenerateCueLog
         let albTitle = store.cdTextAlbumTitle
         let albPerf = store.cdTextAlbumPerformer
+        var baseTags = KroutonAudioTags()
+        baseTags.album = albTitle
+        baseTags.albumArtist = albPerf
+        baseTags.composer = cdInfoComposer
+        baseTags.genre = cdInfoGenre
+        baseTags.year = cdInfoYear
+        baseTags.trackTotal = cd.tracks.count
+        baseTags.discNumber = Int(cdInfoDiscNumber) ?? 0
+        baseTags.discTotal = Int(cdInfoDiscTotal) ?? 0
+        baseTags.isCompilation = cdInfoIsCompilation
         let token = KroutonRipCancelToken()
         ripCancelToken = token
         isRippingCD = true
@@ -198,6 +208,12 @@ extension KroutonCopyAndRipWorkspaceView {
                         }
                     }
                     okCount += 1
+                    var tags = baseTags
+                    tags.title = trk.title
+                    tags.artist = trk.performer.isEmpty ? albPerf : trk.performer
+                    tags.trackNumber = trk.trackNumber
+                    let tagged = KroutonAudioTagWriter.writeBlocking(tags, to: res.outputURL)
+                    if !tagged { logLines.append("Track \(trk.trackNumber): audio saved, but the tags could not be written") }
                     let statusBadge = "CRC \(res.crc32Hex) • AR \(res.accurateRipV1Hex)"
                     logLines.append(String(format: "Track %02d : %@ | %lld bytes | CRC32: %@ | AccurateRip: %@", trk.trackNumber, res.outputURL.lastPathComponent, res.bytesWritten, res.crc32Hex, res.accurateRipV1Hex))
                     cueLines.append("FILE \"\(res.outputURL.lastPathComponent)\" WAVE")

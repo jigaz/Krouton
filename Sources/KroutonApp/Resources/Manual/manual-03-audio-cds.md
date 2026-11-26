@@ -2,15 +2,16 @@
 
 ## Making an audio CD
 
-Burning audio CDs isn't finished. You can lay out the disc as described below and check the result, but **Burn** doesn't write the audio CD yet: Krouton refuses, so no blank is wasted on a data disc of audio files. To make an audio CD today, burn a .cue/.bin image you already have with **Burn Disc Image**.
-
 1. Choose **Red Book Audio CD (CD-DA)** in the Format Chooser (⌃⌘2).
 2. Drag in audio files. WAV, AIFF, FLAC, ALAC, MP3 and AAC all work; Krouton converts each to CD audio (44.1 kHz, 16-bit stereo).
 3. Drag tracks to reorder them. The capacity bar counts minutes: 74 on a 650 MB blank, 80 on a 700 MB blank.
 4. Fill in the disc's title and artist. These become CD-Text, which many car stereos and CD players show.
 5. Check it with **View › Inspect Compiled Red Book CUE Sheet** (⌃⌘U).
+6. Insert a blank CD-R and press **Burn** on a burner card.
 
-Krouton Server burns data discs and .iso images, not audio CDs.
+Krouton renders the disc exactly as the editor plays it, pauses and crossfades included, and writes it in one pass (session-at-once) with the ISRCs, the UPC/EAN as the disc's catalog number, and CD-Text. Audio discs aren't read back afterwards, because drives can't read audio sectors at an exact position; play the disc to check it. A project longer than one CD has to be split into projects first.
+
+A **Disc Image File** card saves the same disc as a .cue sheet and a .bin file instead, to burn later with **Burn Disc Image** or another app. Krouton Server burns data discs and disc images, not audio CDs: save a .cue/.bin, or burn on a drive connected to this Mac.
 
 ## Gaps between tracks
 
@@ -43,7 +44,9 @@ Check the result with **View › Inspect Compiled Red Book CUE Sheet** (⌃⌘U)
 
 ## MP3 CDs for the car
 
-**MP3 / FLAC Car Audio CD** burns your music files on a data CD, which most car stereos can play if the files are MP3 (many don't play FLAC). The files go on the disc as they are: the bit-rate, tag, artwork and file-name options in the workspace aren't applied yet, so convert and tag the files first if your stereo needs it.
+**MP3 / FLAC Car Audio CD** puts your music on a data CD that car stereos can play. Before burning, Krouton converts every audio file (folders are opened in name order) to MP3 at the chosen **Profile**: 320 or 192 kbps constant bit rate, or about 115 kbps variable for the most music per disc. The files are numbered in play order (**Zero-Pad Prefixes**), listed in PLAYLIST.M3U, and tagged ID3v2.3 with an ID3v1 copy, which older stereos need. **Strip Cover Art & Lyrics**, **Joint Stereo** and the **19 kHz Low-Pass Filter** are encoder settings. Only the audio goes on the disc, so no .DS_Store or ._ files reach it.
+
+Converting needs ffmpeg, which you install separately (Homebrew: brew install ffmpeg). Choose **Files As They Are** to burn the files unconverted, still numbered and listed.
 
 **Blue Book CD-Extra** (audio tracks plus a data session) can't be made yet.
 
@@ -54,4 +57,4 @@ Check the result with **View › Inspect Compiled Red Book CUE Sheet** (⌃⌘U)
 3. Pick a format: FLAC or ALAC to keep every bit, AAC for smaller files.
 4. Choose **Disc › Rip Selected Audio CD Tracks** (⇧⌘R).
 
-Tracks are saved in ~/Music/Krouton Rips, in a folder per album. The rip log records each track's CRC-32 and AccurateRip v1 checksums, so you can compare your rip with other people's rips of the same CD. A track with read errors is reported as failed; Krouton doesn't yet re-read damaged sectors to repair it.
+Tracks are saved in ~/Music/Krouton Rips, in a folder per album, tagged with the album, artist, track and the fields in **CD Info** (⌘I): composer, genre, year, disc number and compilation (Vorbis comments in FLAC, iTunes tags in ALAC and AAC, INFO chunks in WAV, text chunks in AIFF). The rip log records each track's CRC-32 and AccurateRip v1 checksums, so you can compare your rip with other people's rips of the same CD. A track with read errors is reported as failed; Krouton doesn't yet re-read damaged sectors to repair it.
