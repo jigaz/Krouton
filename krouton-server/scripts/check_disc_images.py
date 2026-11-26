@@ -15,20 +15,22 @@ import subprocess
 import sys
 import tempfile
 import time
+import unicodedata
 from pathlib import Path
 
 IMAGES = {"udf-data": ("udf", "iso9660", "joliet"), "udf-dvd": ("udf", "iso9660"), "udf-bd": ("udf",)}
 
 
 def listing(root: Path) -> dict:
-    """path → bytes for files, path + '/' → b'' for folders."""
+    """path → bytes for files, path + '/' → b'' for folders. Names are compared in NFC, since
+    macOS's drivers hand back decomposed (NFD) names."""
     out = {}
     for dirpath, dirnames, filenames in os.walk(root):
         rel = Path(dirpath).relative_to(root)
         for d in dirnames:
-            out[(rel / d).as_posix() + "/"] = b""
+            out[unicodedata.normalize("NFC", (rel / d).as_posix() + "/")] = b""
         for f in filenames:
-            out[(rel / f).as_posix()] = (Path(dirpath) / f).read_bytes()
+            out[unicodedata.normalize("NFC", (rel / f).as_posix())] = (Path(dirpath) / f).read_bytes()
     # Windows and macOS add their own entries to a mounted volume's root.
     return {k: v for k, v in out.items() if not k.startswith(("System Volume Information", ".fseventsd", ".Trashes"))}
 
@@ -91,7 +93,8 @@ def check_macos(image: Path, tree: dict, kinds: tuple) -> list:
         except RuntimeError as error:
             return [f"could not attach: {error}"]
         try:
-            fs = run("stat", "-f", "%T", mnt).strip()
+            line = next((l for l in run("mount").splitlines() if f" on {os.path.realpath(mnt)} (" in l), "")
+            fs = line.rsplit(" (", 1)[-1].split(",")[0] if line else "unknown"
             print(f"{image.parent.name}: macOS mounted it as {fs}")
             return compare(f"macOS ({fs})", listing(Path(mnt)), tree, exact_names=True)
         finally:
