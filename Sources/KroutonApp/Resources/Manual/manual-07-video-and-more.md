@@ -14,7 +14,7 @@ Authoring menus and chapters from plain video files is not part of Krouton yet.
 
 ## Extracting video
 
-**Video Disc Extractor** (⇧⌘V) will save a disc's titles as video files. It is not finished: don't rely on it yet.
+**Video Disc Extractor** (⇧⌘V) will save a disc's titles as video files. It is not finished yet: running it reports that and writes nothing.
 
 ## Rescue
 

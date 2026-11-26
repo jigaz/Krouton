@@ -183,6 +183,16 @@ extension KroutonStateStore {
             )
         case .discPrinter, .pdfVector:
             executeLabelDestinationExport()
+        case .videoExtract:
+            // Until extraction is wired to VideoKit, say so rather than fall through to building an ISO.
+            driveManager.completionReport = KroutonBurnSessionReport(
+                isSuccess: false, title: "Video Extraction Isn't Available Yet",
+                summary: "Krouton can't save a disc's titles as video files yet. Nothing was written.",
+                driveModel: primarySelectedDrive?.displayName ?? "Optical Drive", firmwareRevision: "-",
+                mediaFormattedName: "-", volumeName: discVolumeTitle, sectorsWrittenLBA: 0, bytesWritten: 0,
+                averageSpeedText: "-", peakSpeedText: "-", elapsedDurationText: "00:00",
+                diagnosticAdvice: "See Help › Krouton User Manual › Video, copying and other formats."
+            )
         default:
             if selectedCategory == .copy && selectedCopyTaskID == .ripAudioCD,
                let liveCD = KroutonRealCDExtractor.scanMountedAudioCD() {
