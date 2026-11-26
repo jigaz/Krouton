@@ -40,7 +40,7 @@ final class KroutonRescueController {
                 self.task = nil
             }
             let session: KroutonMMCDeviceSession
-            do {
+            do throws(MMCTransportError) {
                 session = try await driveManager.openDriveForRescue(driveID: driveID)
             } catch {
                 self.status = Self.describe(error)
