@@ -7,9 +7,11 @@ struct KroutonUDFVolume {
     let label: String
     let created: KroutonUDFTime
     let setID: String
-    /// UDF 2.50 (BCD); descriptor tags are version 3 (ECMA-167 3rd edition).
-    let revision: UInt16 = 0x0250
-    let tagVersion: UInt16 = 3
+    /// The UDF revision, as BCD: 0x0250 for Blu-ray, 0x0102 for DVD-Video.
+    var revision: UInt16 = 0x0250
+    /// Descriptor tag version: 2 (ECMA-167 2nd edition, NSR02) before UDF 2.00, else 3.
+    var tagVersion: UInt16 { revision < 0x0200 ? 2 : 3 }
+    var nsr: String { revision < 0x0200 ? "NSR02" : "NSR03" }
 }
 
 /// A calendar time in UTC, from Unix seconds (Howard Hinnant's civil-from-days).
@@ -238,7 +240,7 @@ enum KroutonUDF {
         var d = [UInt8](repeating: 0, count: 512)
         put32(&d, 16, vdsn)
         put16(&d, 20, 1); put16(&d, 22, 0)
-        copy(&d, 24, regid("+NSR03"))
+        copy(&d, 24, regid("+" + v.nsr))
         put32(&d, 184, 1); put32(&d, 188, start); put32(&d, 192, length)
         copy(&d, 196, implementation)
         tag(&d, v, id: 5, location: location)
@@ -246,15 +248,18 @@ enum KroutonUDF {
     }
 
     static func logicalVolume(_ v: KroutonUDFVolume, vdsn: UInt32, location: UInt32, fileSet: KroutonUDFLongAD,
-                              integrity: (UInt32, UInt32), metadata m: MetadataMap) -> [UInt8] {
-        var map = [UInt8](repeating: 0, count: 64)
-        map[0] = 2; map[1] = 64
-        copy(&map, 4, regid("*UDF Metadata Partition", suffix: suffix(v.revision)))
-        put16(&map, 36, 1); put16(&map, 38, 0)
-        put32(&map, 40, m.file); put32(&map, 44, m.mirror); put32(&map, 48, .max)
-        put32(&map, 52, UInt32(m.alignment)); put16(&map, 56, m.alignment)
-        map[58] = 1
-        let maps: [UInt8] = [1, 6, 1, 0, 0, 0] + map
+                              integrity: (UInt32, UInt32), metadata: MetadataMap?) -> [UInt8] {
+        var maps: [UInt8] = [1, 6, 1, 0, 0, 0] // type 1: volume 1, partition 0
+        if let m = metadata {
+            var map = [UInt8](repeating: 0, count: 64)
+            map[0] = 2; map[1] = 64
+            copy(&map, 4, regid("*UDF Metadata Partition", suffix: suffix(v.revision)))
+            put16(&map, 36, 1); put16(&map, 38, 0)
+            put32(&map, 40, m.file); put32(&map, 44, m.mirror); put32(&map, 48, .max)
+            put32(&map, 52, UInt32(m.alignment)); put16(&map, 56, m.alignment)
+            map[58] = 1
+            maps += map
+        }
         var d = [UInt8](repeating: 0, count: 440 + maps.count)
         put32(&d, 16, vdsn)
         copy(&d, 20, charspec())
@@ -262,7 +267,7 @@ enum KroutonUDF {
         put32(&d, 212, 2048)
         copy(&d, 216, regid("*OSTA UDF Compliant", suffix: suffix(v.revision)))
         fileSet.put(into: &d, at: 248)
-        put32(&d, 264, UInt32(maps.count)); put32(&d, 268, 2)
+        put32(&d, 264, UInt32(maps.count)); put32(&d, 268, metadata == nil ? 1 : 2)
         copy(&d, 272, implementation)
         put32(&d, 432, integrity.0); put32(&d, 436, integrity.1)
         copy(&d, 440, maps)
@@ -316,8 +321,9 @@ enum KroutonUDF {
         return d
     }
 
-    /// An extended file entry (UDF 2.50 uses them throughout).
-    static func fileEntry(_ v: KroutonUDFVolume, location: UInt32, entry e: Entry) throws -> [UInt8] {
+    /// An extended file entry (UDF 2.50 uses them throughout), or with `extended` false the
+    /// plain file entry of UDF 1.02 and 2.01.
+    static func fileEntry(_ v: KroutonUDFVolume, location: UInt32, extended: Bool = true, entry e: Entry) throws -> [UInt8] {
         var ads: [UInt8] = []
         var kind: UInt16 = 0
         switch e.allocation {
@@ -335,8 +341,9 @@ enum KroutonUDF {
                 ads += b
             }
         }
-        guard 216 + ads.count <= 2048 else { throw KroutonUDFError.tooFragmented }
-        var d = [UInt8](repeating: 0, count: 216 + ads.count)
+        let head = extended ? 216 : 176
+        guard head + ads.count <= 2048 else { throw KroutonUDFError.tooFragmented }
+        var d = [UInt8](repeating: 0, count: head + ads.count)
         put16(&d, 20, 4); put16(&d, 24, 1)
         d[27] = e.fileType.rawValue
         put16(&d, 34, kind)
@@ -344,15 +351,25 @@ enum KroutonUDF {
         put32(&d, 44, 0x1084 | (e.fileType == .directory ? 0x0421 : 0))
         put16(&d, 48, e.links)
         put64(&d, 56, e.length)
-        put64(&d, 64, e.length)
-        put64(&d, 72, (e.length + 2047) / 2048)
-        for at in [80, 92, 104, 116] { copy(&d, at, e.modified.bytes) }
-        put32(&d, 128, 1)
-        copy(&d, 168, implementation)
-        put64(&d, 200, e.unique)
-        put32(&d, 212, UInt32(ads.count))
-        copy(&d, 216, ads)
-        tag(&d, v, id: 266, location: location)
+        let blocks = (e.length + 2047) / 2048
+        if extended {
+            put64(&d, 64, e.length)
+            put64(&d, 72, blocks)
+            for at in [80, 92, 104, 116] { copy(&d, at, e.modified.bytes) }
+            put32(&d, 128, 1)
+            copy(&d, 168, implementation)
+            put64(&d, 200, e.unique)
+            put32(&d, 212, UInt32(ads.count))
+        } else {
+            put64(&d, 64, blocks)
+            for at in [72, 84, 96] { copy(&d, at, e.modified.bytes) }
+            put32(&d, 108, 1)
+            copy(&d, 128, implementation)
+            put64(&d, 160, e.unique)
+            put32(&d, 172, UInt32(ads.count))
+        }
+        copy(&d, head, ads)
+        tag(&d, v, id: extended ? 266 : 261, location: location)
         return d
     }
 

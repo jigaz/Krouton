@@ -4,9 +4,9 @@ Parts of this chapter describe features that are still being built. Each section
 
 ## DVD-Video and Blu-ray
 
-Choose **DVD-Video (VIDEO_TS)** (⌃⌘3) or a Blu-ray size (⌃⌘4 for a 25 GB single-layer disc) and add a disc that is already authored: a VIDEO_TS folder for DVD, a BDMV folder for Blu-ray. For DVD, Krouton burns the VIDEO_TS folder on a data disc with UDF 1.02 and ISO 9660, which most DVD players read; check one disc in your player first. For Blu-ray, Krouton writes the BDMV folder as a UDF 2.50 image (what Blu-ray players need) and burns that; add the folder that holds BDMV, or BDMV on its own. **View › Inspect Video Bitrate Budget** (⌃⌘B) shows whether the video fits the disc at its bitrate.
+Choose **DVD-Video (VIDEO_TS)** (⌃⌘3) or a Blu-ray size (⌃⌘4 for a 25 GB single-layer disc) and add a disc that is already authored: a VIDEO_TS folder for DVD, a BDMV folder for Blu-ray. For DVD, Krouton writes the VIDEO_TS folder as an ISO 9660 + UDF 1.02 disc with the video files first and in the order players expect, as authored DVDs are laid out; add the folder that holds VIDEO_TS, or VIDEO_TS and AUDIO_TS themselves. Check one disc in your player before making more. For Blu-ray, Krouton writes the BDMV folder as a UDF 2.50 image (what Blu-ray players need) and burns that; add the folder that holds BDMV, or BDMV on its own. **View › Inspect Video Bitrate Budget** (⌃⌘B) shows whether the video fits the disc at its bitrate.
 
-Authoring menus and chapters from plain video files is not part of Krouton yet, so the workspace has no menu, video-standard or layer-break settings. On a Krouton Server, a DVD-Video folder is sent as files and the server writes it with the VIDEO_TS files first and in the order players expect.
+Authoring menus and chapters from plain video files is not part of Krouton yet, so the workspace has no menu, video-standard or layer-break settings. A Krouton Server writes DVD-Video the same way.
 
 ## Copying a disc and fitting DVD-9 onto DVD-5
 

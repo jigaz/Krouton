@@ -213,5 +213,45 @@ extension KroutonTestHarness {
         } catch {
             h.check(false, "The UDF vector image must build: \(error)")
         }
+        verifyDVDVideoVector(&h)
+    }
+
+    /// The DVD-Video profile against `Vectors/udf-dvd-v1.sha256`, from the same folder as the
+    /// server's `dvd_tree`: ISO 9660 level 1 + UDF 1.02, VIDEO_TS in player order.
+    private static func verifyDVDVideoVector(_ h: inout KroutonTestHarness) {
+        let fm = FileManager.default
+        let base = fm.temporaryDirectory.appendingPathComponent("krouton-dvd-vector-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: base) }
+        let tree = base.appendingPathComponent("tree")
+        let pattern = { (count: Int, seed: UInt8) in Data((0..<count).map { UInt8(truncatingIfNeeded: $0) &* 31 &+ seed }) }
+        do {
+            for dir in ["VIDEO_TS", "AUDIO_TS"] {
+                try fm.createDirectory(at: tree.appendingPathComponent(dir), withIntermediateDirectories: true)
+            }
+            let files: [(String, Int)] = [
+                ("VIDEO_TS.IFO", 12_288), ("VIDEO_TS.VOB", 6144), ("VIDEO_TS.BUP", 12_288), ("VTS_01_0.IFO", 20_480),
+                ("VTS_01_0.VOB", 2048), ("VTS_01_1.VOB", 300_000), ("VTS_01_2.VOB", 50_000), ("VTS_01_0.BUP", 20_480),
+            ]
+            for (name, count) in files {
+                try pattern(count, UInt8(name.count)).write(to: tree.appendingPathComponent("VIDEO_TS/\(name)"))
+            }
+            let stamp: [FileAttributeKey: Any] = [.modificationDate: Date(timeIntervalSince1970: 1_700_000_000)]
+            for path in files.map({ "VIDEO_TS/\($0.0)" }) + ["VIDEO_TS", "AUDIO_TS", ""] {
+                try fm.setAttributes(stamp, ofItemAtPath: tree.appendingPathComponent(path).path)
+            }
+            let image = base.appendingPathComponent("disc.iso")
+            _ = try KroutonUDFImageWriter.build(folder: tree, output: image, label: "Krouton vector", profile: .dvdVideo, now: 1_795_000_000)
+            let (hex, bytes) = try KroutonHybridImageBuilder.sha256(ofFileAt: image)
+            let vector = (try? String(contentsOf: Self.repositoryRoot.appendingPathComponent("Vectors/udf-dvd-v1.sha256"), encoding: .utf8)) ?? ""
+            h.check(vector == "\(hex)  udf-dvd-v1: \(bytes) bytes\n",
+                    "The Swift DVD-Video writer must match Vectors/udf-dvd-v1.sha256 (got \(hex), \(bytes) bytes)")
+            if let out = ProcessInfo.processInfo.environment["KROUTON_AVCHD_OUT"] {
+                try? fm.createDirectory(at: URL(fileURLWithPath: out), withIntermediateDirectories: true)
+                try? fm.removeItem(at: URL(fileURLWithPath: out).appendingPathComponent("dvd-vector.iso"))
+                try? fm.copyItem(at: image, to: URL(fileURLWithPath: out).appendingPathComponent("dvd-vector.iso"))
+            }
+        } catch {
+            h.check(false, "The DVD-Video vector image must build: \(error)")
+        }
     }
 }

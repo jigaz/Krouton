@@ -47,6 +47,20 @@ jobs:
           KROUTON_AVCHD_OUT: ${{ runner.temp }}/avchd/out
       - name: libbluray reads the disc; macOS mounts the image
         run: python3 Scripts/check-avchd-disc.py "$RUNNER_TEMP/avchd/out"
+      - name: macOS mounts the DVD-Video image and lists VIDEO_TS in order
+        run: |
+          mnt=$(mktemp -d)
+          hdiutil attach -readonly -nobrowse -mountpoint "$mnt" "$RUNNER_TEMP/avchd/out/dvd-vector.iso"
+          ls -l "$mnt/VIDEO_TS"
+          test -f "$mnt/VIDEO_TS/VTS_01_1.VOB"
+          cmp <(head -c 300000 "$mnt/VIDEO_TS/VTS_01_1.VOB") <(python3 -c "import sys; sys.stdout.buffer.write(bytes(((i*31+12)&255) for i in range(300000)))")
+          hdiutil detach "$mnt"
+      - name: Keep the DVD-Video image when the vector fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dvd-vector
+          path: ${{ runner.temp }}/avchd/out/dvd-vector.iso
 
   ipados-portable-core:
     # The libraries an iPad app would share (krouton-verify Suite 31) must compile for iPadOS.

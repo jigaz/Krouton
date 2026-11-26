@@ -66,10 +66,8 @@ extension KroutonFormatID {
             // Off (`KroutonParityWriter`, needs par2 from Homebrew).
             return .dataDisc
         case .dvdVideo:
-            // NOTE: on a drive on this Mac, VIDEO_TS goes on DiscRecording's UDF 1.02 + ISO without
-            // the file ordering Krouton Server's writer guarantees; most players read it, but check
-            // one disc first. On a Krouton Server the files are sent as they are and the server
-            // masters the disc in player order.
+            // VIDEO_TS as ISO 9660 level 1 + UDF 1.02 with the files in player order, by
+            // `KroutonUDFImageWriter` (.dvdVideo) here and by Krouton Server's own writer remotely.
             return .dataDisc
 
         case .imageBurn, .consoleWii, .consoleGC, .consolePS2, .consolePS1, .consolePS3, .consoleXbox,

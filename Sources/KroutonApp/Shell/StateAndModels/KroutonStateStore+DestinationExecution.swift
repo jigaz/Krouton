@@ -148,15 +148,15 @@ extension KroutonStateStore {
                 return
             }
             defer { if let folder = input.folder { try? FileManager.default.removeItem(at: folder) } }
-            // The large-file UDF format arrives as a finished UDF 2.50 image: save it as it is.
-            if activeFormatSpec().formatID == .dataUDFModern, let image = input.files.first?.url {
+            // Large-file UDF and DVD-Video arrive as a finished image from Krouton's writer.
+            if [.dataUDFModern, .dvdVideo].contains(activeFormatSpec().formatID), let image = input.files.first?.url {
                 let path = NSString(string: target.hardwareOrPath).expandingTildeInPath
                 let output = URL(fileURLWithPath: path).deletingPathExtension().appendingPathExtension("iso")
                 do {
                     try? FileManager.default.removeItem(at: output)
                     try FileManager.default.moveItem(at: image, to: output)
                     driveManager.completionReport = refusalReport(
-                        "Wrote \(output.lastPathComponent): UDF 2.50, files of any size.", title: "UDF Image Saved", ok: true)
+                        "Wrote \(output.lastPathComponent), ready for Burn Disc Image.", title: "Disc Image Saved", ok: true)
                 } catch {
                     driveManager.completionReport = refusalReport(error.localizedDescription, title: "Could Not Save the UDF Image")
                 }

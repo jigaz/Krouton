@@ -27,7 +27,13 @@ extension KroutonStateStore {
         if activeBurnSupport == .dataDisc, format != .mp3CD, enableCustomFinderLayoutTab {
             input = try withFinderLayout(input)
         }
-        if format == .dataUDFModern { input = try await asUDFImage(input) }
+        if format == .dataUDFModern { input = try await asUDFImage(input, profile: .bluRay) }
+        if format == .dvdVideo {
+            guard let items = dvdVideoItems(input.files) else {
+                throw KroutonBurnInputError(message: "Add the folder that holds VIDEO_TS (or VIDEO_TS and AUDIO_TS themselves). Nothing was written.")
+            }
+            input = try await asUDFImage((items, input.folder), profile: .dvdVideo)
+        }
         return input
     }
 
@@ -61,10 +67,26 @@ extension KroutonStateStore {
         return (input.files.filter { $0.name != ".DS_Store" } + [KroutonOpticalDriveBank.inspectFileOrFolder(url: store)], folder)
     }
 
-    /// Stages the files and writes them as one UDF 2.50 image, which holds files of any size
-    /// and is read by macOS, Windows 10 and later, and Linux.
+    /// The deck's items with VIDEO_TS at the top: a lone folder holding VIDEO_TS stands for its
+    /// contents. Nil when there is no VIDEO_TS to put at the top.
+    func dvdVideoItems(_ files: [KroutonStagedFileEntry]) -> [KroutonStagedFileEntry]? {
+        func hasVideoTS(_ entries: [KroutonStagedFileEntry]) -> Bool {
+            entries.contains { $0.isDirectory && $0.name.uppercased() == "VIDEO_TS" }
+        }
+        if hasVideoTS(files) { return files }
+        guard files.count == 1, let only = files.first, only.isDirectory else { return nil }
+        let children = ((try? FileManager.default.contentsOfDirectory(at: only.url, includingPropertiesForKeys: nil)) ?? [])
+            .filter { !$0.lastPathComponent.hasPrefix(".") }
+            .map { KroutonOpticalDriveBank.inspectFileOrFolder(url: $0) }
+        return hasVideoTS(children) ? children : nil
+    }
+
+    /// Stages the files and writes them as one image with Krouton's own writer: UDF 2.50 for
+    /// large-file data (any file size; macOS, Windows 10 and later, Linux), or ISO 9660 + UDF
+    /// 1.02 with VIDEO_TS in player order for DVD-Video.
     private func asUDFImage(
-        _ input: (files: [KroutonStagedFileEntry], folder: URL?)
+        _ input: (files: [KroutonStagedFileEntry], folder: URL?),
+        profile: KroutonUDFImageWriter.Profile
     ) async throws -> (files: [KroutonStagedFileEntry], folder: URL?) {
         let folder = FileManager.default.temporaryDirectory
             .appendingPathComponent("KroutonUDF_\(UUID().uuidString)", isDirectory: true)
@@ -79,7 +101,7 @@ extension KroutonStateStore {
         let label = discVolumeTitle
         do {
             _ = try await Task.detached(priority: .userInitiated) {
-                try KroutonUDFImageWriter.build(folder: tree, output: image, label: label)
+                try KroutonUDFImageWriter.build(folder: tree, output: image, label: label, profile: profile)
             }.value
         } catch {
             try? FileManager.default.removeItem(at: folder)

@@ -510,6 +510,8 @@ fn needs_builtin_spots_video_folders() {
 /// built at `NOW`). The Swift writer in Krouton (ImageKit) must produce the same bytes.
 /// Regenerate with `KRSP_WRITE_UDF_VECTORS=1 cargo test -p server-core disc::tests::udf_vector`.
 const UDF_VECTOR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../Vectors/udf-bd-v1.sha256");
+/// `Vectors/udf-dvd-v1.sha256`: the same for the DVD-Video folder from `dvd_tree`.
+const UDF_DVD_VECTOR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../Vectors/udf-dvd-v1.sha256");
 
 fn set_time(path: &Path, secs: u64) {
     let time = std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs);
@@ -539,12 +541,12 @@ fn stamp_tree(dir: &Path, secs: u64) {
     set_time(dir, secs);
 }
 
-#[test]
-fn udf_vector() {
-    let tmp = TempDir::new("udf-vector");
+/// Masters `fill`'s folder with fixed times and compares the image with `vector`.
+fn check_vector(name: &str, fill: fn(&Path), vector: &str) {
+    let tmp = TempDir::new(name);
     let tree = tmp.path().join("tree");
     fs::create_dir_all(&tree).unwrap();
-    bd_tree(&tree);
+    fill(&tree);
     stamp_tree(&tree, 1_700_000_000);
     let out = tmp.path().join("disc.iso");
     let request = MasterRequest {
@@ -557,10 +559,16 @@ fn udf_vector() {
     master(&request, NOW, &mut |_| {}).unwrap();
     let image = fs::read(&out).unwrap();
     let hex: String = krsp::sha256::Sha256::digest(&[&image]).iter().map(|b| format!("{b:02x}")).collect();
-    let line = format!("{hex}  udf-bd-v1: {} bytes\n", image.len());
+    let line = format!("{hex}  {name}: {} bytes\n", image.len());
     if std::env::var_os("KRSP_WRITE_UDF_VECTORS").is_some() {
-        fs::write(UDF_VECTOR, &line).unwrap();
+        fs::write(vector, &line).unwrap();
     }
-    let stored = fs::read_to_string(UDF_VECTOR).expect("Vectors/udf-bd-v1.sha256 is missing").replace("\r\n", "\n");
-    assert_eq!(stored, line, "the Blu-ray image no longer matches Vectors/udf-bd-v1.sha256");
+    let stored = fs::read_to_string(vector).unwrap_or_else(|_| panic!("{vector} is missing")).replace("\r\n", "\n");
+    assert_eq!(stored, line, "the {name} image no longer matches its vector");
+}
+
+#[test]
+fn udf_vector() {
+    check_vector("udf-bd-v1", bd_tree, UDF_VECTOR);
+    check_vector("udf-dvd-v1", dvd_tree, UDF_DVD_VECTOR);
 }

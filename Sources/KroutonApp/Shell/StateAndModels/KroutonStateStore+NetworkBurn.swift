@@ -75,7 +75,13 @@ extension KroutonStateStore {
     private func runNetworkFolderBurn(_ target: KroutonBakeBatchItem, driveManager: KroutonOpticalDriveBank, started: Date) async {
         let tree = FileManager.default.temporaryDirectory.appendingPathComponent("KroutonNetworkFolder_\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: tree) }
-        let items = stagedFiles.map { KroutonBurnStageItem(source: $0.url, name: $0.name) }
+        guard let entries = dvdVideoItems(stagedFiles) else {
+            driveManager.completionReport = networkReport(ok: false, title: "Could Not Prepare the Disc",
+                                                          summary: "Add the folder that holds VIDEO_TS (or VIDEO_TS and AUDIO_TS themselves).",
+                                                          server: "", drive: "", bytes: 0, started: started)
+            return
+        }
+        let items = entries.map { KroutonBurnStageItem(source: $0.url, name: $0.name) }
         if let stagingError = await KroutonBurnStager.stage(items, into: tree) {
             driveManager.completionReport = networkReport(ok: false, title: "Could Not Prepare the Disc", summary: stagingError,
                                                           server: "", drive: "", bytes: 0, started: started)
