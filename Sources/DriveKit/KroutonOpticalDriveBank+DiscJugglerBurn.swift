@@ -73,19 +73,23 @@ extension KroutonOpticalDriveBank {
         SectorLayout(blockSize: 2_352, blockType: 0, dataForm: 0, trackMode: 0, sessionFormat: 0, offsetInSector: 0)
     }
 
+    /// The TOC control nibble for a data track (digital data, recorded uninterrupted); the
+    /// DiscRecording headers have no named constant for it.
+    static var dataTrackMode: Int { 4 }
+
     static func dataLayout(for track: KroutonDiscJugglerImage.Track) -> SectorLayout {
         if track.mode == .mode1 {
             return SectorLayout(blockSize: Int(kDRBlockSizeMode1Data), blockType: Int(kDRBlockTypeMode1Data),
-                                dataForm: Int(kDRDataFormMode1Data), trackMode: Int(kDRTrackModeMode1Data),
+                                dataForm: Int(kDRDataFormMode1Data), trackMode: Self.dataTrackMode,
                                 sessionFormat: Int(kDRSessionFormatMode1Data), offsetInSector: track.userDataOffset)
         }
         if track.sectorSize >= 2_336, Int(kDRBlockSizeMode2Data) == 2_336 {
             return SectorLayout(blockSize: 2_336, blockType: Int(kDRBlockTypeMode2Data),
-                                dataForm: Int(kDRDataFormMode2Data), trackMode: Int(kDRTrackModeMode2Data),
+                                dataForm: Int(kDRDataFormMode2Data), trackMode: Self.dataTrackMode,
                                 sessionFormat: Int(kDRSessionFormatCDXA), offsetInSector: track.sectorSize == 2_352 ? 16 : 0)
         }
         return SectorLayout(blockSize: Int(kDRBlockSizeMode2Form1Data), blockType: Int(kDRBlockTypeMode2Form1Data),
-                            dataForm: Int(kDRDataFormMode2Form1Data), trackMode: Int(kDRTrackModeMode2Form1Data),
+                            dataForm: Int(kDRDataFormMode2Form1Data), trackMode: Self.dataTrackMode,
                             sessionFormat: Int(kDRSessionFormatCDXA), offsetInSector: track.userDataOffset)
     }
 
