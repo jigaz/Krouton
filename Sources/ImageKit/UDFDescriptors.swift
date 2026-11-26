@@ -86,7 +86,7 @@ enum KroutonUDF {
         var alignment: UInt16
     }
 
-    // MARK: Fields
+    // MARK: - Fields
 
     static func put16(_ d: inout [UInt8], _ at: Int, _ v: UInt16) {
         d[at] = UInt8(v & 0xFF); d[at + 1] = UInt8(v >> 8)
@@ -116,7 +116,7 @@ enum KroutonUDF {
         return out
     }
 
-    // MARK: Tags and strings
+    // MARK: - Tags and strings
 
     static func crc(_ data: ArraySlice<UInt8>) -> UInt16 {
         var crc: UInt16 = 0
@@ -192,7 +192,7 @@ enum KroutonUDF {
 
     static func fidLength(_ nameBytes: Int) -> Int { (38 + nameBytes + 3) / 4 * 4 }
 
-    // MARK: Volume structure
+    // MARK: - Volume structure
 
     static func recognition(_ id: String) -> [UInt8] {
         var d = [UInt8](repeating: 0, count: 2048)
@@ -300,7 +300,7 @@ enum KroutonUDF {
         return d
     }
 
-    // MARK: File set and files
+    // MARK: - File set and files
 
     static func fileSet(_ v: KroutonUDFVolume, location: UInt32, root: KroutonUDFLongAD) -> [UInt8] {
         var d = [UInt8](repeating: 0, count: 512)
