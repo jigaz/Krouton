@@ -5,8 +5,8 @@
 Pick a data format in the Format Chooser, under **Data & Archival Media**, or from the **Format** menu.
 
 - **Hybrid ISO-9660 + Joliet + UDF** (⌃⌘1) is the right choice almost every time. Windows, macOS, Linux and most DVD and Blu-ray players can read it. Long file names and Unicode survive through Joliet and UDF.
-- **UDF 2.60 Optical Volume** is for files of 4 GiB or more, which ISO-9660 can't hold. Modern Windows, macOS and Linux read it; old systems and many players don't.
-- **M-DISC 1,000-Year Archival Vault** (⌃⌘5) is a hybrid disc meant for M-DISC blanks, with optional PAR2 parity files so a scratched disc can still be repaired. Set the share of parity with **M-DISC PAR2 Parity Percentage**.
+- **UDF 2.60 Optical Volume** is for files of 4 GiB or more, which ISO-9660 can't hold. Today it writes the same hybrid disc (its UDF side is version 1.02, which holds large files); modern Windows, macOS and Linux read them, old systems don't.
+- **M-DISC 1,000-Year Archival Vault** (⌃⌘5) is a hybrid disc meant for M-DISC blanks. The PAR2 parity setting isn't applied yet: add parity files yourself (for example with par2cmdline) if you want them.
 - **Burn Disc Image** (⌃⌘6) writes an existing .iso, .cue/.bin or .dmg exactly as it is.
 
 Older formats are there for old machines: strict 8.3 upper-case names for DOS, Windows 95 and System 7, and an Apple Partition Map with classic HFS for Mac OS 9.
@@ -29,7 +29,7 @@ Every disc in a set is laid out as a BagIt bag (RFC 8493): your files sit under 
 
 So any single disc can be checked on its own with standard BagIt tools, years from now, without Krouton, and the index tells you which disc to fetch for a given file.
 
-A file larger than the chosen disc can't be split. Pick a bigger disc size, or use UDF 2.60 on a Blu-ray.
+A file larger than the chosen disc can't be split. Pick a bigger disc size, such as a Blu-ray.
 
 ## Burning a disc image
 

@@ -6,6 +6,15 @@ import SwiftUI
 import UniformTypeIdentifiers
 import VideoKit
 
+/// The Red Book workspace: track list, gaps, crossfades (Splice editor with live audition),
+/// CD-Text and the compiled CUE preview.
+///
+/// NOTE(status, 2026-11): everything here edits and previews the `AudioProject`, but no burn
+/// path renders it yet. Audio formats are `.notYet` in `KroutonFormatID.burnSupport`, so Burn
+/// refuses rather than writing the audio files as a data disc (which it used to). The pieces
+/// for the burn exist: `KroutonAudioEngine.masterRedBookAudioTracksToDisk` (BIN + CUE, simple
+/// joins and crossfade) and `AudioProject.compileCueSheet` (gaps, indexes, CD-Text), and the
+/// drive bank burns a .cue as an image.
 struct KroutonRedBookAudioWorkspaceView: View {
     var store: KroutonStateStore
     var auditioner = SpliceAudioAuditioner.shared

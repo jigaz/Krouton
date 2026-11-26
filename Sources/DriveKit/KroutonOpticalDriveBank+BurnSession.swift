@@ -13,6 +13,12 @@ extension KroutonOpticalDriveBank {
     /// an image; anything else becomes a data disc. `onCompletion` is always called exactly once,
     /// including when the burn is refused before it starts or is aborted.
     ///
+    /// NOTE(status, 2026-11): this is the only local burn path, and it doesn't know the selected
+    /// format. Data discs are DiscRecording's ISO 9660 + Joliet (+ UDF 1.02 on DVD/BD) + HFS+;
+    /// there is no audio-track, Mode 2 Form 2, HFS-standard or UDF 2.x data writer here. The app
+    /// decides beforehand what may reach it (`KroutonFormatID.burnSupport`,
+    /// `KroutonStateStore.burnRefusal(for:)`), and Blu-ray video arrives as a UDF 2.50 image.
+    ///
     /// - Parameter allowOverwriteOfWrittenMedia: pass true only when a person started
     ///   this burn. With false, rewritable media that already holds data is refused
     ///   instead of erased.

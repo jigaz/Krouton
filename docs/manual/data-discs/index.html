@@ -44,8 +44,8 @@
     <p>Pick a data format in the Format Chooser, under <strong>Data &amp; Archival Media</strong>, or from the <strong>Format</strong> menu.</p>
     <ul>
       <li><strong>Hybrid ISO-9660 + Joliet + UDF</strong> (⌃⌘1) is the right choice almost every time. Windows, macOS, Linux and most DVD and Blu-ray players can read it. Long file names and Unicode survive through Joliet and UDF.</li>
-      <li><strong>UDF 2.60 Optical Volume</strong> is for files of 4 GiB or more, which ISO-9660 can't hold. Modern Windows, macOS and Linux read it; old systems and many players don't.</li>
-      <li><strong>M-DISC 1,000-Year Archival Vault</strong> (⌃⌘5) is a hybrid disc meant for M-DISC blanks, with optional PAR2 parity files so a scratched disc can still be repaired. Set the share of parity with <strong>M-DISC PAR2 Parity Percentage</strong>.</li>
+      <li><strong>UDF 2.60 Optical Volume</strong> is for files of 4 GiB or more, which ISO-9660 can't hold. Today it writes the same hybrid disc (its UDF side is version 1.02, which holds large files); modern Windows, macOS and Linux read them, old systems don't.</li>
+      <li><strong>M-DISC 1,000-Year Archival Vault</strong> (⌃⌘5) is a hybrid disc meant for M-DISC blanks. The PAR2 parity setting isn't applied yet: add parity files yourself (for example with par2cmdline) if you want them.</li>
       <li><strong>Burn Disc Image</strong> (⌃⌘6) writes an existing .iso, .cue/.bin or .dmg exactly as it is.</li>
     </ul>
     <p>Older formats are there for old machines: strict 8.3 upper-case names for DOS, Windows 95 and System 7, and an Apple Partition Map with classic HFS for Mac OS 9.</p>
@@ -61,7 +61,7 @@
       <li>krouton-set-index.json, which lists every disc in the set and the files on each.</li>
     </ul>
     <p>So any single disc can be checked on its own with standard BagIt tools, years from now, without Krouton, and the index tells you which disc to fetch for a given file.</p>
-    <p>A file larger than the chosen disc can't be split. Pick a bigger disc size, or use UDF 2.60 on a Blu-ray.</p>
+    <p>A file larger than the chosen disc can't be split. Pick a bigger disc size, such as a Blu-ray.</p>
     <h2>Burning a disc image</h2>
     <p>Drop an .iso, .cdr, .dmg, .cue/.bin or .toc on the deck, or choose <strong>Burn Disc Image</strong>. A .cue file must sit next to the .bin files it names. When the deck holds a single disc image, Krouton writes the image sector for sector, including its boot catalog, so a bootable installer stays bootable. It doesn't wrap the image in a new file system.</p>
     <p>Krouton refuses images it can't burn faithfully, such as .cdi, .gdi, .wbfs, .rvz and .chd, and says why, instead of copying the file onto a data disc.</p>

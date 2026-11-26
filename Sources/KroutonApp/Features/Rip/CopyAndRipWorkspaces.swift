@@ -38,6 +38,8 @@ struct KroutonCopyAndRipWorkspaceView: View {
     @State var audioRipCodec: String = "FLAC (Lossless)"
     @State var audioRipAccurateRip: Bool = true
     @State var audioRipGenerateCueLog: Bool = true
+    // NOTE(status, 2026-11): display-only. Rips read the AIFF files macOS mounts for an audio CD,
+    // so there is no separate error-correction pass to switch.
     @State var audioRipErrorCorrection: Bool = true
     @State var audioRipSelectedTracks: Set<Int> = Set(1...99)
     @State var videoExtractMode: String = "Lossless MKV Remux"
@@ -56,6 +58,10 @@ struct KroutonCopyAndRipWorkspaceView: View {
     @State var perTrackProgress: [Int: Double] = [:]
     @State var ripCancelToken = KroutonRipCancelToken()
     @State var showCDInfoPopover: Bool = false
+    // NOTE(status, 2026-11): none of these album fields is written into the ripped files:
+    // `KroutonRealCDExtractor.extractSingleTrack` writes audio only (ExtAudioFile), named
+    // "NN Title.ext" from the track list. Tagging needs an AVMutableMetadataItem export (ALAC/M4A)
+    // and a Vorbis-comment writer (FLAC).
     @State var cdInfoComposer: String = ""
     @State var cdInfoGenre: String = "Rock"
     @State var cdInfoYear: String = ""

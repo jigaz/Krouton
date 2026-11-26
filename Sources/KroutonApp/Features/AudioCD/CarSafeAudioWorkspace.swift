@@ -12,6 +12,12 @@ struct KroutonCarSafeAudioWorkspaceView: View {
     @Binding var isDropTargeted: Bool
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 
+    // NOTE(status, 2026-11): these options are display-only. The burn writes the staged files
+    // as they are on a data disc (`KroutonFormatID.mp3CD.burnSupport == .dataDisc`): nothing is
+    // transcoded, renamed, retagged, stripped or filtered, and no .m3u is written. The track list's
+    // "001 - Name.mp3" and "320k CBR" are previews of what the options would do. Wiring them means
+    // staging converted copies (AVAudioConverter or ffmpeg for MP3, an ID3v2.3 writer) before
+    // `startPhysicalDataBurn`; until then the manual does not describe them.
     @State private var carSafeZeroPadNumbers: Bool = true
     @State private var carSafeStripAppleDouble: Bool = true
     @State private var carSafeEnforceID3v23: Bool = true

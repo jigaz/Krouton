@@ -240,7 +240,7 @@ struct KroutonBurnStationWorkspaceView: View {
             }
         }
         if let hugeFile = store.stagedFiles.first(where: { $0.exceedsISO9660FourGiBLimit }) {
-            return "4 GiB File Limit Notice: '\(hugeFile.name)' exceeds the 4 GiB ISO9660 Level 2 ceiling. Krouton will bridge this file via UDF 2.60 + HFS+."
+            return "4 GiB File Limit Notice: '\(hugeFile.name)' is over 4 GiB, which ISO 9660 can't hold: Macs and recent PCs read it from the disc's UDF and HFS+ sides, older systems won't see it."
         }
         if let longFile = store.stagedFiles.first(where: { $0.exceedsJoliet64CharLimit }) {
             return "Joliet 64-Char Notice: '\(longFile.name)' is \(longFile.name.count) characters long. Full name is preserved on Mac (HFS+) and UDF, and safely truncated in legacy Windows Joliet tables."

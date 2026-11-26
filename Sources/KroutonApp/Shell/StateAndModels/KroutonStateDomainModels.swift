@@ -236,6 +236,13 @@ struct KroutonKitchenEventRow: Identifiable, Hashable, Sendable {
     var soundEnabled: Bool
 }
 
+/// Where a destination card sends the deck.
+///
+/// NOTE(status, 2026-11): the raw values are persisted in saved queues and sessions, so they
+/// can't be renamed without a migration, but two of them overstate: `.videoExtract` remuxes to
+/// MKV or copies MPEG (no H.265 transcode), and `.discPrinter` writes the same 1:1 PDF + PNG as
+/// `.pdfVector` (it doesn't drive an Epson or any other disc printer). Display names should
+/// move to a separate `title` property.
 enum KroutonBurnDestinationKind: String, CaseIterable, Identifiable, Codable, Sendable {
     case physicalBurner = "Physical Burner"
     case networkBurner = "Network Server Burner"

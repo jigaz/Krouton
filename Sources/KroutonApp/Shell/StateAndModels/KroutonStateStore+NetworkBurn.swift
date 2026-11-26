@@ -8,8 +8,15 @@ import OpticalCore
 
 @MainActor
 extension KroutonStateStore {
-    /// Masters the staged files into an ISO-9660 + Joliet + UDF image and sends it to the Krouton
-    /// Server and drive chosen on the destination card. Telemetry streams into the card's Phase Scope.
+    /// Sends the deck to the Krouton Server and drive chosen on the destination card. Telemetry
+    /// streams into the card's Phase Scope. What is sent:
+    /// - one staged .iso/.cdr: that image, as it is (wrapping it in a new data disc, as this used
+    ///   to, burned the image as a file);
+    /// - Blu-ray video: a UDF 2.50 image from `KroutonUDFImageWriter`;
+    /// - anything else: an ISO 9660 + Joliet + UDF image of the staged files (`hdiutil makehybrid`).
+    /// `burnRefusal(for:)` has already stopped formats the server can't burn.
+    /// NOTE: `SpoolRemoteNodeClient.burnFolder` (server-side mastering) is not used by the app yet;
+    /// it would let the server build DVD-Video discs in player order.
     func runNetworkBurn(_ target: KroutonBakeBatchItem, driveManager: KroutonOpticalDriveBank) async {
         let telemetryKey = "network-spool-drive"
         driveManager.setManualInlinePin(for: telemetryKey, isPinned: true)
@@ -20,13 +27,28 @@ extension KroutonStateStore {
                                                           server: "", drive: "", bytes: 0, started: started)
             return
         }
-        guard let image = await masterImageForNetworkBurn() else {
+        let sole = KroutonOpticalDriveBank.soleDiscImage(in: stagedFiles)
+        if let sole, !["iso", "cdr"].contains(sole.pathExtension.lowercased()) {
+            driveManager.completionReport = networkReport(ok: false, title: "Burn This Image on This Mac",
+                                                          summary: "Krouton Server burns .iso images; .\(sole.pathExtension) images burn on a drive connected to this Mac.",
+                                                          server: "", drive: "", bytes: 0, started: started)
+            return
+        }
+        let built: URL?
+        if let sole {
+            built = sole
+        } else if activeBurnSupport == .bluRayVideo, case .success(let root) = bluRayVideoRoot() {
+            built = try? await buildBluRayImage(root: root)
+        } else {
+            built = await masterImageForNetworkBurn()
+        }
+        guard let image = built else {
             driveManager.completionReport = networkReport(ok: false, title: "Could Not Build the Disc Image",
                                                           summary: "Add files to the disc, then try again.",
                                                           server: "", drive: "", bytes: 0, started: started)
             return
         }
-        defer { try? FileManager.default.removeItem(at: image.deletingLastPathComponent()) }
+        defer { if sole == nil { try? FileManager.default.removeItem(at: image.deletingLastPathComponent()) } }
         let bytes = (try? FileManager.default.attributesOfItem(atPath: image.path)[.size] as? Int64) ?? 0
         let options = SpoolBurnOptions(speed: Int(target.speedOrCodec.prefix { $0.isNumber }) ?? 0,
                                        verify: target.verifyAfterBurn, simulate: target.simulationMode, eject: true)

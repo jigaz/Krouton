@@ -1,6 +1,6 @@
 # Getting started
 
-Krouton makes CDs, DVDs and Blu-ray discs on a Mac. It burns data discs that open on any computer, audio CDs that play in any CD player, and disc images you already have. It rips audio CDs, prints disc labels, and can burn on a drive attached to another computer on your network.
+Krouton makes CDs, DVDs and Blu-ray discs on a Mac. It burns data discs that open on any computer, Blu-ray and DVD video you've already authored, and disc images you already have. It rips audio CDs, designs disc labels for printing, and can burn on a drive attached to another computer on your network.
 
 ## What you need
 
@@ -26,7 +26,7 @@ The main window has three columns.
 
 - **Format Chooser** (left). Every kind of disc Krouton can make, grouped by family: data, audio, video, retro consoles. Hide it with ⌃⌘S.
 - **Mastering deck** (middle). What goes on the disc: files, tracks or a disc image, plus the settings for that kind of disc and the capacity bar.
-- **Destination queue** (right). Where the result goes. A destination can be a burner on this Mac, a burner on a Krouton Server, a disc image file, an audio rip folder or a label printer. Hide it with ⌥⌘S.
+- **Destination queue** (right). Where the result goes. A destination can be a burner on this Mac, a burner on a Krouton Server, a disc image file, an audio rip folder or a label print sheet. Hide it with ⌥⌘S.
 
 The five workspaces have their own shortcuts: ⌘1 Burn Station, ⌘2 Disc Image Depot, ⌘3 Copy, Rip & Rescue, ⌘4 Polar Disc Label Studio and ⌘5 Audio CD Ripper.
 
@@ -44,15 +44,17 @@ Krouton is young. These parts are finished and tested on real drives:
 - Rescuing a damaged data disc into an image, with a ddrescue-style map so you can retry later.
 - Saving a DVD's titles as MKV files (with ffmpeg) or as MPEG files.
 - High-definition video on a DVD (AVCHD) that Blu-ray players play, from ordinary video files (with ffmpeg).
+- Already-authored DVD-Video (a VIDEO_TS folder) and Blu-ray video (a BDMV folder, written as UDF 2.50).
 - Identifying console disc images (Wii, GameCube, PlayStation, Dreamcast, Saturn, Xbox) and burning them as they are.
-- Audio CDs with pauses, gapless joins, crossfades and CD-Text.
 - Ripping audio CDs, with MusicBrainz lookup and per-track checksums.
 - Disc labels exported as 1:1 PDF or 300-DPI PNG.
 - Burning on a Krouton Server.
 - The `krouton` command-line tool and Shortcuts actions.
 
-These are still being built. Their screens are there so you can see where Krouton is going, but they may not do the whole job yet:
+These are still being built. Their screens are there so you can see where Krouton is going, but they may not do the whole job yet. Where burning would give the wrong kind of disc, Krouton refuses and says why instead of writing anything:
 
+- Burning audio CDs. The workspace lays out tracks, pauses, gapless joins, crossfades and CD-Text and previews the result, but Burn doesn't make the audio CD yet. CD-Extra, CD+G, DTS-CD, DVD-Audio, SACD, Video CD, Photo CD and Mac OS 9 (HFS) discs can't be made yet either.
+- Options that are shown but not applied yet: the MP3 CD conversions (bit rate, ID3v2.3, artwork, short names), M-DISC PAR2 parity, strict 8.3 names, DVD and Blu-ray menus and video settings, and the extra album fields when ripping (composer, genre, disc number).
 - Shrinking a dual-layer DVD onto a single-layer disc while keeping its menus. It hasn't been checked on many players yet.
 - AVCHD discs on players: the format follows the Blu-ray specification and libbluray reads it, but it hasn't been checked on many players yet.
 - Quality grading of a burned disc. Without a C1/C2 error scan the certificate says the disc was not measured.

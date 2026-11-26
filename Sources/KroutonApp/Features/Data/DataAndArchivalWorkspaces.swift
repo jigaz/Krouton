@@ -24,6 +24,9 @@ struct KroutonDataAndArchivalWorkspaceView: View {
 
     @State var showHybridLBAMapPopover: Bool = false
     @State var activeDataWorkspaceTab: Int = 0
+    // NOTE(status, 2026-11): display-only. No PAR2 parity is created (M-DISC burns a plain data
+    // disc), extended attributes aren't handled specially (DiscRecording's HFS+ keeps what it
+    // keeps), and 8.3 names aren't enforced. See `KroutonFormatID.burnSupport` for each format.
     @State var mdiscPar2RedundancyPct: Double = 15.0
     @State var preserveMacExtendedAttributes: Bool = true
     @State var enforce8Dot3RetroCompatibility: Bool = false

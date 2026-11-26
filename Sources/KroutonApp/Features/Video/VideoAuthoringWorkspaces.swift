@@ -14,6 +14,11 @@ struct KroutonVideoAuthoringWorkspaceView: View {
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 
     @State private var showVideoBitratePopover: Bool = false
+    // NOTE(status, 2026-11): display-only. Krouton doesn't author DVD or Blu-ray menus, change the
+    // video standard, place a layer break or touch HDR metadata: the DVD/Blu-ray formats burn an
+    // already-authored VIDEO_TS or BDMV folder (`burnSupport` .dataDisc / .bluRayVideo), and
+    // AVCHD has its own panel (`KroutonAVCHDPanelView`). The "Fit-to-Disc Requantizer (BD-50 ->
+    // BD-25)" label has no BD implementation; `fitToDiscDVD9Shrink` is read only by Duplicate Disc.
     @State private var videoMenuTemplate: String = "Dark Workspace Chapter Grid"
     @State private var videoSystemStandard: String = "NTSC 16:9 (29.97 / 23.976p)"
     @State private var videoDualLayerBreakSector: String = "Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)"
@@ -21,6 +26,8 @@ struct KroutonVideoAuthoringWorkspaceView: View {
 
     // Sprint 2: Per-Title Inline Stream Mux & Timestamp Chapter State
     @State private var expandedMuxEntryID: UUID? = nil
+    // NOTE(status, 2026-11): the per-title mux drawer (audio delay, subtitles, chapter times)
+    // edits this dictionary only; no burn or export reads it.
     @State private var streamMuxConfigs: [UUID: KroutonStreamMuxDescriptor] = [:]
 
     private var isVCDFormat: Bool {

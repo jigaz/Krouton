@@ -43,6 +43,11 @@ extension KroutonCopyAndRipWorkspaceView {
         isRippingCD = true
         ripProgressFraction = 0.02
 
+        // NOTE(status, 2026-11): Duplicate Disc re-masters the mounted volume's files with
+        // `hdiutil makehybrid` (ISO + Joliet + UDF 1.02); it is not a sector copy. Boot records
+        // are lost, audio CDs can't be copied, and a Blu-ray copied this way would not play
+        // (Blu-ray needs UDF 2.50: `KroutonUDFImageWriter`). A true 1:1 copy should read the disc
+        // with `MMCSectorSource` as Rescue does.
         if isShrinkTask {
             let destDir = URL(fileURLWithPath: ("~/Desktop" as NSString).expandingTildeInPath)
             let safeName = activeDisc.volumeTitle.replacingOccurrences(of: " ", with: "_")
@@ -51,7 +56,7 @@ extension KroutonCopyAndRipWorkspaceView {
             let preserveMenus = store.preserveMenusAndExtras
             copyStatusBanner = shouldShrink
                 ? "Requantizing DVD-9 -> DVD-5 and building \(isoURL.lastPathComponent)..."
-                : "Building 1:1 Hybrid UDF/ISO image \(isoURL.lastPathComponent)..."
+                : "Building a hybrid UDF/ISO image of the disc's files: \(isoURL.lastPathComponent)..."
 
             Task.detached(priority: .userInitiated) {
                 do {

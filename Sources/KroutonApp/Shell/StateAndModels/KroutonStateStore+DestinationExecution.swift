@@ -104,6 +104,11 @@ extension KroutonStateStore {
                 progress: ok ? 1.0 : 0.0, driveName: drvName, speedLabel: target.speedOrCodec, store: self
             )
         }
+        // Formats Krouton can't make yet stop here, before anything is staged or written.
+        if let refusal = burnRefusal(for: target.kind) {
+            driveManager.completionReport = refusalReport(refusal)
+            return
+        }
         switch target.kind {
         case .networkBurner:
             await runNetworkBurn(target, driveManager: driveManager)
@@ -111,10 +116,24 @@ extension KroutonStateStore {
             if self.forceDVDROMBookType, !target.targetDriveID.isEmpty {
                 driveManager.stampDVDROMBookType(for: target.targetDriveID, vendorProfile: bitsetVendorProfile)
             }
+            // Blu-ray video becomes a UDF 2.50 image first; the drive bank then burns that image.
+            var filesToBurn = stagedFiles
+            var temporaryImageFolder: URL?
+            if activeBurnSupport == .bluRayVideo, case .success(let root) = bluRayVideoRoot() {
+                do {
+                    let image = try await buildBluRayImage(root: root)
+                    filesToBurn = [KroutonOpticalDriveBank.inspectFileOrFolder(url: image)]
+                    temporaryImageFolder = image.deletingLastPathComponent()
+                } catch {
+                    driveManager.completionReport = refusalReport(error.localizedDescription, title: "Could Not Build the Blu-ray Image")
+                    return
+                }
+            }
+            defer { if let temporaryImageFolder { try? FileManager.default.removeItem(at: temporaryImageFolder) } }
             let burnSucceeded = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
                 driveManager.startPhysicalDataBurn(
                     driveID: target.targetDriveID.isEmpty ? nil : target.targetDriveID,
-                    stagedFiles: stagedFiles,
+                    stagedFiles: filesToBurn,
                     volumeTitle: discVolumeTitle,
                     requestedSpeedLabel: target.speedOrCodec,
                     simulationMode: target.simulationMode,
@@ -174,6 +193,19 @@ extension KroutonStateStore {
                 }
             }
         case .discImage:
+            if activeBurnSupport == .bluRayVideo, case .success(let root) = bluRayVideoRoot() {
+                let path = NSString(string: target.hardwareOrPath).expandingTildeInPath
+                let output = URL(fileURLWithPath: path).pathExtension.lowercased() == "iso"
+                    ? URL(fileURLWithPath: path) : URL(fileURLWithPath: path).deletingPathExtension().appendingPathExtension("iso")
+                do {
+                    let image = try await buildBluRayImage(root: root, output: output)
+                    driveManager.completionReport = refusalReport(
+                        "Wrote \(image.lastPathComponent): UDF 2.50, ready to burn to a BD-R.", title: "Blu-ray Image Saved", ok: true)
+                } catch {
+                    driveManager.completionReport = refusalReport(error.localizedDescription, title: "Could Not Build the Blu-ray Image")
+                }
+                return
+            }
             let _ = await driveManager.createDiscImageFile(
                 stagedFiles: stagedFiles,
                 volumeTitle: discVolumeTitle,

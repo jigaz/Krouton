@@ -22,9 +22,9 @@ Krouton is a native macOS optical disc mastering, extraction, bad-sector rescue,
 1. `OpticalCore` — Pure domain models, `KroutonDomainIdentity`, 32 optical format recipes, `BurnClaimLedger`, `SpanManifest`. Zero external dependencies.
 2. `DriveKit` — Optical hardware discovery & low-level I/O. **Strictly isolated:** never import UI or networking frameworks here.
 3. `BurnKit` — `BurnSetScheduler`, `BusArbitrationState`, `BurnPowerAndBandwidthArbiter`, APFS CoW staging.
-4. `ImageKit` — Hybrid ISO-9660 / Joliet / UDF / El Torito LBA planner (PVD LBA 16, El Torito LBA 17, UDF LBA 256), `.cue/.bin` parser, SHA-256 sector inspector.
+4. `ImageKit` — Hybrid ISO-9660 / Joliet / UDF / El Torito LBA planner (PVD LBA 16, El Torito LBA 17, UDF LBA 256), `.cue/.bin` parser, SHA-256 sector inspector, `KroutonUDFImageWriter` (UDF 2.50 for Blu-ray/AVCHD).
 5. `AudioKit` — Red Book CD-DA 75 fps (2352 B/frame) engine, lock-free `CrossfadeParameterMailbox`, `SpliceOverlapMath`, CD-Text CRC-16, CUE compiler.
-6. `VideoKit` — DVD-5/DVD-9/BD-25/BD-50 bitrate budgeting, menu-preserving DVD-9 -> DVD-5 shrink & `.IFO` relinking.
+6. `VideoKit` — DVD-5/DVD-9/BD-25/BD-50 bitrate budgeting, menu-preserving DVD-9 -> DVD-5 shrink & `.IFO` relinking, AVCHD authoring (M2TS analysis, BDMV/MPLS/CLPI writers).
 7. `RescueKit` — Bad-sector optical rescue copy engine & archival disc quality grading.
 8. `LabelKit` — 300-DPI polar disc geometry & 1:1 vector PDF print sheet engine.
 9. `NetworkSpool` — Client for **Krouton Server** (`krouton-server/`, Rust): KRSP v1 frames (`SpoolWireFrame`), Merkle manifests and the resumable `SpoolUploadSender`, pairing and session proofs (`SpoolPairing`), pinned mutual TLS (`SpoolTLS`, `SpoolServerConnection`), keys (`SpoolClientIdentity`), control messages (`SpoolControl`), folder bundles for server-side mastering (`SpoolBundleWriter`), and `SpoolRemoteNodeClient` (`burnImage`, `burnFolder`). The server side of the protocol lives only in Rust. Depends only on `OpticalCore`.

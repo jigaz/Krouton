@@ -13,6 +13,9 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
     let onPromptToAddFiles: () -> Void
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 
+    // NOTE(status, 2026-11): display-only. `DRBurn.layout(forImageFile:)` chooses the write mode
+    // itself, and nothing hashes the image before burning (the inspector's SHA-256 button does,
+    // on request). Verify after burning is the destination card's Verify switch.
     @State private var discImageWriteMethod: String = "DAO / SAO Sector-Exact (Preserve System Area & Boot Catalog)"
     @State private var verifyImageSHA256BeforeBurn: Bool = true
     @State private var selectedDepotEntryID: UUID? = nil

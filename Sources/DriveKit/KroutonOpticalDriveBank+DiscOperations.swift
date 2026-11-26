@@ -135,6 +135,13 @@ extension KroutonOpticalDriveBank {
         refreshDrives()
     }
 
+    /// The "Disc Image File" destination: stages the deck and runs `hdiutil` — `makehybrid`
+    /// (HFS+ + ISO + Joliet + UDF) for .iso/.cdr paths, `create` (an HFS+ .dmg) for anything else.
+    ///
+    /// NOTE(status, 2026-11): format-agnostic. It never writes .bin/.cue, even though
+    /// `defaultDiscImageTarget` suggests a .cue path for raw-sector formats; those formats are
+    /// stopped earlier by `burnRefusal(for:)` (audio CDs are `.notYet`, console formats already
+    /// are images). Blu-ray video is written by `KroutonUDFImageWriter` before reaching here.
     public func createDiscImageFile(
         stagedFiles: [KroutonStagedFileEntry],
         volumeTitle: String,
@@ -163,6 +170,11 @@ extension KroutonOpticalDriveBank {
             }
             activeJobProgress = 0.5
 
+            // NOTE(legacy, 2026-11): with the custom-layout switch on, this drops an autorun.inf
+            // and a `.krouton_view_layout` text file into the image. Neither sets a Finder layout:
+            // that is `KroutonFinderLayoutBlueprint`, which `KroutonHybridImageBuilder` applies
+            // (the network path uses it). This image card should move to that builder; until
+            // then the two files are harmless but meaningless.
             if enableCustomLayout {
                 let autorunContent = "[Autorun]\r\nLabel=\(volumeTitle)\r\n"
                 try? autorunContent.write(to: tempRoot.appendingPathComponent("autorun.inf"), atomically: true, encoding: .utf8)
