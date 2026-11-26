@@ -13,7 +13,7 @@ All notable changes to Krouton and Krouton Server. Dates are when the work lande
 - **DVD-9 shrink** writes real DVD navigation packs (ffmpeg's dvd muxer); still needs checking on players.
 - **Console discs**: Krouton identifies Wii, GameCube, PlayStation, Dreamcast, Saturn and Xbox images and says what each console needs to play a burned disc. The console toggles that did nothing were removed.
 - Published JSON Schemas for the set index, `.krut` and the depot feed at krouton.app/schema (Suite 33).
-- AVCHD is still not written.
+- **AVCHD / Blu-ray on DVD**: video files are converted with ffmpeg to Blu-ray H.264 + AC-3, each stream is analyzed for its real times and key frames, and Krouton writes `index.bdmv`, `MovieObject.bdmv`, the playlist (chapters at each clip and every five minutes) and clip files with EP maps, then a UDF 2.50 image (Swift port of Krouton Server's writer, byte-identical via `Vectors/udf-bd-v1.sha256`). CI opens the result with libbluray and seeks through it. The old AVCHD code, which guessed durations from file sizes and wrote no EP map, is gone.
 
 ### Krouton Server (new)
 - A Rust server that burns discs for Krouton on another computer: Raspberry Pi (ARMv6 to ARM64), x86 and x86-64 Linux, Proxmox, NAS boxes, Windows 10 and 11 (x64, x86, ARM64) and macOS 12 or later. It burns with `xorriso` on Linux, `hdiutil` on macOS and IMAPI2 on Windows, or simulates.

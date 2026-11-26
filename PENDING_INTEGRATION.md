@@ -35,9 +35,6 @@ Format: `- `TypeName` — owner · decide-by date · plan`.
 
 ## Engines behind features the UI already offers (need device or listening tests to wire)
 
-- `AVCHDClipDescriptor` — me · 2027-01-31 · AVCHD workspace: build BDMV/CLIPINF/PLAYLIST for staged .m2ts clips; test on a Blu-ray player (VideoKit/AVCHDOnDVDAuthoringEngine.swift)
-- `AVCHDDiscStructureOutput` — me · 2027-01-31 · as above (VideoKit/AVCHDOnDVDAuthoringEngine.swift)
-- `AVCHDOnDVDAuthoringEngine` — me · 2027-01-31 · as above (VideoKit/AVCHDOnDVDAuthoringEngine.swift)
 - `AudioDiscPlan` — me · 2027-01-31 · replace `AudioProject.spannedDiscs()` (needs `probedFrameCount` and `anchoredDiscMetadata` on the model) (AudioKit/AudioDiscPlan.swift)
 - `AudioDiscWarning` — me · 2027-01-31 · show `breakSplitsContinuousRun` in the audio workspace when the above lands (AudioKit/AudioDiscPlan.swift)
 - `DiscRepacker` — me · 2027-01-31 · "Repack to use fewer discs" for data spans only (OpticalCore/Spanning/DiscPlanner.swift)

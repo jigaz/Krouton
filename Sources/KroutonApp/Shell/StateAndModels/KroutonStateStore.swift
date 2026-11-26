@@ -21,6 +21,7 @@ final class KroutonStateStore {
     let label = LabelDocument()
     let rip = RipSettings()
     let rescue = KroutonRescueController()
+    let avchd = KroutonAVCHDController()
 
     static weak var shared: KroutonStateStore?
     var isHydratingPreferences: Bool = false

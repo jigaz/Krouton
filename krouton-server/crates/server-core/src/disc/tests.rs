@@ -502,3 +502,65 @@ fn needs_builtin_spots_video_folders() {
     fs::create_dir_all(tmp.path().join("video_ts")).unwrap();
     assert!(needs_builtin(tmp.path()));
 }
+
+// MARK: - Shared vector with the Swift writer
+
+/// `Vectors/udf-bd-v1.sha256`: the SHA-256 of the image this writer makes from a fixed Blu-ray
+/// folder (contents from `bd_tree`, every time stamp 1,700,000,000, label "Krouton vector",
+/// built at `NOW`). The Swift writer in Krouton (ImageKit) must produce the same bytes.
+/// Regenerate with `KRSP_WRITE_UDF_VECTORS=1 cargo test -p server-core disc::tests::udf_vector`.
+const UDF_VECTOR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../Vectors/udf-bd-v1.sha256");
+
+fn set_time(path: &Path, secs: u64) {
+    let time = std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs);
+    let mut options = fs::OpenOptions::new();
+    if path.is_dir() {
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::OpenOptionsExt;
+            options.write(true).custom_flags(0x0200_0000); // FILE_FLAG_BACKUP_SEMANTICS
+        }
+        #[cfg(not(windows))]
+        options.read(true);
+    } else {
+        options.write(true);
+    }
+    options.open(path).unwrap().set_modified(time).unwrap();
+}
+
+fn stamp_tree(dir: &Path, secs: u64) {
+    for entry in fs::read_dir(dir).unwrap().flatten() {
+        if entry.path().is_dir() {
+            stamp_tree(&entry.path(), secs);
+        } else {
+            set_time(&entry.path(), secs);
+        }
+    }
+    set_time(dir, secs);
+}
+
+#[test]
+fn udf_vector() {
+    let tmp = TempDir::new("udf-vector");
+    let tree = tmp.path().join("tree");
+    fs::create_dir_all(&tree).unwrap();
+    bd_tree(&tree);
+    stamp_tree(&tree, 1_700_000_000);
+    let out = tmp.path().join("disc.iso");
+    let request = MasterRequest {
+        tree: &tree,
+        output: &out,
+        label: "Krouton vector",
+        largest_file: 0,
+        cancel: &AtomicBool::new(false),
+    };
+    master(&request, NOW, &mut |_| {}).unwrap();
+    let image = fs::read(&out).unwrap();
+    let hex: String = krsp::sha256::Sha256::digest(&[&image]).iter().map(|b| format!("{b:02x}")).collect();
+    let line = format!("{hex}  udf-bd-v1: {} bytes\n", image.len());
+    if std::env::var_os("KRSP_WRITE_UDF_VECTORS").is_some() {
+        fs::write(UDF_VECTOR, &line).unwrap();
+    }
+    let stored = fs::read_to_string(UDF_VECTOR).expect("Vectors/udf-bd-v1.sha256 is missing").replace("\r\n", "\n");
+    assert_eq!(stored, line, "the Blu-ray image no longer matches Vectors/udf-bd-v1.sha256");
+}

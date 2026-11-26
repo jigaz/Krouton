@@ -230,24 +230,7 @@ extension KroutonTestHarness {
     h.check(newTitleStart == newIfoSecs + 50,
             "relinkVTSIFO must place VTSTT_VOBS immediately after VTS_01_0.IFO + VTS_01_0.VOB menu sectors")
 
-    // Verify AVCHD / BD-on-DVD (bd-on-dvd) binary BDMV synthesis (INDX0100, MOBJ0100, MPLS0100, HDMV0100)
-    let avchdClips = [
-        AVCHDClipDescriptor(clipIndex: 0, durationSeconds: 120.0, m2tsByteSize: 192 * 1_400_000, videoBitrateKbps: 18_000, is1080p: true),
-        AVCHDClipDescriptor(clipIndex: 1, durationSeconds: 90.0,  m2tsByteSize: 192 * 1_050_000, videoBitrateKbps: 18_000, is1080p: true)
-    ]
-    let indxBytes = [UInt8](AVCHDOnDVDAuthoringEngine.buildIndexBDMV(isAVCHD: true, is1080p: true))
-    let mobjBytes = [UInt8](AVCHDOnDVDAuthoringEngine.buildMovieObjectBDMV(isAVCHD: true))
-    let mplsBytes = [UInt8](AVCHDOnDVDAuthoringEngine.buildPlaylistMPLS(clips: avchdClips, isAVCHD: true))
-    let clpiBytes = [UInt8](AVCHDOnDVDAuthoringEngine.buildClipInfoCLPI(clip: avchdClips[0], isAVCHD: true))
-    h.check(String(bytes: indxBytes[0..<8], encoding: .ascii) == "INDX0100",
-            "AVCHD index.bdmv must emit valid INDX0100 header")
-    h.check(String(bytes: mobjBytes[0..<8], encoding: .ascii) == "MOBJ0100",
-            "AVCHD MovieObject.bdmv must emit valid MOBJ0100 header with PlayPL 0 auto-start")
-    h.check(String(bytes: mplsBytes[0..<8], encoding: .ascii) == "MPLS0100" && mplsBytes.count > 120,
-            "AVCHD 00000.mpls must emit valid MPLS0100 header with multi-clip PlayItems and chapter marks")
-    h.check(String(bytes: clpiBytes[0..<8], encoding: .ascii) == "HDMV0100"
-            && DVDVideoIFORelinker.readUInt32BE(clpiBytes, at: 0x38) == 1_400_000,
-            "AVCHD 00000.clpi must emit valid HDMV0100 header with exact 192-byte source packet count")
+    // AVCHD / BD-on-DVD is covered by Suite 36.
     }
 
     }

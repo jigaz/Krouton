@@ -43,6 +43,7 @@ Krouton is young. These parts are finished and tested on real drives:
 - The Depot: a checked list of downloadable discs, from old live CDs to console homebrew.
 - Rescuing a damaged data disc into an image, with a ddrescue-style map so you can retry later.
 - Saving a DVD's titles as MKV files (with ffmpeg) or as MPEG files.
+- High-definition video on a DVD (AVCHD) that Blu-ray players play, from ordinary video files (with ffmpeg).
 - Identifying console disc images (Wii, GameCube, PlayStation, Dreamcast, Saturn, Xbox) and burning them as they are.
 - Audio CDs with pauses, gapless joins, crossfades and CD-Text.
 - Ripping audio CDs, with MusicBrainz lookup and per-track checksums.
@@ -53,7 +54,7 @@ Krouton is young. These parts are finished and tested on real drives:
 These are still being built. Their screens are there so you can see where Krouton is going, but they may not do the whole job yet:
 
 - Shrinking a dual-layer DVD onto a single-layer disc while keeping its menus. It hasn't been checked on many players yet.
-- AVCHD discs.
+- AVCHD discs on players: the format follows the Blu-ray specification and libbluray reads it, but it hasn't been checked on many players yet.
 - Quality grading of a burned disc. Without a C1/C2 error scan the certificate says the disc was not measured.
 - Burning .cdi and .gdi images (Dreamcast) and compressed images (.wbfs, .rvz, .chd). Krouton names these and explains how to convert them, but can't burn them yet.
 

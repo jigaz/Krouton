@@ -31,7 +31,13 @@ Krouton unmounts the disc while it works so it has the drive to itself. For a sc
 
 ## AVCHD
 
-**AVCHD High-Definition** puts high-definition camcorder video on a DVD blank so some Blu-ray players can play it. This is in development and waits for testing on real players; Krouton doesn't write AVCHD discs yet.
+**AVCHD High-Definition** puts high-definition video on an ordinary DVD blank, laid out like a Blu-ray disc. Most Blu-ray players and the PlayStation 3, 4 and 5 play it; DVD players don't.
+
+Drop video files (MP4, MOV, MKV and most others) on the deck, choose **DVD, 4.7 GB** or **Dual-layer DVD, 8.5 GB**, and click **Make Disc Image**. This needs ffmpeg (for example: brew install ffmpeg). Krouton converts each file to Blu-ray video (1080p, 1080i or 720p H.264, whichever is closest to the first file's frame rate) with Dolby Digital sound, at up to 18 Mbit/s, or lower so everything fits. About 30 minutes fit a single-layer DVD at full quality, and up to about two hours at lower rates; Krouton refuses more than the disc can hold at a watchable rate.
+
+The files play one after another as a single title, with a chapter at the start of each and every five minutes. There's no menu. The finished image is saved in Movies › Krouton and opens in **Burn Disc Image**: put in a blank and burn. Converting takes about as long as the video plays, often longer.
+
+Players differ, and this hasn't been tried on many yet: burn one disc and check it before making more.
 
 ## Retro consoles and old computers
 

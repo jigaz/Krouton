@@ -23,6 +23,31 @@ jobs:
       - name: Run Deterministic Verification Harness
         run: swift run krouton-verify
 
+  avchd-real-encode:
+    # The AVCHD pipeline end to end: ffmpeg makes two test clips (30 and 25 fps, stereo and 5.1),
+    # krouton-verify Suite 36 converts, authors and images them, then libbluray (what VLC, Kodi
+    # and mpv play Blu-rays with) opens the folder and the UDF 2.50 image, reads the title, clips
+    # and chapters and seeks through the EP map, and hdiutil mounts the image.
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: ffmpeg and libbluray
+        run: brew install ffmpeg libbluray
+      - name: Test clips
+        run: |
+          mkdir -p "$RUNNER_TEMP/avchd"
+          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=1280x720:rate=30 -f lavfi -i sine=frequency=440:sample_rate=48000 \
+            -t 12 -c:v libx264 -pix_fmt yuv420p -c:a aac -ac 2 "$RUNNER_TEMP/avchd/a.mp4"
+          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=1920x1080:rate=25 -f lavfi -i sine=frequency=330:sample_rate=48000 \
+            -t 8 -c:v libx264 -pix_fmt yuv420p -c:a aac -ac 6 "$RUNNER_TEMP/avchd/b.mov"
+      - name: Convert, author and image them (Suite 36)
+        run: swift run krouton-verify
+        env:
+          KROUTON_AVCHD_INPUTS: ${{ runner.temp }}/avchd/a.mp4,${{ runner.temp }}/avchd/b.mov
+          KROUTON_AVCHD_OUT: ${{ runner.temp }}/avchd/out
+      - name: libbluray reads the disc; macOS mounts the image
+        run: python3 Scripts/check-avchd-disc.py "$RUNNER_TEMP/avchd/out"
+
   ipados-portable-core:
     # The libraries an iPad app would share (krouton-verify Suite 31) must compile for iPadOS.
     # NetworkSpool pulls in OpticalCore; LabelKit pulls in AudioKit and RescueKit.

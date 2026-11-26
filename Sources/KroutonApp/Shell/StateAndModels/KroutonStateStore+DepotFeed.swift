@@ -116,6 +116,14 @@ extension KroutonStateStore {
         }
     }
 
+    /// Puts a finished disc image on the deck and opens Burn Disc Image.
+    func stageImageForBurning(_ url: URL) {
+        stagedFiles = [KroutonOpticalDriveBank.inspectFileOrFolder(url: url)]
+        self.leaveDiscOpenForMoreSessions = false
+        selectedCategory = .burn
+        selectedTaskID = "image-burn"
+    }
+
     private func stageDepotImage(_ url: URL, for item: KroutonDepotCatalogItem, jumpToInspector: Bool) {
         stagedFiles = [KroutonOpticalDriveBank.inspectFileOrFolder(url: url)]
         self.stagedDepotItemID = item.id

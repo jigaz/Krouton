@@ -17,7 +17,6 @@ struct KroutonVideoAuthoringWorkspaceView: View {
     @State private var videoMenuTemplate: String = "Dark Workspace Chapter Grid"
     @State private var videoSystemStandard: String = "NTSC 16:9 (29.97 / 23.976p)"
     @State private var videoDualLayerBreakSector: String = "Auto Cell Boundary (LBA 2,086,912 • 16-Sector ECC Aligned)"
-    @State private var avchdBitrateCap: String = "18 Mbps (3x DVD-R Safe)"
     @State private var uhdPreserveHDR10DolbyVision: Bool = true
 
     // Sprint 2: Per-Title Inline Stream Mux & Timestamp Chapter State
@@ -88,13 +87,6 @@ struct KroutonVideoAuthoringWorkspaceView: View {
                                 Text("Seamless Layer Break (SPLB)").tag("Seamless Layer Break (SPLB Flag Set)")
                             }.font(.caption)
                         }
-                        if spec.id == "bd-on-dvd" {
-                            Picker(KroutonL10n.tr("AVCHD Cap:"), selection: $avchdBitrateCap) {
-                                Text("18 Mbps (3x DVD-R Safe)").tag("18 Mbps (3x DVD-R Safe)")
-                                Text("14 Mbps (DVD-5 45-Min Fit)").tag("14 Mbps (DVD-5 45-Min Fit)")
-                                Text("10 Mbps (DVD-5 60-Min Fit)").tag("10 Mbps (DVD-5 60-Min Fit)")
-                            }.font(.caption)
-                        }
                         if spec.id == "bd-uhd" {
                             Toggle(KroutonL10n.tr("HDR10 / Dolby Vision Metadata"), isOn: $uhdPreserveHDR10DolbyVision).toggleStyle(.checkbox).font(.caption.bold())
                         }
@@ -103,6 +95,9 @@ struct KroutonVideoAuthoringWorkspaceView: View {
                 }
             }
 
+            if spec.id == "bd-on-dvd" {
+                KroutonAVCHDPanelView(store: store)
+            }
             videoStagingDropZoneSection(isBluRay: isBluRay)
         }
     }
