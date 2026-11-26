@@ -130,12 +130,9 @@ impl Backend for LinuxBackend {
         }
     }
 
+    /// Built in (`disc`), so no tool is needed: ISO 9660 + Joliet + UDF.
     fn file_systems(&self) -> Vec<&'static str> {
-        if super::master::xorriso_available(&self.xorriso) {
-            vec![super::master::ISO9660, super::master::JOLIET, super::master::ROCK_RIDGE]
-        } else {
-            Vec::new()
-        }
+        vec![super::master::ISO9660, super::master::JOLIET, super::master::UDF]
     }
 
     fn master(
@@ -143,7 +140,7 @@ impl Backend for LinuxBackend {
         request: &super::MasterRequest<'_>,
         progress: &mut dyn FnMut(Option<f64>),
     ) -> Result<Vec<&'static str>, String> {
-        super::master::xorriso_master(&self.xorriso, request, progress)
+        crate::disc::master(request, crate::pairing_window::unix_now(), progress)
     }
 
     fn diagnose(&self) -> Vec<String> {

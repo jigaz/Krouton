@@ -143,6 +143,9 @@ impl Backend for MacBackend {
         request: &super::MasterRequest<'_>,
         progress: &mut dyn FnMut(Option<f64>),
     ) -> Result<Vec<&'static str>, String> {
+        if crate::disc::needs_builtin(request.tree) {
+            return crate::disc::master(request, crate::pairing_window::unix_now(), progress);
+        }
         super::master::hdiutil_master(&self.hdiutil, request, progress)
     }
 

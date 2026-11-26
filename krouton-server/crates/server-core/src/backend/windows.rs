@@ -288,6 +288,9 @@ impl Backend for WindowsBackend {
         request: &super::MasterRequest<'_>,
         progress: &mut dyn FnMut(Option<f64>),
     ) -> Result<Vec<&'static str>, String> {
+        if crate::disc::needs_builtin(request.tree) {
+            return crate::disc::master(request, crate::pairing_window::unix_now(), progress);
+        }
         let _ = std::fs::remove_file(request.output);
         // ISO 9660 and Joliet cannot hold a file of 4 GiB or more; IMAPI2FS then refuses the
         // whole image, so such folders get UDF 2.50 alone.

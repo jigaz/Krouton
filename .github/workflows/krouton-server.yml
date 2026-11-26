@@ -43,13 +43,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      # Real mastering tests: xorriso on Linux (required there), hdiutil on macOS and IMAPI2FS on
-      # Windows run unconditionally.
+      # Real mastering tests: the built-in writer everywhere, hdiutil on macOS and IMAPI2FS on
+      # Windows. udftools gives udfinfo; the extra modules give the kernel's UDF driver.
       - if: runner.os == 'Linux'
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq xorriso
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq udftools
+          sudo apt-get install -y -qq "linux-modules-extra-$(uname -r)" || true
+          sudo modprobe udf
       - run: cargo test --workspace
         env:
           KROUTON_REQUIRE_MASTERING: ${{ runner.os == 'Linux' && '1' || '' }}
+          KROUTON_DISC_OUT: ${{ runner.temp }}/discs
+      # The same images, mounted by this system's own UDF, ISO 9660 and Joliet drivers.
+      - name: Mount the built-in writer's images
+        shell: bash
+        run: ${{ runner.os == 'Windows' && 'python' || 'python3' }} scripts/check_disc_images.py "${{ runner.temp }}/discs"
 
   # ARM Linux under QEMU: 64-bit Raspberry Pi OS, and 32-bit ARMv7 where usize is 32 bits.
   test-arm:

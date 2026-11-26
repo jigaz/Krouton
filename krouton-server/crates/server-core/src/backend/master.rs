@@ -1,18 +1,18 @@
 // MARK: - backend/master.rs
 
-//! Building a disc image from a folder (`files` jobs), with the tool each platform already has:
+//! Building a disc image from a folder (`files` jobs):
 //!
-//! | Backend | Tool | File systems |
+//! | Backend | Writer | File systems |
 //! |---|---|---|
-//! | Linux | `xorriso -as mkisofs` | ISO 9660 (level 3) + Joliet + Rock Ridge |
+//! | Linux | built in (`crate::disc`) | ISO 9660 + Joliet + UDF 2.01; UDF only if a file is 4 GiB or larger |
 //! | macOS | `hdiutil makehybrid` (no progress output) | ISO 9660 + Joliet + UDF; UDF only if a file is 4 GiB or larger |
 //! | Windows | IMAPI2FS (`windows.rs`) | ISO 9660 + Joliet + UDF 2.50; UDF only if a file is 4 GiB or larger |
 //! | Simulate | none | a placeholder image of the right size |
 //!
-//! xorriso does not write UDF; its ISO level 3 stores large files in several extents, which
-//! Windows 10/11, macOS and Linux all read.
+//! On every platform a folder with `VIDEO_TS` or `BDMV` at the top goes to the built-in writer,
+//! which lays DVD-Video out in player order on UDF 1.02 and Blu-ray on UDF 2.50 (see `disc`).
 
-use super::{first_percent, run_capture, run_tool};
+use super::{run_capture, run_tool};
 use std::fs::{self, File};
 use std::io::{Seek, SeekFrom, Write};
 use std::path::Path;
@@ -71,32 +71,6 @@ pub fn xorriso_available(xorriso: &str) -> bool {
     let mut cmd = Command::new(xorriso);
     cmd.arg("-version");
     matches!(run_capture(cmd), Ok((Some(0), _)))
-}
-
-/// # Errors
-/// A message for the user.
-pub fn xorriso_master(
-    xorriso: &str,
-    request: &MasterRequest<'_>,
-    progress: &mut dyn FnMut(Option<f64>),
-) -> Result<Vec<&'static str>, String> {
-    let _ = fs::remove_file(request.output);
-    let mut cmd = Command::new(xorriso);
-    cmd.args(["-abort_on", "FAILURE", "-as", "mkisofs", "-iso-level", "3", "-J", "-joliet-long", "-r"]);
-    cmd.arg("-V").arg(iso_volume_name(request.label));
-    cmd.arg("-o").arg(request.output);
-    cmd.arg(request.tree);
-    let mut errors = ToolOutput::default();
-    let code = run_tool(cmd, request.cancel, &mut |line| {
-        if line.contains("UPDATE") && line.contains('%') {
-            progress(first_percent(line));
-        } else {
-            errors.note(line, line.contains("FAILURE") || line.contains("SORRY") || line.contains("FATAL"));
-        }
-    })
-    .map_err(|e| format!("Could not run {xorriso}: {e}"))?;
-    finish(request, code, errors.into_messages(), "xorriso")?;
-    Ok(vec![ISO9660, JOLIET, ROCK_RIDGE])
 }
 
 // MARK: - hdiutil makehybrid (macOS)
@@ -291,8 +265,8 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn xorriso_builds_a_disc() {
-        check_real_master(xorriso_available("xorriso"), "xorriso", &|r, p| xorriso_master("xorriso", r, p));
+    fn the_builtin_writer_builds_a_disc() {
+        check_real_master(true, "built-in", &|r, p| crate::disc::master(r, 1_795_000_000, p));
     }
 
     #[cfg(target_os = "macos")]

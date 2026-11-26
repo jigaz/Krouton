@@ -100,19 +100,31 @@ resumable upload. The server then:
 1. checks every name, refusing links, absolute paths, `..`, names Windows reserves (`CON`,
    `AUX`, `COM1`…), characters such as `:` `*` `?`, and names that differ only by case;
 2. unpacks it into the job's folder, never overwriting or following anything;
-3. builds the image with the tool the system already has, shown as a *mastering* step:
+3. builds the image, shown as a *mastering* step:
 
-| Server | Tool | Disc gets |
+| Server | Writer | Disc gets |
 |---|---|---|
-| Linux / Raspberry Pi | `xorriso -as mkisofs` | ISO 9660 level 3 + Joliet + Rock Ridge (xorriso writes no UDF; files of 4 GiB and more use multi-extent ISO 9660) |
+| Linux / Raspberry Pi | Krouton Server's own (no tool needed) | ISO 9660 + Joliet + UDF 2.01; UDF 2.01 only when a file is 4 GiB or larger |
 | macOS | `hdiutil makehybrid` | ISO 9660 + Joliet + UDF; UDF only when a file is 4 GiB or larger |
 | Windows | IMAPI2FS (built in) | ISO 9660 + Joliet + UDF 2.50; UDF 2.50 only when a file is 4 GiB or larger |
+
+On every server, a folder with `VIDEO_TS` or `BDMV` at the top is built by Krouton Server's own
+writer, the way players expect:
+
+| Folder | Disc gets |
+|---|---|
+| `VIDEO_TS` (DVD-Video) | ISO 9660 + UDF 1.02, with the video files first, one after another, in the order players read them |
+| `BDMV` (Blu-ray) | UDF 2.50 with a mirrored metadata partition, as BD-ROM uses |
+
+The writer (`server-core/src/disc`) needs no root, no mounting and no kernel UDF support: Linux
+itself writes UDF only up to 2.01, and FreeBSD not at all. CI mounts its images with the Linux,
+macOS and Windows drivers and compares every file.
 
 The image then joins the drive's queue like any other. A folder job needs about three times its
 size free in the spool (upload, unpacked files, image) while it is being built. The upload is
 kept until the burn succeeds, so a retry neither uploads nor rebuilds anything. The server's
 Welcome message lists the file systems it builds, and `krouton-server check` prints them, so a
-client knows before sending a folder. A Linux server without `xorriso` refuses folder jobs.
+client knows before sending a folder. Burning on Linux still needs `xorriso`.
 
 ## Security model
 
