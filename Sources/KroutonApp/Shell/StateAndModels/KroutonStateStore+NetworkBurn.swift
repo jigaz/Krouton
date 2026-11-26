@@ -13,18 +13,16 @@ extension KroutonStateStore {
     /// - one staged .iso/.cdr: that image, as it is (wrapping it in a new data disc, as this used
     ///   to, burned the image as a file);
     /// - Blu-ray video: a UDF 2.50 image from `KroutonUDFImageWriter`;
+    /// - DVD-Video: the files themselves (`burnFolder`), so the server's own writer builds the
+    ///   disc with VIDEO_TS first and in player order, as hdiutil can't promise;
     /// - anything else: an ISO 9660 + Joliet + UDF image of the staged files (`hdiutil makehybrid`).
-    /// `burnRefusal(for:)` has already stopped formats the server can't burn.
-    /// NOTE: `SpoolRemoteNodeClient.burnFolder` (server-side mastering) is not used by the app yet;
-    /// it would let the server build DVD-Video discs in player order.
+    /// `burnRefusal(for:)` has already stopped formats the server can't burn, audio CDs included.
     func runNetworkBurn(_ target: KroutonBakeBatchItem, driveManager: KroutonOpticalDriveBank) async {
         let telemetryKey = "network-spool-drive"
         driveManager.setManualInlinePin(for: telemetryKey, isPinned: true)
         let started = Date()
-        guard redBookTracks.isEmpty else {
-            driveManager.completionReport = networkReport(ok: false, title: "Audio CDs Burn on This Mac",
-                                                          summary: "Krouton Server burns data images. Burn audio CDs on a drive connected to this Mac.",
-                                                          server: "", drive: "", bytes: 0, started: started)
+        if activeFormatSpec().formatID == .dvdVideo, SpoolRemoteNodeClient.shared.serverWelcome?.buildsDiscsFromFolders != false {
+            await runNetworkFolderBurn(target, driveManager: driveManager, started: started)
             return
         }
         let sole = KroutonOpticalDriveBank.soleDiscImage(in: stagedFiles)
@@ -63,6 +61,30 @@ extension KroutonStateStore {
         )
     }
 
+    /// Copies the deck into a temporary folder and sends that folder for the server to master.
+    private func runNetworkFolderBurn(_ target: KroutonBakeBatchItem, driveManager: KroutonOpticalDriveBank, started: Date) async {
+        let tree = FileManager.default.temporaryDirectory.appendingPathComponent("KroutonNetworkFolder_\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: tree) }
+        let items = stagedFiles.map { KroutonBurnStageItem(source: $0.url, name: $0.name) }
+        if let stagingError = await KroutonBurnStager.stage(items, into: tree) {
+            driveManager.completionReport = networkReport(ok: false, title: "Could Not Prepare the Disc", summary: stagingError,
+                                                          server: "", drive: "", bytes: 0, started: started)
+            return
+        }
+        let bytes = stagedFiles.reduce(0) { $0 + $1.byteSize }
+        let options = SpoolBurnOptions(speed: Int(target.speedOrCodec.prefix { $0.isNumber }) ?? 0,
+                                       verify: target.verifyAfterBurn, simulate: target.simulationMode, eject: true)
+        let outcome = await SpoolRemoteNodeClient.shared.burnFolder(
+            at: tree, label: discVolumeTitle, serverID: target.hardwareOrPath, driveID: target.targetDriveID,
+            options: options, telemetry: driveManager, telemetryKey: "network-spool-drive"
+        )
+        driveManager.completionReport = networkReport(
+            ok: outcome.succeeded,
+            title: outcome.succeeded ? "Burned on \(outcome.serverName)" : "Remote Burn Did Not Finish",
+            summary: outcome.message, server: outcome.serverName, drive: outcome.driveName, bytes: bytes, started: started
+        )
+    }
+
     /// Stages the files and builds the image in a fresh temporary folder. The HFS+ tree is left out:
     /// a server burns 2048-byte-sector data images (ISO/UDF), which every OS can read.
     func masterImageForNetworkBurn() async -> URL? {
@@ -80,7 +102,7 @@ extension KroutonStateStore {
             let built = try await KroutonHybridImageBuilder.build(
                 sourceDirectory: tree,
                 outputURL: output,
-                options: KroutonHybridImageOptions(volumeName: discVolumeTitle, finderLayout: finderLayoutBlueprint)
+                options: KroutonHybridImageOptions(volumeName: discVolumeTitle, finderLayout: enableCustomFinderLayoutTab ? finderLayoutBlueprint : nil)
             )
             try? FileManager.default.removeItem(at: tree)
             return built.url

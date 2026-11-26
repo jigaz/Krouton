@@ -57,6 +57,19 @@ enum KroutonRoastAppearanceMode: String, CaseIterable, Identifiable, Sendable {
     case light = "Light"
     var id: String { rawValue }
 
+    /// What the destination does, in the words the card and the notifications use.
+    var title: String {
+        switch self {
+        case .physicalBurner: return "Burner on This Mac"
+        case .networkBurner: return "Krouton Server"
+        case .discImage: return "Disc Image File"
+        case .audioRip: return "Audio Rip (FLAC / ALAC / WAV / AIFF)"
+        case .videoExtract: return "Video Extract (MKV / MPEG)"
+        case .discPrinter: return "Label Print Sheet (PDF + PNG)"
+        case .pdfVector: return "Vector PDF Label"
+        }
+    }
+
     var sfSymbol: String {
         switch self {
         case .auto: return "circle.lefthalf.filled"
@@ -238,11 +251,11 @@ struct KroutonKitchenEventRow: Identifiable, Hashable, Sendable {
 
 /// Where a destination card sends the deck.
 ///
-/// NOTE(status, 2026-11): the raw values are persisted in saved queues and sessions, so they
-/// can't be renamed without a migration, but two of them overstate: `.videoExtract` remuxes to
-/// MKV or copies MPEG (no H.265 transcode), and `.discPrinter` writes the same 1:1 PDF + PNG as
-/// `.pdfVector` (it doesn't drive an Epson or any other disc printer). Display names should
-/// move to a separate `title` property.
+/// The raw values are persisted in saved queues and sessions, so they never change; what the
+/// card shows is `title`. Two raw values are left from before the 2026-11 audit and overstate
+/// what the card does: `.videoExtract` remuxes to MKV or copies MPEG (no H.265 transcode), and
+/// `.discPrinter` writes the same 1:1 PDF + PNG print sheet as `.pdfVector` (it drives no disc
+/// printer). Never show `rawValue` to a person.
 enum KroutonBurnDestinationKind: String, CaseIterable, Identifiable, Codable, Sendable {
     case physicalBurner = "Physical Burner"
     case networkBurner = "Network Server Burner"

@@ -258,7 +258,7 @@ extension KroutonStateStore {
             let image = try await KroutonHybridImageBuilder.build(
                 sourceDirectory: treeURL,
                 outputURL: outputURL,
-                options: KroutonHybridImageOptions(volumeName: discVolumeTitle, includeHFSPlus: true, finderLayout: finderLayoutBlueprint)
+                options: KroutonHybridImageOptions(volumeName: discVolumeTitle, includeHFSPlus: true, finderLayout: enableCustomFinderLayoutTab ? finderLayoutBlueprint : nil)
             )
             burnQueueSubStore.lastMasteredISOURL = image.url
             burnQueueSubStore.lastMasteredSHA256 = "sha256:" + image.sha256Hex

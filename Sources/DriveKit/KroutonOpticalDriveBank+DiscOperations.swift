@@ -138,17 +138,15 @@ extension KroutonOpticalDriveBank {
     /// The "Disc Image File" destination: stages the deck and runs `hdiutil` — `makehybrid`
     /// (HFS+ + ISO + Joliet + UDF) for .iso/.cdr paths, `create` (an HFS+ .dmg) for anything else.
     ///
-    /// NOTE(status, 2026-11): format-agnostic. It never writes .bin/.cue, even though
-    /// `defaultDiscImageTarget` suggests a .cue path for raw-sector formats; those formats are
-    /// stopped earlier by `burnRefusal(for:)` (audio CDs are `.notYet`, console formats already
-    /// are images). Blu-ray video is written by `KroutonUDFImageWriter` before reaching here.
+    /// NOTE(status, 2026-11): format-agnostic. Formats with their own image are handled before
+    /// this: audio CDs become .cue/.bin (`KroutonAudioDiscRenderer.writeBinCue`) and Blu-ray
+    /// video a UDF 2.50 image (`KroutonUDFImageWriter`); `burnRefusal(for:)` stops the rest.
     public func createDiscImageFile(
         stagedFiles: [KroutonStagedFileEntry],
         volumeTitle: String,
         outputPathString: String,
         compressImage: Bool,
-        enableCustomLayout: Bool,
-        iconSizePx: Int
+        extraRootFiles: [String: Data] = [:]
     ) async -> KroutonBurnSessionReport {
         isExecutingQueue = true
         jobStartTime = Date()
@@ -170,17 +168,10 @@ extension KroutonOpticalDriveBank {
             }
             activeJobProgress = 0.5
 
-            // NOTE(legacy, 2026-11): with the custom-layout switch on, this drops an autorun.inf
-            // and a `.krouton_view_layout` text file into the image. Neither sets a Finder layout:
-            // that is `KroutonFinderLayoutBlueprint`, which `KroutonHybridImageBuilder` applies
-            // (the network path uses it). This image card should move to that builder; until
-            // then the two files are harmless but meaningless.
-            if enableCustomLayout {
-                let autorunContent = "[Autorun]\r\nLabel=\(volumeTitle)\r\n"
-                try? autorunContent.write(to: tempRoot.appendingPathComponent("autorun.inf"), atomically: true, encoding: .utf8)
-
-                let layoutManifest = "Krouton Custom Finder View\nVolume: \(volumeTitle)\nIconSize: \(iconSizePx)px\n"
-                try? layoutManifest.write(to: tempRoot.appendingPathComponent(".krouton_view_layout"), atomically: true, encoding: .utf8)
+            // Files the app adds at the root, such as the Finder layout's .DS_Store
+            // (`KroutonFinderLayoutBlueprint`, which this module can't import).
+            for (name, data) in extraRootFiles {
+                try data.write(to: tempRoot.appendingPathComponent(name), options: .atomic)
             }
 
             let expandedPath = NSString(string: outputPathString).expandingTildeInPath

@@ -15,7 +15,6 @@ public enum KroutonFormatID: String, CaseIterable, Codable, Sendable {
     case bd25 = "bd-25"
     case bd50 = "bd-50"
     case bdUHD = "bd-uhd"
-    case videoSVCD = "video-svcd"
 
     case imageBurn = "image-burn"
     case dataHybrid = "data-hybrid"
@@ -76,7 +75,7 @@ public enum KroutonFormatID: String, CaseIterable, Codable, Sendable {
         case .dataUDFModern: return "UDF 2.60"
         case .dataAppleAPFS: return "Apple HFS+"
         case .dataRetroISO: return "DOS 8.3"
-        case .videoSVCD, .vcdSVCD: return "VCD"
+        case .vcdSVCD: return "VCD"
         case .mdiscVault: return "M-DISC"
         case .dvdRAM: return "DVD-RAM"
         case .consoleWii: return "Wii"
@@ -217,7 +216,7 @@ extension KroutonOpticalWorkflowSpec {
             return ["wav", "aiff", "aif", "flac", "alac", "m4a", "mp3", "ogg", "opus", "wv", "ape", "dsf", "dff", "caf", "ac3", "dts"]
         case .mp3CD:
             return ["mp3", "flac", "m4a", "wav", "ogg", "aac", "wma", "opus"]
-        case .dvdVideo, .bdOnDVD, .bd25, .bd50, .bdUHD, .videoSVCD, .vcdSVCD:
+        case .dvdVideo, .bdOnDVD, .bd25, .bd50, .bdUHD, .vcdSVCD:
             return ["mkv", "mp4", "m4v", "mov", "m2ts", "mts", "ts", "vob", "IFO", "ifo", "avi", "webm", "mpg", "mpeg", "wmv", "hevc", "h264", "bdmv"]
         case .imageBurn:
             return ["iso", "dmg", "cdr", "bin", "cue", "img", "toast", "nrg", "mds", "mdf", "ccd", "chd", "rvz"]
@@ -294,7 +293,6 @@ public enum KroutonOpticalWorkflowCatalog {
         KroutonOpticalWorkflowSpec(id: "data-udf-modern", showInTaskChooser: true, technicalName: "UDF 2.60 Large-File Data (>4 GiB)", colloquialName: "Unrestricted Single Files up to 128 GB", launchYear: "2005", capacity: "4.7 GB - 128 GB", capacityGB: 25.0, laserType: "650nm / 405nm", platform: "macOS 10.5+, Windows 7/10/11, Linux", deprecationStatus: "Current", sourceSupport: "New File Tree", bookOrFileSystem: "Pure ECMA-167 UDF 2.50 / 2.60", sfSymbol: "internaldrive.fill", filterGroup: .data, isMediaPlaylist: false, isDataDisc: true),
         KroutonOpticalWorkflowSpec(id: "data-apple-apfs", showInTaskChooser: false, technicalName: "Apple Native Volume (APFS / HFS+)", colloquialName: "Full macOS Metadata, xattrs & Resource Forks", launchYear: "2017", capacity: "700 MB - 128 GB", capacityGB: 4.7, laserType: "All Lasers", platform: "macOS Only (68k/PPC/Intel/Apple Silicon)", deprecationStatus: "Current", sourceSupport: "New File Tree", bookOrFileSystem: "APFS / HFS+ Journaled Container", sfSymbol: "apple.logo", filterGroup: .data, isMediaPlaylist: false, isDataDisc: true),
         KroutonOpticalWorkflowSpec(id: "data-retro-iso", showInTaskChooser: false, technicalName: "ISO9660 Level 1 (Retro 8.3 DOS / Win9x)", colloquialName: "Strict 8.3 Uppercase for Vintage PCs & System 7", launchYear: "1988", capacity: "650 MB / 700 MB", capacityGB: 0.7, laserType: "780nm IR", platform: "MS-DOS, Win 3.1/95, OS/2, Classic Mac", deprecationStatus: "1999 (Vintage)", sourceSupport: "New File Tree", bookOrFileSystem: "ECMA-119 Level 1 (8.3) + HFS Bridge", sfSymbol: "desktopcomputer", filterGroup: .data, isMediaPlaylist: false, isDataDisc: true),
-        KroutonOpticalWorkflowSpec(id: "video-svcd", showInTaskChooser: false, technicalName: "VCD 2.0 / Super Video CD (White Book)", colloquialName: "MPEG-1 / MPEG-2 Video on Standard CD-R", launchYear: "1993", capacity: "700 MB / 80m", capacityGB: 0.7, laserType: "780nm IR", platform: "VCD / DVD Players & Retro Consoles", deprecationStatus: "2005 (Legacy)", sourceSupport: "New & Image", bookOrFileSystem: "IEC 62107 Mode 2 Form 2 (2,324 B/sec)", sfSymbol: "tv.circle.fill", filterGroup: .video, isMediaPlaylist: true, isDataDisc: false),
         KroutonOpticalWorkflowSpec(id: "mdisc-vault", showInTaskChooser: true, technicalName: "M-DISC Archival + PAR2", colloquialName: "1,000-Year Inorganic Vault w/ Parity", launchYear: "2009", capacity: "25 / 50 / 100 GB", capacityGB: 25.0, laserType: "405nm / 650nm", platform: "macOS, Windows, Linux", deprecationStatus: "Current", sourceSupport: "New & Image", bookOrFileSystem: "UDF 2.60 + 10% PAR2 Recovery", sfSymbol: "lock.shield.fill", filterGroup: .data, isMediaPlaylist: false, isDataDisc: true),
         KroutonOpticalWorkflowSpec(id: "dvd-ram", showInTaskChooser: false, technicalName: "DVD-RAM (UDF 1.50 / 2.01)", colloquialName: "Random-Access Zoned Rewritable Disc", launchYear: "1996", capacity: "4.7 GB / 9.4 GB", capacityGB: 4.7, laserType: "650nm Red", platform: "Broadcast Recorders, Mac/PC", deprecationStatus: "2015 (Pro Broadcast)", sourceSupport: "New & Image", bookOrFileSystem: "Hardware Defect Mgmt UDF", sfSymbol: "memorychip.fill", filterGroup: .data, isMediaPlaylist: false, isDataDisc: true),
 

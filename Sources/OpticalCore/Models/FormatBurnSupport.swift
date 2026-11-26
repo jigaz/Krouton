@@ -60,8 +60,10 @@ extension KroutonFormatID {
             // NOTE: a plain data disc; the PAR2 slider in the workspace creates no parity files.
             return .dataDisc
         case .dvdVideo:
-            // NOTE: VIDEO_TS on DiscRecording's UDF 1.02 + ISO, without the VIDEO_TS file ordering
-            // Krouton Server's writer guarantees. Most players read it; check one disc first.
+            // NOTE: on a drive on this Mac, VIDEO_TS goes on DiscRecording's UDF 1.02 + ISO without
+            // the file ordering Krouton Server's writer guarantees; most players read it, but check
+            // one disc first. On a Krouton Server the files are sent as they are and the server
+            // masters the disc in player order.
             return .dataDisc
 
         case .imageBurn, .consoleWii, .consoleGC, .consolePS2, .consolePS1, .consolePS3, .consoleXbox,
@@ -85,7 +87,7 @@ extension KroutonFormatID {
             return .notYet("CD+G graphics live in the subchannel, which Krouton can't write yet. Choose Audio CD for the music alone. Nothing was written.")
         case .dvdAudio, .sacdR:
             return .notYet("DVD-Audio and SACD discs can't be made yet. Nothing was written.")
-        case .videoSVCD, .vcdSVCD:
+        case .vcdSVCD:
             return .notYet("Video CDs need Mode 2 Form 2 sectors, which Krouton can't write yet. Nothing was written.")
         case .photoCD:
             return .notYet("Kodak Photo CD discs can't be made. Nothing was written.")

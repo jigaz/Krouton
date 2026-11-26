@@ -27,7 +27,6 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
     public var activeJobDetail: String = ""
     public var driveTelemetry: [String: KroutonDrivePhaseScopeTelemetry] = [:]
     public var batchStates: [String: KroutonBatchBurnState] = [:]
-    var driveBookTypeOverrides: [String: String] = [:]
     var batchCountdownTimers: [String: Timer] = [:]
     var perDriveTimers: [String: Timer] = [:]
 
@@ -334,33 +333,12 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
         )
     }
 
-    // MARK: - Optical Write Queue MMC Book Type / Bitsetting (DVD+R / DVD+R DL -> DVD-ROM 0x00)
-    public func stampDVDROMBookType(for driveID: String, vendorProfile: String = "Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)") {
-        let resolved = driveForID(driveID)
-        let key = resolved?.id ?? driveID
-        let name = resolved?.displayName ?? "Optical Drive"
-        // No book-type command is sent to the drive yet, so the status must not claim one was.
-        driveBookTypeOverrides[key] = "Native Media Book Type (bitsetting not supported yet)"
-        hardwareStatusLog = "[MMC Bitsetting] Not applied on \(name): Krouton cannot change the book type yet (\(vendorProfile))."
-    }
-
-    public func bookTypeStatus(for drive: KroutonOpticalDriveInfo, forceDVDROM: Bool) -> String {
-        if let explicit = driveBookTypeOverrides[drive.id] {
-            return explicit
-        }
-        if forceDVDROM {
-            return "Native Media Book Type (bitsetting not supported yet)"
-        }
-        return "Native Media Book Type"
-    }
-
     // MARK: - Hands-Free Multi-Copy Batch Duplication & 5s Auto-Load Station
     public func startBatchAutoLoadMonitor(
         for driveID: String,
         completedCopy: Int,
         totalCopies: Int,
         countdownSeconds: Int = 5,
-        bitsetDVDROM: Bool = true,
         onFireNextCopy: @escaping @MainActor () -> Void
     ) {
         let resolved = driveForID(driveID)
@@ -380,7 +358,7 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
             isWaitingForBlankDisc: true,
             countdownSecondsRemaining: nil,
             statusMessage: "Copy \(completedCopy)/\(totalCopies) Ejected — Insert Blank Disc #\(nextCopy) to Auto-Start",
-            bitsetDVDROMActive: bitsetDVDROM
+            bitsetDVDROMActive: false
         )
         hardwareStatusLog = "[Duplication Station] Copy \(completedCopy)/\(totalCopies) complete on \(name). Waiting for Blank Disc #\(nextCopy)..."
 

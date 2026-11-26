@@ -29,7 +29,7 @@ Several USB burners on one Mac compete for power and bandwidth. Krouton starts t
 
 ## Old DVD players and game consoles
 
-Some old DVD players and early game consoles only accept discs that say they are DVD-ROM. Drives can mark DVD+R discs that way ("bitsetting"), but Krouton can't send that command yet: **Stamp DVD-ROM Book Type** (⇧⌘M) and the **DVD-ROM Bitset** switch are there, and the burn report says the book type was left as it is.
+Some old DVD players and early game consoles only accept discs that say they are DVD-ROM. Some drives can mark DVD+R discs that way ("bitsetting"), but each maker uses its own unpublished command, and a wrong one can upset the drive's firmware, so Krouton doesn't send any. Use DVD-R discs for those players, or your drive maker's own utility.
 
 ## Leaving a disc open
 

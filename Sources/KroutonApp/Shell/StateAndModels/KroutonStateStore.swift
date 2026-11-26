@@ -46,7 +46,6 @@ final class KroutonStateStore {
     }
     var selectedFormatID: KroutonFormatID? { KroutonFormatID(rawValue: selectedTaskID) }
     var selectedCopyTaskID: KroutonCopyTaskID? { KroutonCopyTaskID(rawValue: selectedTaskID) }
-    var bitsetVendorProfile: String = "Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)"
     var autoLoadNextDiscBatchMode: Bool = true
     var autoLoadCountdownSeconds: Int = 5
 
@@ -73,7 +72,6 @@ final class KroutonStateStore {
     var allowATIPOverburn: Bool = false
     var dualLayerBreakSectorLBA: Int64 = 2_086_912
     var enableCustomFinderLayoutTab: Bool = false
-    var finderIconSize: Double = 256
     var fitToDiscDVD9Shrink: Bool = true
     var preserveMenusAndExtras: Bool = true
     var cdTextAlbumTitle: String = ""

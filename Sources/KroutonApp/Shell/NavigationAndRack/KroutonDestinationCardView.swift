@@ -115,7 +115,7 @@ struct KroutonDestinationCardView: View {
                     .buttonStyle(.plain)
                     .fixedSize()
                     .disabled(driveManager.isExecutingQueue)
-                    .help("Execute only this destination card (\(item.kind.rawValue))")
+                    .help("Execute only this destination card (\(item.kind.title))")
                 }
             }
 

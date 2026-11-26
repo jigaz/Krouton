@@ -55,7 +55,7 @@ public enum KroutonSpanningDiscMedium: String, CaseIterable, Identifiable, Codab
 
     public static func defaultMedium(forFormatID formatID: String) -> KroutonSpanningDiscMedium {
         switch KroutonFormatID(rawValue: formatID) {
-        case .cdDA, .cdExtra, .dtsCD, .cdG, .vcdSVCD, .videoSVCD, .macos9HFS, .photoCD, .dataRetroISO, .mp3CD:
+        case .cdDA, .cdExtra, .dtsCD, .cdG, .vcdSVCD, .macos9HFS, .photoCD, .dataRetroISO, .mp3CD:
             return .cd80Min700MB
         case .bd25, .mdiscVault, .dataUDFModern:
             return .bd25Single
@@ -73,7 +73,7 @@ public enum KroutonSpanningDiscMedium: String, CaseIterable, Identifiable, Codab
             return []
         }
         switch KroutonFormatID(rawValue: formatID) {
-        case .cdDA, .cdExtra, .dtsCD, .cdG, .vcdSVCD, .videoSVCD, .macos9HFS, .photoCD, .dataRetroISO:
+        case .cdDA, .cdExtra, .dtsCD, .cdG, .vcdSVCD, .macos9HFS, .photoCD, .dataRetroISO:
             return [.cd74Min650MB, .cd80Min700MB, .cd90Min800MB]
         case .mp3CD:
             return [.cd74Min650MB, .cd80Min700MB, .cd90Min800MB, .dvd5Single, .dvd9Dual]

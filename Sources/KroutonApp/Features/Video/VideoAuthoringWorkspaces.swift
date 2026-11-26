@@ -31,7 +31,7 @@ struct KroutonVideoAuthoringWorkspaceView: View {
     @State private var streamMuxConfigs: [UUID: KroutonStreamMuxDescriptor] = [:]
 
     private var isVCDFormat: Bool {
-        spec.id == "video-svcd" || spec.id == "vcd-svcd" || spec.technicalName.contains("VCD")
+        spec.id == "vcd-svcd" || spec.technicalName.contains("VCD")
     }
 
     private var videoDeckHeaderTitle: String {

@@ -9,7 +9,7 @@ Open Settings with ⌘,. The search field at the top finds a setting by any word
 - **Disc Image Depot**: where images are kept.
 - **Audio & Video**: default pauses and crossfades, MP3 settings, video options.
 - **Ripping & Transcoding**: rip formats and folders.
-- **Burners & Network**: connected drives, Auto-Load, DVD+R book type, and Krouton Servers.
+- **Burners & Network**: connected drives, Auto-Load and Krouton Servers.
 - **Labels & Printers**: disc sizes and printer tray offsets.
 - **Notifications**: alerts when a burn finishes or fails, including on iPhone and Apple Watch.
 - **Accessibility & Language**: contrast and motion, spoken progress for VoiceOver, and the app's language. Translation into nine languages has started with a handful of labels; most of the app and this manual are in English for now.
@@ -38,7 +38,7 @@ Open Settings with ⌘,. The search field at the top finds a setting by any word
 ## The disc doesn't play or open elsewhere
 
 - For data, use Hybrid ISO-9660 + Joliet + UDF. UDF-only discs and Mac-only formats can't be read everywhere.
-- For an old DVD player, try DVD-R instead of DVD+R, or stamp the DVD+R book type as DVD-ROM.
+- For an old DVD player, try DVD-R instead of DVD+R.
 - Car stereos often want MP3 CDs with ID3v2.3 tags and short names, or a plain audio CD.
 
 ## Reporting a problem

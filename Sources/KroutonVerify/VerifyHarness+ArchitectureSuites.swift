@@ -277,7 +277,7 @@ extension KroutonTestHarness {
     h.check(SpoolLANSecurityEngine.isAllowedLANEndpoint("http://192.168.1.50:7420") && !SpoolLANSecurityEngine.isAllowedLANEndpoint("https://example.com:7420"), "SpoolLANSecurityEngine must enforce RFC-1918 / mDNS LAN boundary")
 
     let formats = KroutonOpticalWorkflowCatalog.defaultFormats
-    h.check(formats.count == 32, "Expected 32 canonical optical recipes, found \(formats.count)")
+    h.check(formats.count == 31, "Expected 31 canonical optical recipes, found \(formats.count)")
 
     for spec in formats {
         h.check(spec.formatID != nil, "Recipe '\(spec.id)' must map to a valid KroutonFormatID enum case")

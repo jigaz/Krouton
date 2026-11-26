@@ -72,6 +72,8 @@ public struct KroutonKrutCoreSpec: Codable, Hashable, Sendable {
     public var payloadSHA256Hex: String
     public var writeMethod: String
     public var dualLayerBreakSectorLBA: Int64?
+    /// Not acted on: Krouton sends no book-type (bitsetting) command, so this is always written
+    /// false. Kept so older project files decode.
     public var forceDVDROMBookType: Bool
     public var performOPCBeforeWrite: Bool
     public var ephemeralAutoPurgeOnComplete: Bool
@@ -86,7 +88,7 @@ public struct KroutonKrutCoreSpec: Codable, Hashable, Sendable {
         payloadSHA256Hex: String = "",
         writeMethod: String = "DAO / SAO Sector-Exact",
         dualLayerBreakSectorLBA: Int64? = nil,
-        forceDVDROMBookType: Bool = true,
+        forceDVDROMBookType: Bool = false,
         performOPCBeforeWrite: Bool = true,
         ephemeralAutoPurgeOnComplete: Bool = true
     ) {

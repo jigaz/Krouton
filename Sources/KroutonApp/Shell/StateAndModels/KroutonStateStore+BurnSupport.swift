@@ -143,6 +143,15 @@ extension KroutonStateStore {
         return target
     }
 
+    /// The `.DS_Store` that gives the disc's root window the layout from the Finder View tab, when
+    /// that tab is on. Network burns get it from `KroutonHybridImageBuilder` instead; burns on a
+    /// drive on this Mac don't carry it yet.
+    func finderLayoutRootFiles() -> [String: Data] {
+        guard enableCustomFinderLayoutTab else { return [:] }
+        let names = stagedFiles.map(\.name).filter { !$0.hasPrefix(".") }.sorted()
+        return [".DS_Store": finderLayoutBlueprint.serializeDSStore(itemNames: names)]
+    }
+
     /// A short report for a destination that didn't burn (or, with `ok`, that only wrote a file).
     func refusalReport(_ summary: String, title: String = "Nothing Was Written", ok: Bool = false) -> KroutonBurnSessionReport {
         KroutonBurnSessionReport(

@@ -86,48 +86,6 @@ extension KroutonSettingsWindowView {
     var burnersNetworkBottomSection: some View {
         VStack(alignment: .leading, spacing: 14) {
 
-            settingsCard(title: "Optical Drive Hardware & MMC Bitsetting (Retro Console & Set-Top DVD Compatibility)") {
-                Toggle(KroutonL10n.tr("Stamp Book Type as DVD-ROM (0x00) on DVD+R & DVD+R DL Media (Required by vintage DVD players, early PS2 & Xbox)"), isOn: Bindable(store).forceDVDROMBookType)
-                    .fontWeight(.semibold)
-                Text(KroutonL10n.tr("When enabled, Krouton sends the vendor MMC Mode Select / Set Compatibility bitsetting command before lead-in write so DVD+R and DVD+R DL discs identify as pressed factory DVD-ROMs."))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Divider()
-                HStack {
-                    Text(KroutonL10n.tr("MMC Bitsetting Command Profile"))
-                    Spacer()
-                    Picker("", selection: Bindable(store).bitsetVendorProfile) {
-                        Text(KroutonL10n.tr("Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)")).tag("Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)")
-                        Text(KroutonL10n.tr("Pioneer DVR / BDR Extended (0x3B Mode Select)")).tag("Pioneer DVR / BDR Extended (0x3B Mode Select)")
-                        Text(KroutonL10n.tr("Lite-On / MediaTek SmartBurn (0xF9 / 0xFF)")).tag("Lite-On / MediaTek SmartBurn (0xF9 / 0xFF)")
-                        Text(KroutonL10n.tr("LG / HL-DT-ST / Renesas Super-Multi (0xFA)")).tag("LG / HL-DT-ST / Renesas Super-Multi (0xFA)")
-                        Text(KroutonL10n.tr("NEC / Optiarc / Sony (0xFF BookType)")).tag("NEC / Optiarc / Sony (0xFF BookType)")
-                    }
-                    .labelsHidden()
-                    .frame(width: 340)
-                }
-                if !driveManager.availableDrives.isEmpty {
-                    Divider()
-                    ForEach(driveManager.availableDrives) { drive in
-                        HStack {
-                            Image(systemName: "opticaldisc.fill")
-                                .foregroundStyle(store.activeAccent)
-                            Text(drive.displayName)
-                                .font(.system(size: 12, weight: .semibold))
-                            Spacer()
-                            Text(driveManager.bookTypeStatus(for: drive, forceDVDROM: store.forceDVDROMBookType))
-                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                                .foregroundStyle(store.forceDVDROMBookType ? .green : .secondary)
-                            pillToggleButton(title: "Stamp DVD-ROM Now", sfSymbol: "seal.fill", isSelected: false) {
-                                driveManager.stampDVDROMBookType(for: drive.id, vendorProfile: store.bitsetVendorProfile)
-                            }
-                        }
-                    }
-                }
-                Divider()
-                Toggle(KroutonL10n.tr("Disable BD-R Defect Management Spare Area on Video Blu-rays (Enables full rated write speed)"), isOn: Bindable(store).disableBDDefectManagementForVideo)
-            }
-
             settingsCard(title: "Hands-Free Multi-Copy Duplication & Spanned Disc Auto-Loader") {
                 Toggle(KroutonL10n.tr("Auto-Load Next Disc: Eject finished disc & automatically start next burn after fresh blank disc insertion"), isOn: Bindable(store).autoLoadNextDiscBatchMode)
                     .fontWeight(.semibold)

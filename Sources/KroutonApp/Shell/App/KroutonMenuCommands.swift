@@ -218,14 +218,6 @@ struct KroutonWorkspaceCommands: Commands {
             .keyboardShortcut("p", modifiers: [.command, .shift])
             .disabled(wm.driveManager.availableDrives.isEmpty)
 
-            Button(KroutonL10n.tr("Stamp DVD-ROM Book Type (Bitsetting)")) {
-                if let firstID = wm.driveManager.availableDrives.first?.id {
-                    wm.driveManager.stampDVDROMBookType(for: firstID)
-                }
-            }
-            .keyboardShortcut("m", modifiers: [.command, .shift])
-            .disabled(wm.driveManager.availableDrives.isEmpty)
-
             Toggle(KroutonL10n.tr("Leave Disc Open for More Sessions"), isOn: Bindable(wm.store).leaveDiscOpenForMoreSessions)
 
             Button(KroutonL10n.tr("Copy Archival Quality Certificate")) {

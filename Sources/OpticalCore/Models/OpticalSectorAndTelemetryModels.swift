@@ -170,6 +170,7 @@ public struct KroutonBatchBurnState: Identifiable, Hashable, Sendable {
     public var hasDetectedDiscEject: Bool = false
     public var countdownSecondsRemaining: Int?
     public var statusMessage: String
+    /// Always false: Krouton sends no book-type (bitsetting) command. Kept so saved states decode.
     public var bitsetDVDROMActive: Bool
 
     public init(
@@ -180,7 +181,7 @@ public struct KroutonBatchBurnState: Identifiable, Hashable, Sendable {
         isWaitingForBlankDisc: Bool = false,
         countdownSecondsRemaining: Int? = nil,
         statusMessage: String = "Ready",
-        bitsetDVDROMActive: Bool = true
+        bitsetDVDROMActive: Bool = false
     ) {
         self.id = id
         self.driveName = driveName

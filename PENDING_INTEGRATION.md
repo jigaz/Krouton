@@ -46,6 +46,7 @@ Format: `- `TypeName` — owner · decide-by date · plan`.
 ## Supporting types reached only through return values or `throws` (lower priority)
 
 - `AudioAnalysisError` — me · 2027-01-31 · make internal or keep (AudioKit/AudioAnalysisService.swift)
+- `KroutonAudioRenderError` — me · 2027-01-31 · thrown by `KroutonAudioDiscRenderer`; the app shows its message, Suite 37 matches on it. Make internal or keep (AudioKit/AudioDiscRenderer.swift)
 - `AudioMasteredDiscResult` — me · 2027-01-31 · make internal or keep (AudioKit/AudioSampleDecoder.swift)
 - `AutoLabelComposition` — me · 2027-01-31 · make internal or keep (LabelKit/AutoLabelEngine.swift)
 - `BurnJournaling` — me · 2027-01-31 · make internal or keep (BurnKit/BurnSetScheduler.swift)

@@ -25,7 +25,6 @@ struct KroutonRetroConsoleWorkspaceView: View {
         }
     }
 
-    private var usesDVD: Bool { ["console-wii", "console-gc", "console-ps2", "console-xbox"].contains(spec.id) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -39,10 +38,6 @@ struct KroutonRetroConsoleWorkspaceView: View {
                     }
                     Text("Drop your own \(acceptedTypes) image. Krouton reads its header to tell you what it is, then burns it exactly as it is. Consoles were built to refuse burned discs, so each image below says what the console needs to play one.")
                         .font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                    if usesDVD {
-                        Toggle(KroutonL10n.tr("Stamp DVD+R discs as DVD-ROM before burning"), isOn: Bindable(store).forceDVDROMBookType)
-                            .toggleStyle(.checkbox).font(.caption)
-                    }
                 }
             }
 

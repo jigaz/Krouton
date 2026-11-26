@@ -211,7 +211,7 @@ extension KroutonStateStore {
             payloadSHA256Hex: verifiedSHA256,
             writeMethod: writeMethod,
             dualLayerBreakSectorLBA: dualLayerBreakSectorLBA,
-            forceDVDROMBookType: self.forceDVDROMBookType,
+            forceDVDROMBookType: false,
             performOPCBeforeWrite: true,
             ephemeralAutoPurgeOnComplete: true
         )
@@ -317,7 +317,6 @@ extension KroutonStateStore {
         if let breakLBA = manifest.coreSpec.dualLayerBreakSectorLBA {
             dualLayerBreakSectorLBA = breakLBA
         }
-        self.forceDVDROMBookType = manifest.coreSpec.forceDVDROMBookType
 
         var restoredDomainMap: [String: [KroutonBakeBatchItem]] = [:]
         for (k, records) in manifest.savedQueuesByDomain {

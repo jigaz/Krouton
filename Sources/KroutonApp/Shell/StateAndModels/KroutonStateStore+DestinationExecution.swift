@@ -92,7 +92,7 @@ extension KroutonStateStore {
     ) async {
         let drvName = primarySelectedDrive?.displayName ?? "Optical Drive"
         KroutonNotificationAndCompanionService.shared.dispatchEvent(
-            id: "start", title: "Optical Mastering Started", subtitle: "\(target.kind.rawValue) • \(discVolumeTitle)",
+            id: "start", title: "Optical Mastering Started", subtitle: "\(target.kind.title) • \(discVolumeTitle)",
             progress: 0.05, driveName: drvName, speedLabel: target.speedOrCodec, store: self
         )
         defer {
@@ -100,7 +100,7 @@ extension KroutonStateStore {
             let ok = rep?.isSuccess ?? true
             KroutonNotificationAndCompanionService.shared.dispatchEvent(
                 id: ok ? "done" : "err", title: rep?.title ?? "Mastering Task Complete",
-                subtitle: rep?.summary ?? "\(target.kind.rawValue) finished for \(discVolumeTitle)",
+                subtitle: rep?.summary ?? "\(target.kind.title) finished for \(discVolumeTitle)",
                 progress: ok ? 1.0 : 0.0, driveName: drvName, speedLabel: target.speedOrCodec, store: self
             )
         }
@@ -145,8 +145,7 @@ extension KroutonStateStore {
                 volumeTitle: discVolumeTitle,
                 outputPathString: target.hardwareOrPath,
                 compressImage: target.compressAfterCreation,
-                enableCustomLayout: enableCustomFinderLayoutTab,
-                iconSizePx: Int(finderIconSize)
+                extraRootFiles: finderLayoutRootFiles()
             )
         case .discPrinter, .pdfVector:
             executeLabelDestinationExport()

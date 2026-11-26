@@ -55,7 +55,6 @@
 - ⌘I CD Info & Metadata Tags
 - ⌘R Rescan Optical Drives
 - ⇧⌘P Run Phase Scope Diagnostic Sweep
-- ⇧⌘M Stamp DVD-ROM Book Type
 - ⌥⌘C Copy Archival Quality Certificate
 - ⌘E Eject Optical Media
 

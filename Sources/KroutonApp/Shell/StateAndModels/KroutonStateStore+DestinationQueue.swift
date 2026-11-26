@@ -294,7 +294,7 @@ extension KroutonStateStore {
             }
         case .label:
             destinationQueue = [
-                KroutonBakeBatchItem(kind: .discPrinter, targetDriveID: "", hardwareOrPath: "Epson EcoTank Photo ET-8550 (CD/DVD Tray)", speedOrCodec: "Claria ET 6-Ink • 120mm / 18mm", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
+                KroutonBakeBatchItem(kind: .discPrinter, targetDriveID: "", hardwareOrPath: "~/Desktop/\(discVolumeTitle)_Label Sheet.pdf", speedOrCodec: "1:1 PDF + 300-DPI PNG • 120mm / 18mm", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
             ]
         }
         savedQueuesByDomain[targetDomain] = destinationQueue

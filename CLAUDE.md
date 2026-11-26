@@ -19,7 +19,7 @@ This file provides canonical architectural context, build/verification commands,
 Krouton is a native macOS optical disc mastering, extraction, bad-sector rescue, and distributed burn-pool suite written in **Swift 6** (`swift-tools-version: 6.0`, macOS 14+):
 
 ### 11 Core Architectural Modules (`KroutonDomainIdentity.Module`, 21 SPM Targets in `Package.swift`)
-1. `OpticalCore` — Pure domain models, `KroutonDomainIdentity`, 32 optical format recipes, `BurnClaimLedger`, `SpanManifest`. Zero external dependencies.
+1. `OpticalCore` — Pure domain models, `KroutonDomainIdentity`, 31 optical format recipes, `BurnClaimLedger`, `SpanManifest`. Zero external dependencies.
 2. `DriveKit` — Optical hardware discovery & low-level I/O. **Strictly isolated:** never import UI or networking frameworks here.
 3. `BurnKit` — `BurnSetScheduler`, `BusArbitrationState`, `BurnPowerAndBandwidthArbiter`, APFS CoW staging.
 4. `ImageKit` — Hybrid ISO-9660 / Joliet / UDF / El Torito LBA planner (PVD LBA 16, El Torito LBA 17, UDF LBA 256), `.cue/.bin` parser, SHA-256 sector inspector, `KroutonUDFImageWriter` (UDF 2.50 for Blu-ray/AVCHD).

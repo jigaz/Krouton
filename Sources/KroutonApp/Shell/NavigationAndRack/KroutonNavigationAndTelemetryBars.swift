@@ -135,8 +135,8 @@ struct KroutonLeftFormatChooserColumnView: View {
                             category: .copy,
                             title: "Extract Video Disc",
                             shortTitle: "Rip Video",
-                            colloquial: "Hardware H.265 / HEVC Passthrough",
-                            badge: "H.265",
+                            colloquial: "Titles to MKV or MPEG, without re-encoding",
+                            badge: "MKV",
                             sfSymbol: "film.stack"
                         )
                         taskRowButton(

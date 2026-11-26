@@ -66,8 +66,7 @@ extension KroutonStateStore {
                     for: driveKey,
                     completedCopy: max(1, nextTicket.sequenceNumber - 1),
                     totalCopies: max(nextTicket.totalCopies, nextTicket.totalSpannedDiscs),
-                    countdownSeconds: autoLoadCountdownSeconds,
-                    bitsetDVDROM: self.forceDVDROMBookType
+                    countdownSeconds: autoLoadCountdownSeconds
                 ) { [weak self] in
                     guard let self = self else { return }
                     if let updatedItem = self.destinationQueue.first(where: { $0.id == target.id }) {
@@ -89,8 +88,7 @@ extension KroutonStateStore {
                     for: driveKey,
                     completedCopy: finishedCount,
                     totalCopies: target.copiesToBurn,
-                    countdownSeconds: autoLoadCountdownSeconds,
-                    bitsetDVDROM: self.forceDVDROMBookType
+                    countdownSeconds: autoLoadCountdownSeconds
                 ) { [weak self] in
                     guard let self = self else { return }
                     if let updatedItem = self.destinationQueue.first(where: { $0.id == target.id }) {
