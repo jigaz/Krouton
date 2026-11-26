@@ -20,6 +20,17 @@ jobs:
         run: swift test
       - name: Run Deterministic Verification Harness
         run: swift run krouton-verify
+      - name: Probe IOKit SCSITaskLib for the direct-access prototype (temporary)
+        continue-on-error: true
+        run: |
+          H="$(xcrun --show-sdk-path)/System/Library/Frameworks/IOKit.framework/Headers/scsi"
+          ls "$H"
+          grep -nE 'CFUUIDGetConstantUUIDWithBytes|^#define kIO.*(TypeID|InterfaceID)' -A3 "$H/SCSITaskLib.h" | head -n 120
+          grep -nE 'typedef struct MMCDeviceInterface|^\s+(IOReturn|Boolean|SCSITaskDeviceInterface).*\(\s*\*\s*[A-Za-z]+' "$H/SCSITaskLib.h" | head -n 120
+          printf 'import IOKit\nimport IOKit.scsi\nlet a = MemoryLayout<MMCDeviceInterface>.size\nlet b = MemoryLayout<SCSITaskDeviceInterface>.size\nlet c = MemoryLayout<SCSITaskInterface>.size\nprint(a, b, c)\n' > /tmp/probe.swift
+          swiftc /tmp/probe.swift -o /tmp/probe && /tmp/probe || echo "IOKit.scsi probe did not compile"
+          printf 'import IOKit\nlet a = MemoryLayout<MMCDeviceInterface>.size\nprint(a)\n' > /tmp/probe2.swift
+          swiftc /tmp/probe2.swift -o /tmp/probe2 && /tmp/probe2 || echo "plain IOKit probe did not compile"
 
   ipados-portable-core:
     # The libraries an iPad app would share (krouton-verify Suite 31) must compile for iPadOS.
