@@ -6,6 +6,7 @@ import os
 // MARK: - VerifyHarness — Suite 34: Disc Rescue
 
 /// A scratched disc: every sector holds a known pattern, some never read, some read on a later try.
+/// Sector 451 fails its first single-sector read (in the trim pass) and reads in the retry pass.
 actor ScratchedDisc: KroutonSectorSource {
     let sectors: Int64
     let dead: Set<Int64>
@@ -62,7 +63,7 @@ extension KroutonTestHarness {
     mutating func runVerifyRescueSuite() {
         self.runSuite("34. Disc Rescue: ddrescue-Style Passes, Mapfiles and Resuming") { h in
             let dead: Set<Int64> = Set(100..<110).union([300, 450])
-            let disc = ScratchedDisc(sectors: 600, dead: dead, flaky: [451: 2])
+            let disc = ScratchedDisc(sectors: 600, dead: dead, flaky: [451: 1])
             let sink = MemorySink(bytes: 600 * KroutonSector.size)
             let rescuer = KroutonDiscRescuer(source: disc, sink: sink, plan: KroutonRescuePlan(clusterSectors: 16, minimumSkipSectors: 8))
             let outcome = Self.blockingResult { try await rescuer.run() }

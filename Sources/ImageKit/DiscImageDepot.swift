@@ -1,6 +1,8 @@
 import Foundation
 import OpticalCore
 
+// MARK: - Cue Sheet and Classification Models
+
 public enum KroutonRawSectorMode: String, Codable, Sendable, Equatable {
     case mode1_2352      = "MODE1/2352"
     case mode2Form1_2352 = "MODE2/2352"
@@ -24,6 +26,8 @@ public struct KroutonDiscImageClassification: Sendable, Equatable {
     public let recommendedMediaBadge: String
     public let totalSectors2048: Int64
 }
+
+// MARK: - Disc Image Depot
 
 public struct KroutonDiscImageDepot {
     public static let version = "0.1.0-alpha.1"
@@ -159,6 +163,8 @@ public struct KroutonDiscImageDepot {
         )
     }
 }
+
+// MARK: - Parsed Image Models
 
 public struct DiscImageBootClassification: Sendable, Equatable {
     public let formatName: String
