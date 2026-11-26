@@ -141,7 +141,7 @@ extension KroutonOpticalDriveBank {
         }
         // A disc image is read in place by DiscRecording; there is nothing to stage.
         if let imageURL = context.imageFileURL {
-            beginImageBurn(session, imageURL: imageURL)
+            imageURL.pathExtension.lowercased() == "cdi" ? beginDiscJugglerBurn(session, imageURL: imageURL) : beginImageBurn(session, imageURL: imageURL)
             return
         }
 

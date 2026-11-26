@@ -61,7 +61,7 @@ These are still being built. Their screens are there so you can see where Krouto
 - Shrinking a dual-layer DVD onto a single-layer disc while keeping its menus. It hasn't been checked on many players yet.
 - AVCHD discs on players: the format follows the Blu-ray specification and libbluray reads it, but it hasn't been checked on many players yet.
 - Quality grading of a burned disc. Without a C1/C2 error scan the certificate says the disc was not measured.
-- Burning .cdi and .gdi images (Dreamcast) and compressed images (.wbfs, .rvz, .chd). Krouton names these and explains how to convert them, but can't burn them yet.
+- Burning .gdi images (Dreamcast GD-ROM) and compressed images (.wbfs, .rvz, .chd). Krouton names these and explains how to convert them, but can't burn them.
 
 ## Getting help
 

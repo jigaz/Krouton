@@ -74,7 +74,10 @@ extension KroutonFormatID {
              .consoleSaturn, .console3DO:
             return .discImage
         case .consoleDC:
-            return .notYet("Dreamcast .cdi and .gdi images can't be burned yet: they need an audio session and a data session written raw.")
+            // .cue/.bin as an image; an audio/data DiscJuggler .cdi as two sessions read from the
+            // image (`beginDiscJugglerBurn`), refused unless its data lands where it was
+            // mastered. A .gdi is a GD-ROM and is refused.
+            return .discImage
 
         case .bd25, .bd50, .bdUHD:
             return .bluRayVideo

@@ -35,7 +35,7 @@ A file larger than the chosen disc can't be split. Pick a bigger disc size, such
 
 Drop an .iso, .cdr, .dmg, .cue/.bin or .toc on the deck, or choose **Burn Disc Image**. A .cue file must sit next to the .bin files it names. When the deck holds a single disc image, Krouton writes the image sector for sector, including its boot catalog, so a bootable installer stays bootable. It doesn't wrap the image in a new file system.
 
-Krouton refuses images it can't burn faithfully, such as .cdi, .gdi, .wbfs, .rvz and .chd, and says why, instead of copying the file onto a data disc.
+Krouton refuses images it can't burn faithfully, such as .gdi, .wbfs, .rvz and .chd, and says why, instead of copying the file onto a data disc.
 
 **Disc › Leave Disc Open for More Sessions** burns without closing the disc, so more sessions can be added later. Some live CDs, such as Puppy Linux, use this to save your changes back to the same CD-R or DVD±R. Most players and older drives read only closed discs, so leave it off otherwise.
 

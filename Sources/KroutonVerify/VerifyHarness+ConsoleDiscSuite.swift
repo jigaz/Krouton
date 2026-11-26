@@ -37,7 +37,32 @@ extension KroutonTestHarness {
             let bin = KroutonConsoleDiscIdentifier.identify(header: dreamcastHeader, fileExtension: "bin", byteSize: 700_000_000)
             h.lint(cdi.platform == .dreamcast && cdi.gameID == "T-8101N" && cdi.title == "HOMEBREW DEMO",
                    "A Dreamcast IP.BIN must give the product number and title")
-            h.lint(!cdi.canBurn && bin.canBurn, "Krouton must say it can't burn .cdi yet, but can burn a .cue/.bin")
+            h.lint(cdi.canBurn && bin.canBurn, "A Dreamcast .cdi and .cue/.bin must both be burnable")
+
+            // A DiscJuggler 3 descriptor: 302 frames of audio, then Mode 2 data at 11,702.
+            func cdiTrack(pregap: UInt32, frames: UInt32, mode: UInt32, start: UInt32, sizeCode: UInt32) -> [UInt8] {
+                let le = { (v: UInt32) in [UInt8(v & 0xFF), UInt8(v >> 8 & 0xFF), UInt8(v >> 16 & 0xFF), UInt8(v >> 24)] }
+                let mark: [UInt8] = [0, 0, 1, 0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF]
+                var t = le(0) + mark + mark + [UInt8](repeating: 0, count: 4) + [5] + ascii("a.cdi")
+                t += [UInt8](repeating: 0, count: 19) + le(0) + [0, 0] + le(pregap) + le(frames)
+                t += [UInt8](repeating: 0, count: 6) + le(mode) + [UInt8](repeating: 0, count: 12) + le(start) + le(pregap + frames)
+                t += [UInt8](repeating: 0, count: 16) + le(sizeCode) + [UInt8](repeating: 0, count: 29 + 5) + le(0)
+                return t
+            }
+            func cdi(dataStart: UInt32) -> [UInt8] {
+                let end = [UInt8](repeating: 0, count: 13)
+                return [2, 0] + [1, 0] + cdiTrack(pregap: 150, frames: 302, mode: 0, start: 0, sizeCode: 2) + end
+                    + [1, 0] + cdiTrack(pregap: 150, frames: 1_000, mode: 2, start: dataStart, sizeCode: 1) + end
+            }
+            let image = try? KroutonDiscJugglerImage.parse(descriptor: cdi(dataStart: 11_702),
+                                                           version: KroutonDiscJugglerImage.version3, fileLength: 10_000_000)
+            let plan = try? image?.audioDataPlan()
+            h.lint(plan?.audio.count == 1 && plan?.data.startLBA == 11_702 && plan?.data.fileOffset == Int64(452 * 2352 + 150 * 2336)
+                   && plan?.data.userDataOffset == 8, "An audio/data .cdi must give its tracks, file offsets and a burn plan")
+            let misplaced = try? KroutonDiscJugglerImage.parse(descriptor: cdi(dataStart: 11_700),
+                                                               version: KroutonDiscJugglerImage.version3, fileLength: 10_000_000)
+            h.lint(misplaced != nil && (try? misplaced?.audioDataPlan()) == nil,
+                   "A .cdi whose data wouldn't land where it was mastered must be refused")
 
             let playstationField = ascii("PLAYSTATION") + [UInt8](repeating: 0x20, count: 21)
             let ps1 = KroutonConsoleDiscIdentifier.identify(

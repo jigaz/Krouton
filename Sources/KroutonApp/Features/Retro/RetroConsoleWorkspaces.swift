@@ -20,7 +20,7 @@ struct KroutonRetroConsoleWorkspaceView: View {
     private var acceptedTypes: String {
         switch spec.id {
         case "console-wii", "console-gc", "console-ps2", "console-xbox": return ".iso"
-        case "console-dc": return ".cue/.bin (.cdi and .gdi are identified but not burned)"
+        case "console-dc": return ".cdi (audio + data) or .cue/.bin (.gdi is identified but not burned)"
         default: return ".cue/.bin"
         }
     }

@@ -20,7 +20,7 @@ public struct KroutonConsoleDisc: Sendable, Equatable {
     public let gameID: String?
     public let title: String?
     public let region: String?
-    /// False for formats Krouton can't write as a disc (GD-ROM images, DiscJuggler .cdi).
+    /// False for formats Krouton can't write as a disc (GD-ROM images).
     public let canBurn: Bool
     public let recommendedMedia: String
     public let advice: String
@@ -79,7 +79,7 @@ public enum KroutonConsoleDiscIdentifier {
             let id = text(header, offset + 0x40, 10)
             let title = text(header, offset + 0x80, 128)
             let isCDI = ext == "cdi"
-            return disc(.dreamcast, id, title, nil, canBurn: !isCDI, byteSize: byteSize, advice: isCDI ? Advice.cdi : Advice.dreamcast)
+            return disc(.dreamcast, id, title, nil, canBurn: true, byteSize: byteSize, advice: isCDI ? Advice.cdi : Advice.dreamcast)
         }
         if let offset = find(header, Array("SEGA SEGASATURN".utf8)) {
             return disc(.saturn, text(header, offset + 0x20, 10), text(header, offset + 0x60, 112), nil,
@@ -168,7 +168,7 @@ public enum KroutonConsoleDiscIdentifier {
         static let playstation2 = "A PlayStation 2 reads burned DVDs with a modchip, or without one through Free McBoot and an ESR-patched disc (Krouton doesn't apply the ESR patch). Most people use Open PS2 Loader from USB instead."
         static let playstation = "A PlayStation reads burned CDs with a modchip, or through Unirom or FreePSXBoot (not on Japanese consoles). Burn the .cue/.bin as it is, at a low speed."
         static let dreamcast = "Dreamcasts made before late 2000 boot burned CD-Rs without a modchip, if the image is a self-booting MIL-CD."
-        static let cdi = "This is a DiscJuggler .cdi image: two sessions, audio then data. Krouton can't burn .cdi yet."
+        static let cdi = "This is a DiscJuggler .cdi image: two sessions, audio then data. Krouton burns it as those two sessions, if its data starts where a burn will put it; burn to CD-R at a low speed. Dreamcasts made before late 2000 boot it without a modchip."
         static let gdi = "A .gdi image is a GD-ROM, a 1 GB format no burner can write. Use it with an optical drive emulator such as GDEMU, or convert it to a self-booting .cdi with other tools."
         static let saturn = "A Saturn reads burned CDs only with a modchip or a Pseudo Saturn Kai cartridge. Burn the .cue/.bin as it is, at a low speed."
         static let xbox = "An original Xbox reads burned discs only with a modchip, and many drives are fussy about media. Most people copy games to the hard disk instead."
