@@ -33,14 +33,22 @@ public struct KroutonAudioBurnDisc: Sendable, Equatable {
     /// 13 digits, or empty for none.
     public let mediaCatalogNumber: String
     public let writeCDText: Bool
+    /// CD-Extra: files and folders for a second, data session after the audio. Empty for a
+    /// plain audio CD.
+    public let dataSessionFiles: [URL]
+    /// The data session's volume name.
+    public let dataVolumeName: String
 
     public init(tracks: [KroutonAudioBurnTrack], albumTitle: String, albumPerformer: String,
-                mediaCatalogNumber: String, writeCDText: Bool) {
+                mediaCatalogNumber: String, writeCDText: Bool,
+                dataSessionFiles: [URL] = [], dataVolumeName: String = "") {
         self.tracks = tracks
         self.albumTitle = albumTitle
         self.albumPerformer = albumPerformer
         self.mediaCatalogNumber = mediaCatalogNumber
         self.writeCDText = writeCDText
+        self.dataSessionFiles = dataSessionFiles
+        self.dataVolumeName = dataVolumeName
     }
 
     public var totalFrames: Int64 { tracks.reduce(0) { $0 + $1.frames + $1.pregapFrames } }
@@ -99,6 +107,16 @@ extension KroutonOpticalDriveBank {
             track.setProperties(props)
             tracks.append(track)
         }
+        // CD-Extra: a layout of two sessions, the audio and then the data.
+        var layout: Any = tracks
+        if !disc.dataSessionFiles.isEmpty {
+            guard let dataTrack = Self.cdExtraDataTrack(for: disc) else {
+                fail("Could Not Prepare Burn", "Krouton couldn't read every file for the data session.",
+                     "Nothing was written. Check that the CD-Extra files still exist, then burn again.")
+                return
+            }
+            layout = [tracks, [dataTrack]]
+        }
         guard let burn = DRBurn(for: session.device) else {
             fail("Could Not Prepare Burn", "DiscRecording could not create a burn for \(context.driveName).",
                  "Nothing was written. Reconnect the drive and try again.")
@@ -111,7 +129,32 @@ extension KroutonOpticalDriveBank {
         if mcn.count == 13 { props[DRMediaCatalogNumberKey] = Data(mcn.utf8) }
         if disc.writeCDText, let block = Self.cdTextBlock(for: disc) { props[DRCDTextKey] = block }
         burn.setProperties(props)
-        startWriting(session, burn: burn, layout: tracks)
+        startWriting(session, burn: burn, layout: layout)
+    }
+
+    /// The CD-Extra data session: the files in place (DiscRecording reads them while it
+    /// burns), under ISO 9660 + Joliet + HFS+, with the Blue Book's CDPLUS folder at the root.
+    static func cdExtraDataTrack(for disc: KroutonAudioBurnDisc) -> DRTrack? {
+        let name = disc.dataVolumeName.isEmpty ? "CD-Extra" : disc.dataVolumeName
+        guard let root = DRFolder(name: name) as DRFolder? else { return nil }
+        root.setExplicitFilesystemMask(DRFilesystemMask(UInt32(
+            DRFilesystemInclusionMaskISO9660 | DRFilesystemInclusionMaskJoliet | DRFilesystemInclusionMaskHFSPlus)))
+        let names = Set(disc.dataSessionFiles.map { $0.lastPathComponent.uppercased() })
+        if !names.contains("CDPLUS"), let cdPlus = DRFolder(name: "CDPLUS") as DRFolder? {
+            root.addChild(cdPlus)
+        }
+        for url in disc.dataSessionFiles {
+            var isDirectory: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return nil }
+            if isDirectory.boolValue {
+                guard let folder = DRFolder(path: url.path) as DRFolder? else { return nil }
+                root.addChild(folder)
+            } else {
+                guard let file = DRFile(path: url.path) as DRFile? else { return nil }
+                root.addChild(file)
+            }
+        }
+        return DRTrack(forRootFolder: root)
     }
 
     /// Index 0 of the track dictionaries is the disc; 1...n are the tracks.

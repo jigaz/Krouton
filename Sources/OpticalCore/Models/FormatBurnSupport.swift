@@ -84,7 +84,12 @@ extension KroutonFormatID {
         case .cdDA:
             return .audioCD
         case .cdExtra:
-            return .notYet("Enhanced CDs need a second, data session after the audio, which Krouton can't write yet. Choose Audio CD for the music alone. Nothing was written.")
+            // The audio path plus a second, data session in the same burn: DiscRecording gets a
+            // layout of two sessions (the rendered tracks, then an ISO 9660 + Joliet folder track
+            // with the CD-Extra files and a CDPLUS folder). The data track is Mode 1; the Blue
+            // Book asks for Mode 2 XA, which DiscRecording's folder tracks don't write, but Mac
+            // and Windows read Mode 1 the same. Local drives only.
+            return .audioCD
         case .dtsCD:
             // The audio path, held to bit-exact input: `KroutonStateStore.burnRefusal` accepts only
             // CD-format WAV files and no crossfades, so every sample is copied unchanged.

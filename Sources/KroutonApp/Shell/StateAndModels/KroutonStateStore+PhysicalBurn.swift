@@ -53,6 +53,11 @@ extension KroutonStateStore {
             driveManager.completionReport = refusalReport(tooBig, title: "Too Big for This Disc")
             return
         }
+        if let audioDisc, !audioDisc.dataSessionFiles.isEmpty,
+           let tooBig = cdExtraTooBigMessage(audioDisc, driveID: target.targetDriveID, driveManager: driveManager) {
+            driveManager.completionReport = refusalReport(tooBig, title: "Too Big for This Disc")
+            return
+        }
         let burnSucceeded = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
             driveManager.startPhysicalDataBurn(
                 driveID: target.targetDriveID.isEmpty ? nil : target.targetDriveID,
@@ -130,6 +135,18 @@ extension KroutonStateStore {
     /// A disc image needs its own size; files need a little more for the file systems.
     /// Nothing is said when the drive hasn't reported its free space (the bank's 4.7 GB and
     /// 737 MB fallbacks are guesses, not measurements).
+    /// CD-Extra: the audio, the second session's overhead and the data against the blank's
+    /// room (80 minutes when the drive doesn't say).
+    private func cdExtraTooBigMessage(_ disc: KroutonAudioBurnDisc, driveID: String,
+                                      driveManager: KroutonOpticalDriveBank) -> String? {
+        let drive = driveManager.availableDrives.first { $0.id == driveID } ?? driveManager.selectedDrive
+        let known = drive.map { $0.isMediaBlank && $0.freeBytes > 0 && $0.freeBytes != 736_966_656 } ?? false
+        let capacityFrames = known ? (drive?.freeBytes ?? 0) / 2_048 : 360_000
+        return KroutonCDExtraLayout.overflowMessage(
+            audioFrames: disc.totalFrames, dataBytes: cdExtraDataFiles.reduce(0) { $0 + $1.byteSize },
+            capacityFrames: capacityFrames)
+    }
+
     private func discTooSmallMessage(_ files: [KroutonStagedFileEntry], driveID: String,
                                      driveManager: KroutonOpticalDriveBank) -> String? {
         let drive = driveManager.availableDrives.first { $0.id == driveID } ?? driveManager.selectedDrive

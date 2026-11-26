@@ -48,6 +48,9 @@ final class KroutonStateStore {
     var autoLoadCountdownSeconds: Int = 5
 
     var stagedFiles: [KroutonStagedFileEntry] = []
+    /// CD-Extra: the files for the data session after the audio (the tracks are the Audio CD
+    /// editor's project, as on an audio CD).
+    var cdExtraDataFiles: [KroutonStagedFileEntry] = []
     var rejectedDropNotice: String? = nil
 
     @ObservationIgnored lazy var audioController = AudioProjectController { [weak self] _ in

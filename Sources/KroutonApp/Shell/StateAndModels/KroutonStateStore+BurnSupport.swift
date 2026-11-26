@@ -56,6 +56,14 @@ extension KroutonStateStore {
             if project.tracks.isEmpty {
                 return "Add tracks in the Audio CD editor first. The CD is burned from the editor's track list. Nothing was written."
             }
+            if activeFormatSpec().formatID == .cdExtra {
+                if kind == .discImage {
+                    return "A .cue/.bin image holds one session, so it can't carry CD-Extra's data. Burn the CD-Extra on a drive connected to this Mac. Nothing was written."
+                }
+                if cdExtraDataFiles.isEmpty {
+                    return "Add the files for the data session under Data Session, or choose Audio CD for the music alone. Nothing was written."
+                }
+            }
             if activeFormatSpec().formatID == .dtsCD {
                 if let track = project.tracks.first(where: { !KroutonAudioDiscRenderer.isRedBookWAV($0.source) }) {
                     return "\(track.source.lastPathComponent) isn't a 44.1 kHz 16-bit stereo WAV. A DTS CD needs the DTS-encoded WAV files exactly as they are; converting them would destroy the DTS stream. Nothing was written."
@@ -88,6 +96,13 @@ extension KroutonStateStore {
         }
     }
 
+    /// CD-Extra: adds files and folders to the data session, once each.
+    func addCDExtraDataFiles(_ urls: [URL]) {
+        for url in urls where !cdExtraDataFiles.contains(where: { $0.url == url }) {
+            cdExtraDataFiles.append(KroutonOpticalDriveBank.inspectFileOrFolder(url: url))
+        }
+    }
+
     /// What the drive bank burns for the rendered tracks.
     func audioBurnDisc(_ rendered: [KroutonRenderedAudioTrack]) -> KroutonAudioBurnDisc {
         let project = audioController.project
@@ -99,7 +114,9 @@ extension KroutonStateStore {
             albumTitle: project.albumTitle,
             albumPerformer: project.albumPerformer,
             mediaCatalogNumber: KroutonAudioDiscRenderer.mediaCatalogNumber(project.upc),
-            writeCDText: project.writeCDText)
+            writeCDText: project.writeCDText,
+            dataSessionFiles: activeFormatSpec().formatID == .cdExtra ? cdExtraDataFiles.map(\.url) : [],
+            dataVolumeName: discVolumeTitle)
     }
 
     /// Renders the project and saves it as a `.cue` + `.bin` pair at `path`.

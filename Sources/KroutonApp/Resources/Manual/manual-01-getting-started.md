@@ -56,7 +56,7 @@ Krouton is young. These parts are finished and tested on real drives:
 These are still being built. Their screens are there so you can see where Krouton is going, but they may not do the whole job yet. Where burning would give the wrong kind of disc, Krouton refuses and says why instead of writing anything:
 
 - Audio CDs on many players and drives. Krouton burns them session-at-once with CD-Text, but this hasn't been tried on many drives yet; burn one and play it before making more.
-- CD-Extra, DVD-Audio, Video CD and Photo CD discs can't be made yet.
+- DVD-Audio, Video CD and Photo CD discs can't be made yet.
 - Authoring DVD or Blu-ray menus from plain video files.
 - Shrinking a dual-layer DVD onto a single-layer disc while keeping its menus. It hasn't been checked on many players yet.
 - AVCHD discs on players: the format follows the Blu-ray specification and libbluray reads it, but it hasn't been checked on many players yet.

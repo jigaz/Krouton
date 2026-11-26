@@ -9,12 +9,9 @@ import VideoKit
 /// The Red Book workspace: track list, gaps, crossfades (Splice editor with live audition),
 /// CD-Text and the compiled CUE preview.
 ///
-/// NOTE(status, 2026-11): everything here edits and previews the `AudioProject`, but no burn
-/// path renders it yet. Audio formats are `.notYet` in `KroutonFormatID.burnSupport`, so Burn
-/// refuses rather than writing the audio files as a data disc (which it used to). The pieces
-/// for the burn exist: `KroutonAudioEngine.masterRedBookAudioTracksToDisk` (BIN + CUE, simple
-/// joins and crossfade) and `AudioProject.compileCueSheet` (gaps, indexes, CD-Text), and the
-/// drive bank burns a .cue as an image.
+/// The burn renders this editor's `AudioProject` (`KroutonAudioDiscRenderer`) and writes it
+/// session-at-once; for CD-Extra, `CDExtraDataSessionView` adds the files for a second, data
+/// session in the same burn.
 struct KroutonRedBookAudioWorkspaceView: View {
     var store: KroutonStateStore
     var auditioner = SpliceAudioAuditioner.shared
@@ -40,7 +37,7 @@ struct KroutonRedBookAudioWorkspaceView: View {
 
     var deckHeaderTitle: String {
         switch spec.id {
-        case "cd-extra": return "BLUE BOOK 2-SESSION AUDIO + XA DATA DECK"
+        case "cd-extra": return "BLUE BOOK 2-SESSION AUDIO + DATA DECK"
         case "dts-cd": return "IEC 61937 5.1 DTS-CD SURROUND MASTERING DECK"
         case "dvd-audio": return "DVD-AUDIO HIGH-RESOLUTION MASTERING DECK (24-BIT / 192 kHz MLP)"
         default: return "RED BOOK AUDIO CD & CD-TEXT MASTERING DECK (44.1 kHz / 16-BIT PCM)"
@@ -64,6 +61,9 @@ struct KroutonRedBookAudioWorkspaceView: View {
                 )
             }
             audioTracklistSection
+            if spec.id == "cd-extra" {
+                CDExtraDataSessionView(store: store)
+            }
         }
         .onChange(of: undoManager, initial: true) { _, manager in
             controller.undoManager = manager

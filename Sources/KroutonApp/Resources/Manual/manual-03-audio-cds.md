@@ -50,7 +50,7 @@ Converting needs ffmpeg, which you install separately (Homebrew: brew install ff
 
 **DTS-CD (5.1)** burns DTS-encoded WAV files (44.1 kHz, 16-bit stereo, as DTS-CD files are made) exactly as they are, so a DTS decoder finds the surround stream. Krouton refuses any other file, and crossfades, because converting or mixing would destroy the stream. Pauses and gapless joins are fine.
 
-**Blue Book CD-Extra** (audio tracks plus a data session) can't be made yet.
+**Blue Book CD-Extra** (also called Enhanced CD) puts the music in a first session, which every CD player plays, and files in a second session that computers open: videos, lyrics, artwork. Build the tracks as for an audio CD, then add the files under **Data Session** below the track list. Krouton adds the CDPLUS folder the Blue Book expects, burns both sessions in one go, and refuses before writing if the audio, the data and the second session's lead-in and lead-out (about 3 minutes) don't fit. The data session is written in Mode 1, which Macs and PCs read; the Blue Book prefers Mode 2, which only matters to a few old CD-ROM drives. CD-Extra is burned on a drive connected to this Mac; a .cue/.bin image holds only one session, so Krouton won't save one for it.
 
 ## Ripping a CD
 

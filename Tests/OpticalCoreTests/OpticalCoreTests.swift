@@ -14,6 +14,14 @@ public func XCTAssertLessThan<T: Comparable>(_ a: T, _ b: T) { precondition(a < 
 @testable import OpticalCore
 
 final class OpticalCoreTests: XCTestCase {
+    func testCDExtraLayoutCountsTheSecondSession() {
+        XCTAssertEqual(KroutonCDExtraLayout.sessionOverheadFrames, 13_650)
+        // 70 minutes of audio and 50 MB of data fit an 80-minute blank; 79 minutes and 50 MB don't.
+        XCTAssertTrue(KroutonCDExtraLayout.overflowMessage(audioFrames: 70 * 60 * 75, dataBytes: 50_000_000, capacityFrames: 360_000) == nil)
+        XCTAssertFalse(KroutonCDExtraLayout.overflowMessage(audioFrames: 79 * 60 * 75, dataBytes: 50_000_000, capacityFrames: 360_000) == nil)
+        XCTAssertEqual(KroutonCDExtraLayout.dataSectors(forBytes: 0), 512)
+    }
+
     func testSpanManifestVolumeLabelSuffixes() {
         let longTitle = "THE_COMPLETE_LIVE_RECORDINGS_AT_OAKLAND_AUDITORIUM_1976"
         let d1 = SpanManifest.volumeLabel(base: longTitle, discIndex: 1, discCount: 3, limit: 32)
