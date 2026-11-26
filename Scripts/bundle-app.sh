@@ -29,8 +29,14 @@ ZIP_PATH="$ROOT_DIR/dist/Krouton-$VERSION-macOS-$SWIFT_ARCH.zip"
 
 echo "=== 1. Building Krouton for $SWIFT_ARCH ==="
 cd "$ROOT_DIR"
-swift build -c release --arch "$SWIFT_ARCH" --product Krouton
-BIN_DIR="$(swift build -c release --arch "$SWIFT_ARCH" --show-bin-path)"
+# Newer toolchains default to the swift-build backend, which can't load this package yet
+# ("Unknown error parsing property list"); use SwiftPM's own build system where it's offered.
+BUILD_SYSTEM=()
+if swift build --help 2>/dev/null | grep -q -- "--build-system"; then
+  BUILD_SYSTEM=(--build-system native)
+fi
+swift build ${BUILD_SYSTEM[@]+"${BUILD_SYSTEM[@]}"} -c release --arch "$SWIFT_ARCH" --product Krouton
+BIN_DIR="$(swift build ${BUILD_SYSTEM[@]+"${BUILD_SYSTEM[@]}"} -c release --arch "$SWIFT_ARCH" --show-bin-path)"
 
 echo "=== 2. Assembling Krouton.app ==="
 rm -rf "$APP_DIR"
