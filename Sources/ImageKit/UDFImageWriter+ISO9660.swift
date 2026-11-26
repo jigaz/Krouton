@@ -20,8 +20,8 @@ extension KroutonUDFImageWriter {
 
         init(nodes: [Node], level1: Bool) {
             let count = nodes.count
-            ids = Array(repeating: [], count: count)
-            order = Array(repeating: [], count: count)
+            var ids = Array(repeating: [UInt8](), count: count)
+            var order = Array(repeating: [Int](), count: count)
             for (dir, node) in nodes.enumerated() where node.isDir {
                 var used = Set<String>()
                 for child in node.children {
@@ -34,13 +34,13 @@ extension KroutonUDFImageWriter {
                     return $0.position < $1.position
                 }.map(\.node)
             }
-            pathOrder = [0]
+            var pathOrder = [0]
             var at = 0
             while at < pathOrder.count {
                 pathOrder += order[pathOrder[at]].filter { nodes[$0].isDir }
                 at += 1
             }
-            dirBytes = Array(repeating: 0, count: count)
+            var dirBytes = Array(repeating: UInt64(0), count: count)
             for dir in pathOrder {
                 var used: UInt64 = 0, size: UInt64 = 2048
                 for length in [34, 34] + order[dir].map({ Self.recordLength(ids[$0].count) }) {
@@ -52,7 +52,10 @@ extension KroutonUDFImageWriter {
                 }
                 dirBytes[dir] = size
             }
-            let ids = self.ids
+            self.ids = ids
+            self.order = order
+            self.pathOrder = pathOrder
+            self.dirBytes = dirBytes
             pathTableBytes = pathOrder.reduce(0) { $0 + ($1 == 0 ? 10 : Self.pathRecordLength(ids[$1].count)) }
         }
 
