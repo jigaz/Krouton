@@ -79,7 +79,7 @@ public struct KroutonRescueMap: Sendable, Equatable {
                 result.append(Block(position: range.upperBound, size: block.end - range.upperBound, status: block.status))
             }
         }
-        result.append(Block(position: range.lowerBound, size: range.count, status: status))
+        result.append(Block(position: range.lowerBound, size: range.upperBound - range.lowerBound, status: status))
         result.sort { $0.position < $1.position }
         blocks = Self.merged(result)
     }

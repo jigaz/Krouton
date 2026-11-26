@@ -77,7 +77,6 @@ Format: `- `TypeName` — owner · decide-by date · plan`.
 - `KroutonRippedTrackResult` — me · 2027-01-31 · make internal or keep (AudioKit/AudioSampleDecoder.swift)
 - `KroutonSectorRescueAction` — me · 2027-01-31 · make internal or keep (RescueKit/RescueEngine.swift)
 - `KroutonShrunkDVD5CellEntry` — me · 2027-01-31 · make internal or keep (VideoKit/VideoAuthoringEngine.swift)
-- `KroutonSoftPatchSummary` — me · 2027-01-31 · make internal or keep (ImageKit/DiscImageDepot.swift)
 - `KroutonStreamProbeResult` — me · 2027-01-31 · make internal or keep (OpticalCore/InspectorsAndPrep/KroutonMediaPrepAndColorEngine.swift)
 - `KroutonVideoChapterMarker` — me · 2027-01-31 · make internal or keep (VideoKit/VideoAuthoringEngine+SubtitlesAndMuxing.swift)
 - `KroutonWorkflowCodecRow` — me · 2027-01-31 · make internal or keep (OpticalCore/InspectorsAndPrep/KroutonMediaPrepAndColorEngine.swift)
