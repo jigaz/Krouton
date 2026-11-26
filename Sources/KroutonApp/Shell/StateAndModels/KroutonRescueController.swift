@@ -34,7 +34,7 @@ final class KroutonRescueController {
         status = "Unmounting the disc and opening the drive…"
         let imageURL = imageURL, mapURL = mapURL, plan = KroutonRescuePlan(retryPasses: retryPasses)
         let previous = (try? String(contentsOf: mapURL, encoding: .utf8)).flatMap(KroutonRescueMap.parse(mapfile:))
-        task = Task { @MainActor in
+        task = Task { @MainActor [self] in
             defer {
                 self.isRunning = false
                 self.task = nil
