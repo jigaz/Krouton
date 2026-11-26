@@ -102,7 +102,7 @@ extension KroutonUDFImageWriter {
             return Array((isDir ? candidate : "\(candidate).\(ext);1").utf8)
         }
 
-        // MARK: Records and extents
+        // MARK: - Records and Extents
 
         func record(_ id: [UInt8], location: UInt32, size: UInt64, isDir: Bool, date: [UInt8]) -> [UInt8] {
             let length = Int(Self.recordLength(id.count))
