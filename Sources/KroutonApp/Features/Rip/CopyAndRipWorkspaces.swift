@@ -42,7 +42,6 @@ struct KroutonCopyAndRipWorkspaceView: View {
     @State var audioRipSelectedTracks: Set<Int> = Set(1...99)
     @State var videoExtractMode: String = "Lossless MKV Remux"
     @State var videoExtractMinSeconds: Int = 120
-    @State var videoExtractKeepChapters: Bool = true
     @State var videoExtractSelectedTitles: Set<String> = ["TITLE_01", "TITLE_02"]
     @State var copySourceOverrideLabel: String = ""
     @State var copyOutputFolderPath: String = "~/Music/Krouton Rips"
@@ -245,11 +244,11 @@ struct KroutonCopyAndRipWorkspaceView: View {
             KroutonMasteringDeckCard(store: store) {
                 HStack(spacing: 14) {
                     Picker(KroutonL10n.tr("Mode:"), selection: $videoExtractMode) {
-                        Text("Lossless MKV Remux").tag("Lossless MKV Remux")
-                        Text("HEVC 10-Bit (VideoToolbox)").tag("HEVC 10-Bit (VideoToolbox)")
-                        Text("H.264 MP4 Hardware").tag("H.264 MP4 Hardware")
+                        Text("MKV, all audio and subtitles (needs ffmpeg)").tag("Lossless MKV Remux")
+                        Text("MPEG file, copied as it is").tag("MPEG Program Stream")
                     }.font(.caption.bold())
-                    Toggle(KroutonL10n.tr("Preserve Chapter Markers & Subtitles"), isOn: $videoExtractKeepChapters).toggleStyle(.checkbox).font(.caption)
+                    Text(KroutonL10n.tr("Unprotected discs only: Krouton doesn't remove copy protection."))
+                        .font(.caption).foregroundStyle(.secondary)
                     Spacer()
                 }
             }

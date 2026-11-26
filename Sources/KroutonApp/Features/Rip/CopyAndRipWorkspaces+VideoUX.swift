@@ -101,9 +101,13 @@ extension KroutonCopyAndRipWorkspaceView {
             }
             let outRoot = URL(fileURLWithPath: ("~/Movies/Krouton Extracts" as NSString).expandingTildeInPath)
                 .appendingPathComponent(activeDisc.volumeTitle.replacingOccurrences(of: "/", with: "_"))
-            copyStatusBanner = "Extracting \(chosenTitles.count) title(s) from \(activeDisc.volumeTitle)..."
+            let ffmpeg = videoExtractMode.contains("MKV") ? OpticalDiscVolumeScanner.locateFFmpeg() : nil
+            copyStatusBanner = ffmpeg == nil
+                ? "Extracting \(chosenTitles.count) title(s) from \(activeDisc.volumeTitle) as MPEG files (install ffmpeg for MKV)..."
+                : "Remuxing \(chosenTitles.count) title(s) from \(activeDisc.volumeTitle) to MKV..."
 
             Task.detached(priority: .userInitiated) {
+                var lastError: String? = nil
                 var extractedCount = 0
                 var totalWritten: Int64 = 0
                 let countD = Double(chosenTitles.count)
@@ -111,6 +115,14 @@ extension KroutonCopyAndRipWorkspaceView {
                     if token.isCancelled { break }
                     guard let segments = activeDisc.titleSegmentURLs[item.id], !segments.isEmpty else { continue }
                     do {
+                        if let ffmpeg {
+                            let safeVolume = activeDisc.volumeTitle.replacingOccurrences(of: "/", with: "_")
+                            let output = outRoot.appendingPathComponent("\(safeVolume) \(item.id).mkv")
+                            Task { @MainActor in ripProgressFraction = (Double(idx) + 0.5) / countD }
+                            totalWritten += try OpticalDiscVolumeScanner.remuxTitleToMKV(segments: segments, outputURL: output, ffmpegURL: ffmpeg)
+                            extractedCount += 1
+                            continue
+                        }
                         let res = try OpticalDiscVolumeScanner.extractTitleSegments(
                             titleID: item.id,
                             segments: segments,
@@ -125,16 +137,22 @@ extension KroutonCopyAndRipWorkspaceView {
                         extractedCount += 1
                         totalWritten += res.bytesWritten
                     } catch {
+                        lastError = error.localizedDescription
                         break
                     }
                 }
                 let sizeStr = ByteCountFormatter.string(fromByteCount: totalWritten, countStyle: .file)
+                let failure = lastError
                 await MainActor.run {
                     isRippingCD = false
                     ripProgressFraction = extractedCount > 0 ? 1.0 : 0.0
-                    copyStatusBanner = token.isCancelled
-                        ? "Cancelled video extraction."
-                        : "Extracted \(extractedCount) Title(s) (\(sizeStr)) to \(outRoot.path)"
+                    if token.isCancelled {
+                        copyStatusBanner = "Cancelled video extraction."
+                    } else if let failure {
+                        copyStatusBanner = "Extraction stopped: \(failure)"
+                    } else {
+                        copyStatusBanner = "Extracted \(extractedCount) title(s) (\(sizeStr)) to \(outRoot.path)"
+                    }
                 }
             }
         }

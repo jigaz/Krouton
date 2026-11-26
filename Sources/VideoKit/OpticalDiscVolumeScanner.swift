@@ -326,6 +326,43 @@ public enum OpticalDiscVolumeScanner {
         return (outURL, written)
     }
 
+    /// ffmpeg, if installed (Homebrew puts it in /opt/homebrew/bin or /usr/local/bin).
+    public static func locateFFmpeg() -> URL? {
+        DVDVideoIFORelinker.locateFFmpegExecutable()
+    }
+
+    /// Joins a title's VOB (or M2TS) segments into one Matroska file without re-encoding: the
+    /// main video, every audio track and every subtitle track, copied as they are. Discs with copy
+    /// protection give unplayable output; Krouton doesn't remove it.
+    public static func remuxTitleToMKV(segments: [URL], outputURL: URL, ffmpegURL: URL) throws -> Int64 {
+        let fm = FileManager.default
+        try fm.createDirectory(at: outputURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if fm.fileExists(atPath: outputURL.path) { try fm.removeItem(at: outputURL) }
+        let process = Process()
+        process.executableURL = ffmpegURL
+        process.arguments = [
+            "-y", "-hide_banner", "-loglevel", "error", "-nostdin",
+            "-fflags", "+genpts",
+            "-i", "concat:" + segments.map(\.path).joined(separator: "|"),
+            "-map", "0:v:0", "-map", "0:a?", "-map", "0:s?",
+            "-c", "copy",
+            outputURL.path,
+        ]
+        let errors = Pipe()
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = errors
+        try process.run()
+        let message = errors.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0, fm.fileExists(atPath: outputURL.path) else {
+            let text = String(decoding: message, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+            throw NSError(domain: "OpticalDiscVolumeScanner", code: Int(process.terminationStatus), userInfo: [
+                NSLocalizedDescriptionKey: text.isEmpty ? "ffmpeg couldn't remux the title (status \(process.terminationStatus))." : String(text.suffix(300)),
+            ])
+        }
+        return Int64((try? outputURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+    }
+
     /// Creates a real hybrid UDF/ISO-9660 `.iso` image from a mounted optical volume or directory using `/usr/bin/hdiutil makehybrid`.
     public static func buildOpticalISOImage(
         sourceDirectory: URL,

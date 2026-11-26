@@ -185,10 +185,10 @@ extension KroutonStateStore {
         case .discPrinter, .pdfVector:
             executeLabelDestinationExport()
         case .videoExtract:
-            // Until extraction is wired to VideoKit, say so rather than fall through to building an ISO.
+            // Extraction runs from the workspace, where the titles are chosen; a queue card can't pick them.
             driveManager.completionReport = KroutonBurnSessionReport(
-                isSuccess: false, title: "Video Extraction Isn't Available Yet",
-                summary: "Krouton can't save a disc's titles as video files yet. Nothing was written.",
+                isSuccess: false, title: "Extract From the Workspace",
+                summary: "Choose the titles in the Video Disc Extractor and click Extract. Nothing was written.",
                 driveModel: primarySelectedDrive?.displayName ?? "Optical Drive", firmwareRevision: "-",
                 mediaFormattedName: "-", volumeName: discVolumeTitle, sectorsWrittenLBA: 0, bytesWritten: 0,
                 averageSpeedText: "-", peakSpeedText: "-", elapsedDurationText: "00:00",
