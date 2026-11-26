@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Krouton Server — burn discs on a Raspberry Pi, Linux, Windows or another Mac</title>
+<meta name="description" content="Krouton Server turns any computer with a burner into a drive Krouton can use over your network: Raspberry Pi, Debian, Proxmox, NAS, Windows 10 and 11, macOS.">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" href="/assets/disc.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="site">
+  <header class="masthead">
+    <a class="name" href="/">Krouton</a>
+    <nav aria-label="Site">
+      <a href="/">The app</a>
+      <a href="/server/" aria-current="page">Krouton Server</a>
+      <a href="https://archive.krouton.app/">Archive</a>
+      <a href="/drives/">Report a drive</a>
+      <a href="https://github.com/jigaz/Krouton">Source</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1 class="page-title">Krouton Server</h1>
+    <p class="lede">Plug a burner into a spare computer, pair it with your Mac once, and pick it in Krouton like any other drive. The Mac sends the disc, the server burns it and reads it back to check, and progress shows up in Krouton as it happens.</p>
+
+    <h2>What it runs on</h2>
+    <table class="wide">
+      <thead><tr><th scope="col">Computer</th><th scope="col">Build to use</th><th scope="col">Burns with</th></tr></thead>
+      <tbody>
+        <tr><td>Raspberry Pi 3, 4 or 5 with 64-bit Raspberry Pi OS</td><td>linux-arm64</td><td>xorriso</td></tr>
+        <tr><td>Raspberry Pi 2, 3 or 4 with a 32-bit OS</td><td>linux-armv7</td><td>xorriso</td></tr>
+        <tr><td>Raspberry Pi Zero or Pi 1</td><td>linux-armv6</td><td>xorriso</td></tr>
+        <tr><td>Debian, Ubuntu, Proxmox VE, Synology, Unraid, TrueNAS SCALE and other 64-bit Linux</td><td>linux-x86_64</td><td>xorriso</td></tr>
+        <tr><td>Older 32-bit PCs running Linux</td><td>linux-x86</td><td>xorriso</td></tr>
+        <tr><td>Windows 10 and 11</td><td>windows-x64, -x86 or -arm64</td><td>Windows’ own burning service</td></tr>
+        <tr><td>macOS 12 or later, Intel or Apple silicon</td><td>macos-x86_64 or macos-arm64</td><td>hdiutil, built into macOS</td></tr>
+      </tbody>
+    </table>
+    <p class="note">The Linux builds are self-contained, so one file runs on any distribution. There is no published release yet: each build is produced by the project’s automated checks on GitHub, and you can also build it yourself with <code>cargo build --release -p krouton-server</code>.</p>
+
+    <h2>Setting it up</h2>
+    <ol>
+      <li>Copy the build onto the computer with the burner and run its installer: <code>sudo deploy/linux/install.sh ./krouton-server</code> on Linux, <code>deploy/macos/install.sh ./krouton-server</code> on a Mac, or <code>deploy\windows\install.ps1</code> in an administrator PowerShell on Windows. The installer starts the service and runs a self-check.</li>
+      <li>Open pairing on the server with <code>krouton-server pair</code>. In Krouton, open Settings, go to Burners &amp; Network and choose the server under Burn Servers.</li>
+      <li>Both screens show the same six-digit code. Confirm it on both, and the server is paired.</li>
+    </ol>
+    <p>To try the whole flow without a burner, set <code>backend = simulate</code> in the server’s <code>server.conf</code>.</p>
+
+    <h2>Folders, not just disc images</h2>
+    <p>Krouton can send a folder and let the server build the disc. The server checks every file name first, so a name Windows or a disc can’t hold is reported before anything is burned. Linux servers write ISO 9660 with Joliet and Rock Ridge; Mac and Windows servers add UDF.</p>
+
+    <h2>Security</h2>
+    <ul>
+      <li>The server only answers computers on your own network unless you allow a VPN range yourself.</li>
+      <li>Pairing needs a person at each end to confirm the same code, and the two machines remember each other’s keys. There are no passwords or accounts.</li>
+      <li>Every connection is encrypted, and each Mac only ever sees its own burn jobs.</li>
+    </ul>
+    <p>The full design is in the <a href="https://github.com/jigaz/Krouton/blob/main/krouton-server/README.md">Krouton Server README</a>.</p>
+  </main>
+
+  <footer class="colophon">
+    <p>Krouton is built in the open at <a href="https://github.com/jigaz/Krouton">github.com/jigaz/Krouton</a>. Contact: <a href="mailto:jorgen@krouton.app">jorgen@krouton.app</a>.</p>
+    <p>This site sets no cookies and loads nothing from anyone else. <a href="/privacy/">Privacy</a></p>
+  </footer>
+</div>
+</body>
+</html>
