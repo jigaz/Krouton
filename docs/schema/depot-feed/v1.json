@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://krouton.app/schema/depot-feed/v1.json",
+  "title": "Krouton Depot feed, format version 1",
+  "description": "The list of disc images Krouton's Disc Image Depot shows, served at https://depot.krouton.app/v1/manifest.json. Every downloadable item has been fetched and checksummed by the depot; Krouton refuses a download whose SHA-256 differs. Clients ignore fields they don't know, so later versions of the feed may add fields to version 1; removing or changing a field needs a new version at a new address.",
+  "type": "object",
+  "required": [
+    "format_version",
+    "channels",
+    "items"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://krouton.app/schema/depot-feed/v1.json"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "generated": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "about": {
+      "type": "string"
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "about"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "about": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string",
+            "description": "An SF Symbols name for the app."
+          }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "channel",
+          "kind",
+          "title",
+          "year",
+          "platform",
+          "summary",
+          "license",
+          "homepage"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9.-]*$"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "disc",
+              "files",
+              "link"
+            ],
+            "description": "disc: an image to burn. files: tools to copy to an SD card or USB drive. link: get it from the project's own site."
+          },
+          "title": {
+            "type": "string"
+          },
+          "year": {
+            "type": "integer",
+            "description": "Year of this release."
+          },
+          "era": {
+            "type": "integer",
+            "description": "Year the project began, when it is much older than this release."
+          },
+          "version": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "homepage": {
+            "type": "string",
+            "format": "uri"
+          },
+          "boot": {
+            "type": "string"
+          },
+          "fits_on": {
+            "enum": [
+              "business-card",
+              "mini-cd",
+              "cd-74",
+              "cd-80",
+              "mini-dvd",
+              "dvd-5",
+              "dvd-9",
+              "bd-25"
+            ],
+            "description": "The smallest disc the image fits on."
+          },
+          "burn": {
+            "type": "object",
+            "properties": {
+              "leave_open": {
+                "type": "boolean",
+                "description": "Burn without closing the disc, so the system on it can add sessions later (Puppy Linux multisession)."
+              },
+              "media": {
+                "type": "string"
+              },
+              "dvdrom_book_type": {
+                "type": "boolean"
+              },
+              "note": {
+                "type": "string"
+              }
+            }
+          },
+          "download": {
+            "type": "object",
+            "required": [
+              "url",
+              "file",
+              "size",
+              "sha256",
+              "verified"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "The project's own download address."
+              },
+              "file": {
+                "type": "string"
+              },
+              "size": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "verified": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the depot last downloaded the file and computed its checksum."
+              },
+              "archive": {
+                "enum": [
+                  "zip",
+                  "7z",
+                  "tar"
+                ],
+                "description": "Present when the download is an archive; the disc image is described by image.path."
+              }
+            }
+          },
+          "image": {
+            "type": "object",
+            "required": [
+              "size",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "The image's path inside the archive."
+              },
+              "size": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "companions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Files a .cue sheet needs beside it (its .bin tracks)."
+              },
+              "looks_like": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "What the first sectors suggest: iso9660, gamecube, wii, dreamcast."
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "disc"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "download",
+                "image"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

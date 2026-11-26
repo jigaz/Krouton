@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://krouton.app/schema/set-index/v1.json",
+  "title": "Krouton disc set index (krouton-set-index.json), format version 1",
+  "description": "Written at the root of every disc in a set Krouton spans across several discs, next to the BagIt files (bagit.txt, bag-info.txt, manifest-sha256.txt, tagmanifest-sha256.txt) or, for a disc with the files at its root, next to SHA256SUMS. Every disc carries the index of the whole set, so any one disc says which disc holds a given file. Keys are as written by Krouton's JSON encoder: sorted, with dates in ISO 8601.",
+  "type": "object",
+  "required": [
+    "formatVersion",
+    "setIdentifier",
+    "title",
+    "createdAt",
+    "discs"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "formatVersion": {
+      "const": 1
+    },
+    "setIdentifier": {
+      "type": "string",
+      "description": "Identifies the set; the same on every disc of it. Also written as Bag-Group-Identifier in bag-info.txt."
+    },
+    "title": {
+      "type": "string",
+      "description": "The name the person gave the set."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "discs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "index",
+          "volumeLabel",
+          "files"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Disc number, starting at 1."
+          },
+          "volumeLabel": {
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[A-Z0-9_]+$",
+            "description": "The ISO 9660 volume identifier burned on that disc; always ends in _Dnn when the set has more than one disc."
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "path",
+                "byteCount",
+                "sha256"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Path relative to data/ (or to the disc root for a SHA256SUMS disc), forward slashes, Unicode NFC."
+                },
+                "byteCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
