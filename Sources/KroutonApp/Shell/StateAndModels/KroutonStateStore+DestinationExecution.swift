@@ -114,6 +114,13 @@ extension KroutonStateStore {
             await runPhysicalBurn(target, driveManager: driveManager, primarySelectedDrive: primarySelectedDrive,
                                   isAutoLoadedCopy: isAutoLoadedCopy)
         case .discImage:
+            // Outside Burn there's no deck to image, and a queue card doesn't read the disc.
+            if selectedCategory == .copy {
+                driveManager.completionReport = refusalReport(
+                    "To save the disc in the drive as an .iso, use Duplicate Disc in Copy: it copies every sector. Nothing was written.",
+                    title: "Copy the Disc From the Workspace")
+                return
+            }
             if activeBurnSupport == .audioCD {
                 do {
                     let cue = try await saveAudioDiscImage(path: target.hardwareOrPath)
@@ -167,7 +174,7 @@ extension KroutonStateStore {
                 compressImage: target.compressAfterCreation
             )
         case .discPrinter, .pdfVector:
-            executeLabelDestinationExport()
+            executeLabelDestinationExport(target)
         case .videoExtract:
             // Extraction runs from the workspace, where the titles are chosen; a queue card can't pick them.
             driveManager.completionReport = KroutonBurnSessionReport(
@@ -184,13 +191,13 @@ extension KroutonStateStore {
                 let rawOut = target.hardwareOrPath.isEmpty ? "~/Music/Krouton Rips" : target.hardwareOrPath
                 let expanded = (rawOut as NSString).expandingTildeInPath
                 let outDir = URL(fileURLWithPath: expanded).appendingPathComponent(liveCD.albumTitle.replacingOccurrences(of: "/", with: "-"))
-                let codec = target.speedOrCodec.isEmpty ? "FLAC (Lossless)" : target.speedOrCodec
+                let codec = target.ripCodec
                 let t0 = Date()
                 let (totalBytes, okTracks, failedTracks): (Int64, Int, Int) = await withCheckedContinuation { cont in
                     DispatchQueue.global(qos: .userInitiated).async {
                         var s: Int64 = 0, ok = 0, fail = 0
                         for trk in liveCD.tracks {
-                            if let r = try? KroutonRealCDExtractor.extractSingleTrack(track: trk, codecLabel: codec, outputDirectory: outDir) { s += r.bytesWritten; ok += 1 } else { fail += 1 }
+                            if let r = try? KroutonRealCDExtractor.extractSingleTrack(track: trk, codec: codec, outputDirectory: outDir) { s += r.bytesWritten; ok += 1 } else { fail += 1 }
                         }
                         cont.resume(returning: (s, ok, fail))
                     }
