@@ -16,7 +16,10 @@ def module_of(path):
     return m.group(1) if m else "other"
 
 def main():
-    rows = list(csv.DictReader(open(sys.argv[1], encoding="utf-8")))
+    reader = csv.DictReader(open(sys.argv[1], encoding="utf-8"))
+    print(f"<!-- columns: {reader.fieldnames} -->", file=sys.stderr)
+    # Column names differ in case between Periphery versions.
+    rows = [{(k or "").strip().lower(): (v or "") for k, v in row.items()} for row in reader]
     by_module = defaultdict(list)
     for row in rows:
         location = row.get("location", "")
