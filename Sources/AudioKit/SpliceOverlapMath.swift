@@ -14,13 +14,6 @@ public struct FramePeaks: Equatable, Sendable {
 
     public static func == (lhs: FramePeaks, rhs: FramePeaks) -> Bool { lhs.id == rhs.id }
 
-    public func peak(in range: Range<Int>) -> Float? {
-        let lower = max(range.lowerBound, 0), upper = min(range.upperBound, values.count)
-        guard lower < upper else { return nil }
-        var result: Float = 0
-        for i in lower..<upper { result = max(result, values[i]) }
-        return result
-    }
 }
 
 public enum SpliceOverlapMath {

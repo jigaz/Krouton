@@ -3,7 +3,6 @@ import CoreImage
 import CoreImage.CIFilterBuiltins
 import Foundation
 import OpticalCore
-import RescueKit
 
 // MARK: - Unified CoreImage GPU Background Adjustment Pipeline (sRGB & Resolution-Independent)
 

@@ -5,12 +5,6 @@ import os
 // MARK: - KroutonOSDesktopBridge (desktop services; AppKit calls go through KroutonAppKitBridge)
 
 enum KroutonOSDesktopBridge {
-    private static let visiblyActiveLock = OSAllocatedUnfairLock(initialState: true)
-
-    static func setApplicationVisiblyActive(_ active: Bool) {
-        visiblyActiveLock.withLock { $0 = active }
-    }
-
     static func playAcousticCue(_ cue: KroutonAcousticCue = .warning) {
         KroutonAcousticEngine.shared.play(cue)
     }
@@ -49,7 +43,4 @@ enum KroutonOSDesktopBridge {
     static var didResignActiveNotification: Notification.Name { Notification.Name("KroutonDidResignActive") }
     static var didChangeWindowOcclusionNotification: Notification.Name { Notification.Name("KroutonOcclusion") }
 
-    static func isApplicationVisiblyActive() -> Bool {
-        visiblyActiveLock.withLock { $0 }
-    }
 }

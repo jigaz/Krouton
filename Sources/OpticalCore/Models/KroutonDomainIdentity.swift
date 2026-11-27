@@ -48,15 +48,6 @@ public enum KroutonDomainIdentity: Sendable {
             "\(KroutonDomainIdentity.reverseDNSPrefix).\(rawValue)"
         }
 
-        /// Returns a dispatch queue label e.g. `"app.krouton.drivekit.io"`
-        func queueLabel(_ suffix: String) -> String {
-            "\(subsystem).\(suffix)"
-        }
-
-        /// Returns a configured `os.Logger` for this module and category.
-        public func logger(category: String = "default") -> Logger {
-            Logger(subsystem: subsystem, category: category)
-        }
     }
 
     // MARK: - Standardized Application Support & Staging Directories

@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import OpticalCore
 
 /// Feature model owning the Disc Image Depot: the depot.krouton.app feed, downloads and Internet Archive search state.
 @Observable

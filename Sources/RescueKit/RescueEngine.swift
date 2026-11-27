@@ -1,5 +1,4 @@
 import Foundation
-import OpticalCore
 
 // MARK: - Part A: Optical Rescue & Adaptive Sector Copy Engine
 public enum KroutonSectorRescueAction: String, Codable, Sendable, Equatable {

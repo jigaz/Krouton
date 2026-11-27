@@ -2,8 +2,6 @@ import CoreGraphics
 import CoreText
 import Foundation
 import ImageIO
-import OpticalCore
-import RescueKit
 import UniformTypeIdentifiers
 
 // MARK: - 1:1 Millimeter-Calibrated Vector PDF Print Sheet & 300-DPI PNG Encoder

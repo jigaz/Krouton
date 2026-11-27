@@ -36,21 +36,6 @@ fileprivate final class KroutonColorHarmonyLUT: Sendable {
         return val
     }
 
-    func cachedBacking(for color: Color, compute: () -> Color) -> Color {
-        let key = quantizedKey(for: color)
-        if let hit = state.withLock({ $0.backing[key] }) { return hit }
-        let val = compute()
-        state.withLock { $0.backing[key] = val }
-        return val
-    }
-
-    func cachedSurface(for color: Color, isDark: Bool = true, compute: () -> Color) -> Color {
-        let key = (quantizedKey(for: color) << 1) | (isDark ? 1 : 0)
-        if let hit = state.withLock({ $0.surface[key] }) { return hit }
-        let val = compute()
-        state.withLock { $0.surface[key] = val }
-        return val
-    }
 }
 
 // MARK: - Perceptual Split-Complementary + Warm/Cool Polarity Color Engine (CGColor / P3)

@@ -2,7 +2,6 @@ import AVFoundation
 import CoreGraphics
 import Foundation
 import ImageIO
-import OpticalCore
 import Vision
 
 // MARK: - Pure Auto-Label Artwork Harvester, Vision Center-Hole Avoidance & Palette Extractor

@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import OpticalCore
 import SwiftUI
 
 // MARK: - Typed Preference Keys & Access Layer

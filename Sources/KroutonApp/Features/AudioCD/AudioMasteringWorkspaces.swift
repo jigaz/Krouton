@@ -1,10 +1,8 @@
 import AudioKit
 import Foundation
-import ImageKit
 import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
-import VideoKit
 
 /// The Red Book workspace: track list, gaps, crossfades (Splice editor with live audition),
 /// CD-Text and the compiled CUE preview.

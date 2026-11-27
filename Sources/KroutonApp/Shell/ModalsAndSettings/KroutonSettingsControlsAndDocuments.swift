@@ -1,6 +1,4 @@
 import Foundation
-import NetworkSpool
-import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 

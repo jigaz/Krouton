@@ -1,5 +1,4 @@
 import Foundation
-import OpticalCore
 
 // MARK: - DVD-9 -> DVD-5 Shrink
 

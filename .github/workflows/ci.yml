@@ -81,6 +81,26 @@ jobs:
           name: dvd-vector
           path: ${{ runner.temp }}/avchd/out/dvd-vector.iso
 
+
+  unused-code:
+    # A report, not a gate: Periphery lists declarations nothing uses, from the compiler's index.
+    runs-on: macos-26
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Periphery
+        run: brew install periphery && periphery version
+      - name: Scan
+        run: periphery scan --format csv --quiet > periphery.csv
+      - name: Summary
+        if: always()
+        run: python3 Scripts/periphery-summary.py periphery.csv | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: periphery-report
+          path: periphery.csv
+
   hfs-linux-mount:
     # Linux's own HFS driver mounts the classic HFS image Suite 38 wrote (macOS can't read
     # HFS Standard any more), and the files read back as written.

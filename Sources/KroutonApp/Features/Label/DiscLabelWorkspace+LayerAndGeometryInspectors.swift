@@ -1,7 +1,6 @@
 import CoreImage
 import LabelKit
 import OpticalCore
-import RescueKit
 import SwiftUI
 
 // MARK: - Disc Label Geometry Override, Layer Overview & Vision Trace Inspectors

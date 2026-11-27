@@ -9,7 +9,6 @@ public enum KroutonBytes {
     @inlinable public static func be32(_ v: UInt32) -> [UInt8] {
         [UInt8(v >> 24), UInt8(v >> 16 & 0xFF), UInt8(v >> 8 & 0xFF), UInt8(v & 0xFF)]
     }
-    @inlinable public static func le16(_ v: UInt16) -> [UInt8] { [UInt8(v & 0xFF), UInt8(v >> 8)] }
     @inlinable public static func le32(_ v: UInt32) -> [UInt8] {
         [UInt8(v & 0xFF), UInt8(v >> 8 & 0xFF), UInt8(v >> 16 & 0xFF), UInt8(v >> 24)]
     }
@@ -19,7 +18,6 @@ public enum KroutonBytes {
     @inlinable public static func readBE32(_ b: [UInt8], _ at: Int) -> UInt32 {
         UInt32(b[at]) << 24 | UInt32(b[at + 1]) << 16 | UInt32(b[at + 2]) << 8 | UInt32(b[at + 3])
     }
-    @inlinable public static func readLE16(_ b: [UInt8], _ at: Int) -> UInt16 { UInt16(b[at]) | UInt16(b[at + 1]) << 8 }
     @inlinable public static func readLE32(_ b: [UInt8], _ at: Int) -> UInt32 {
         UInt32(b[at]) | UInt32(b[at + 1]) << 8 | UInt32(b[at + 2]) << 16 | UInt32(b[at + 3]) << 24
     }

@@ -155,13 +155,6 @@ struct KroutonAcousticCue: Hashable, Sendable {
 
     // MARK: - Fluent Composable Modifiers
 
-    /// Returns a copy of this cue resampled at `rate` (`> 1.0` faster/higher, `< 1.0` slower/deeper).
-    func pitched(_ rate: Double) -> KroutonAcousticCue {
-        var copy = self
-        copy.dsp.rate = max(0.1, min(8.0, rate))
-        return copy
-    }
-
     /// Returns a time-reversed copy of this cue.
     func reversed(_ isReversed: Bool = true) -> KroutonAcousticCue {
         var copy = self

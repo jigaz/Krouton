@@ -1,6 +1,5 @@
 import DriveKit
 import Foundation
-import OpticalCore
 import SwiftUI
 
 // MARK: - User Manual Window (chapters from Resources/Manual, see KroutonUserManual.swift)

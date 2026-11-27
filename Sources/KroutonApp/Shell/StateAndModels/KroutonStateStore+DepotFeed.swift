@@ -109,15 +109,6 @@ extension KroutonStateStore {
         }
     }
 
-    func stageDepotItemForBurning(_ item: KroutonDepotCatalogItem, jumpToInspector: Bool = false) {
-        if let feedItem = item.feed, let url = KroutonDepotDownloader.imageURL(for: feedItem),
-           FileManager.default.fileExists(atPath: url.path) {
-            stageDepotImage(url, for: item, jumpToInspector: jumpToInspector)
-        } else {
-            downloadAndStageDepotItem(id: item.id, jumpToInspector: jumpToInspector)
-        }
-    }
-
     /// Puts a finished disc image on the deck and opens Burn Disc Image.
     func stageImageForBurning(_ url: URL) {
         stagedFiles = [KroutonOpticalDriveBank.inspectFileOrFolder(url: url)]

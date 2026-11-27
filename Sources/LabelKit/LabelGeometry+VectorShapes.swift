@@ -3,7 +3,6 @@ import CoreImage
 import CoreImage.CIFilterBuiltins
 import Foundation
 import OpticalCore
-import RescueKit
 import Vision
 
 extension KroutonLabelGeometryEngine {
