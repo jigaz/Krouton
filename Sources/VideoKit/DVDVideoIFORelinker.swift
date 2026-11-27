@@ -340,7 +340,7 @@ public enum DVDVideoIFORelinker {
         return nil
     }
 
-    /// Re-encodes concatenated title VOBs to `targetVideoKbps` MPEG-2 (`-f vob`) while stream-copying
+    /// Re-encodes concatenated title VOBs to `targetVideoKbps` MPEG-2 (`-f dvd`) while stream-copying
     /// all audio (`AC-3`, `DTS`, `LPCM`) and subpicture (`dvd_subtitle`) streams untouched.
     static func transcodeTitleVOBsToDVD5Bitrate(
         ffmpegURL: URL,
@@ -368,7 +368,11 @@ public enum DVDVideoIFORelinker {
             "-bf", "2",
             "-c:a", "copy",
             "-c:s", "copy",
-            "-f", "vob",
+            // The "dvd" muxer (not "vob") writes the NV_PCK navigation packs every VOBU needs,
+            // which scanAndPatchTitleVOBs then fills in; 2048-byte packs at DVD's mux rate.
+            "-f", "dvd",
+            "-muxrate", "10080000",
+            "-packetsize", "2048",
             outputCombinedVOBURL.path
         ]
         try proc.run()

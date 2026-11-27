@@ -244,46 +244,23 @@ extension KroutonSettingsWindowView {
                 }
             }
 
-            settingsCard(title: "Scratch Disk & System Permissions") {
-                HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(KroutonL10n.tr("Temporary Mastering Cache"))
-                        Text(KroutonL10n.tr("Available Free Space: 412.8 GB on Macintosh HD (APFS)"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    TextField("Path", text: Bindable(store).scratchDiskPath)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 260)
-                    pillToggleButton(title: "Choose...", sfSymbol: "folder.fill", isSelected: false) {
-                        isShowingScratchFolderImporter = true
-                    }
-                    .fileImporter(
-                        isPresented: $isShowingScratchFolderImporter,
-                        allowedContentTypes: [.folder],
-                        allowsMultipleSelection: false
-                    ) { result in
-                        if case .success(let urls) = result, let url = urls.first {
-                            store.scratchDiskPath = url.path
-                        }
-                    }
-                }
-                Divider()
-                Toggle(KroutonL10n.tr("Automatically purge temporary muxing files after verified burn"), isOn: Bindable(store).autoPurgeScratch)
-                Divider()
-                HStack(spacing: 18) {
-                    Label(KroutonL10n.tr("Optical MMC Access: Granted"), systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+            settingsCard(title: "Temporary Files") {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(KroutonL10n.tr("Staging, conversions and disc images are built in the system's temporary folder and removed when each task ends."))
+                    Text(temporaryFolderFreeSpace)
                         .font(.caption)
-                    Label(KroutonL10n.tr("Local Network Discovery: Active"), systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                        .font(.caption)
-                    Label(KroutonL10n.tr("FSKit Mount Extension: Registered"), systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
+    }
+
+    /// Free space on the volume that holds the temporary folder, as the system reports it.
+    var temporaryFolderFreeSpace: String {
+        let tmp = FileManager.default.temporaryDirectory
+        let values = try? tmp.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey, .volumeNameKey])
+        guard let free = values?.volumeAvailableCapacityForImportantUsage else { return "Free space unknown" }
+        let size = ByteCountFormatter.string(fromByteCount: free, countStyle: .file)
+        return "\(size) free on \(values?.volumeName ?? "the startup disk")"
     }
 }

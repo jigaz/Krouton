@@ -1,0 +1,42 @@
+# Krouton Server: the headless burn box for Krouton.
+#
+#   krouton-server (bin) ──► server-core ──► krsp
+#        │                                    ▲
+#        └── rustls + ring (TLS 1.3, Ed25519, X25519, HKDF, accelerated SHA-256)
+#
+# `krsp` and `server-core` have ZERO third-party dependencies and contain every protocol rule,
+# the staging store, the job queue and the burn backends, so they build and test anywhere.
+# Only the binary pulls in rustls/ring.
+
+[workspace]
+resolver = "2"
+members = ["crates/krsp", "crates/server-core", "crates/krouton-server"]
+
+[workspace.package]
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.88"
+publish = false
+license = "MIT"
+
+[workspace.dependencies]
+krsp = { path = "crates/krsp" }
+server-core = { path = "crates/server-core" }
+ring = "0.17"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+cast_possible_truncation = "deny"   # armv7 has a 32-bit usize: a 50 GB offset must never pass through usize
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"

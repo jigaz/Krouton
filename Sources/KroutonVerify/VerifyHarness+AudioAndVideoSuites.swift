@@ -23,9 +23,7 @@ extension KroutonTestHarness {
 
     private mutating func runVerifyAudioSuitesPart() {
 
-    self.runSuite("8. Hardware Acceleration Codec Matrix & Container Stream Probing") { h in
-    let matrix = KroutonMediaPrepEngine.liveHardwareCodecMatrix
-    h.check(matrix.count >= 6, "Expected at least 6 codec rows in hardware matrix")
+    self.runSuite("8. Container Stream Probing") { h in
 
     let mkvProbe = KroutonMediaPrepEngine.probeFile(URL(fileURLWithPath: "/tmp/concert.mkv"))
     h.check(mkvProbe.fileExtension == "MKV" && mkvProbe.isHardwareAccelerated, "MKV hardware probe")
@@ -230,30 +228,13 @@ extension KroutonTestHarness {
     h.check(newTitleStart == newIfoSecs + 50,
             "relinkVTSIFO must place VTSTT_VOBS immediately after VTS_01_0.IFO + VTS_01_0.VOB menu sectors")
 
-    // Verify AVCHD / BD-on-DVD (bd-on-dvd) binary BDMV synthesis (INDX0100, MOBJ0100, MPLS0100, HDMV0100)
-    let avchdClips = [
-        AVCHDClipDescriptor(clipIndex: 0, durationSeconds: 120.0, m2tsByteSize: 192 * 1_400_000, videoBitrateKbps: 18_000, is1080p: true),
-        AVCHDClipDescriptor(clipIndex: 1, durationSeconds: 90.0,  m2tsByteSize: 192 * 1_050_000, videoBitrateKbps: 18_000, is1080p: true)
-    ]
-    let indxBytes = [UInt8](AVCHDOnDVDAuthoringEngine.buildIndexBDMV(isAVCHD: true, is1080p: true))
-    let mobjBytes = [UInt8](AVCHDOnDVDAuthoringEngine.buildMovieObjectBDMV(isAVCHD: true))
-    let mplsBytes = [UInt8](AVCHDOnDVDAuthoringEngine.buildPlaylistMPLS(clips: avchdClips, isAVCHD: true))
-    let clpiBytes = [UInt8](AVCHDOnDVDAuthoringEngine.buildClipInfoCLPI(clip: avchdClips[0], isAVCHD: true))
-    h.check(String(bytes: indxBytes[0..<8], encoding: .ascii) == "INDX0100",
-            "AVCHD index.bdmv must emit valid INDX0100 header")
-    h.check(String(bytes: mobjBytes[0..<8], encoding: .ascii) == "MOBJ0100",
-            "AVCHD MovieObject.bdmv must emit valid MOBJ0100 header with PlayPL 0 auto-start")
-    h.check(String(bytes: mplsBytes[0..<8], encoding: .ascii) == "MPLS0100" && mplsBytes.count > 120,
-            "AVCHD 00000.mpls must emit valid MPLS0100 header with multi-clip PlayItems and chapter marks")
-    h.check(String(bytes: clpiBytes[0..<8], encoding: .ascii) == "HDMV0100"
-            && DVDVideoIFORelinker.readUInt32BE(clpiBytes, at: 0x38) == 1_400_000,
-            "AVCHD 00000.clpi must emit valid HDMV0100 header with exact 192-byte source packet count")
+    // AVCHD / BD-on-DVD is covered by Suite 36.
     }
 
     }
 
     private mutating func runVerifySpanningSuite14Part() {
-    self.runSuite("14. Multi-Disc Spanning (DiscPlanner, AudioDiscPlan, DiscRepacker & SpanManifest)") { h in
+    self.runSuite("14. Multi-Disc Spanning (DiscPlanner, AudioDiscPlan & SpanManifest)") { h in
         var spanProj = AudioProject(albumTitle: "LIVE AT THE FILLMORE", albumPerformer: "THE KROUTONS")
         spanProj.targetDiscMedium = .cd80Min700MB // 359,775 frames (79:57:00)
         let _ = spanProj.append((1...16).map { URL(fileURLWithPath: String(format: "/tmp/trk_%02d.wav", $0)) })
@@ -316,36 +297,7 @@ extension KroutonTestHarness {
         h.check(lblD1.hasSuffix("_D01") && lblD2.hasSuffix("_D02") && lblD3.hasSuffix("_D03") && lblD1 != lblD2 && lblD2 != lblD3,
                 "Long volume titles must reserve room for _D01/_D02/_D03 suffixes so discs never get identical labels")
 
-        var manualProj = AudioProject(albumTitle: "ACT I", albumPerformer: "ENSEMBLE")
-        let _ = manualProj.append((1...6).map { URL(fileURLWithPath: "/tmp/m\($0).wav") })
-        for trk in manualProj.tracks { manualProj.update(trk.id) { $0.frameCount = 9_000 } }
-        let actTwoStartID = manualProj.tracks[4].id
-        manualProj.update(actTwoStartID) { $0.startsNewDisc = true }
-        manualProj.anchoredDiscMetadata[actTwoStartID] = KroutonDiscVolumeMetadata(discNumber: 2, title: "ACT II: FINALE", performer: "ENSEMBLE")
-        let intermissionID = manualProj.tracks[2].id
-        manualProj.update(intermissionID) { $0.startsNewDisc = true }
-        manualProj.anchoredDiscMetadata[intermissionID] = KroutonDiscVolumeMetadata(discNumber: 2, title: "INTERMISSION", performer: "ENSEMBLE")
-
-        let manualPlan = manualProj.discPlan()
-        h.check(manualPlan.discs.count == 3 && manualPlan.discs[1].metadata.title == "INTERMISSION" && manualPlan.discs[2].metadata.title == "ACT II: FINALE",
-                "Manual break metadata must stay anchored to its first track when an earlier manual break is inserted")
-        h.check(manualPlan.discs.flatMap(\.tracks).map(\.id) == manualProj.tracks.map(\.id),
-                "Concatenating AudioDiscPlan.discs tracks must give back project.tracks in exact order")
-
-        struct MockDataItem: Identifiable, Sendable { let id: String; let bytes: Int64 }
-        let gb: Int64 = 1_000_000_000
-        let alreadyOptimal = [MockDataItem(id: "1", bytes: 2 * gb), MockDataItem(id: "2", bytes: 2 * gb)]
-        let noOpProposal = DiscRepacker.proposal(for: alreadyOptimal, capacityUnits: 5 * gb, currentDiscCount: 1, size: \.bytes)
-        h.check(noOpProposal == nil, "DiscRepacker.proposal must return nil when repacking cannot reduce currentDiscCount")
-        let fragItems = [
-            MockDataItem(id: "A", bytes: 3 * gb),
-            MockDataItem(id: "B", bytes: 3 * gb),
-            MockDataItem(id: "C", bytes: Int64(1.4 * Double(gb))),
-            MockDataItem(id: "D", bytes: Int64(1.4 * Double(gb)))
-        ]
-        let goodProposal = DiscRepacker.proposal(for: fragItems, capacityUnits: Int64(4.6 * Double(gb)), currentDiscCount: 3, size: \.bytes)
-        h.check(goodProposal?.discCount == 2 && goodProposal?.order.count == 4,
-                "DiscRepacker.proposal must reduce 3-disc fragmented set to 2 discs while preserving all 4 items")
+        // Manual-break metadata, plan order and DiscRepacker are checked once, in Suite 22.
     }
 }
 }

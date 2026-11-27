@@ -279,27 +279,7 @@ extension KroutonOpticalDriveInfo {
     }
 }
 
-// MARK: - Capacity-Aware Claim Policy & Late-Binding BurnClaimLedger
-
-public enum BurnClaimPolicy {
-    /// Selects the next FrozenDisc for `drive`: pinned discs for `drive` come first, then unpinned discs
-    /// in ascending disc order. When `capacityBytes` is provided (after a blank disc is loaded), only discs
-    /// whose image fits on the blank are eligible—allowing a slightly smaller blank to bind a smaller tail disc.
-    public static func select(
-        from candidates: [FrozenDisc],
-        pins: [Int: DriveID],
-        for drive: DriveID,
-        capacityBytes: Int64? = nil
-    ) -> FrozenDisc? {
-        func fits(_ disc: FrozenDisc) -> Bool {
-            capacityBytes.map { disc.imageBytes <= $0 } ?? true
-        }
-        if let pinned = candidates.first(where: { pins[$0.index] == drive && fits($0) }) {
-            return pinned
-        }
-        return candidates.first { pins[$0.index] == nil && fits($0) }
-    }
-}
+// MARK: - Late-Binding BurnClaimLedger
 
 public struct BurnPoolSnapshot: Sendable, Equatable {
     public struct Slot: Sendable, Equatable {

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Command line and Shortcuts — Krouton manual</title>
+<meta name="description" content="Run Krouton with a subcommand and it works in the terminal without opening a window. Inside the app bundle the program is Krouton.app/Contents/MacOS/Krouton; link it into your path as krouton.">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" href="/assets/disc.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="site">
+  <header class="masthead">
+    <a class="name" href="/">Krouton</a>
+    <nav aria-label="Site">
+      <a href="/">The app</a>
+      <a href="/manual/" aria-current="page">Manual</a>
+      <a href="/server/">Krouton Server</a>
+      <a href="https://archive.krouton.app/">Archive</a>
+      <a href="/drives/">Report a drive</a>
+      <a href="https://github.com/jigaz/Krouton">Source</a>
+    </nav>
+  </header>
+
+  <main class="manual">
+    <nav class="chapters" aria-label="Manual chapters">
+      <ol>
+        <li><a href="/manual/getting-started/">Getting started</a></li>
+        <li><a href="/manual/data-discs/">Data discs and disc images</a></li>
+        <li><a href="/manual/audio-cds/">Audio CDs</a></li>
+        <li><a href="/manual/burners/">Burners, copies and the queue</a></li>
+        <li><a href="/manual/krouton-server/">Burning on another computer</a></li>
+        <li><a href="/manual/labels/">Disc labels</a></li>
+        <li><a href="/manual/video-and-more/">Video, copying and other formats</a></li>
+        <li><a href="/manual/automation/" aria-current="page">Command line and Shortcuts</a></li>
+        <li><a href="/manual/keyboard-shortcuts/">Keyboard shortcuts</a></li>
+        <li><a href="/manual/troubleshooting/">Settings, files and troubleshooting</a></li>
+        <li><a href="/manual/glossary/">Glossary</a></li>
+      </ol>
+    </nav>
+    <article>
+    <h1>Command line and Shortcuts</h1>
+    <h2>The krouton command</h2>
+    <p>Run Krouton with a subcommand and it works in the terminal without opening a window. Inside the app bundle the program is Krouton.app/Contents/MacOS/Krouton; link it into your path as krouton.</p>
+    <ul>
+      <li><code>krouton drives</code> lists connected burners, their firmware and the disc in each.</li>
+      <li><code>krouton formats</code> lists every kind of disc Krouton can make and the disc sizes each allows.</li>
+      <li><code>krouton inspect &lt;image&gt; [--sha256]</code> describes an .iso, .dmg, .bin or .cue: whether it boots, its file systems and its size in sectors, plus its SHA-256 with --sha256.</li>
+      <li><code>krouton span [--medium &lt;size&gt;] &lt;files…&gt;</code> plans how files would be split across discs. Sizes are cd650, cd700, cd800, minidvd, dvd5, dvd9, bd25, bd50, bdxl100 and bdxl128.</li>
+      <li><code>krouton iso -V &lt;title&gt; -o &lt;out.iso&gt; &lt;folder&gt;</code> builds a hybrid UDF, ISO-9660 and Joliet image from a folder.</li>
+      <li><code>krouton completions zsh</code> (or bash, fish) prints tab completion for your shell.</li>
+      <li><code>krouton --version</code> and <code>krouton --help</code>.</li>
+    </ul>
+    <p>Add --json to drives, formats, inspect and span for output a script can read. <code>man krouton</code> has the full reference when Krouton is installed with Homebrew.</p>
+    <p>Examples:</p>
+    <ul>
+      <li><code>krouton inspect ~/Downloads/debian.iso --sha256</code> before burning a download, to compare with the checksum on the website.</li>
+      <li><code>krouton span --medium bd25 ~/Photos/2025</code> to see how many Blu-rays a year of photos needs.</li>
+    </ul>
+    <h2>Shortcuts and Siri</h2>
+    <p>Krouton adds these actions to the Shortcuts app:</p>
+    <ul>
+      <li><strong>List Optical Drives &amp; Media Status</strong></li>
+      <li><strong>Inspect Optical Disc Image</strong>, optionally with a SHA-256 checksum</li>
+      <li><strong>Calculate Multi-Disc Spanning Plan</strong></li>
+      <li><strong>Master Hybrid UDF/ISO-9660 Disc Image</strong> from a folder</li>
+      <li><strong>Open Krouton Mastering Format</strong>, which opens Krouton on a given kind of disc</li>
+    </ul>
+    <p>You can ask Siri, for example, "List optical drives in Krouton" or "Plan multi-disc span in Krouton". A useful shortcut: every Friday, build an image of a project folder and save it to an external drive.</p>
+    <nav class="pager" aria-label="Chapters"><a href="/manual/video-and-more/" rel="prev">Previous: Video, copying and other formats</a><a href="/manual/keyboard-shortcuts/" rel="next">Next: Keyboard shortcuts</a></nav>
+    </article>
+  </main>
+
+  <footer class="colophon">
+    <p>This manual is also built into Krouton: choose Help › Krouton User Manual, or press ⌘?. Corrections are welcome at <a href="https://github.com/jigaz/Krouton/tree/main/Sources/KroutonApp/Resources/Manual">github.com/jigaz/Krouton</a>.</p>
+    <p>This site sets no cookies and loads nothing from anyone else. <a href="/privacy/">Privacy</a></p>
+  </footer>
+</div>
+</body>
+</html>

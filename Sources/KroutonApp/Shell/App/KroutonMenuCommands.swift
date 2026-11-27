@@ -110,7 +110,7 @@ struct KroutonWorkspaceCommands: Commands {
             Menu(KroutonL10n.tr("Data & Archival Media")) {
                 Button(KroutonL10n.tr("Hybrid ISO-9660 + Joliet + UDF")) { selectBurnFormat(.dataHybrid) }
                     .keyboardShortcut("1", modifiers: [.command, .control])
-                Button(KroutonL10n.tr("UDF 2.60 Optical Volume")) { selectBurnFormat(.dataUDFModern) }
+                Button(KroutonL10n.tr("UDF 2.50 Large-File Volume")) { selectBurnFormat(.dataUDFModern) }
                 Button(KroutonL10n.tr("M-DISC 1,000-Year Archival Vault")) { selectBurnFormat(.mdiscVault) }
                     .keyboardShortcut("5", modifiers: [.command, .control])
                 Button(KroutonL10n.tr("Burn Disc Image (.iso / .cue / .dmg)")) { selectBurnFormat(.imageBurn) }
@@ -153,7 +153,7 @@ struct KroutonWorkspaceCommands: Commands {
                 .keyboardShortcut("v", modifiers: [.command, .shift])
 
                 Button(KroutonL10n.tr("Optical Bad-Sector Rescue & Recovery")) {
-                    selectCopyTask(.duplicateDisc)
+                    selectCopyTask(.rescueDisc)
                 }
                 .keyboardShortcut("d", modifiers: [.command, .option])
             }
@@ -218,13 +218,7 @@ struct KroutonWorkspaceCommands: Commands {
             .keyboardShortcut("p", modifiers: [.command, .shift])
             .disabled(wm.driveManager.availableDrives.isEmpty)
 
-            Button(KroutonL10n.tr("Stamp DVD-ROM Book Type (Bitsetting)")) {
-                if let firstID = wm.driveManager.availableDrives.first?.id {
-                    wm.driveManager.stampDVDROMBookType(for: firstID)
-                }
-            }
-            .keyboardShortcut("m", modifiers: [.command, .shift])
-            .disabled(wm.driveManager.availableDrives.isEmpty)
+            Toggle(KroutonL10n.tr("Leave Disc Open for More Sessions"), isOn: Bindable(wm.store).leaveDiscOpenForMoreSessions)
 
             Button(KroutonL10n.tr("Copy Archival Quality Certificate")) {
                 let drv = wm.driveManager.availableDrives.first

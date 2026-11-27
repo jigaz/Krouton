@@ -135,13 +135,17 @@ extension KroutonOpticalDriveBank {
         refreshDrives()
     }
 
+    /// The "Disc Image File" destination: stages the deck and runs `hdiutil` — `makehybrid`
+    /// (HFS+ + ISO + Joliet + UDF) for .iso/.cdr paths, `create` (an HFS+ .dmg) for anything else.
+    ///
+    /// NOTE(status, 2026-11): format-agnostic. Formats with their own image are handled before
+    /// this: audio CDs become .cue/.bin (`KroutonAudioDiscRenderer.writeBinCue`) and Blu-ray
+    /// video a UDF 2.50 image (`KroutonUDFImageWriter`); `burnRefusal(for:)` stops the rest.
     public func createDiscImageFile(
         stagedFiles: [KroutonStagedFileEntry],
         volumeTitle: String,
         outputPathString: String,
-        compressImage: Bool,
-        enableCustomLayout: Bool,
-        iconSizePx: Int
+        compressImage: Bool
     ) async -> KroutonBurnSessionReport {
         isExecutingQueue = true
         jobStartTime = Date()
@@ -162,14 +166,6 @@ extension KroutonOpticalDriveBank {
                 throw KroutonDiscImageError.staging(stagingError)
             }
             activeJobProgress = 0.5
-
-            if enableCustomLayout {
-                let autorunContent = "[Autorun]\r\nLabel=\(volumeTitle)\r\n"
-                try? autorunContent.write(to: tempRoot.appendingPathComponent("autorun.inf"), atomically: true, encoding: .utf8)
-
-                let layoutManifest = "Krouton Custom Finder View\nVolume: \(volumeTitle)\nIconSize: \(iconSizePx)px\n"
-                try? layoutManifest.write(to: tempRoot.appendingPathComponent(".krouton_view_layout"), atomically: true, encoding: .utf8)
-            }
 
             let expandedPath = NSString(string: outputPathString).expandingTildeInPath
             let isISO = expandedPath.lowercased().hasSuffix(".iso") || expandedPath.lowercased().hasSuffix(".cdr")

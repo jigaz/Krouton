@@ -53,7 +53,7 @@ extension KroutonDiscLabelWorkspaceView {
             .help("Automatically harvest embedded/folder/MusicBrainz artwork, extract Display-P3 palette with Vision center-hole avoidance, and lay out curved arc typography")
 
             Button {
-                exportHighRes300DPILabelPNG(preset: preset, isTestPrintSheet: true)
+                exportLabel(.pdf)
             } label: {
                 Label("Export 1:1 PDF", systemImage: "printer.fill")
                     .font(.caption.bold())
@@ -63,9 +63,9 @@ extension KroutonDiscLabelWorkspaceView {
             .help("Save a 1:1 millimeter-calibrated Vector PDF print sheet to ~/Downloads")
 
             Button {
-                exportHighRes300DPILabelPNG(preset: preset, isTestPrintSheet: false)
+                exportLabel(.png)
             } label: {
-                Label("Export 300-DPI PNG", systemImage: "square.and.arrow.down.fill")
+                Label("Export \(store.labelPrint.dotsPerInch)-DPI PNG", systemImage: "square.and.arrow.down.fill")
                     .font(.caption.bold())
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
@@ -213,8 +213,8 @@ extension KroutonDiscLabelWorkspaceView {
 
             Spacer()
 
-            if !statusBanner.isEmpty {
-                Text(statusBanner)
+            if !store.labelWorkspaceSubStore.transientStatusBanner.isEmpty {
+                Text(store.labelWorkspaceSubStore.transientStatusBanner)
                     .font(.caption2.bold())
                     .foregroundStyle(.green)
                     .lineLimit(1)
@@ -224,9 +224,10 @@ extension KroutonDiscLabelWorkspaceView {
                     .foregroundStyle(.secondary)
             }
 
-            Button(KroutonL10n.tr("Test Print")) {
-                exportHighRes300DPILabelPNG(preset: preset, isTestPrintSheet: true)
+            Button(KroutonL10n.tr("Alignment Test")) {
+                showTransientBanner(store.exportAlignmentTest())
             }
+            .help("Save rings 1 mm apart and a crosshair at 1:1, to print on a spare disc and read the tray offset")
             .font(.caption.bold())
             .buttonStyle(.bordered)
             .controlSize(.small)

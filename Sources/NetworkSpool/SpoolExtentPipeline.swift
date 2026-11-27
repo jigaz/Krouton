@@ -1,61 +1,9 @@
 import Foundation
 
-// MARK: - Receiver (remote node): verify, persist, acknowledge, grant credit
-
-public struct SpoolStagingReceiver: Sendable {
-    public let manifest: SpoolTransferManifest
-    public let windowExtents: Int
-    public private(set) var committed: ExtentBitmap
-    public private(set) var rejectedExtents = 0
-    private var decoder = SpoolFrameDecoder()
-
-    public init(manifest: SpoolTransferManifest, committed: ExtentBitmap, windowExtents: Int = 4) {
-        self.manifest = manifest
-        self.committed = committed
-        self.windowExtents = max(1, windowExtents)
-    }
-
-    public mutating func connectionReset() {
-        decoder.reset()
-    }
-
-    public mutating func receive(_ bytes: [UInt8], persist: (Int, [UInt8]) -> Bool) throws(SpoolWireError) -> [SpoolFrame] {
-        var replies: [SpoolFrame] = []
-        for frame in try decoder.push(bytes) {
-            switch frame.header.kind {
-            case .bitmapQuery:
-                guard frame.payload == manifest.root else {
-                    replies.append(.signal(.manifestMismatch))
-                    continue
-                }
-                replies.append(SpoolFrame(header: SpoolFrameHeader(kind: .bitmapReply), payload: committed.bytes))
-                replies.append(.signal(.credit, extentIndex: windowExtents))
-            case .extentData:
-                replies.append(contentsOf: accept(frame, persist: persist))
-            default:
-                continue
-            }
-        }
-        return replies
-    }
-
-    private mutating func accept(_ frame: SpoolFrame, persist: (Int, [UInt8]) -> Bool) -> [SpoolFrame] {
-        let index = Int(frame.header.extentIndex)
-        let valid = index < manifest.extentCount
-            && Int(frame.header.sectorSize) == manifest.sectorSize
-            && frame.payload.count == manifest.byteRange(ofExtent: index).count
-            && frame.header.digest == manifest.leafDigests[index]
-            && SpoolTransferManifest.leafDigest(frame.payload) == manifest.leafDigests[index]
-        guard valid, committed.contains(index) || persist(index, frame.payload) else {
-            rejectedExtents += 1
-            return [.signal(.extentReject, extentIndex: index), .signal(.credit, extentIndex: 1)]
-        }
-        committed.insert(index)
-        return [.signal(.extentAck, extentIndex: index), .signal(.credit, extentIndex: 1)]
-    }
-}
-
 // MARK: - Sender (workstation): resume from the node's bitmap, obey credit, retransmit rejects
+//
+// The receiving half runs in krouton-server (Rust, `krsp::pipeline::StagingReceiver`); the
+// verify target keeps a Swift reference model of it for loopback fault tests.
 
 public struct SpoolUploadSender: Sendable {
     public enum Phase: Sendable, Equatable {

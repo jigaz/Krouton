@@ -18,6 +18,11 @@ import OpticalCore
 public struct BlankMedia: Sendable, Equatable {
     public let mediaID: String       // manufacturer / ATIP or MID string
     public let capacityBytes: Int64  // as reported by THIS disc, not a table
+
+    public init(mediaID: String, capacityBytes: Int64) {
+        self.mediaID = mediaID
+        self.capacityBytes = capacityBytes
+    }
 }
 
 public struct BlankRequest: Sendable, Equatable {
@@ -65,14 +70,19 @@ public actor BurnSetScheduler {
     private let drives: [any OpticalDrive]
     private let journal: any BurnJournaling
     private let continuation: AsyncStream<BurnSchedulerEvent>.Continuation
+    /// Lets one drive at a time go through lead-in and power calibration, so several drives on one
+    /// USB hub never spin up together and starve each other of power or bandwidth.
+    private let arbiter: BurnPowerAndBandwidthArbiter
 
     /// The UI observes this with `for await event in scheduler.events`.
     public nonisolated let events: AsyncStream<BurnSchedulerEvent>
 
     /// - Parameter progress: from `BurnSetProgress.replay`, so a resumed set
     ///   starts with its finished discs already finished.
-    public init(progress: BurnSetProgress, drives: [any OpticalDrive], journal: any BurnJournaling) {
+    public init(progress: BurnSetProgress, drives: [any OpticalDrive], journal: any BurnJournaling,
+                spinUpPolicy: BusArbitrationState.Policy = .init()) {
         self.progress = progress
+        self.arbiter = BurnPowerAndBandwidthArbiter(policy: spinUpPolicy)
         self.drives = drives.sorted { $0.maxWriteSpeedX > $1.maxWriteSpeedX }
         self.journal = journal
         (events, continuation) = AsyncStream.makeStream(of: BurnSchedulerEvent.self)
@@ -152,10 +162,20 @@ public actor BurnSetScheduler {
                                              drive: drive.id, mediaID: media.mediaID, at: .now), disc: disc.index)
             started = true
 
-            try await drive.write(image: disc.imageURL) { phase in
-                try? await self.record(.phaseChanged(set: setID, disc: disc.index, attempt: attempt,
-                                                     phase: phase, at: .now), disc: disc.index)
+            // Arbitration only matters when several drives can spin up at once.
+            let arbitrated = drives.count > 1
+            if arbitrated { await arbiter.acquireSpinUp(for: drive.id) }
+            do {
+                try await drive.write(image: disc.imageURL) { phase in
+                    if arbitrated, phase == .writing { await self.arbiter.reachedSteadyWriting(drive.id) }
+                    try? await self.record(.phaseChanged(set: setID, disc: disc.index, attempt: attempt,
+                                                         phase: phase, at: .now), disc: disc.index)
+                }
+            } catch {
+                if arbitrated { await arbiter.withdraw(drive.id) }
+                throw error
             }
+            if arbitrated { await arbiter.withdraw(drive.id) }
             try await record(.phaseChanged(set: setID, disc: disc.index, attempt: attempt,
                                            phase: .verifying, at: .now), disc: disc.index)
             try await drive.verify(againstSHA256: disc.imageSHA256, byteCount: disc.imageBytes)
@@ -190,77 +210,12 @@ public actor BurnSetScheduler {
 //   Task { await scheduler.run(only: [2]) }                      // retry Disc 2 alone
 //   burn.cancel()                                                // stop at the next safe point
 //
-// A fake drive for tests is a dozen lines: an actor with a script such as
-// [.succeed, .fail(.writeError(sense: "3/0C/00")), .disconnect]. With it you can
-// assert, without hardware, that a failure on Disc 2 of 3 leaves 1 and 3 done,
-// that `run(only: [2])` writes exactly one more attempt, and that two drives
-// never receive the same disc.
+// `krouton-verify` drives this with a scripted drive (KroutonVerify/ScriptedOpticalDrive.swift):
+// a failure on Disc 2 of 3 leaves 1 and 3 done, `run(only: [2])` writes exactly one more attempt,
+// and two drives never receive the same disc.
 //
 // Before allowing more than one drive at a time, stage every image on local SSD
 // and check each drive has its own power; two bus-powered drives on one hub is
 // the classic way to spoil both discs.
 
 extension BurnEventJournal: BurnJournaling {}
-
-/// Deterministic scripted optical drive actor for testing single-drive retry, USB disconnects,
-/// blank capacity rejection, and multi-drive concurrent queue claiming without physical media.
-public actor ScriptedOpticalDrive: OpticalDrive {
-    public enum Step: Sendable {
-        case succeed(mediaID: String = "TAIYO-YUDEN-CDR", capacityBytes: Int64 = 737_280_000)
-        case rejectBlank(capacityBytes: Int64)
-        case failWrite(sense: String)
-        case disconnectMidWrite
-        case cancelAtPrompt
-    }
-
-    public nonisolated let id: DriveID
-    public nonisolated let displayName: String
-    public nonisolated let maxWriteSpeedX: Double
-    private var steps: [Step]
-    private var currentStep: Step = .succeed()
-    public private(set) var burnedImageURLs: [URL] = []
-    public private(set) var ejectCount: Int = 0
-
-    public init(id: String, displayName: String, maxWriteSpeedX: Double = 16.0, script: [Step]) {
-        self.id = DriveID(id)
-        self.displayName = displayName
-        self.maxWriteSpeedX = maxWriteSpeedX
-        self.steps = script
-    }
-
-    public func waitForBlank(_ request: BlankRequest) async throws(BurnFailure) -> BlankMedia {
-        let next = steps.isEmpty ? Step.succeed() : steps.removeFirst()
-        currentStep = next
-        switch next {
-        case .succeed(let mid, let cap):
-            return BlankMedia(mediaID: mid, capacityBytes: cap)
-        case .rejectBlank(let cap):
-            return BlankMedia(mediaID: " UNDERSIZED-BLANK", capacityBytes: cap)
-        case .failWrite, .disconnectMidWrite:
-            return BlankMedia(mediaID: "TEST-BLANK", capacityBytes: max(request.minimumBytes + 4096, 737_280_000))
-        case .cancelAtPrompt:
-            throw BurnFailure.cancelledByUser
-        }
-    }
-
-    public func write(image: URL, onPhase: @Sendable (BurnPhase) async -> Void) async throws(BurnFailure) {
-        await onPhase(.writing)
-        switch currentStep {
-        case .failWrite(let sense):
-            throw BurnFailure.writeError(sense: sense)
-        case .disconnectMidWrite:
-            throw BurnFailure.driveDisconnected
-        default:
-            await onPhase(.closing)
-            burnedImageURLs.append(image)
-        }
-    }
-
-    public func verify(againstSHA256 digest: String, byteCount: Int64) async throws(BurnFailure) {
-        // Verify that the staged file matches the expected byteCount
-    }
-
-    public func eject() async {
-        ejectCount += 1
-    }
-}

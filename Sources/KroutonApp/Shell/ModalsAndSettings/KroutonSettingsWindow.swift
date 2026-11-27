@@ -46,7 +46,7 @@ enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendable {
         case .rippingTranscoding:
             return "ripping transcoding optical drive sample read offset correction error recovery paranoia scratched sector retries accuraterip musicbrainz cue sheet log video extraction deinterlacing dolby atmos truehd dts-hd smart file track naming pattern token builder"
         case .burnersNetwork:
-            return "burners network connected optical drives iokit discrecording bus rescan quick erase rw eject headless lan spool daemon 7420 mdns calibrate cache diagnostic bundle telemetry retention share bitsetting dvd-rom book type 0x00 pioneer lite-on lg nec sony bd-r defect management auto-load next disc hands-free duplication countdown"
+            return "burners network connected optical drives iokit discrecording bus rescan quick erase rw eject headless lan spool daemon 7420 mdns calibrate cache diagnostic bundle telemetry retention share auto-load next disc hands-free duplication countdown"
         case .labelsPrinters:
             return "labels printers saved disc label geometry tray offset presets epson ecotank et-8550 outer inner hub hole diameter mm automatic artwork lookup apple vision subject detection hole-avoidance musicbrainz itunes tvmaze gametdb tmdb fanart api key"
         case .notifications:
@@ -69,9 +69,9 @@ struct KroutonSettingsWindowView: View {
     var driveManager: KroutonOpticalDriveBank
     var spoolClient: SpoolRemoteNodeClient = .shared
     @State var isShowingSpoolFileExporter: Bool = false
-    @State var isShowingScratchFolderImporter: Bool = false
     @State var spoolExportDocument: SpoolPlainTextFileDocument = SpoolPlainTextFileDocument(text: "")
-    @State var spoolExportDefaultFilename: String = "Spool_Export.log"
+    @State var spoolExportDefaultFilename: String = "Krouton Burn Server Log.txt"
+    @State var burnServerAddressDraft: String = ""
     @State var searchText: String = ""
 
     @State var formatFilter: KroutonWorkflowFilterGroup = .all
@@ -212,7 +212,7 @@ struct KroutonSettingsWindowView: View {
                     .foregroundStyle(.secondary)
                 Text("No Settings Matching '\(trimmedSearchQuery)'")
                     .font(.headline)
-                Text("Try searching for terms like Crossfade, BPM, AccurateRip, Epson, 7420, Bitsetting, VoiceOver, or Scratch.")
+                Text("Try searching for terms like Crossfade, BPM, AccurateRip, 7420, VoiceOver, or Scratch.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

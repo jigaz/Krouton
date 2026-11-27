@@ -4,9 +4,9 @@ import Network
 import OpticalCore
 import Security
 
-// MARK: - Bonjour Advertisement
+// MARK: - Bonjour Discovery
 
-public struct SpoolNodeCapabilities: OptionSet, Sendable {
+public struct SpoolNodeCapabilities: OptionSet, Sendable, Hashable {
     public let rawValue: UInt32
     public init(rawValue: UInt32) { self.rawValue = rawValue }
 
@@ -25,40 +25,18 @@ public enum SpoolBonjour {
         public static let capabilities = "caps"
     }
 
-    public static func txtRecord(nodeID: String, capabilities: SpoolNodeCapabilities) -> NWTXTRecord {
-        NWTXTRecord([
-            TXTKey.version: "1",
-            TXTKey.protocolVersion: String(SpoolFrameHeader.currentVersion),
-            TXTKey.nodeID: nodeID,
-            TXTKey.capabilities: String(capabilities.rawValue, radix: 16)
-        ])
-    }
-
-    public static func listenerService(name: String, nodeID: String, capabilities: SpoolNodeCapabilities) -> NWListener.Service {
-        NWListener.Service(name: name, type: KroutonDomainIdentity.spoolServiceType,
-                           txtRecord: txtRecord(nodeID: nodeID, capabilities: capabilities))
+    /// Reads the unauthenticated hints a server advertises. Used to label browse results and
+    /// match them to paired servers, never to decide trust: the TLS key pin does that.
+    public static func hints(from txt: NWTXTRecord) -> (nodeID: String?, protocolVersion: Int?, capabilities: SpoolNodeCapabilities) {
+        let caps = txt[TXTKey.capabilities].flatMap { UInt32($0, radix: 16) } ?? 0
+        return (txt[TXTKey.nodeID], txt[TXTKey.protocolVersion].flatMap { Int($0) }, SpoolNodeCapabilities(rawValue: caps))
     }
 }
 
-// MARK: - Zero-CA TLS (Pre-Shared Key & Pinned Mutual TLS 1.3)
+// MARK: - Zero-CA TLS (Pinned Mutual TLS 1.3)
 
 public enum SpoolTLS {
     public static let exporterLabel = "EXPORTER-krouton-spool-session"
-
-    public static func parameters(pairings: [(nodeID: String, key: SymmetricKey)]) -> NWParameters {
-        let tls = NWProtocolTLS.Options()
-        let options = tls.securityProtocolOptions
-        sec_protocol_options_set_min_tls_protocol_version(options, .TLSv13)
-        for pairing in pairings {
-            let key = pairing.key.withUnsafeBytes { DispatchData(bytes: $0) }
-            let identity = Data(pairing.nodeID.utf8).withUnsafeBytes { DispatchData(bytes: $0) }
-            sec_protocol_options_add_pre_shared_key(options, key as __DispatchData, identity as __DispatchData)
-        }
-        if let suite = tls_ciphersuite_t(rawValue: UInt16(TLS_PSK_WITH_AES_128_GCM_SHA256)) {
-            sec_protocol_options_append_tls_ciphersuite(options, suite)
-        }
-        return configuredTCPParameters(tls: tls)
-    }
 
     /// Keychain P-256 SecIdentity Mutual TLS 1.3 with out-of-band X9.63 public-key SHA-256 pin verification.
     public static func mutualTLSParameters(

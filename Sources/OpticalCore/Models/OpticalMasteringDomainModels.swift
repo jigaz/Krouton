@@ -72,6 +72,8 @@ public struct KroutonKrutCoreSpec: Codable, Hashable, Sendable {
     public var payloadSHA256Hex: String
     public var writeMethod: String
     public var dualLayerBreakSectorLBA: Int64?
+    /// Not acted on: Krouton sends no book-type (bitsetting) command, so this is always written
+    /// false. Kept so older project files decode.
     public var forceDVDROMBookType: Bool
     public var performOPCBeforeWrite: Bool
     public var ephemeralAutoPurgeOnComplete: Bool
@@ -86,7 +88,7 @@ public struct KroutonKrutCoreSpec: Codable, Hashable, Sendable {
         payloadSHA256Hex: String = "",
         writeMethod: String = "DAO / SAO Sector-Exact",
         dualLayerBreakSectorLBA: Int64? = nil,
-        forceDVDROMBookType: Bool = true,
+        forceDVDROMBookType: Bool = false,
         performOPCBeforeWrite: Bool = true,
         ephemeralAutoPurgeOnComplete: Bool = true
     ) {
@@ -359,7 +361,10 @@ public struct KroutonEmbeddedLabelSpec: Codable, Hashable, Sendable {
     public var kaleidoscopeFacetCount: Int = 8
     public var kaleidoscopeMirrorRig: KroutonKaleidoscopeMirrorRig = .twoMirrorRosette
     public var kaleidoscopeChamberTumble: Double = 0.35
-    public var tinyPlanetRadiusRatio: Double = 0.72
+    /// The panorama planet's settings and photo; nil in projects saved before it existed.
+    public var planet: KroutonPlanetSettings?
+    public var planetPhotoPath: String?
+    public var printSettings: KroutonLabelPrintSettings?
     public var useVisionForegroundCutout: Bool = false
     public var topArcRadiusMM: Double = 47.0
     public var bottomArcRadiusMM: Double = 45.0

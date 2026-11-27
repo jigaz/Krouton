@@ -1,1 +1,95 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Krouton — Optical Disc Mastering &amp; Burning for macOS</title><style>body{font-family:system-ui,-apple-system,sans-serif;max-width:720px;margin:4rem auto;padding:0 1.5rem;line-height:1.65;color:#f3f4f6;background:#0f172a}h1{font-size:2.25rem;margin-bottom:.25rem}h2{margin-top:2.25rem;border-bottom:1px solid #1e293b;padding-bottom:.4rem}.tagline{color:#94a3b8;font-size:1.15rem;margin-top:0}a{color:#38bdf8;text-decoration:none}a:hover{text-decoration:underline}code{background:#1e293b;padding:.2rem .45rem;border-radius:4px;font-size:.9em}.card{background:#1e293b;padding:1.25rem 1.5rem;border-radius:8px;margin-top:1.5rem}</style></head><body><h1>Krouton</h1><p class="tagline">Native optical disc mastering, verification, and burning for macOS.</p><p><strong>Krouton</strong> is a modern disc authoring and burning application for CD, DVD, and Blu-ray media—built for deterministic builds, cryptographic read-back verification, and local or headless network drives.</p><div class="card"><h3>Contribute &amp; Follow Development</h3><ul><li><a href="https://github.com/jigaz/Krouton"><strong>github.com/jigaz/Krouton</strong></a> — Main Krouton repository &amp; source code</li><li><a href="https://github.com/jigaz/Krouton/issues"><strong>Issue Tracker &amp; Hardware Reports</strong></a> — Help test drives, media types, and burn backends</li><li><a href="mailto:jorgen@krouton.app"><strong>jorgen@krouton.app</strong></a> — Contact</li></ul></div><h2>Headless Network Server (<code>krouton-spoold</code>)</h2><p>Need to burn to drives attached to a headless Mac mini, Raspberry Pi, Linux NAS, or Windows box across your LAN? Krouton pairs with <a href="https://github.com/jigaz/krouton-spoold"><code>krouton-spoold</code></a>, a zero-CA mTLS (TLS 1.3 pinned certificate) remote burning daemon.</p></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Krouton — burn CDs, DVDs and Blu-ray discs on a Mac, and on anything with a drive</title>
+<meta name="description" content="Krouton is a native Mac app for building, burning and checking CDs, DVDs and Blu-ray discs. Krouton Server lets a Raspberry Pi, Linux box, NAS or Windows PC with a burner do the burning.">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" href="/assets/disc.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="site">
+  <header class="masthead">
+    <a class="name" href="/">Krouton</a>
+    <nav aria-label="Site">
+      <a href="/" aria-current="page">The app</a>
+      <a href="/manual/">Manual</a>
+      <a href="/server/">Krouton Server</a>
+      <a href="https://archive.krouton.app/">Archive</a>
+      <a href="/drives/">Report a drive</a>
+      <a href="https://github.com/jigaz/Krouton">Source</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <h1>Discs you can still burn, check and read in ten years.</h1>
+        <p class="lede">Krouton builds and burns CDs, DVDs and Blu-ray discs on a Mac, then reads every sector back to prove the disc matches. When a Mac can no longer drive a burner, a Raspberry Pi or any spare computer can do it for you.</p>
+        <p class="status">In development: the source is on GitHub, with no release yet</p>
+      </div>
+      <svg class="disc" viewBox="0 0 400 400" role="img" aria-labelledby="disc-title">
+        <title id="disc-title">A recordable disc, burned from the centre to two thirds of the way out</title>
+        <defs>
+          <radialGradient id="dye" cx="50%" cy="50%" r="50%">
+            <stop offset="30%" stop-color="#e3d384"/>
+            <stop offset="78%" stop-color="#d6bf5c"/>
+            <stop offset="100%" stop-color="#c9a227"/>
+          </radialGradient>
+          <radialGradient id="written" cx="50%" cy="50%" r="50%">
+            <stop offset="40%" stop-color="#9c7a16"/>
+            <stop offset="100%" stop-color="#7d6212"/>
+          </radialGradient>
+        </defs>
+        <circle cx="200" cy="200" r="190" fill="url(#dye)"/>
+        <circle class="burn" cx="200" cy="200" r="158" fill="url(#written)"/>
+        <g fill="none" stroke="#13233a" stroke-opacity=".09">
+          <circle cx="200" cy="200" r="80"/><circle cx="200" cy="200" r="100"/><circle cx="200" cy="200" r="120"/>
+          <circle cx="200" cy="200" r="140"/><circle cx="200" cy="200" r="170"/><circle cx="200" cy="200" r="182"/>
+        </g>
+        <circle cx="200" cy="200" r="62" fill="#dfe3e7"/>
+        <circle cx="200" cy="200" r="38" fill="none" stroke="#b9c1ca" stroke-width="5"/>
+        <circle cx="200" cy="200" r="11" fill="#eef0f2" stroke="#b9c1ca"/>
+        <circle cx="200" cy="200" r="189.5" fill="none" stroke="#a88a24" stroke-opacity=".5"/>
+      </svg>
+    </section>
+
+    <h2>What Krouton does</h2>
+    <div class="facts">
+      <div>
+        <h3>Builds the disc</h3>
+        <p>Data discs readable on Mac, Windows and Linux, Blu-ray and DVD video, high-definition video on an ordinary DVD, and audio CDs with CD-Text and shaped crossfades, and copies of disc images you already have, boot sectors and all.</p>
+      </div>
+      <div>
+        <h3>Proves the burn</h3>
+        <p>After writing, Krouton reads the disc back and compares it with the image byte for byte. A disc that only looks finished is reported as a failure.</p>
+      </div>
+      <div>
+        <h3>Keeps discs readable for decades</h3>
+        <p>Every disc in a set carries a standard BagIt checksum list, so any one disc can be checked years from now without Krouton. Rescuing damaged discs is next on the list.</p>
+      </div>
+      <div>
+        <h3>Burns a set</h3>
+        <p>Splits a large folder across as many discs as it needs and burns them on every drive you have at once. A disc that fails is the only one burned again.</p>
+      </div>
+    </div>
+
+    <h2>Learning it</h2>
+    <p>The <a href="/manual/">Krouton manual</a> covers data discs, audio CDs, burners, labels, the command line and what to do when a burn fails. It is the same manual you get in the app with ⌘?.</p>
+
+    <h2>Burning on another computer</h2>
+    <p>Apple has been retiring its disc frameworks one at a time. Krouton Server is our answer: a small program for a Raspberry Pi, a Linux box, a NAS, a Windows PC or an older Mac with a burner plugged in. Pair it once with a six-digit code, then choose it like any other drive. It can also build the disc from a folder, so a device that can’t make disc images itself can still burn.</p>
+    <p><a href="/server/">How to set up Krouton Server</a></p>
+
+    <h2>The optical-disc archive</h2>
+    <p>The specifications and open-source tools that make burning possible are scattered across standards bodies, old university servers and mailing lists. We keep copies of everything we’re allowed to keep, and links to everything else, at <a href="https://archive.krouton.app/">archive.krouton.app</a>.</p>
+  </main>
+
+  <footer class="colophon">
+    <p>Krouton is built in the open at <a href="https://github.com/jigaz/Krouton">github.com/jigaz/Krouton</a>. Contact: <a href="mailto:jorgen@krouton.app">jorgen@krouton.app</a>.</p>
+    <p>This site sets no cookies and loads nothing from anyone else. <a href="/privacy/">Privacy</a></p>
+  </footer>
+</div>
+</body>
+</html>

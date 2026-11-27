@@ -43,7 +43,6 @@ extension KroutonStateStore {
 
     private func syncAppearanceSideEffects(oldHarmony: Bool, oldLanguage: KroutonLanguage) {
         if appearance.enableSecondaryAccentUITints != oldHarmony {
-            appearance.tintWindowWithWallpaper = appearance.enableSecondaryAccentUITints
             if !isHydratingPreferences {
                 KroutonPreferences.set(appearance.enableSecondaryAccentUITints, for: .harmonyEnabled)
             }

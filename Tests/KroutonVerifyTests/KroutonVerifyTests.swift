@@ -16,7 +16,7 @@ public func XCTFail(_ msg: String = "", file: StaticString = #file, line: UInt =
 final class KroutonVerifyTests: XCTestCase {
     private func runSuites(
         _ suites: (inout KroutonTestHarness) -> Void,
-        file: StaticString = #file,
+        file: StaticString = #filePath,
         line: UInt = #line
     ) {
         var harness = KroutonTestHarness()
@@ -33,6 +33,13 @@ final class KroutonVerifyTests: XCTestCase {
     func testAudioAndVideoSuites() { runSuites { $0.runVerifyAudioAndVideoSuites() } }
     func testMasteringDomainModelsSuite() { runSuites { $0.runVerifyMasteringDomainModelsSuite() } }
     func testHardwareAndBurnSuites() { runSuites { $0.runVerifyHardwareAndBurnSuites() } }
+    func testBurnSetSchedulerSuite() { runSuites { $0.runVerifyBurnSetSchedulerSuite() } }
+    func testPortableCoreSuite() { runSuites { $0.runVerifyPortableCoreSuite() } }
+    func testDirectDriveSuite() { runSuites { $0.runVerifyDirectDriveSuite() } }
+    func testPublishedFormatsSuite() { runSuites { $0.runVerifyPublishedFormatsSuite() } }
+    func testRescueSuite() { runSuites { $0.runVerifyRescueSuite() } }
+    func testConsoleDiscSuite() { runSuites { $0.runVerifyConsoleDiscSuite() } }
+    func testAVCHDSuite() { runSuites { $0.runVerifyAVCHDSuite() } }
     func testLabelAndPersistenceSuites() { runSuites { $0.runVerifyLabelAndPersistenceSuites() } }
 
     // MARK: - The function-length scanner itself

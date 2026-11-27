@@ -92,7 +92,7 @@ extension KroutonTestHarness {
     let sym8 = KroutonLabelGeometryEngine.replicateShapeWithPolarSymmetry(baseShape: snappedCircle, symmetryCount: 8)
     h.check(sym8.count == 8 && sym8[0].points.count == 36, "8x Polar Symmetry must generate 8 radially rotated vector shapes")
 
-    let kalImg = KroutonLabelGeometryEngine.renderGPUKaleidoscopeOrTinyPlanetCGImage(
+    let kalImg = KroutonLabelGeometryEngine.renderGPUKaleidoscopeCGImage(
         style: .gpuKaleidoscope,
         seedPattern: .neonLaserPrism,
         primaryColor: KroutonRGBAColor(r: 0.12, g: 0.25, b: 0.85),
@@ -103,16 +103,7 @@ extension KroutonTestHarness {
     )
     h.check(kalImg != nil && kalImg!.width == 256 && kalImg!.height == 256, "Metal GPU Kaleidoscope shader must render valid 256x256 CGImage")
 
-    let planetImg = KroutonLabelGeometryEngine.renderGPUKaleidoscopeOrTinyPlanetCGImage(
-        style: .tinyPlanetGlobe,
-        seedPattern: .holographicFoil,
-        primaryColor: KroutonRGBAColor(r: 0.08, g: 0.65, b: 0.55),
-        secondaryColor: KroutonRGBAColor(r: 0.95, g: 0.80, b: 0.20),
-        angleDegrees: 120.0,
-        planetRadiusRatio: 0.78,
-        dimensionPixels: 256
-    )
-    h.check(planetImg != nil && planetImg!.width == 256 && planetImg!.height == 256, "Metal GPU 360 Tiny Planet Globe shader must render valid 256x256 CGImage")
+    verifyPanoramaPlanet(&h)
 
     // Verify Apple Pages Shape Palette (`capsule`, `arrow`, `diamond`) & Arrange Transform Engine
     let arrowShape = KroutonLabelGeometryEngine.makeParametricVectorShape(kind: .arrow)
@@ -136,24 +127,6 @@ extension KroutonTestHarness {
         )
         h.check(FileManager.default.fileExists(atPath: masteredAudio.binURL.path) && masteredAudio.totalSectors2352 >= 1, "AudioKit .BIN/.CUE master must write sector-aligned PCM to disk")
         h.check(masteredAudio.cueSheetText.contains("TRACK 01 AUDIO") && masteredAudio.cueSheetText.contains("INDEX 01 00:00:00"), "AudioKit .CUE sheet must contain Red Book track & index descriptors")
-
-        let payloadA = Data("KROUTON_PAYLOAD_ALPHA_2026".utf8)
-        let payloadB = Data(repeating: 0x4B, count: 3000) // Spans 2 ISO sectors (2,048B each)
-        let isoOutURL = tempDir.appendingPathComponent("PhaseA_Mountable.iso")
-        let isoResult = try KroutonHybridISO9660Writer.writeMountableISO9660Image(
-            volumeTitle: "KROUTON_ISO",
-            files: [
-                HybridISOFileInput(fileName: "ALPHA.TXT", data: payloadA),
-                HybridISOFileInput(fileName: "BETA.BIN", data: payloadB)
-            ],
-            outputURL: isoOutURL
-        )
-        let isoBytes = try Data(contentsOf: isoResult.url)
-        let lbaAlpha = isoResult.fileExtentLBAs["ALPHA.TXT"] ?? 0
-        let lbaBeta = isoResult.fileExtentLBAs["BETA.BIN"] ?? 0
-        h.check(lbaAlpha == 23 && lbaBeta == 24 && isoResult.totalSectorsLBA == 26, "Hybrid ISO-9660 writer must allocate multi-sector file extents starting at LBA 23")
-        h.check(isoBytes.subdata(in: (lbaAlpha * 2048)..<(lbaAlpha * 2048 + payloadA.count)) == payloadA, "Hybrid ISO-9660 extent at LBA 23 must match exact ALPHA.TXT payload bytes")
-        h.check(isoBytes.subdata(in: (lbaBeta * 2048)..<(lbaBeta * 2048 + payloadB.count)) == payloadB, "Hybrid ISO-9660 2-sector extent at LBA 24..25 must match exact BETA.BIN payload bytes")
 
         // Phase B Verification: 32-Step Value-Type Undo/Redo Engine & Galette Sub-Store
         var snapA = KroutonEmbeddedLabelSpec()

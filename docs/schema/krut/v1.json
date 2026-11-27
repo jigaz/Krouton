@@ -1,0 +1,239 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://krouton.app/schema/krut/v1.json",
+  "title": "Krouton project file (.krut), version 1",
+  "description": "A saved Krouton project: what goes on the disc, where it goes, and the label. JSON, at most 16 MiB. Files are referenced where they are, not copied in. Fields Krouton doesn't recognise are ignored when it opens a project, so newer versions can add fields without breaking older ones.",
+  "type": "object",
+  "required": [
+    "schemaURL",
+    "schemaVersion",
+    "savedAtISO8601",
+    "coreSpec",
+    "selectedCategoryRaw",
+    "selectedTaskID",
+    "discVolumeTitle",
+    "stagedSources",
+    "activeQueue"
+  ],
+  "properties": {
+    "schemaURL": {
+      "const": "https://krouton.app/schema/krut/v1.json"
+    },
+    "generatorURL": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^1\\."
+    },
+    "savedAtISO8601": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "isSidecarFile": {
+      "type": "boolean",
+      "description": "True for the small ticket Krouton writes next to a burned image, rather than a full project."
+    },
+    "coreSpec": {
+      "type": "object",
+      "description": "The disc itself, independent of any one drive.",
+      "required": [
+        "spec_version",
+        "format_id",
+        "volume_title",
+        "sector_size_bytes"
+      ],
+      "properties": {
+        "spec_version": {
+          "type": "string"
+        },
+        "format_id": {
+          "type": "string",
+          "description": "A Krouton format id, as listed by `krouton formats` (for example data-hybrid, audio-cd)."
+        },
+        "volume_title": {
+          "type": "string"
+        },
+        "sector_size_bytes": {
+          "enum": [
+            2048,
+            2352
+          ]
+        },
+        "total_sectors_lba": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expected_payload_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "payload_sha256_hex": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{64})?$"
+        },
+        "write_method": {
+          "type": "string"
+        },
+        "dual_layer_break_lba": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "force_dvdrom_book_type": {
+          "type": "boolean"
+        },
+        "perform_opc_before_write": {
+          "type": "boolean"
+        },
+        "ephemeral_auto_purge_on_complete": {
+          "type": "boolean"
+        }
+      }
+    },
+    "selectedCategoryRaw": {
+      "type": "string"
+    },
+    "selectedTaskID": {
+      "type": "string"
+    },
+    "discVolumeTitle": {
+      "type": "string"
+    },
+    "discPerformer": {
+      "type": "string"
+    },
+    "discMCNBarcode": {
+      "type": "string"
+    },
+    "discLabel": {
+      "type": "object",
+      "description": "The label design: text, colours, background and printer offsets. Its fields follow the label studio and may grow."
+    },
+    "labelDiscTitle": {
+      "type": "string"
+    },
+    "labelSubtitle": {
+      "type": "string"
+    },
+    "labelTemplateRaw": {
+      "type": "string"
+    },
+    "labelPresetIndex": {
+      "type": "integer"
+    },
+    "labelShowTracklistOnDisc": {
+      "type": "boolean"
+    },
+    "stagedSources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "absolutePath",
+          "name",
+          "isDirectory",
+          "byteSize"
+        ],
+        "properties": {
+          "absolutePath": {
+            "type": "string",
+            "description": "Where the file was, with the home folder written as ~."
+          },
+          "relativePath": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Path relative to the project file, when the file sits beside or below it. Tried before absolutePath, so a project and its files can move together."
+          },
+          "bookmarkData": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "contentEncoding": "base64",
+            "description": "A macOS bookmark, tried first on a Mac."
+          },
+          "name": {
+            "type": "string"
+          },
+          "isDirectory": {
+            "type": "boolean"
+          },
+          "byteSize": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "posixPermissions": {
+            "type": "string"
+          },
+          "showOnMac": {
+            "type": "boolean"
+          },
+          "showOnPC": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "activeQueue": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/destination"
+      }
+    },
+    "savedQueuesByDomain": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/destination"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "destination": {
+      "type": "object",
+      "required": [
+        "kindRawValue",
+        "copiesToBurn"
+      ],
+      "properties": {
+        "kindRawValue": {
+          "type": "string",
+          "description": "Physical Burner, Network Server Burner, Disc Image File, and so on."
+        },
+        "targetDriveID": {
+          "type": "string"
+        },
+        "hardwareOrPath": {
+          "type": "string"
+        },
+        "speedOrCodec": {
+          "type": "string"
+        },
+        "simulationMode": {
+          "type": "boolean"
+        },
+        "verifyAfterBurn": {
+          "type": "boolean"
+        },
+        "compressAfterCreation": {
+          "type": "boolean"
+        },
+        "copiesToBurn": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 99
+        }
+      }
+    }
+  }
+}

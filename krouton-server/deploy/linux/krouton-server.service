@@ -1,0 +1,29 @@
+[Unit]
+Description=Krouton Server (remote disc burning for Krouton)
+Documentation=https://krouton.app
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=krouton
+Group=krouton
+SupplementaryGroups=cdrom
+Environment=KROUTON_SERVER_HOME=/var/lib/krouton-server
+ExecStart=/usr/local/bin/krouton-server run
+Restart=on-failure
+RestartSec=5
+# Hardening: the server needs its home, the optical drives and the network; nothing else.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/krouton-server
+DeviceAllow=block-sr rw
+DeviceAllow=char-sg rw
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

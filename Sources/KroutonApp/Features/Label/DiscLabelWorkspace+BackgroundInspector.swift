@@ -20,8 +20,12 @@ extension KroutonDiscLabelWorkspaceView {
             textToolInspector()
         case .shapes:
             shapesAndBadgesToolInspector()
+        case .planet:
+            planetToolInspector()
         case .discSize:
             discSizeOverrideInspector()
+        case .print:
+            printToolInspector()
         case .select:
             selectOverviewInspector()
         }
@@ -45,10 +49,18 @@ extension KroutonDiscLabelWorkspaceView {
                 backgroundModeButton(title: "Linear Gradient", subtitle: "Directional angled color blend", style: .linearGradient, icon: "lessthan.circle.fill")
                 backgroundModeButton(title: "Solid Disc Color", subtitle: "Uniform edge-to-edge fill", style: .solidColor, icon: "circle.fill")
                 backgroundModeButton(title: "GPU Silk Kaleidoscope", subtitle: "Radial symmetric prism reflections", style: .gpuKaleidoscope, icon: "sparkles")
-                backgroundModeButton(title: "360° Tiny Planet Globe", subtitle: "Polar stereographic horizon world", style: .tinyPlanetGlobe, icon: "globe.americas.fill")
+                backgroundModeButton(title: "Panorama Planet", subtitle: "Wrap a panorama photo into the disc", style: .tinyPlanetGlobe, icon: "globe.americas.fill")
             }
 
-            if store.labelBackgroundStyle != .templateDefault {
+            if store.labelBackgroundStyle == .tinyPlanetGlobe {
+                Divider()
+                Button {
+                    activeTool = .planet
+                } label: {
+                    Label("Open the Planet Controls", systemImage: "globe.americas")
+                }
+                .controlSize(.small)
+            } else if store.labelBackgroundStyle != .templateDefault {
                 Divider()
 
                 VStack(alignment: .leading, spacing: 10) {
@@ -90,7 +102,7 @@ extension KroutonDiscLabelWorkspaceView {
 
                         VStack(alignment: .leading, spacing: 3) {
                             HStack {
-                                Text(store.labelBackgroundStyle == .gpuKaleidoscope || store.labelBackgroundStyle == .tinyPlanetGlobe
+                                Text(store.labelBackgroundStyle == .gpuKaleidoscope
                                      ? "Backdrop Brightness (Ink Saver)"
                                      : "Gradient Midpoint")
                                     .font(.caption2.bold())
@@ -103,7 +115,7 @@ extension KroutonDiscLabelWorkspaceView {
                         }
                     }
 
-                    if store.labelBackgroundStyle == .linearGradient || store.labelBackgroundStyle == .gpuKaleidoscope || store.labelBackgroundStyle == .tinyPlanetGlobe {
+                    if store.labelBackgroundStyle == .linearGradient || store.labelBackgroundStyle == .gpuKaleidoscope {
                         VStack(alignment: .leading, spacing: 3) {
                             HStack {
                                 Text(store.labelBackgroundStyle == .linearGradient ? "Gradient Angle" : "Rotation / Spin Angle")
@@ -117,7 +129,7 @@ extension KroutonDiscLabelWorkspaceView {
                         }
                     }
 
-                    if store.labelBackgroundStyle == .gpuKaleidoscope || store.labelBackgroundStyle == .tinyPlanetGlobe {
+                    if store.labelBackgroundStyle == .gpuKaleidoscope {
                         Divider()
 
                         VStack(alignment: .leading, spacing: 8) {
@@ -162,9 +174,8 @@ extension KroutonDiscLabelWorkspaceView {
                                 Slider(value: Bindable(store).labelChamberTumble, in: 0.0...1.0)
                             }
 
-                            if store.labelBackgroundStyle == .gpuKaleidoscope {
-                                Text("Optical Mirror Assembly")
-                                    .font(.caption2.bold())
+                            Text("Optical Mirror Assembly")
+                                .font(.caption2.bold())
                                     .foregroundStyle(.secondary)
 
                                 Picker(KroutonL10n.tr("Mirror Rig"), selection: Bindable(store).labelKaleidoscopeRig) {
@@ -176,19 +187,6 @@ extension KroutonDiscLabelWorkspaceView {
 
                                 Stepper("Mirror Facets / Scale: \(store.labelKaleidoscopeFacets)×", value: Bindable(store).labelKaleidoscopeFacets, in: 3...16)
                                     .font(.caption.bold())
-                            } else {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    HStack {
-                                        Text("Planet Horizon Radius")
-                                            .font(.caption2.bold())
-                                            .foregroundStyle(.secondary)
-                                        Spacer()
-                                        Text("\(Int(store.labelTinyPlanetRadius * 100))%")
-                                            .font(.caption2.monospaced())
-                                    }
-                                    Slider(value: Bindable(store).labelTinyPlanetRadius, in: 0.35...0.95)
-                                }
-                            }
                         }
                     }
                 }
@@ -200,6 +198,7 @@ extension KroutonDiscLabelWorkspaceView {
         let isSel = (store.labelBackgroundStyle == style)
         return Button {
             store.labelBackgroundStyle = style
+            if style == .tinyPlanetGlobe { activeTool = .planet }
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: icon)

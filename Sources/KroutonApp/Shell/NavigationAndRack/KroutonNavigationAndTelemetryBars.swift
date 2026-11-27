@@ -65,58 +65,42 @@ struct KroutonLeftFormatChooserColumnView: View {
                         taskRowButton(
                             id: "depot-all",
                             category: .depot,
-                            title: "All Depot Library (60+)",
-                            shortTitle: "All Depot",
-                            colloquial: "Complete Verified Optical Catalog",
+                            title: "Everything in the Depot",
+                            shortTitle: "Everything",
+                            colloquial: "Disc images from depot.krouton.app",
                             sfSymbol: "square.grid.2x2.fill"
+                        )
+                        taskRowButton(
+                            id: "depot-shelf",
+                            category: .depot,
+                            title: "The Shelf, 1998–2010",
+                            shortTitle: "The Shelf",
+                            colloquial: "Warty, Knoppix, DSL, FreeDOS, Haiku",
+                            sfSymbol: "opticaldisc.fill"
+                        )
+                        taskRowButton(
+                            id: "depot-odd",
+                            category: .depot,
+                            title: "Strange and Wonderful",
+                            shortTitle: "Strange",
+                            colloquial: "Puppy multisession, KolibriOS, Tiny Core",
+                            sfSymbol: "sparkles"
                         )
                         taskRowButton(
                             id: "depot-rescue",
                             category: .depot,
-                            title: "System Rescue & BIOS",
-                            shortTitle: "Rescue & BIOS",
-                            colloquial: "SystemRescue, GParted, Memtest, UBCD",
+                            title: "Fix-It Discs",
+                            shortTitle: "Fix-It",
+                            colloquial: "SystemRescue, GParted, Memtest86+, ShredOS",
                             sfSymbol: "cross.case.fill"
-                        )
-                        taskRowButton(
-                            id: "depot-linux",
-                            category: .depot,
-                            title: "Live Linux & BSD",
-                            shortTitle: "Linux & BSD",
-                            colloquial: "Ubuntu, Fedora, Debian, FreeBSD, Arch",
-                            sfSymbol: "terminal.fill"
-                        )
-                        taskRowButton(
-                            id: "depot-vintage",
-                            category: .depot,
-                            title: "Vintage Mac & Apple",
-                            shortTitle: "Vintage Mac",
-                            colloquial: "Mac OS 9.2.2, System 7.5, A/UX, AHT",
-                            sfSymbol: "desktopcomputer"
                         )
                         taskRowButton(
                             id: "depot-homebrew",
                             category: .depot,
-                            title: "Console Homebrew & ROMs",
-                            shortTitle: "Console ROMs",
-                            colloquial: "Swiss GC, FreeDVDBoot PS2, 240p Suite",
+                            title: "Console Homebrew",
+                            shortTitle: "Homebrew",
+                            colloquial: "Swiss, Unirom, DreamShell, CleanRip",
                             sfSymbol: "gamecontroller.fill"
-                        )
-                        taskRowButton(
-                            id: "depot-coverdiscs",
-                            category: .depot,
-                            title: "90s Cover Discs & Scene",
-                            shortTitle: "Cover Discs",
-                            colloquial: "MacAddict, PC Gamer, NextGen, Scene.org",
-                            sfSymbol: "sparkles.tv.fill"
-                        )
-                        taskRowButton(
-                            id: "depot-retropc",
-                            category: .depot,
-                            title: "Retro PC, DOS & Alt OS",
-                            shortTitle: "Retro PC",
-                            colloquial: "FreeDOS 1.4, Haiku, BeOS R5, OS/2, IRIX",
-                            sfSymbol: "cpu.fill"
                         )
                     }
 
@@ -151,9 +135,18 @@ struct KroutonLeftFormatChooserColumnView: View {
                             category: .copy,
                             title: "Extract Video Disc",
                             shortTitle: "Rip Video",
-                            colloquial: "Hardware H.265 / HEVC Passthrough",
-                            badge: "H.265",
+                            colloquial: "Titles to MKV or MPEG, without re-encoding",
+                            badge: "MKV",
                             sfSymbol: "film.stack"
+                        )
+                        taskRowButton(
+                            id: "copy-rescue",
+                            category: .copy,
+                            title: "Rescue a Damaged Disc",
+                            shortTitle: "Rescue",
+                            colloquial: "Copy what reads, retry the rest",
+                            badge: "ddrescue",
+                            sfSymbol: "lifepreserver.fill"
                         )
                     }
 

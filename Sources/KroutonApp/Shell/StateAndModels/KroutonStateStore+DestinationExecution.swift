@@ -92,7 +92,7 @@ extension KroutonStateStore {
     ) async {
         let drvName = primarySelectedDrive?.displayName ?? "Optical Drive"
         KroutonNotificationAndCompanionService.shared.dispatchEvent(
-            id: "start", title: "Optical Mastering Started", subtitle: "\(target.kind.rawValue) • \(discVolumeTitle)",
+            id: "start", title: "Optical Mastering Started", subtitle: "\(target.kind.title) • \(discVolumeTitle)",
             progress: 0.05, driveName: drvName, speedLabel: target.speedOrCodec, store: self
         )
         defer {
@@ -100,101 +100,86 @@ extension KroutonStateStore {
             let ok = rep?.isSuccess ?? true
             KroutonNotificationAndCompanionService.shared.dispatchEvent(
                 id: ok ? "done" : "err", title: rep?.title ?? "Mastering Task Complete",
-                subtitle: rep?.summary ?? "\(target.kind.rawValue) finished for \(discVolumeTitle)",
+                subtitle: rep?.summary ?? "\(target.kind.title) finished for \(discVolumeTitle)",
                 progress: ok ? 1.0 : 0.0, driveName: drvName, speedLabel: target.speedOrCodec, store: self
             )
         }
+        // Formats Krouton can't make yet stop here, before anything is staged or written.
+        if let refusal = burnRefusal(for: target.kind) {
+            driveManager.completionReport = refusalReport(refusal)
+            return
+        }
         switch target.kind {
         case .networkBurner:
-            driveManager.setManualInlinePin(for: "network-spool-drive", isPinned: true)
-            let _ = await SpoolRemoteNodeClient.shared.executeSpoolAndBurn(
-                endpoint: target.hardwareOrPath,
-                stagedFiles: stagedFiles,
-                audioTracks: redBookTracks,
-                volumeTitle: discVolumeTitle,
-                performer: discPerformer,
-                mcnBarcode: discMCNBarcode,
-                requestedSpeedLabel: target.speedOrCodec,
-                simulationMode: target.simulationMode,
-                driveManager: driveManager,
-                targetDriveKey: "network-spool-drive"
-            )
+            await runNetworkBurn(target, driveManager: driveManager)
         case .physicalBurner:
-            if self.forceDVDROMBookType, !target.targetDriveID.isEmpty {
-                driveManager.stampDVDROMBookType(for: target.targetDriveID, vendorProfile: bitsetVendorProfile)
-            }
-            let burnSucceeded = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
-                driveManager.startPhysicalDataBurn(
-                    driveID: target.targetDriveID.isEmpty ? nil : target.targetDriveID,
-                    stagedFiles: stagedFiles,
-                    volumeTitle: discVolumeTitle,
-                    requestedSpeedLabel: target.speedOrCodec,
-                    simulationMode: target.simulationMode,
-                    verifyDisc: target.verifyAfterBurn,
-                    allowOverwriteOfWrittenMedia: !isAutoLoadedCopy
-                ) { report in
-                    continuation.resume(returning: report.isSuccess)
-                }
-            }
-            if burnSucceeded && (!waitingBurnPool.isEmpty || target.assignedPoolTicket != nil) {
-                let nextTicket = advancePoolAfterCardBurnCompleted(cardID: target.id)
-                if let nextTicket, poolDispatchMode == .autoAssign, autoLoadNextDiscBatchMode {
-                    let driveKey = target.targetDriveID.isEmpty ? (driveManager.selectedDrive?.id ?? "") : target.targetDriveID
-                    driveManager.startBatchAutoLoadMonitor(
-                        for: driveKey,
-                        completedCopy: max(1, nextTicket.sequenceNumber - 1),
-                        totalCopies: max(nextTicket.totalCopies, nextTicket.totalSpannedDiscs),
-                        countdownSeconds: autoLoadCountdownSeconds,
-                        bitsetDVDROM: self.forceDVDROMBookType
-                    ) { [weak self] in
-                        guard let self = self else { return }
-                        if let updatedItem = self.destinationQueue.first(where: { $0.id == target.id }) {
-                            self.executeSingleDestination(
-                                updatedItem,
-                                driveManager: driveManager,
-                                primarySelectedDrive: primarySelectedDrive,
-                                isAutoLoadedCopy: true
-                            )
-                        }
-                    }
-                }
-            } else if burnSucceeded && target.copiesToBurn > 1 && autoLoadNextDiscBatchMode {
-                let finishedCount = target.completedCopies + 1
-                if finishedCount < target.copiesToBurn {
-                    updateQueueItem(target.id) { $0.completedCopies = finishedCount }
-                    let driveKey = target.targetDriveID.isEmpty ? (driveManager.selectedDrive?.id ?? "") : target.targetDriveID
-                    driveManager.startBatchAutoLoadMonitor(
-                        for: driveKey,
-                        completedCopy: finishedCount,
-                        totalCopies: target.copiesToBurn,
-                        countdownSeconds: autoLoadCountdownSeconds,
-                        bitsetDVDROM: self.forceDVDROMBookType
-                    ) { [weak self] in
-                        guard let self = self else { return }
-                        if let updatedItem = self.destinationQueue.first(where: { $0.id == target.id }) {
-                            self.executeSingleDestination(
-                                updatedItem,
-                                driveManager: driveManager,
-                                primarySelectedDrive: primarySelectedDrive,
-                                isAutoLoadedCopy: true
-                            )
-                        }
-                    }
-                } else {
-                    updateQueueItem(target.id) { $0.completedCopies = 0 }
-                }
-            }
+            await runPhysicalBurn(target, driveManager: driveManager, primarySelectedDrive: primarySelectedDrive,
+                                  isAutoLoadedCopy: isAutoLoadedCopy)
         case .discImage:
+            if activeBurnSupport == .audioCD {
+                do {
+                    let cue = try await saveAudioDiscImage(path: target.hardwareOrPath)
+                    driveManager.completionReport = refusalReport(
+                        "Wrote \(cue.lastPathComponent) and its .bin: the audio CD as it will play, ready for Burn Disc Image.",
+                        title: "Audio CD Image Saved", ok: true)
+                } catch {
+                    driveManager.completionReport = refusalReport(error.localizedDescription, title: "Could Not Save the Audio CD Image")
+                }
+                return
+            }
+            if activeBurnSupport == .bluRayVideo, case .success(let root) = bluRayVideoRoot() {
+                let path = NSString(string: target.hardwareOrPath).expandingTildeInPath
+                let output = URL(fileURLWithPath: path).pathExtension.lowercased() == "iso"
+                    ? URL(fileURLWithPath: path) : URL(fileURLWithPath: path).deletingPathExtension().appendingPathExtension("iso")
+                do {
+                    let image = try await buildBluRayImage(root: root, output: output)
+                    driveManager.completionReport = refusalReport(
+                        "Wrote \(image.lastPathComponent): UDF 2.50, ready to burn to a BD-R.", title: "Blu-ray Image Saved", ok: true)
+                } catch {
+                    driveManager.completionReport = refusalReport(error.localizedDescription, title: "Could Not Build the Blu-ray Image")
+                }
+                return
+            }
+            let input: (files: [KroutonStagedFileEntry], folder: URL?)
+            do {
+                input = try await burnInputFiles()
+            } catch {
+                driveManager.completionReport = refusalReport(error.localizedDescription, title: "Could Not Prepare the Disc")
+                return
+            }
+            defer { if let folder = input.folder { try? FileManager.default.removeItem(at: folder) } }
+            // Large-file UDF and DVD-Video arrive as a finished image from Krouton's writer.
+            if [.dataUDFModern, .dvdVideo, .macos9HFS].contains(activeFormatSpec().formatID), let image = input.files.first?.url {
+                let path = NSString(string: target.hardwareOrPath).expandingTildeInPath
+                let output = URL(fileURLWithPath: path).deletingPathExtension().appendingPathExtension(image.pathExtension)
+                do {
+                    try? FileManager.default.removeItem(at: output)
+                    try FileManager.default.moveItem(at: image, to: output)
+                    driveManager.completionReport = refusalReport(
+                        "Wrote \(output.lastPathComponent), ready for Burn Disc Image.", title: "Disc Image Saved", ok: true)
+                } catch {
+                    driveManager.completionReport = refusalReport(error.localizedDescription, title: "Could Not Save the UDF Image")
+                }
+                return
+            }
             let _ = await driveManager.createDiscImageFile(
-                stagedFiles: stagedFiles,
+                stagedFiles: input.files,
                 volumeTitle: discVolumeTitle,
                 outputPathString: target.hardwareOrPath,
-                compressImage: target.compressAfterCreation,
-                enableCustomLayout: enableCustomFinderLayoutTab,
-                iconSizePx: Int(finderIconSize)
+                compressImage: target.compressAfterCreation
             )
         case .discPrinter, .pdfVector:
             executeLabelDestinationExport()
+        case .videoExtract:
+            // Extraction runs from the workspace, where the titles are chosen; a queue card can't pick them.
+            driveManager.completionReport = KroutonBurnSessionReport(
+                isSuccess: false, title: "Extract From the Workspace",
+                summary: "Choose the titles in the Video Disc Extractor and click Extract. Nothing was written.",
+                driveModel: primarySelectedDrive?.displayName ?? "Optical Drive", firmwareRevision: "-",
+                mediaFormattedName: "-", volumeName: discVolumeTitle, sectorsWrittenLBA: 0, bytesWritten: 0,
+                averageSpeedText: "-", peakSpeedText: "-", elapsedDurationText: "00:00",
+                diagnosticAdvice: "See Help › Krouton User Manual › Video, copying and other formats."
+            )
         default:
             if selectedCategory == .copy && selectedCopyTaskID == .ripAudioCD,
                let liveCD = KroutonRealCDExtractor.scanMountedAudioCD() {

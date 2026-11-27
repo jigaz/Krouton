@@ -5,7 +5,7 @@ import Foundation
 import DriveKit
 
 final class DriveBurnPreflightTests: XCTestCase {
-    // MARK: Drive identifiers
+    // MARK: - Drive identifiers
 
     func testUniqueDriveKeepsItsSavedIdentifier() {
         let ids = KroutonDriveIdentity.uniqueIDs(
@@ -33,7 +33,7 @@ final class DriveBurnPreflightTests: XCTestCase {
         XCTAssertEqual(reversed, ["\(base)#2", base])
     }
 
-    // MARK: Overwrite policy
+    // MARK: - Overwrite policy
 
     func testBlankDiscNeverNeedsOverwrite() {
         let decision = KroutonBurnMediaPolicy.evaluate(
@@ -75,7 +75,7 @@ final class DriveBurnPreflightTests: XCTestCase {
         XCTAssertEqual(decision, .refuseNotWritable)
     }
 
-    // MARK: Staging
+    // MARK: - Staging
 
     func testStagingCopiesItemsAndRejectsDuplicateNames() async throws {
         let fm = FileManager.default

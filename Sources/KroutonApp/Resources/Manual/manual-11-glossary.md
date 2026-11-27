@@ -1,0 +1,25 @@
+# Glossary
+
+- **BagIt**: a simple, standard way (RFC 8493) to package files with a list of their checksums, used by libraries and archives. Every disc in a Krouton set is a bag.
+- **BD-R, BD-RE**: recordable and rewritable Blu-ray discs. 25 GB single-layer, 50 GB dual-layer.
+- **BDXL**: Blu-ray with three or four layers, 100 or 128 GB. Needs a BDXL-capable drive.
+- **Book type**: a field on a DVD that says what kind of disc it is. Some old players only accept discs marked DVD-ROM.
+- **CD-Text**: titles and artist names stored on an audio CD, shown by many car stereos and players.
+- **Crossfade**: one track fading out while the next fades in.
+- **CUE sheet**: a text file that describes the tracks of a CD image, next to the .bin file holding the data.
+- **DAO, SAO, TAO**: ways to write a CD. Disc-at-once writes the whole disc without stopping and is what audio CDs need.
+- **DVD-5, DVD-9**: single-layer (4.7 GB) and dual-layer (8.5 GB) DVDs.
+- **El Torito**: the part of a CD or DVD that makes it bootable on a PC.
+- **Gapless**: tracks that run into each other with no silence.
+- **ISO-9660**: the original CD file system, readable everywhere, limited to files under 4 GiB.
+- **ISRC**: a code that identifies a single recording.
+- **Joliet**: an addition to ISO-9660 that allows long, Unicode file names for Windows.
+- **LBA**: a sector's number on the disc. Data discs have 2048-byte sectors.
+- **M-DISC**: blanks with a mineral-like recording layer, made for very long storage.
+- **OPC**: the drive's laser power test before writing, done on a calibration area of the disc.
+- **PAR2**: parity files that can rebuild damaged parts of other files.
+- **Pre-gap**: the pause before an audio track.
+- **Red Book**: the standard for audio CDs. 75 frames per second, each 2352 bytes of 44.1 kHz 16-bit stereo sound.
+- **SHA-256**: a checksum. Two files with the same SHA-256 are identical.
+- **Spanning**: splitting a collection of files across several discs.
+- **UDF**: the file system of DVDs and Blu-ray discs. Version 2.50 and later hold files of any size.

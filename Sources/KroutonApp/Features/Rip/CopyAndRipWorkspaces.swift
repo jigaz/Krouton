@@ -36,13 +36,12 @@ struct KroutonCopyAndRipWorkspaceView: View {
     let isCenterWorkspaceNarrow: Bool
 
     @State var audioRipCodec: String = "FLAC (Lossless)"
-    @State var audioRipAccurateRip: Bool = true
     @State var audioRipGenerateCueLog: Bool = true
-    @State var audioRipErrorCorrection: Bool = true
+    // No error-correction switch: rips read the AIFF files macOS mounts for an audio CD, and
+    // the drive's own error correction is all there is on that path.
     @State var audioRipSelectedTracks: Set<Int> = Set(1...99)
     @State var videoExtractMode: String = "Lossless MKV Remux"
     @State var videoExtractMinSeconds: Int = 120
-    @State var videoExtractKeepChapters: Bool = true
     @State var videoExtractSelectedTitles: Set<String> = ["TITLE_01", "TITLE_02"]
     @State var copySourceOverrideLabel: String = ""
     @State var copyOutputFolderPath: String = "~/Music/Krouton Rips"
@@ -57,8 +56,11 @@ struct KroutonCopyAndRipWorkspaceView: View {
     @State var perTrackProgress: [Int: Double] = [:]
     @State var ripCancelToken = KroutonRipCancelToken()
     @State var showCDInfoPopover: Bool = false
+    // These album fields, with the album title and artist and each track's name, are written
+    // into every ripped file after it is saved (`KroutonAudioTagWriter`: Vorbis comments in FLAC,
+    // iTunes metadata in M4A, LIST/INFO in WAV, NAME/AUTH/ANNO in AIFF).
     @State var cdInfoComposer: String = ""
-    @State var cdInfoGenre: String = "Rock"
+    @State var cdInfoGenre: String = ""
     @State var cdInfoYear: String = ""
     @State var cdInfoDiscNumber: String = "1"
     @State var cdInfoDiscTotal: String = "1"
@@ -68,6 +70,7 @@ struct KroutonCopyAndRipWorkspaceView: View {
     var body: some View {
         let isShrinkTask = (store.selectedCopyTaskID == .duplicateDisc)
         let isAudioRipTask = (store.selectedCopyTaskID == .ripAudioCD)
+        let isRescueTask = (store.selectedCopyTaskID == .rescueDisc)
         let sourceDescription = mountedCDSnapshot != nil
             ? "Mounted CD: \(mountedCDSnapshot!.mountPath) • \(mountedCDSnapshot!.tracks.count) Audio Tracks (\(ByteCountFormatter.string(fromByteCount: mountedCDSnapshot!.totalPCMBytes, countStyle: .file))) • DiscID: \(mountedCDSnapshot!.musicBrainzDiscID)"
             : "Source Drive: \(primarySelectedDrive?.displayName ?? "Optical Drive") — Status: \(primarySelectedDrive?.statusBadgeText ?? "Ready")"
@@ -90,7 +93,8 @@ struct KroutonCopyAndRipWorkspaceView: View {
                     if isScanningTOC {
                         ProgressView().controlSize(.small)
                     }
-                    Text(copyStatusBanner)
+                    // A sector copy reports through the rescue engine that does it.
+                    Text(isShrinkTask && store.rescue.isRunning ? store.rescue.status : copyStatusBanner)
                         .font(.system(size: 11, weight: .semibold, design: .monospaced))
                         .foregroundStyle(store.activeAccent)
                         .lineLimit(1)
@@ -116,8 +120,14 @@ struct KroutonCopyAndRipWorkspaceView: View {
                 .background(store.activeAccent.opacity(0.12)).clipShape(RoundedRectangle(cornerRadius: 6))
             }
 
-            unifiedOpticalRescueMapCard(showVideoHandoff: !isAudioRipTask)
-            if isAudioRipTask {
+            if isRescueTask {
+                rescueWorkspaceDeck
+            } else {
+                unifiedOpticalRescueMapCard(showVideoHandoff: !isAudioRipTask)
+            }
+            if isRescueTask {
+                EmptyView()
+            } else if isAudioRipTask {
                 audioCDRipWorkspaceDeck
             } else if isShrinkTask {
                 shrinkDVDVideoWorkspaceDeck
@@ -128,7 +138,7 @@ struct KroutonCopyAndRipWorkspaceView: View {
         .onAppear {
             if isAudioRipTask && audioRipTracks.isEmpty {
                 rescanOpticalDiscForCopyTask(isAudioRipTask: true, isShrinkTask: false, fetchMetadata: false)
-            } else if !isAudioRipTask && scannedVideoDisc == nil {
+            } else if !isAudioRipTask && !isRescueTask && scannedVideoDisc == nil {
                 rescanOpticalDiscForCopyTask(isAudioRipTask: false, isShrinkTask: isShrinkTask, fetchMetadata: false)
             }
         }
@@ -145,13 +155,14 @@ struct KroutonCopyAndRipWorkspaceView: View {
 
     @ViewBuilder
     func headerTitleBlock(isAudioRipTask: Bool, isShrinkTask: Bool, subtitle: String) -> some View {
+        let isRescueTask = store.selectedCopyTaskID == .rescueDisc
         HStack(spacing: 8) {
             KroutonStyledIconBadge(
-                sfSymbol: isAudioRipTask ? "waveform.circle.fill" : (isShrinkTask ? "doc.on.doc.fill" : "film.stack.fill"),
+                sfSymbol: isRescueTask ? "lifepreserver.fill" : (isAudioRipTask ? "waveform.circle.fill" : (isShrinkTask ? "doc.on.doc.fill" : "film.stack.fill")),
                 tintColor: store.activeAccent, style: store.iconWidgetStyle, size: 28, symbolSize: 14
             )
             VStack(alignment: .leading, spacing: 1) {
-                Text(KroutonL10n.tr(isAudioRipTask ? "Audio CD Ripper & AccurateRip Archiver" : (isShrinkTask ? "Duplicate Disc & Fit-to-Disc Requantizer" : "Video Disc Extractor (MKV Remux / VideoToolbox)")))
+                Text(KroutonL10n.tr(isRescueTask ? "Rescue a Damaged Disc" : (isAudioRipTask ? "Audio CD Ripper & AccurateRip Archiver" : (isShrinkTask ? "Duplicate Disc & Fit-to-Disc Requantizer" : "Video Disc Extractor (MKV Remux)"))))
                     .font(.title3.bold()).lineLimit(1).minimumScaleFactor(0.8)
                 Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
             }
@@ -237,11 +248,11 @@ struct KroutonCopyAndRipWorkspaceView: View {
             KroutonMasteringDeckCard(store: store) {
                 HStack(spacing: 14) {
                     Picker(KroutonL10n.tr("Mode:"), selection: $videoExtractMode) {
-                        Text("Lossless MKV Remux").tag("Lossless MKV Remux")
-                        Text("HEVC 10-Bit (VideoToolbox)").tag("HEVC 10-Bit (VideoToolbox)")
-                        Text("H.264 MP4 Hardware").tag("H.264 MP4 Hardware")
+                        Text("MKV, all audio and subtitles (needs ffmpeg)").tag("Lossless MKV Remux")
+                        Text("MPEG file, copied as it is").tag("MPEG Program Stream")
                     }.font(.caption.bold())
-                    Toggle(KroutonL10n.tr("Preserve Chapter Markers & Subtitles"), isOn: $videoExtractKeepChapters).toggleStyle(.checkbox).font(.caption)
+                    Text(KroutonL10n.tr("Unprotected discs only: Krouton doesn't remove copy protection."))
+                        .font(.caption).foregroundStyle(.secondary)
                     Spacer()
                 }
             }
@@ -286,8 +297,8 @@ struct KroutonCopyAndRipWorkspaceView: View {
         }
     }
 
-    /// What actually happened to each track in the last rip. Krouton reads discs through the mounted
-    /// volume and does not re-read damaged sectors yet, so there is no sector-level rescue map to show.
+    /// What actually happened to each track in the last rip. Audio rips read through the mounted
+    /// volume; sector-level rescue of data discs is its own task (CopyAndRipWorkspaces+RescueUX).
     @ViewBuilder
     func unifiedOpticalRescueMapCard(showVideoHandoff: Bool) -> some View {
         let outcomes = audioRipTracks.map { KroutonRipTrackOutcome(status: $0.arStatus) }
@@ -315,7 +326,7 @@ struct KroutonCopyAndRipWorkspaceView: View {
                     }
                 }
                 if outcomes.isEmpty {
-                    Text("Per-track results appear here after an Audio CD rip. Re-reading damaged sectors is not available yet, so a track with a read error is reported as failed, not repaired.")
+                    Text("Per-track results appear here after an Audio CD rip. A track with a read error is reported as failed; for a damaged data disc, use Rescue a Damaged Disc.")
                         .font(.system(size: 10)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 } else {
                     HStack(spacing: 2) {

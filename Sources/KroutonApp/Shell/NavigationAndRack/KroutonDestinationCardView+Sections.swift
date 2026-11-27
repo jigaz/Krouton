@@ -58,8 +58,8 @@ extension KroutonDestinationCardView {
                                     }
                                 case .networkBurner:
                                     qItem.targetDriveID = ""
-                                    if !spoolClient.discoveredNodes.map(\.hostPort).contains(qItem.hardwareOrPath) {
-                                        qItem.hardwareOrPath = spoolClient.discoveredNodes.first?.hostPort ?? "localhost:7420"
+                                    if spoolClient.server(withID: qItem.hardwareOrPath) == nil {
+                                        qItem.hardwareOrPath = spoolClient.pairedServers.first?.nodeID ?? ""
                                     }
                                 case .discImage:
                                     let imgTarget = store.defaultDiscImageTarget
@@ -74,7 +74,7 @@ extension KroutonDestinationCardView {
                                     qItem.hardwareOrPath = "~/Movies/Krouton Extracts"
                                 case .discPrinter:
                                     qItem.targetDriveID = ""
-                                    qItem.hardwareOrPath = "Epson EcoTank Photo ET-8550 (CD/DVD Tray)"
+                                    qItem.hardwareOrPath = "~/Desktop/\(store.discVolumeTitle)_Label Sheet.pdf"
                                 case .pdfVector:
                                     qItem.targetDriveID = ""
                                     qItem.hardwareOrPath = "~/Desktop/\(store.discVolumeTitle)_Label.pdf"
@@ -87,7 +87,7 @@ extension KroutonDestinationCardView {
                                 Text(
                                     kind == .physicalBurner
                                         ? (isUSBAlreadyExhausted ? KroutonL10n.tr("USB Burner — In Use") : KroutonL10n.tr("USB Burner"))
-                                        : KroutonL10n.tr(kind.rawValue)
+                                        : KroutonL10n.tr(kind.title)
                                 )
                             }
                         }
@@ -98,7 +98,7 @@ extension KroutonDestinationCardView {
                         Image(systemName: item.kind.sfSymbol)
                             .foregroundStyle(store.uiSecondaryAccent)
                         Text(
-                            isRightQueueCompact ? item.kind.compactBadgeTitle : (item.kind == .physicalBurner ? KroutonL10n.tr("USB Burner") : KroutonL10n.tr(item.kind.rawValue))
+                            isRightQueueCompact ? item.kind.compactBadgeTitle : (item.kind == .physicalBurner ? KroutonL10n.tr("USB Burner") : KroutonL10n.tr(item.kind.title))
                         )
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.primary)

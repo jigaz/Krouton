@@ -9,8 +9,16 @@ extension KroutonOpticalDriveBank {
     /// How long to wait for the drive to confirm an abort before giving up on it.
     static let burnAbortGraceSeconds: TimeInterval = 60
 
-    /// Starts a data burn. `onCompletion` is always called exactly once, including
-    /// when the burn is refused before it starts or is aborted.
+    /// Starts a burn. With `audioDisc` it burns a Red Book audio CD (see
+    /// `beginAudioBurn`); a single staged disc image (.iso, .cdr, .dmg, .cue/.bin, .toc) is burned
+    /// as an image; anything else becomes a data disc. `onCompletion` is always called exactly once,
+    /// including when the burn is refused before it starts or is aborted.
+    ///
+    /// NOTE(status, 2026-11): this is the only local burn path, and it doesn't know the selected
+    /// format. Data discs are DiscRecording's ISO 9660 + Joliet (+ UDF 1.02 on DVD/BD) + HFS+;
+    /// audio CDs come in as rendered PCM tracks (`KroutonAudioBurnDisc`); there is no Mode 2 Form 2, HFS-standard or UDF 2.x data writer here. The app
+    /// decides beforehand what may reach it (`KroutonFormatID.burnSupport`,
+    /// `KroutonStateStore.burnRefusal(for:)`), and Blu-ray video arrives as a UDF 2.50 image.
     ///
     /// - Parameter allowOverwriteOfWrittenMedia: pass true only when a person started
     ///   this burn. With false, rewritable media that already holds data is refused
@@ -23,6 +31,9 @@ extension KroutonOpticalDriveBank {
         simulationMode: Bool,
         verifyDisc: Bool,
         allowOverwriteOfWrittenMedia: Bool = false,
+        leaveDiscOpen: Bool = false,
+        audioDisc: KroutonAudioBurnDisc? = nil,
+        isoLevel1: Bool = false,
         onCompletion: @escaping @MainActor (KroutonBurnSessionReport) -> Void
     ) {
         let requestedID = driveID ?? selectedDrive?.id
@@ -40,6 +51,12 @@ extension KroutonOpticalDriveBank {
             onCompletion(report)
         }
 
+        if stagedFiles.count == 1, let only = stagedFiles.first,
+           let reason = Self.unburnableImageExtensions[only.url.pathExtension.lowercased()] {
+            refuse(title: "Can't Burn This Image", summary: reason, media: "—",
+                   advice: "Nothing was written. Krouton burns .iso, .cdr, .dmg, .cue/.bin and .toc images as they are.")
+            return
+        }
         guard activeBurnSession == nil else {
             refuse(title: "Optical Burner Busy", summary: "Another burn is still running.", media: "—",
                    advice: "Wait for the current burn to finish, or abort it, before starting another.")
@@ -83,7 +100,7 @@ extension KroutonOpticalDriveBank {
             return
         }
 
-        let context = KroutonBurnJobContext(
+        var context = KroutonBurnJobContext(
             driveKey: resolvedMeta?.id ?? (driveID ?? ""),
             driveName: driveName,
             firmware: fwRev,
@@ -98,6 +115,10 @@ extension KroutonOpticalDriveBank {
             verifyDisc: verifyDisc,
             overwriteExistingData: overwrite
         )
+        context.leaveDiscOpen = leaveDiscOpen
+        context.imageFileURL = Self.soleDiscImage(in: stagedFiles)
+        if let audioDisc { context.adopt(audioDisc) }
+        context.isoLevel1 = isoLevel1
         let stageURL = FileManager.default.temporaryDirectory.appendingPathComponent("KroutonHardwareStage_\(UUID().uuidString)")
         let session = KroutonActiveBurnSession(context: context, device: device, stageURL: stageURL, completion: onCompletion)
 
@@ -112,6 +133,17 @@ extension KroutonOpticalDriveBank {
         activeJobProgress = 0.01
         activeJobPhase = "Staging \(stagedFiles.count) Item(s) for \(driveName)..."
         activeJobDetail = "\(driveName) • \(volumeTitle)"
+
+        // Audio tracks are produced straight from their rendered PCM; nothing to stage.
+        if let audioDisc {
+            beginAudioBurn(session, disc: audioDisc)
+            return
+        }
+        // A disc image is read in place by DiscRecording; there is nothing to stage.
+        if let imageURL = context.imageFileURL {
+            imageURL.pathExtension.lowercased() == "cdi" ? beginDiscJugglerBurn(session, imageURL: imageURL) : beginImageBurn(session, imageURL: imageURL)
+            return
+        }
 
         // The copy can be many gigabytes; it runs off the main actor so the UI stays live.
         let items = stagedFiles.map { KroutonBurnStageItem(source: $0.url, name: $0.name) }
@@ -154,6 +186,7 @@ extension KroutonOpticalDriveBank {
             : UInt32(DRFilesystemInclusionMaskISO9660 | DRFilesystemInclusionMaskJoliet | DRFilesystemInclusionMaskUDF)
         let macMask: UInt32 = UInt32(DRFilesystemInclusionMaskHFSPlus)
         rootFolder.setExplicitFilesystemMask(DRFilesystemMask(macMask | pcMask))
+        if context.isoLevel1 { rootFolder.setProperty(NSNumber(value: 1), forKey: DRISOLevel, inFilesystem: DRISO9660) }
 
         // Per-file OS visibility (Mac HFS+ vs PC ISO/Joliet/UDF)
         if let children = rootFolder.children() as? [DRFSObject] {
@@ -173,10 +206,32 @@ extension KroutonOpticalDriveBank {
             return
         }
 
+        startWriting(session, burn: burn, layout: track)
+    }
+
+    /// Burns a disc image as it is: every sector, boot records and all, in the image's own layout.
+    private func beginImageBurn(_ session: KroutonActiveBurnSession, imageURL: URL) {
+        let context = session.context
+        guard let layout = DRBurn.layout(forImageFile: imageURL.path), let burn = DRBurn(for: session.device) else {
+            finishBurnSession(session, report: makeBurnReport(
+                context, isSuccess: false, title: "Could Not Read Disc Image",
+                summary: "DiscRecording could not read \(imageURL.lastPathComponent) as a disc image.",
+                sectors: 0, bytes: 0,
+                advice: "Nothing was written. Check the image in the Disc Image Depot; a .cue sheet needs its .bin files beside it."
+            ))
+            return
+        }
+        startWriting(session, burn: burn, layout: layout)
+    }
+
+    /// Applies the burn settings, writes the layout and starts watching progress.
+    func startWriting(_ session: KroutonActiveBurnSession, burn: DRBurn, layout: Any) {
+        let context = session.context
         var props = burn.properties() as? [String: Any] ?? [:]
         props[DRBurnTestingKey] = NSNumber(value: context.simulationMode)
         props[DRBurnVerifyDiscKey] = NSNumber(value: context.verifyDisc)
         props[DRBurnOverwriteDiscKey] = NSNumber(value: context.overwriteExistingData)
+        props[DRBurnAppendableKey] = NSNumber(value: context.leaveDiscOpen)
         props[DRBurnCompletionActionKey] = DRBurnCompletionActionEject
         props[DRBurnRequestedSpeedKey] = NSNumber(value: Self.requestedSpeedKBs(from: context.requestedSpeedLabel))
         burn.setProperties(props)
@@ -200,7 +255,7 @@ extension KroutonOpticalDriveBank {
         activeJobPhase = context.simulationMode ? "Simulating Burn (Laser Test Only)..." : "Calibrating Laser & Writing to \(context.mediaType)..."
         activeJobProgress = 0.02
 
-        burn.writeLayout(track)
+        burn.writeLayout(layout)
 
         // The timer fires on the main run loop, so the poll runs synchronously on the
         // main actor. No Task hop means a slow tick cannot queue a second completion.
@@ -339,7 +394,7 @@ extension KroutonOpticalDriveBank {
     }
 
     /// The single exit for every burn. Safe to call more than once; only the first call acts.
-    private func finishBurnSession(_ session: KroutonActiveBurnSession, report: KroutonBurnSessionReport) {
+    func finishBurnSession(_ session: KroutonActiveBurnSession, report: KroutonBurnSessionReport) {
         guard activeBurnSession === session else { return }
         activeBurnSession = nil
         burnMonitorTimer?.invalidate()
@@ -415,7 +470,7 @@ extension KroutonOpticalDriveBank {
         )
     }
 
-    private func makeBurnReport(
+    func makeBurnReport(
         _ context: KroutonBurnJobContext,
         isSuccess: Bool,
         title: String,

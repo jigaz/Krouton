@@ -38,6 +38,24 @@ extension KroutonCopyAndRipWorkspaceView {
         }
         scannedVideoDisc = activeDisc
 
+        // Duplicate Disc from a drive, without shrinking, is a sector copy: the rescue engine
+        // (`MMCSectorSource` + `KroutonDiscRescuer`) reads every 2,048-byte sector into an .iso,
+        // so boot records, UDF 2.50 and file order survive. Only the DVD-9 shrink, and a folder
+        // chosen with "Folder…", re-master the files with `hdiutil makehybrid`.
+        let wantsShrink = store.fitToDiscDVD9Shrink && activeDisc.totalBytes > 4_700_000_000 && activeDisc.discKind.contains("VIDEO_TS")
+        if isShrinkTask, !wantsShrink, copySourceOverrideLabel.isEmpty {
+            guard !store.rescue.isRunning else {
+                copyStatusBanner = "A rescue or copy is already reading a disc."
+                return
+            }
+            store.rescue.outputFolder = URL(fileURLWithPath: ("~/Desktop" as NSString).expandingTildeInPath)
+            store.rescue.imageName = activeDisc.volumeTitle.replacingOccurrences(of: "/", with: "-")
+            store.rescue.retryPasses = 1
+            store.rescue.start(driveID: primarySelectedDrive?.id, driveManager: KroutonWindowManager.shared.driveManager)
+            copyStatusBanner = "Copying every sector to \(store.rescue.imageURL.lastPathComponent) on the Desktop…"
+            return
+        }
+
         let token = KroutonRipCancelToken()
         ripCancelToken = token
         isRippingCD = true
@@ -47,11 +65,11 @@ extension KroutonCopyAndRipWorkspaceView {
             let destDir = URL(fileURLWithPath: ("~/Desktop" as NSString).expandingTildeInPath)
             let safeName = activeDisc.volumeTitle.replacingOccurrences(of: " ", with: "_")
             let isoURL = destDir.appendingPathComponent("\(safeName).iso")
-            let shouldShrink = store.fitToDiscDVD9Shrink && activeDisc.totalBytes > 4_700_000_000 && activeDisc.discKind.contains("VIDEO_TS")
+            let shouldShrink = wantsShrink
             let preserveMenus = store.preserveMenusAndExtras
             copyStatusBanner = shouldShrink
                 ? "Requantizing DVD-9 -> DVD-5 and building \(isoURL.lastPathComponent)..."
-                : "Building 1:1 Hybrid UDF/ISO image \(isoURL.lastPathComponent)..."
+                : "Building a hybrid UDF/ISO image of the folder's files: \(isoURL.lastPathComponent)..."
 
             Task.detached(priority: .userInitiated) {
                 do {
@@ -101,9 +119,13 @@ extension KroutonCopyAndRipWorkspaceView {
             }
             let outRoot = URL(fileURLWithPath: ("~/Movies/Krouton Extracts" as NSString).expandingTildeInPath)
                 .appendingPathComponent(activeDisc.volumeTitle.replacingOccurrences(of: "/", with: "_"))
-            copyStatusBanner = "Extracting \(chosenTitles.count) title(s) from \(activeDisc.volumeTitle)..."
+            let ffmpeg = videoExtractMode.contains("MKV") ? OpticalDiscVolumeScanner.locateFFmpeg() : nil
+            copyStatusBanner = ffmpeg == nil
+                ? "Extracting \(chosenTitles.count) title(s) from \(activeDisc.volumeTitle) as MPEG files (install ffmpeg for MKV)..."
+                : "Remuxing \(chosenTitles.count) title(s) from \(activeDisc.volumeTitle) to MKV..."
 
             Task.detached(priority: .userInitiated) {
+                var lastError: String? = nil
                 var extractedCount = 0
                 var totalWritten: Int64 = 0
                 let countD = Double(chosenTitles.count)
@@ -111,6 +133,14 @@ extension KroutonCopyAndRipWorkspaceView {
                     if token.isCancelled { break }
                     guard let segments = activeDisc.titleSegmentURLs[item.id], !segments.isEmpty else { continue }
                     do {
+                        if let ffmpeg {
+                            let safeVolume = activeDisc.volumeTitle.replacingOccurrences(of: "/", with: "_")
+                            let output = outRoot.appendingPathComponent("\(safeVolume) \(item.id).mkv")
+                            Task { @MainActor in ripProgressFraction = (Double(idx) + 0.5) / countD }
+                            totalWritten += try OpticalDiscVolumeScanner.remuxTitleToMKV(segments: segments, outputURL: output, ffmpegURL: ffmpeg)
+                            extractedCount += 1
+                            continue
+                        }
                         let res = try OpticalDiscVolumeScanner.extractTitleSegments(
                             titleID: item.id,
                             segments: segments,
@@ -125,16 +155,22 @@ extension KroutonCopyAndRipWorkspaceView {
                         extractedCount += 1
                         totalWritten += res.bytesWritten
                     } catch {
+                        lastError = error.localizedDescription
                         break
                     }
                 }
                 let sizeStr = ByteCountFormatter.string(fromByteCount: totalWritten, countStyle: .file)
+                let failure = lastError
                 await MainActor.run {
                     isRippingCD = false
                     ripProgressFraction = extractedCount > 0 ? 1.0 : 0.0
-                    copyStatusBanner = token.isCancelled
-                        ? "Cancelled video extraction."
-                        : "Extracted \(extractedCount) Title(s) (\(sizeStr)) to \(outRoot.path)"
+                    if token.isCancelled {
+                        copyStatusBanner = "Cancelled video extraction."
+                    } else if let failure {
+                        copyStatusBanner = "Extraction stopped: \(failure)"
+                    } else {
+                        copyStatusBanner = "Extracted \(extractedCount) title(s) (\(sizeStr)) to \(outRoot.path)"
+                    }
                 }
             }
         }

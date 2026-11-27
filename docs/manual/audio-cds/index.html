@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audio CDs — Krouton manual</title>
+<meta name="description" content="Krouton renders the disc exactly as the editor plays it, pauses and crossfades included, and writes it in one pass (session-at-once) with the ISRCs, the UPC/EAN as the disc&#x27;s catalog number, and…">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" href="/assets/disc.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="site">
+  <header class="masthead">
+    <a class="name" href="/">Krouton</a>
+    <nav aria-label="Site">
+      <a href="/">The app</a>
+      <a href="/manual/" aria-current="page">Manual</a>
+      <a href="/server/">Krouton Server</a>
+      <a href="https://archive.krouton.app/">Archive</a>
+      <a href="/drives/">Report a drive</a>
+      <a href="https://github.com/jigaz/Krouton">Source</a>
+    </nav>
+  </header>
+
+  <main class="manual">
+    <nav class="chapters" aria-label="Manual chapters">
+      <ol>
+        <li><a href="/manual/getting-started/">Getting started</a></li>
+        <li><a href="/manual/data-discs/">Data discs and disc images</a></li>
+        <li><a href="/manual/audio-cds/" aria-current="page">Audio CDs</a></li>
+        <li><a href="/manual/burners/">Burners, copies and the queue</a></li>
+        <li><a href="/manual/krouton-server/">Burning on another computer</a></li>
+        <li><a href="/manual/labels/">Disc labels</a></li>
+        <li><a href="/manual/video-and-more/">Video, copying and other formats</a></li>
+        <li><a href="/manual/automation/">Command line and Shortcuts</a></li>
+        <li><a href="/manual/keyboard-shortcuts/">Keyboard shortcuts</a></li>
+        <li><a href="/manual/troubleshooting/">Settings, files and troubleshooting</a></li>
+        <li><a href="/manual/glossary/">Glossary</a></li>
+      </ol>
+    </nav>
+    <article>
+    <h1>Audio CDs</h1>
+    <h2>Making an audio CD</h2>
+    <ol>
+      <li>Choose <strong>Red Book Audio CD (CD-DA)</strong> in the Format Chooser (⌃⌘2).</li>
+      <li>Drag in audio files. WAV, AIFF, FLAC, ALAC, MP3 and AAC all work; Krouton converts each to CD audio (44.1 kHz, 16-bit stereo).</li>
+      <li>Drag tracks to reorder them. The capacity bar counts minutes: 74 on a 650 MB blank, 80 on a 700 MB blank.</li>
+      <li>Fill in the disc's title and artist. These become CD-Text, which many car stereos and CD players show.</li>
+      <li>Check it with <strong>View › Inspect Compiled Red Book CUE Sheet</strong> (⌃⌘U).</li>
+      <li>Insert a blank CD-R and press <strong>Burn</strong> on a burner card.</li>
+    </ol>
+    <p>Krouton renders the disc exactly as the editor plays it, pauses and crossfades included, and writes it in one pass (session-at-once) with the ISRCs, the UPC/EAN as the disc's catalog number, and CD-Text. Audio discs aren't read back afterwards, because drives can't read audio sectors at an exact position; play the disc to check it. A project longer than one CD has to be split into projects first.</p>
+    <p>A <strong>Disc Image File</strong> card saves the same disc as a .cue sheet and a .bin file instead, to burn later with <strong>Burn Disc Image</strong> or another app. Krouton Server burns data discs and disc images, not audio CDs: save a .cue/.bin, or burn on a drive connected to this Mac.</p>
+    <h2>Gaps between tracks</h2>
+    <p>Each track has a transition into the next:</p>
+    <ul>
+      <li><strong>2 sec Standard Pause</strong>, the normal gap on commercial CDs;</li>
+      <li><strong>1 sec Pause</strong> or a custom pre-gap;</li>
+      <li><strong>Gapless (0s)</strong>, for live albums and DJ mixes that must flow without a break;</li>
+      <li><strong>Crossfade</strong>, where the end of one track fades into the start of the next.</li>
+    </ul>
+    <h2>Shaping a crossfade</h2>
+    <p>Choose <strong>Crossfade</strong> on a transition to open the <strong>Track Montage Editor</strong>. It shows the outgoing and incoming tracks over a 5-second window; <strong>Zoom Out</strong> widens it to 15 seconds.</p>
+    <p>Each fade is a curve. Hover near a quarter or three-quarter point of either curve and a faint diamond appears. Click to place a handle there, then drag it to change how that part of the fade rises or falls. Double-click a handle to remove it; <strong>Reset</strong> puts the curves back to the default. The <strong>X-Fade</strong> and <strong>Tension</strong> sliders set the length and overall shape.</p>
+    <p>Press <strong>Preview</strong> to hear the transition. Changes are audible as you drag.</p>
+    <p>The editor can float in its own window: <strong>Window › Open Track Montage Editor Window</strong> (⌥⌘M). Clicking the small waveform left in the track list brings that window to the front.</p>
+    <p>The montage header shows the tempo of both tracks and the difference between them, which helps match beat-driven music.</p>
+    <h2>CD-Text, ISRC and barcodes</h2>
+    <p>CD-Text holds the disc title and artist and each track's title and artist. The format is old: it only stores Latin-1 characters (ISO-8859-1), at most about 60 characters per field, in no more than 255 small packs for the whole disc. The CD-Text counter warns you before you run out, and characters outside Latin-1 are flagged.</p>
+    <p><strong>ISRC</strong> codes identify recordings (ISO 3901). <strong>Auto-ISRC…</strong> numbers a run of tracks for you from a prefix. <strong>UPC/EAN</strong> is the disc's barcode number, 12 or 13 digits.</p>
+    <p>Check the result with <strong>View › Inspect Compiled Red Book CUE Sheet</strong> (⌃⌘U). It shows the track table with every index position and the CD-Text that will be written.</p>
+    <h2>MP3 CDs for the car</h2>
+    <p><strong>MP3 / FLAC Car Audio CD</strong> puts your music on a data CD that car stereos can play. Before burning, Krouton converts every audio file (folders are opened in name order) to MP3 at the chosen <strong>Profile</strong>: 320 or 192 kbps constant bit rate, or about 115 kbps variable for the most music per disc. The files are numbered in play order (<strong>Zero-Pad Prefixes</strong>), listed in PLAYLIST.M3U, and tagged ID3v2.3 with an ID3v1 copy, which older stereos need. <strong>Strip Cover Art &amp; Lyrics</strong>, <strong>Joint Stereo</strong> and the <strong>19 kHz Low-Pass Filter</strong> are encoder settings. Only the audio goes on the disc, so no .DS_Store or ._ files reach it.</p>
+    <p>Converting needs ffmpeg, which you install separately (Homebrew: brew install ffmpeg). Choose <strong>Files As They Are</strong> to burn the files unconverted, still numbered and listed.</p>
+    <p><strong>DTS-CD (5.1)</strong> burns DTS-encoded WAV files (44.1 kHz, 16-bit stereo, as DTS-CD files are made) exactly as they are, so a DTS decoder finds the surround stream. Krouton refuses any other file, and crossfades, because converting or mixing would destroy the stream. Pauses and gapless joins are fine.</p>
+    <p><strong>Blue Book CD-Extra</strong> (also called Enhanced CD) puts the music in a first session, which every CD player plays, and files in a second session that computers open: videos, lyrics, artwork. Build the tracks as for an audio CD, then add the files under <strong>Data Session</strong> below the track list. Krouton adds the CDPLUS folder the Blue Book expects, burns both sessions in one go, and refuses before writing if the audio, the data and the second session's lead-in and lead-out (about 3 minutes) don't fit. The data session is written in Mode 1, which Macs and PCs read; the Blue Book prefers Mode 2, which only matters to a few old CD-ROM drives. CD-Extra is burned on a drive connected to this Mac; a .cue/.bin image holds only one session, so Krouton won't save one for it.</p>
+    <h2>Ripping a CD</h2>
+    <ol>
+      <li>Insert an audio CD and open the Audio CD Ripper (⌘5).</li>
+      <li>Choose <strong>Disc › Scan Audio CD TOC &amp; Lookup MusicBrainz</strong> (⌥⌘R). Krouton reads the track list and fetches album and track names from MusicBrainz. Only the disc's ID is sent.</li>
+      <li>Pick a format: FLAC or ALAC keep every bit in less space; WAV and AIFF are uncompressed.</li>
+      <li>Choose <strong>Disc › Rip Selected Audio CD Tracks</strong> (⇧⌘R).</li>
+    </ol>
+    <p>Tracks are saved in ~/Music/Krouton Rips, in a folder per album, named by the pattern in Settings › Ripping (01 - Artist - Title to start with; a / in the pattern makes folders), and tagged with the album, artist, track and the fields in <strong>CD Info</strong> (⌘I): composer, genre, year, disc number and compilation (Vorbis comments in FLAC, iTunes tags in ALAC, INFO chunks in WAV, text chunks in AIFF). The rip log records each track's CRC-32.</p>
+    <p>When every track of the disc is ripped and <strong>Check With AccurateRip</strong> is on, Krouton looks the disc up in the AccurateRip database (only the disc's ID is sent) and compares each track. The track list then shows <strong>AR ✓</strong> with the number of other rips that came out identical, or <strong>AR ✗</strong> when the database has the track but your rip differs, which usually means a scratch. macOS doesn't correct a drive's read offset, so Krouton finds your drive's offset from the database and reports it in the log. Krouton checks AccurateRip v1 checksums; a disc whose only entries are v2 won't match yet. A track with read errors is reported as failed; Krouton doesn't yet re-read damaged sectors to repair it.</p>
+    <nav class="pager" aria-label="Chapters"><a href="/manual/data-discs/" rel="prev">Previous: Data discs and disc images</a><a href="/manual/burners/" rel="next">Next: Burners, copies and the queue</a></nav>
+    </article>
+  </main>
+
+  <footer class="colophon">
+    <p>This manual is also built into Krouton: choose Help › Krouton User Manual, or press ⌘?. Corrections are welcome at <a href="https://github.com/jigaz/Krouton/tree/main/Sources/KroutonApp/Resources/Manual">github.com/jigaz/Krouton</a>.</p>
+    <p>This site sets no cookies and loads nothing from anyone else. <a href="/privacy/">Privacy</a></p>
+  </footer>
+</div>
+</body>
+</html>

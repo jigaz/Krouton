@@ -5,7 +5,8 @@ import OpticalCore
 // MARK: - KroutonStateStore — DepotCache
 
 extension KroutonStateStore {
-    /// Downloads live Internet Archive ISO images or builds a spec-compliant ISO-9660 + El Torito bootable master image in `/tmp/KroutonDepotCache`.
+    /// Downloads an Internet Archive search result's disc image. Depot feed items go through
+    /// `KroutonDepotDownloader`, which checks every file against the feed's SHA-256.
     static func materializeDepotImageToCache(item: KroutonDepotCatalogItem, destinationURL: URL) async throws {
         if item.id.hasPrefix("ia-") {
             let identifier = String(item.id.dropFirst(3))
@@ -30,17 +31,9 @@ extension KroutonStateStore {
             }
         }
 
-        let manifest = """
-        KROUTON DISC IMAGE DEPOT — VERIFIED OPTICAL MASTER
-        Title: \(item.title) (v\(item.version))
-        Channel: \(item.channel)
-        Architecture: \(item.architecture)
-        Boot Standard: \(item.bootStandard)
-        SHA-256 Digest: \(item.sha256Short)
-        Contents:
-        \(item.blueprintRootFiles.map { "  - " + $0 }.joined(separator: "\n"))
-        """
-        try DiscImageDepotOperations.writeBootableDepotISO(volumeID: item.id, manifestText: manifest, destinationURL: destinationURL)
+        throw CocoaError(.fileNoSuchFile, userInfo: [
+            NSLocalizedDescriptionKey: "\(item.title) has no disc image on the Internet Archive that Krouton can download.",
+        ])
     }
 
     /// Queries the live Internet Archive REST API (archive.org/advancedsearch.php) for optical ISO / CDR / BIN-CUE items
@@ -70,7 +63,7 @@ extension KroutonStateStore {
                         let itemID = "ia-" + ident.prefix(24)
                         if self.depotItems.contains(where: { $0.id == itemID }) { continue }
                         let year = (doc["year"] as? String) ?? "Archive.org"
-                        let descRaw = (doc["description"] as? String) ?? "Verified Internet Archive Optical Software Item (archive.org/details/\(ident))"
+                        let descRaw = (doc["description"] as? String) ?? "Internet Archive item (archive.org/details/\(ident)); not checked by the Depot"
                         let cleanDesc = descRaw.components(separatedBy: .newlines).joined(separator: " ").prefix(135)
                         let newItem = KroutonDepotCatalogItem(
                             id: String(itemID),
@@ -88,11 +81,10 @@ extension KroutonStateStore {
                         self.depotItems.insert(newItem, at: 0)
                         addedCount += 1
                     }
-                    self.archiveOrgLiveCount = addedCount
                     self.announceForVoiceOver("Loaded \(addedCount) optical disc images from Internet Archive.")
                 }
             } catch {
-                self.archiveOrgLiveCount = -1
+                self.announceForVoiceOver("The Internet Archive search didn't answer.")
             }
         }
     }

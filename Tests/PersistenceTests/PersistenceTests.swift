@@ -20,9 +20,13 @@ final class PersistenceTests: XCTestCase {
             .appendingPathComponent("PersistTest_\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: dir) }
 
-        let first = try RunLock.acquire(in: dir)
-        XCTAssertEqual(first.verdict, .clean)
-        first.lock?.markCleanExit()
+        do {
+            // Scoped so the first instance's lock is released (its deinit closes the fd), as when
+            // the app quits, before the next launch acquires it.
+            let first = try RunLock.acquire(in: dir)
+            XCTAssertEqual(first.verdict, .clean)
+            first.lock?.markCleanExit()
+        }
 
         let second = try RunLock.acquire(in: dir)
         XCTAssertEqual(second.verdict, .clean)

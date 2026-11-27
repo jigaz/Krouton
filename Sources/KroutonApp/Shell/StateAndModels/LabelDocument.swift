@@ -23,15 +23,22 @@ final class LabelDocument {
     var labelBottomArcRadiusMM: Double = 45.0
     var labelArcLetterSpacing: Double = 1.0
     var labelVectorShapes: [KroutonVectorShapeLayer] = []
-    var drawAutoSnap: Bool = true
-    var isVectorDrawMode: Bool = false
     var labelGPUSeedPattern: KroutonGPUSeedPattern = .neonLaserPrism
     var labelKaleidoscopeFacets: Int = 8
     var labelKaleidoscopeRig: KroutonKaleidoscopeMirrorRig = .twoMirrorRosette
     var labelChamberTumble: Double = 0.35
-    var labelTinyPlanetRadius: Double = 0.75
+    /// The panorama planet (Background › Panorama Planet) and the photo it wraps.
+    var labelPlanet = KroutonPlanetSettings()
+    var labelPlanetPhotoURL: URL? = nil
+    /// The photo decoded for the canvas, about 2,400 pixels wide; export reads the file again at
+    /// full size.
+    var labelPlanetPreviewSource: KroutonPlanetSource? = nil
+    /// A small copy of the photo for the Planet tool's framing view.
+    var labelPlanetThumbnail: CGImage? = nil
+    var labelPrint = KroutonLabelPrintSettings()
+    /// Shows the print's ink density on the canvas (a soft proof).
+    var labelPreviewInkDensity: Bool = false
     var labelUseVisionForeground: Bool = false
-    var polarSymmetryCount: Int = 1
     var labelTextElements: [KroutonLabelTextElement] = []
     var labelSelectedTextID: UUID? = nil
     var labelBgAdjustments: KroutonBackgroundAdjustments = KroutonBackgroundAdjustments()
@@ -45,10 +52,6 @@ final class LabelDocument {
         KroutonDiscLabelGeometry(name: "80mm Mini-CD / GameCube (80mm / 18mm)", outerDiameterMM: 80.0, innerDiameterMM: 18.0, offsetXMM: 0.0, offsetYMM: 0.0)
     ]
     var selectedLabelPresetIndex: Int = 0
-    var defaultAutoLabelStyle: String = "Full-Bleed Artwork + Arc Typography"
-    var visionHoleAvoidance: Bool = true
-    var customTMDBKey: String = ""
-    var customFanartKey: String = ""
 
     init() {}
 }

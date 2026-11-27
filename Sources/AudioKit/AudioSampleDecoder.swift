@@ -250,7 +250,6 @@ public struct KroutonRippedTrackResult: Sendable {
     public let trackNumber: Int
     public let outputURL: URL
     public let crc32Hex: String
-    public let accurateRipV1Hex: String
     public let bytesWritten: Int64
 }
 
@@ -334,6 +333,7 @@ public enum KroutonRealCDExtractor {
         track: KroutonMountedCDTrackDescriptor,
         codecLabel: String,
         outputDirectory: URL,
+        fileStem: String? = nil,
         shouldCancel: (@Sendable () -> Bool)? = nil,
         onProgress: (@Sendable (Double, Int64) -> Void)? = nil
     ) throws -> KroutonRippedTrackResult {
@@ -357,8 +357,20 @@ public enum KroutonRealCDExtractor {
             ext = "aiff"; formatID = kAudioFormatLinearPCM; fileTypeID = kAudioFileAIFFType
         }
 
-        let outName = String(format: "%02d - %@.%@", track.trackNumber, safeTitle.isEmpty ? "Track" : safeTitle, ext)
-        let destURL = outputDirectory.appendingPathComponent(outName)
+        // `fileStem` is the naming pattern's result; a "/" in it makes folders.
+        var destURL: URL
+        let parts = (fileStem ?? "").split(separator: "/").map {
+            $0.replacingOccurrences(of: ":", with: "-").trimmingCharacters(in: .whitespacesAndNewlines)
+        }.filter { !$0.isEmpty && $0 != "." && $0 != ".." }
+        if let last = parts.last {
+            destURL = outputDirectory
+            for folder in parts.dropLast() { destURL.appendPathComponent(folder, isDirectory: true) }
+            try fm.createDirectory(at: destURL, withIntermediateDirectories: true)
+            destURL.appendPathComponent("\(last).\(ext)")
+        } else {
+            let outName = String(format: "%02d - %@.%@", track.trackNumber, safeTitle.isEmpty ? "Track" : safeTitle, ext)
+            destURL = outputDirectory.appendingPathComponent(outName)
+        }
         if fm.fileExists(atPath: destURL.path) { try? fm.removeItem(at: destURL) }
 
         var inFile: ExtAudioFileRef?
@@ -394,7 +406,8 @@ public enum KroutonRealCDExtractor {
         }
         ExtAudioFileSetProperty(dstRef, kExtAudioFileProperty_ClientDataFormat, UInt32(MemoryLayout<AudioStreamBasicDescription>.size), &clientDesc)
 
-        let maxAudioFrames = Int64(max(75, track.frameCount75fps - 2)) * 588
+        // The whole track as the TOC sizes it; the read stops early if the file is shorter.
+        let maxAudioFrames = Int64(max(75, track.frameCount75fps)) * 588
         let totalExpectedBytes = max(1, maxAudioFrames * 4)
         let framesPerChunk: UInt32 = 14_700
         let bufBytes = Int(framesPerChunk * 4)
@@ -404,8 +417,6 @@ public enum KroutonRealCDExtractor {
         var framesReadTotal: Int64 = 0
         var bytesProcessed: Int64 = 0
         var crc: UInt32 = 0xFFFFFFFF
-        var arSum: UInt32 = 0
-        var sampleIndex: UInt32 = 1
 
         while framesReadTotal < maxAudioFrames {
             if shouldCancel?() == true {
@@ -424,13 +435,10 @@ public enum KroutonRealCDExtractor {
             let validBytes = Int(numFrames * 4)
             let bytePtr = rawBuffer.assumingMemoryBound(to: UInt8.self)
             for i in stride(from: 0, to: validBytes, by: 4) {
-                let s32 = UInt32(bytePtr[i]) | (UInt32(bytePtr[i+1]) << 8) | (UInt32(bytePtr[i+2]) << 16) | (UInt32(bytePtr[i+3]) << 24)
                 crc = KroutonCRC32.update(crc, bytePtr[i])
                 crc = KroutonCRC32.update(crc, bytePtr[i + 1])
                 crc = KroutonCRC32.update(crc, bytePtr[i + 2])
                 crc = KroutonCRC32.update(crc, bytePtr[i + 3])
-                arSum &+= s32 &* sampleIndex
-                sampleIndex &+= 1
             }
 
             let writeErr = ExtAudioFileWrite(dstRef, numFrames, &bufList)
@@ -456,7 +464,6 @@ public enum KroutonRealCDExtractor {
             trackNumber: track.trackNumber,
             outputURL: destURL,
             crc32Hex: String(format: "%08X", ~crc),
-            accurateRipV1Hex: String(format: "%08X", arSum),
             bytesWritten: finalSize
         )
     }

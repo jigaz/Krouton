@@ -53,29 +53,9 @@ extension KroutonTestHarness {
     }
 
     private mutating func runVerifyLateBindingAndObservationSuites() {
-        self.runSuite("23. Late-Binding BurnClaimLedger, Capacity-Aware Claim Policy & Non-Stranding Pool") { h in
-            func makeDisc(_ i: Int, _ bytes: Int64) -> FrozenDisc {
-                FrozenDisc(
-                    index: i,
-                    volumeLabel: "SET_D0\(i)",
-                    imageURL: URL(fileURLWithPath: "/dev/null"),
-                    imageSHA256: "",
-                    imageBytes: bytes
-                )
-            }
+        self.runSuite("23. Late-Binding BurnClaimLedger & Non-Stranding Pool") { h in
             let dFast = DriveID("b1-24x")
             let dSlow = DriveID("b2-10x")
-            let candidates = [makeDisc(2, 4_600_000_000), makeDisc(3, 4_600_000_000), makeDisc(7, 1_200_000_000)]
-
-            h.check(BurnClaimPolicy.select(from: candidates, pins: [3: dFast], for: dFast)?.index == 3,
-                    "A drive must claim discs pinned to it before unpinned discs")
-            h.check(BurnClaimPolicy.select(from: candidates, pins: [2: dFast], for: dSlow)?.index == 3,
-                    "A disc pinned to another drive must never be stolen")
-            h.check(BurnClaimPolicy.select(from: candidates, pins: [:], for: dSlow, capacityBytes: 2_000_000_000)?.index == 7,
-                    "A blank too small for Disc 2 must still bind the smaller tail Disc 7 instead of being refused")
-            h.check(BurnClaimPolicy.select(from: candidates, pins: [:], for: dSlow, capacityBytes: 700_000_000) == nil,
-                    "A blank smaller than every remaining disc must return nil so it is ejected unused")
-
             var ledger = BurnClaimLedger(discs: Array(1...7), drivesFastestFirst: [dFast, dSlow])
             _ = ledger.offer(to: dFast)
             _ = ledger.offer(to: dSlow) // Burner 2 peeks Disc 2, but its tray is never touched

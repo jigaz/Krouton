@@ -24,7 +24,7 @@
     <key>CFBundleIconName</key>
     <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
-    <string>com.krouton.opticalstudio</string>
+    <string>app.krouton</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
@@ -52,7 +52,11 @@
     <key>NSRemovableVolumesUsageDescription</key>
     <string>Krouton accesses optical discs and removable volumes to inspect, master, verify, and burn CD, DVD, Blu-ray, and BDXL media.</string>
     <key>NSLocalNetworkUsageDescription</key>
-    <string>Krouton discovers and streams optical burn sets to remote Krouton optical spool servers on your local network.</string>
+    <string>Krouton finds Krouton Servers on your local network and sends discs to them to burn.</string>
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_krouton-spool._tcp</string>
+    </array>
     <key>CFBundleDocumentTypes</key>
     <array>
         <dict>
@@ -64,7 +68,7 @@
             <string>Owner</string>
             <key>LSItemContentTypes</key>
             <array>
-                <string>com.krouton.opticalstudio.project</string>
+                <string>app.krouton.project</string>
             </array>
         </dict>
         <dict>
@@ -90,7 +94,7 @@
     <array>
         <dict>
             <key>UTTypeIdentifier</key>
-            <string>com.krouton.opticalstudio.project</string>
+            <string>app.krouton.project</string>
             <key>UTTypeDescription</key>
             <string>Krouton Optical Mastering Project</string>
             <key>UTTypeConformsTo</key>
@@ -102,10 +106,24 @@
             <dict>
                 <key>public.filename-extension</key>
                 <array>
-                    <string>kroutonproj</string>
+                    <string>krut</string>
                 </array>
             </dict>
         </dict>
     </array>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <!-- AccurateRip serves its database over plain HTTP only; nothing private is sent. -->
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>accuraterip.com</key>
+            <dict>
+                <key>NSIncludesSubdomains</key>
+                <true/>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+            </dict>
+        </dict>
+    </dict>
 </dict>
 </plist>

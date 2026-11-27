@@ -74,7 +74,7 @@ struct KroutonDepotHeroBannerView: View {
                             Image(systemName: item.sfSymbol)
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent))
-                            Text("DISC CONTENT SCHEMATIC")
+                            Text("ABOUT THIS DISC")
                                 .font(.system(size: 9, weight: .heavy, design: .monospaced))
                                 .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.activeAccent))
                                 .lineLimit(1)

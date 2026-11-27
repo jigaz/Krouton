@@ -195,8 +195,6 @@ extension KroutonOpticalDriveBank {
         }
     }
 
-    // Stages a Car-Safe MP3/FLAC Folder Tree (Zero-padded 001_ prefixes + strips .DS_Store & ._AppleDouble files!)
-
     public static func inspectFileOrFolder(url: URL) -> KroutonStagedFileEntry {
         let fm = FileManager.default
         var isDir: ObjCBool = false

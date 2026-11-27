@@ -6,56 +6,13 @@ import SwiftUI
 
 // MARK: - KroutonNotificationAndCompanionService
 
-struct KroutonCompanionLivePayload: Codable, Sendable, Equatable {
-    var eventID: String
-    var title: String
-    var subtitle: String
-    var progressFraction: Double
-    var driveName: String
-    var speedLabel: String
-    var iPhoneLiveActivityActive: Bool
-    var appleWatchSmartStackActive: Bool
-    var timestampISO8601: String
-
-    init(
-        eventID: String,
-        title: String,
-        subtitle: String,
-        progressFraction: Double,
-        driveName: String,
-        speedLabel: String,
-        iPhoneLiveActivityActive: Bool,
-        appleWatchSmartStackActive: Bool,
-        timestampISO8601: String
-    ) {
-        self.eventID = eventID
-        self.title = title
-        self.subtitle = subtitle
-        self.progressFraction = progressFraction
-        self.driveName = driveName
-        self.speedLabel = speedLabel
-        self.iPhoneLiveActivityActive = iPhoneLiveActivityActive
-        self.appleWatchSmartStackActive = appleWatchSmartStackActive
-        self.timestampISO8601 = timestampISO8601
-    }
-}
-
+/// Posts the app's notifications: a macOS banner, a sound and a VoiceOver announcement, as
+/// Settings › Notifications chooses for each event. There is no iPhone or Apple Watch side:
+/// Krouton has no companion app, so those switches were removed.
 @Observable
 @MainActor
 final class KroutonNotificationAndCompanionService {
     static let shared = KroutonNotificationAndCompanionService()
-
-    var latestCompanionPayload = KroutonCompanionLivePayload(
-        eventID: "idle",
-        title: "Optical Workspace Ready",
-        subtitle: "Standing by for Burn, Rip, or Verification",
-        progressFraction: 0.0,
-        driveName: "Optical Drive",
-        speedLabel: "Idle",
-        iPhoneLiveActivityActive: true,
-        appleWatchSmartStackActive: true,
-        timestampISO8601: ISO8601DateFormatter().string(from: Date())
-    )
 
     var lastDispatchedBannerText: String = "No notifications dispatched in this session."
 
@@ -72,8 +29,6 @@ final class KroutonNotificationAndCompanionService {
     ) {
         let matchedRow = store.notificationMatrix.first(where: { $0.id == eventID })
         let bannerOn = matchedRow?.bannerEnabled ?? true
-        let iPhoneOn = matchedRow?.iPhoneEnabled ?? true
-        let watchOn = matchedRow?.watchEnabled ?? true
         let soundOn = matchedRow?.soundEnabled ?? false
 
         let stamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
@@ -83,21 +38,6 @@ final class KroutonNotificationAndCompanionService {
         }
         if soundOn {
             KroutonOSDesktopBridge.playAcousticCue()
-        }
-        if iPhoneOn || watchOn {
-            let payload = KroutonCompanionLivePayload(
-                eventID: eventID,
-                title: title,
-                subtitle: subtitle,
-                progressFraction: min(1.0, max(0.0, progress)),
-                driveName: driveName,
-                speedLabel: speedLabel,
-                iPhoneLiveActivityActive: iPhoneOn,
-                appleWatchSmartStackActive: watchOn,
-                timestampISO8601: ISO8601DateFormatter().string(from: Date())
-            )
-            latestCompanionPayload = payload
-            persistCompanionPayload(payload)
         }
         if store.voiceOverSpokenTelemetry {
             store.announceForVoiceOver("\(title). \(subtitle)")
@@ -120,16 +60,6 @@ final class KroutonNotificationAndCompanionService {
                 trigger: nil
             )
             UNUserNotificationCenter.current().add(req)
-        }
-    }
-
-    private func persistCompanionPayload(_ payload: KroutonCompanionLivePayload) {
-        guard let data = try? JSONEncoder().encode(payload) else { return }
-        UserDefaults.standard.set(data, forKey: "krouton.companion.latestPayload")
-        if let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
-            let dir = appSupport.appendingPathComponent("Krouton", isDirectory: true)
-            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-            try? data.write(to: dir.appendingPathComponent("companion-live-status.json"), options: .atomic)
         }
     }
 }

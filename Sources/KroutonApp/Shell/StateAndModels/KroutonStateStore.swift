@@ -20,14 +20,14 @@ final class KroutonStateStore {
     let depot = DepotCatalogue()
     let label = LabelDocument()
     let rip = RipSettings()
+    let rescue = KroutonRescueController()
+    let avchd = KroutonAVCHDController()
 
     static weak var shared: KroutonStateStore?
     var isHydratingPreferences: Bool = false
 
     // MARK: - Core Navigation, Staging & Burn Queue State
     var savedQueuesByDomain: [String: [KroutonBakeBatchItem]] = [:]
-    var scratchDiskPath: String = "~/Library/Caches/app.krouton.staging"
-    var autoPurgeScratch: Bool = true
     var selectedSettingsPane: KroutonSettingsCategory = .general
     var selectedCategory: KroutonMasteringStation = .burn {
         didSet {
@@ -44,11 +44,13 @@ final class KroutonStateStore {
     }
     var selectedFormatID: KroutonFormatID? { KroutonFormatID(rawValue: selectedTaskID) }
     var selectedCopyTaskID: KroutonCopyTaskID? { KroutonCopyTaskID(rawValue: selectedTaskID) }
-    var bitsetVendorProfile: String = "Auto-Detect (MMC 0xFA / Pioneer / Lite-On / LG)"
     var autoLoadNextDiscBatchMode: Bool = true
     var autoLoadCountdownSeconds: Int = 5
 
     var stagedFiles: [KroutonStagedFileEntry] = []
+    /// CD-Extra: the files for the data session after the audio (the tracks are the Audio CD
+    /// editor's project, as on an audio CD).
+    var cdExtraDataFiles: [KroutonStagedFileEntry] = []
     var rejectedDropNotice: String? = nil
 
     @ObservationIgnored lazy var audioController = AudioProjectController { [weak self] _ in
@@ -63,33 +65,28 @@ final class KroutonStateStore {
 
     var discPerformer: String = ""
     var discMCNBarcode: String = ""
-    var carSafeZeroPadPrefix: Bool = true
-    var carSafeStripAppleDouble: Bool = true
-    var carSafeGenerateM3U: Bool = true
-    var includeUDFBridge: Bool = true
-    var includeJolietNames: Bool = true
-    var allowATIPOverburn: Bool = false
     var dualLayerBreakSectorLBA: Int64 = 2_086_912
     var enableCustomFinderLayoutTab: Bool = false
-    var finderIconSize: Double = 256
     var fitToDiscDVD9Shrink: Bool = true
     var preserveMenusAndExtras: Bool = true
     var cdTextAlbumTitle: String = ""
     var cdTextAlbumPerformer: String = ""
     var discVolumeTitle: String = ""
-    var dataTargetDiscMedium: KroutonSpanningDiscMedium = .dvd5Single
+    /// The MP3 CD workspace's switches; `burnInputFiles()` applies them before every MP3 CD burn.
+    var carAudioOptions = KroutonCarAudioOptions()
+    /// M-DISC recovery data as a percentage of the files (0 = none); see `burnInputFiles()`.
+    var mdiscParityPercent: Double = 10
     var targetDiscMediumByTask: [String: KroutonSpanningDiscMedium] = [:]
     var dataDiscVolumeOverrides: [Int: String] = [:]
     var finderLayoutBlueprint = KroutonFinderLayoutBlueprint()
     var discFormats: [KroutonOpticalWorkflowSpec] = KroutonOpticalWorkflowCatalog.defaultFormats
 
     var notificationMatrix: [KroutonKitchenEventRow] = [
-        KroutonKitchenEventRow(id: "start", eventTitle: "Burn, rip, or transcode started", eventSubtitle: "Triggered when laser calibration or extraction begins", bannerEnabled: true, iPhoneEnabled: true, watchEnabled: false, soundEnabled: false),
-        KroutonKitchenEventRow(id: "done", eventTitle: "Task completed & verified", eventSubtitle: "Triggered when all queued destinations finish without error", bannerEnabled: true, iPhoneEnabled: true, watchEnabled: true, soundEnabled: true),
-        KroutonKitchenEventRow(id: "err", eventTitle: "Task failed or buffer underrun", eventSubtitle: "Critical hardware, media, or network link interruption", bannerEnabled: true, iPhoneEnabled: true, watchEnabled: true, soundEnabled: true),
-        KroutonKitchenEventRow(id: "layer", eventTitle: "Dual-layer (L0 -> L1) break reached", eventSubtitle: "DVD-9 or BD-50 seamless layer transition point", bannerEnabled: true, iPhoneEnabled: false, watchEnabled: true, soundEnabled: false),
-        KroutonKitchenEventRow(id: "swap", eventTitle: "Blank disc or tray swap required", eventSubtitle: "Multi-disc queue waiting for operator", bannerEnabled: true, iPhoneEnabled: true, watchEnabled: true, soundEnabled: true),
-        KroutonKitchenEventRow(id: "depot", eventTitle: "Disc Image Depot download verified", eventSubtitle: "ISO / image downloaded and SHA-256 verified", bannerEnabled: true, iPhoneEnabled: false, watchEnabled: false, soundEnabled: true)
+        KroutonKitchenEventRow(id: "start", eventTitle: "Burn or rip started", eventSubtitle: "When a destination card starts or a rip begins", bannerEnabled: true, soundEnabled: false),
+        KroutonKitchenEventRow(id: "done", eventTitle: "Burn or rip finished", eventSubtitle: "When a destination card or a rip finishes without error", bannerEnabled: true, soundEnabled: true),
+        KroutonKitchenEventRow(id: "err", eventTitle: "Burn or rip failed", eventSubtitle: "When a destination card or a rip stops with an error", bannerEnabled: true, soundEnabled: true),
+        KroutonKitchenEventRow(id: "swap", eventTitle: "Insert the next blank", eventSubtitle: "Auto-Load is waiting for a blank disc", bannerEnabled: true, soundEnabled: true),
+        KroutonKitchenEventRow(id: "depot", eventTitle: "Depot download checked", eventSubtitle: "An image was downloaded and matched its SHA-256", bannerEnabled: true, soundEnabled: true)
     ]
 
     var poolDispatchMode: KroutonPoolDispatchMode = .autoAssign

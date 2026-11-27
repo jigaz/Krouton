@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Burning on another computer — Krouton manual</title>
+<meta name="description" content="Krouton Server is a small program you install on another computer that has a burner: a Raspberry Pi, a Linux box, a Proxmox host, a NAS, a Windows 10 or 11 PC, or an older Mac. After you pair it…">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" href="/assets/disc.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="site">
+  <header class="masthead">
+    <a class="name" href="/">Krouton</a>
+    <nav aria-label="Site">
+      <a href="/">The app</a>
+      <a href="/manual/" aria-current="page">Manual</a>
+      <a href="/server/">Krouton Server</a>
+      <a href="https://archive.krouton.app/">Archive</a>
+      <a href="/drives/">Report a drive</a>
+      <a href="https://github.com/jigaz/Krouton">Source</a>
+    </nav>
+  </header>
+
+  <main class="manual">
+    <nav class="chapters" aria-label="Manual chapters">
+      <ol>
+        <li><a href="/manual/getting-started/">Getting started</a></li>
+        <li><a href="/manual/data-discs/">Data discs and disc images</a></li>
+        <li><a href="/manual/audio-cds/">Audio CDs</a></li>
+        <li><a href="/manual/burners/">Burners, copies and the queue</a></li>
+        <li><a href="/manual/krouton-server/" aria-current="page">Burning on another computer</a></li>
+        <li><a href="/manual/labels/">Disc labels</a></li>
+        <li><a href="/manual/video-and-more/">Video, copying and other formats</a></li>
+        <li><a href="/manual/automation/">Command line and Shortcuts</a></li>
+        <li><a href="/manual/keyboard-shortcuts/">Keyboard shortcuts</a></li>
+        <li><a href="/manual/troubleshooting/">Settings, files and troubleshooting</a></li>
+        <li><a href="/manual/glossary/">Glossary</a></li>
+      </ol>
+    </nav>
+    <article>
+    <h1>Burning on another computer</h1>
+    <p>Krouton Server is a small program you install on another computer that has a burner: a Raspberry Pi, a Linux box, a Proxmox host, a NAS, a Windows 10 or 11 PC, or an older Mac. After you pair it with this Mac once, its burners appear in Krouton like local ones.</p>
+    <p>It's handy when your Mac has no room for a USB burner, when the burner lives in another room, or when a few people share one good drive.</p>
+    <h2>How a network burn works</h2>
+    <ol>
+      <li>Krouton builds the disc image on your Mac.</li>
+      <li>It sends the image to the server over an encrypted connection. If the connection drops, the upload carries on from where it stopped.</li>
+      <li>The server checks every byte it received, then burns the disc and reads it back if <strong>Verify</strong> is on.</li>
+      <li>Progress shows on the destination card as it happens, and the burn report arrives at the end.</li>
+    </ol>
+    <p>The laser never waits on your Wi-Fi: the whole image is on the server before the burn starts.</p>
+    <h2>Setting up the server</h2>
+    <p>Follow the instructions at krouton.app/server for your kind of computer. In short: copy the server program to it and run the installer, which starts the service and runs a self-check. To test without a burner, set <code>backend = simulate</code> in the server's server.conf.</p>
+    <h2>Pairing</h2>
+    <ol>
+      <li>On the server, run <code>krouton-server pair</code>.</li>
+      <li>In Krouton, open <strong>Settings</strong> (⌘,) and go to <strong>Burners &amp; Network</strong>. Under <strong>Krouton Servers (Burners on Other Computers)</strong>, nearby servers are listed under <strong>Nearby, not paired</strong>. Choose yours and click <strong>Connect</strong>. If it isn't listed, use <strong>Pair by Address</strong> and type its name or IP address, for example burner.local or 192.168.1.20.</li>
+      <li>Both screens show a six-digit code. If they match, click <strong>The Codes Match</strong> in Krouton and type y on the server. If they don't, click <strong>The Codes Differ</strong>: something between the two computers isn't what it seems, and nothing is saved.</li>
+    </ol>
+    <p>Pairing happens once. From then on the two computers recognise each other by their keys. There are no passwords or accounts.</p>
+    <h2>Burning on the server</h2>
+    <p>Add a destination with <strong>Add Output</strong> and choose <strong>Krouton Server</strong>, then pick the server and one of its drives. Speed, Verify and Simulate work as they do for a local burner.</p>
+    <p>Krouton Server burns data discs and disc images. Audio CDs burn on a drive connected to this Mac.</p>
+    <h2>When it doesn't connect</h2>
+    <ul>
+      <li>Both computers need to be on the same network. The server refuses connections from the internet. If you reach it through a VPN or Tailscale, turn on <code>allow_cgnat</code> (Tailscale and ZeroTier) or add an <code>allow_range</code> line in the server's server.conf.</li>
+      <li>The first time, macOS asks whether Krouton may find devices on your local network. If you said no, turn it back on in System Settings › Privacy &amp; Security › Local Network.</li>
+      <li>A firewall on the server must let in TCP port 7420.</li>
+      <li>On the server, <code>krouton-server check</code> reports problems with the drive, the burn tool, free space or the keys.</li>
+      <li><strong>Save Log…</strong> on the Krouton Servers card saves the connection log for a bug report.</li>
+    </ul>
+    <p>To forget a server, click <strong>Forget</strong> next to it in Settings. To remove a Mac on the server side, run <code>krouton-server unpair</code> with the Mac's name; <code>krouton-server clients</code> lists them.</p>
+    <nav class="pager" aria-label="Chapters"><a href="/manual/burners/" rel="prev">Previous: Burners, copies and the queue</a><a href="/manual/labels/" rel="next">Next: Disc labels</a></nav>
+    </article>
+  </main>
+
+  <footer class="colophon">
+    <p>This manual is also built into Krouton: choose Help › Krouton User Manual, or press ⌘?. Corrections are welcome at <a href="https://github.com/jigaz/Krouton/tree/main/Sources/KroutonApp/Resources/Manual">github.com/jigaz/Krouton</a>.</p>
+    <p>This site sets no cookies and loads nothing from anyone else. <a href="/privacy/">Privacy</a></p>
+  </footer>
+</div>
+</body>
+</html>

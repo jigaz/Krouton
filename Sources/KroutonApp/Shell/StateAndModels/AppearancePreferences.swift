@@ -51,7 +51,6 @@ enum KroutonPreferences {
 @MainActor
 final class AppearancePreferences {
     var enableSecondaryAccentUITints: Bool = false
-    var tintWindowWithWallpaper: Bool = false
     var appearanceMode: KroutonRoastAppearanceMode = .auto
     var selectedAccentIndex: Int = 8
     var iconWidgetStyle: KroutonGarnishStyleMode = .defaultStyle
@@ -60,8 +59,6 @@ final class AppearancePreferences {
     var appLanguage: KroutonLanguage = .english
     var voiceOverSpokenTelemetry: Bool = true
     var a11yIncreaseContrast: Bool = false
-    var a11yDifferentiateWithoutColor: Bool = true
-    var a11yReduceMotion: Bool = false
     var rememberLastTaskOnLaunch: Bool = true
     var useBase10Units: Bool = true
 
@@ -91,7 +88,6 @@ final class AppearancePreferences {
         }
         if KroutonPreferences.has(.harmonyEnabled) {
             enableSecondaryAccentUITints = KroutonPreferences.bool(for: .harmonyEnabled)
-            tintWindowWithWallpaper = enableSecondaryAccentUITints
         }
         if let rawApp = KroutonPreferences.string(for: .appearanceMode),
            let mode = KroutonRoastAppearanceMode(rawValue: rawApp) {

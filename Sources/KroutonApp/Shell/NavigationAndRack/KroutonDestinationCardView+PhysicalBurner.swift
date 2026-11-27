@@ -160,36 +160,19 @@ extension KroutonDestinationCardView {
 
         VStack(alignment: .leading, spacing: 10) {
             if !driveManager.availableDrives.isEmpty {
-                if (store.forceDVDROMBookType && !isRightQueueCompact) || (item.copiesToBurn > 1 && store.autoLoadNextDiscBatchMode) {
+                if item.copiesToBurn > 1 && store.autoLoadNextDiscBatchMode {
                     HStack(spacing: 6) {
-                        if store.forceDVDROMBookType && !isRightQueueCompact {
-                            HStack(spacing: 3) {
-                                Image(systemName: "seal.fill")
-                                    .font(.system(size: 9))
-                                Text(KroutonL10n.tr("DVD-ROM Bitset")).lineLimit(1)
-                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            }
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.uiSecondaryAccent).opacity(0.16))
-                            .foregroundStyle((store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : store.uiSecondaryAccent))
-                            .clipShape(Capsule())
-                            .help("MMC Bitsetting Active: Stamps DVD+R / DVD+R DL lead-in Book Type as DVD-ROM (0x00)")
+                        HStack(spacing: 3) {
+                            Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                                .font(.system(size: 9))
+                            Text("Auto-Load (\(store.autoLoadCountdownSeconds)s)")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
                         }
-
-                        if item.copiesToBurn > 1 && store.autoLoadNextDiscBatchMode {
-                            HStack(spacing: 3) {
-                                Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
-                                    .font(.system(size: 9))
-                                Text("Auto-Load (\(store.autoLoadCountdownSeconds)s)")
-                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            }
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(store.uiSecondaryAccent.opacity(0.18))
-                            .foregroundStyle(store.uiSecondaryAccent)
-                            .clipShape(Capsule())
-                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(store.uiSecondaryAccent.opacity(0.18))
+                        .foregroundStyle(store.uiSecondaryAccent)
+                        .clipShape(Capsule())
                         Spacer(minLength: 0)
                     }
                 }

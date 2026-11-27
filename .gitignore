@@ -9,8 +9,8 @@ DerivedData/
 *.tmp
 /build/
 /.swiftpm/
-/krouton-spoold/target/
+/krouton-server/target/
 
 # Cross-platform release artifacts
 dist/
-krouton-spoold/
+__pycache__/

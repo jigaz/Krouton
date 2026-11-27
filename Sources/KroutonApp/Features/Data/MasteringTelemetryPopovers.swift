@@ -39,7 +39,7 @@ struct KroutonHybridLBAMapPopoverView: View {
                     LBA 16: ISO-9660 Primary Volume Descriptor
                     LBA \(plan.elToritoBootRecordLBA ?? -1): El Torito Boot Catalog
                     LBA \(plan.jolietSVDSectorLBA): Joliet UCS-2 SVD
-                    LBA \(plan.udfAnchorAVDPLBA): ECMA-167 UDF 2.60 Anchor (AVDP)
+                    LBA \(plan.udfAnchorAVDPLBA): ECMA-167 UDF Anchor (AVDP)
                     TOTAL SECTORS: \(plan.totalSectorsLBA) (\(plan.totalBytes) bytes)
                     """
                     KroutonOSDesktopBridge.copyTextToClipboard(report)
@@ -60,7 +60,7 @@ struct KroutonHybridLBAMapPopoverView: View {
                         .foregroundStyle(.orange)
                 }
                 Text(String(format: "• LBA %06lld : Joliet Supplementary Volume Descriptor (UCS-2)", plan.jolietSVDSectorLBA))
-                Text(String(format: "• LBA %06lld : ECMA-167 / UDF 2.60 Anchor Volume Descriptor (AVDP)", plan.udfAnchorAVDPLBA))
+                Text(String(format: "• LBA %06lld : ECMA-167 / UDF Anchor Volume Descriptor (AVDP)", plan.udfAnchorAVDPLBA))
                 Text(String(format: "• LBA %06lld : Shared Hybrid Data Payload Start (%d deduplicated extents)", plan.dataPayloadStartLBA, plan.sharedHybridExtents.count))
                     .foregroundStyle(store.activeAccent)
             }
@@ -225,7 +225,7 @@ struct KroutonVideoBitratePopoverView: View {
         let shrinkPlan = KroutonVideoAuthoringEngine.planDVD9ToDVD5Shrink(
             mainFeatureBytes: mainBytes,
             menusAndExtrasBytes: extrasBytes,
-            preserveMenusAndExtras: store.fitToDiscPreserveMenus
+            preserveMenusAndExtras: store.preserveMenusAndExtras
         )
 
         VStack(alignment: .leading, spacing: 10) {
@@ -293,7 +293,7 @@ struct KroutonVideoBitratePopoverView: View {
             }
             let blueprint = KroutonVideoAuthoringEngine.buildDVD9ToDVD5MenuShrinkBlueprint(
                 menuVobBytes: extrasBytes,
-                preserveMenus: store.fitToDiscPreserveMenus,
+                preserveMenus: store.preserveMenusAndExtras,
                 sourceCells: sampleCells
             )
 

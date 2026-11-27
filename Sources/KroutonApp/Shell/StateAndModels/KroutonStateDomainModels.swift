@@ -204,6 +204,8 @@ struct KroutonDepotCatalogItem: Identifiable, Hashable, Sendable {
     var sha256Short: String
     var sfSymbol: String
     var isDownloaded: Bool
+    /// The depot.krouton.app entry this card shows; nil for Internet Archive search results.
+    var feed: KroutonDepotFeed.Item? = nil
 }
 
 struct KroutonDepotFeedSubscription: Identifiable, Hashable, Sendable {
@@ -229,11 +231,16 @@ struct KroutonKitchenEventRow: Identifiable, Hashable, Sendable {
     var eventTitle: String
     var eventSubtitle: String
     var bannerEnabled: Bool
-    var iPhoneEnabled: Bool
-    var watchEnabled: Bool
     var soundEnabled: Bool
 }
 
+/// Where a destination card sends the deck.
+///
+/// The raw values are persisted in saved queues and sessions, so they never change; what the
+/// card shows is `title`. Two raw values are left from before the 2026-11 audit and overstate
+/// what the card does: `.videoExtract` remuxes to MKV or copies MPEG (no H.265 transcode), and
+/// `.discPrinter` writes the same 1:1 PDF + PNG print sheet as `.pdfVector` (it drives no disc
+/// printer). Never show `rawValue` to a person.
 enum KroutonBurnDestinationKind: String, CaseIterable, Identifiable, Codable, Sendable {
     case physicalBurner = "Physical Burner"
     case networkBurner = "Network Server Burner"
@@ -243,6 +250,19 @@ enum KroutonBurnDestinationKind: String, CaseIterable, Identifiable, Codable, Se
     case discPrinter = "Disc Printer (Epson ET-8550)"
     case pdfVector = "Vector PDF Label"
     var id: String { rawValue }
+
+    /// What the destination does, in the words the card and the notifications use.
+    var title: String {
+        switch self {
+        case .physicalBurner: return "Burner on This Mac"
+        case .networkBurner: return "Krouton Server"
+        case .discImage: return "Disc Image File"
+        case .audioRip: return "Audio Rip (FLAC / ALAC / WAV / AIFF)"
+        case .videoExtract: return "Video Extract (MKV / MPEG)"
+        case .discPrinter: return "Label Print Sheet (PDF + PNG)"
+        case .pdfVector: return "Vector PDF Label"
+        }
+    }
 
     var sfSymbol: String {
         switch self {

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>File formats — Krouton</title>
+<meta name="description" content="The file formats Krouton writes and reads, described as JSON Schema so other programs can read them for as long as the discs last.">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" href="/assets/disc.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="site">
+  <header class="masthead">
+    <a class="name" href="/">Krouton</a>
+    <nav aria-label="Site">
+      <a href="/">The app</a>
+      <a href="/manual/">Manual</a>
+      <a href="/server/">Krouton Server</a>
+      <a href="https://archive.krouton.app/">Archive</a>
+      <a href="/drives/">Report a drive</a>
+      <a href="https://github.com/jigaz/Krouton">Source</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>File formats</h1>
+    <p class="lede">Krouton writes files that should still make sense in twenty years, with or without Krouton. This page lists them, each described as a <a href="https://json-schema.org/">JSON Schema</a> so any program can check and read them.</p>
+
+    <h2>On the disc</h2>
+    <dl>
+      <dt><a href="/schema/set-index/v1.json">Disc set index</a></dt>
+      <dd><code>krouton-set-index.json</code>, at the root of every disc in a set Krouton spans across several discs. It lists every file on every disc with its size and SHA-256, so any one disc tells you which disc to fetch for a file. It sits beside standard BagIt files (RFC 8493), which any archive's tools can check without Krouton.</dd>
+    </dl>
+
+    <h2>On your Mac</h2>
+    <dl>
+      <dt><a href="/schema/krut/v1.json">Project file (.krut)</a></dt>
+      <dd>A saved project: the files to burn, where they go, track order and the label. It refers to your files where they are rather than copying them.</dd>
+    </dl>
+
+    <h2>On the web</h2>
+    <dl>
+      <dt><a href="/schema/depot-feed/v1.json">Depot feed</a></dt>
+      <dd>The list of disc images at <a href="https://depot.krouton.app/">depot.krouton.app</a>, which Krouton's Disc Image Depot reads from <a href="https://depot.krouton.app/v1/manifest.json">depot.krouton.app/v1/manifest.json</a>. Each image has its download address, size and checksum.</dd>
+      <dt><a href="https://archive.krouton.app/drives/schema.json">Drive report</a></dt>
+      <dd>One burn on one drive: the drive, its connection, the disc and how it went. Reports are collected openly in the <a href="https://archive.krouton.app/">optical disc archive</a>.</dd>
+    </dl>
+
+    <h2>Between the app and Krouton Server</h2>
+    <p>The network protocol (KRSP v1) and the folder bundles it carries are described in the <a href="https://github.com/jigaz/Krouton/tree/main/krouton-server">Krouton Server documentation</a>. They are pinned by test vectors in <a href="https://github.com/jigaz/Krouton/tree/main/Vectors">Vectors/</a>, which both the app and the server must reproduce byte for byte.</p>
+
+    <h2>How versions work</h2>
+    <p>Every format has a version in its address, such as <code>/v1.json</code>, and a published version never changes in a way that breaks readers. New optional fields may be added to a version, and readers ignore fields they don't know. Anything else, such as removing a field or changing what one means, becomes a new version at a new address, and the old one stays published.</p>
+  </main>
+
+  <footer class="colophon">
+    <p>These schemas are CC0: use them however you like.</p>
+    <p>This site sets no cookies and loads nothing from anyone else. <a href="/privacy/">Privacy</a></p>
+  </footer>
+</div>
+</body>
+</html>

@@ -10,7 +10,9 @@ let package = Package(
     name: "krouton",
     defaultLocalization: "en",
     platforms: [
-        .macOS(.v14)
+        .macOS(.v14),
+        // Only the portable libraries (krouton-verify Suite 31) are built for iPadOS, by CI.
+        .iOS(.v17)
     ],
     products: [
         .executable(name: "Krouton", targets: ["KroutonApp"]),

@@ -4,7 +4,6 @@ import CoreMedia
 import CryptoKit
 import Foundation
 import SwiftUI
-import VideoToolbox
 
 // MARK: - Universal Media Decoder & Hardware Acceleration Engine (Hardware & Software Stream Engine)
 
@@ -51,91 +50,7 @@ public struct KroutonStreamProbeResult: Identifiable, Hashable, Sendable {
     }
 }
 
-public struct KroutonWorkflowCodecRow: Identifiable, Hashable, Sendable {
-    public let id: String
-    public let category: String
-    public let formatsAndExtensions: String
-    public let primaryEngine: String
-    public let hardwareStatus: String
-    public let isHardwareAccelerated: Bool
-}
-
 public enum KroutonMediaPrepEngine {
-    public static var liveHardwareCodecMatrix: [KroutonWorkflowCodecRow] {
-        let h264HW = VTIsHardwareDecodeSupported(kCMVideoCodecType_H264)
-        let hevcHW = VTIsHardwareDecodeSupported(kCMVideoCodecType_HEVC)
-        let proResHW = VTIsHardwareDecodeSupported(kCMVideoCodecType_AppleProRes422HQ)
-        let av1HW = VTIsHardwareDecodeSupported(kCMVideoCodecType_AV1)
-        let vp9HW = VTIsHardwareDecodeSupported(kCMVideoCodecType_VP9)
-        let mpeg2HW = VTIsHardwareDecodeSupported(kCMVideoCodecType_MPEG2Video)
-
-        return [
-            KroutonWorkflowCodecRow(
-                id: "vt-hevc-h264",
-                category: "Modern Cinema Video (H.264 / H.265 HEVC / HDR10 / Dolby Vision)",
-                formatsAndExtensions: ".mp4, .mov, .m4v, .hevc, .h264, .ts",
-                primaryEngine: "VideoToolbox VTDecompressionSession",
-                hardwareStatus: (h264HW && hevcHW) ? "Hardware ASIC Active (8-bit & 10-bit 4:2:2)" : "Software Fallback",
-                isHardwareAccelerated: h264HW && hevcHW
-            ),
-            KroutonWorkflowCodecRow(
-                id: "vt-prores",
-                category: "Broadcast & Post-Production Mezzanine (ProRes / CineForm / DNxHR)",
-                formatsAndExtensions: ".mov, .mxf (ProRes 422 / LT / HQ / 4444 / XQ / RAW)",
-                primaryEngine: "VideoToolbox ProRes Media Engine + libavcodec DNxHR",
-                hardwareStatus: proResHW ? "Dedicated ProRes Silicon Engine" : "Apple Accelerate SIMD",
-                isHardwareAccelerated: true
-            ),
-            KroutonWorkflowCodecRow(
-                id: "vt-av1-vp9",
-                category: "Next-Gen Web & Archival Video (AV1 / VP9 / WebM)",
-                formatsAndExtensions: ".mkv, .webm, .mp4, .ivf (AV1 10-bit / VP9 Profile 2)",
-                primaryEngine: av1HW ? "VideoToolbox AV1 Hardware + dav1d SIMD" : "dav1d ARM64 NEON + VideoToolbox VP9",
-                hardwareStatus: (av1HW || vp9HW) ? "Hardware Decode + NEON SIMD" : "ARM64 NEON 12-Thread SIMD",
-                isHardwareAccelerated: av1HW || vp9HW
-            ),
-            KroutonWorkflowCodecRow(
-                id: "ffmpeg-containers",
-                category: "Universal Multi-Track Containers & Optical Streams",
-                formatsAndExtensions: ".mkv, .m2ts, .mts, .vob, .evo, .avi, .wmv, .asf, .flv, .ogv, .rmvb",
-                primaryEngine: "libavformat Demuxer -> VideoToolbox HW Bridge",
-                hardwareStatus: "Zero-Copy Packet Remux -> VT Hardware",
-                isHardwareAccelerated: true
-            ),
-            KroutonWorkflowCodecRow(
-                id: "legacy-optical-video",
-                category: "Legacy Set-Top & Broadcast Video (MPEG-2 / VC-1 / DivX / Xvid / DV)",
-                formatsAndExtensions: ".vob, .mpg, .mpeg, .m2v, .vc1, .dv, .avi",
-                primaryEngine: mpeg2HW ? "VideoToolbox MPEG-2 + libavcodec NEON" : "libavcodec ARM64 NEON Multi-Thread",
-                hardwareStatus: mpeg2HW ? "VideoToolbox HW + NEON SIMD" : "ARM64 NEON SIMD (400+ fps)",
-                isHardwareAccelerated: true
-            ),
-            KroutonWorkflowCodecRow(
-                id: "audiophile-lossless",
-                category: "Audiophile Lossless, Linear PCM & Scarlet Book DSD",
-                formatsAndExtensions: ".wav (RF64/32f), .aiff, .flac, .alac, .ape, .wv, .tta, .dsf, .dff",
-                primaryEngine: "AudioToolbox + libFLAC + WavPack + Accelerate vDSP",
-                hardwareStatus: "Apple Accelerate vDSP 64-Bit Float",
-                isHardwareAccelerated: true
-            ),
-            KroutonWorkflowCodecRow(
-                id: "cinema-surround",
-                category: "Home Theater Bitstream & Lossy Audio (Atmos / TrueHD / DTS-HD / Opus)",
-                formatsAndExtensions: ".ac3, .eac3, .thd, .mlp, .dts, .dtshd, .opus, .ogg, .mp3, .m4a, .wma",
-                primaryEngine: "S/PDIF & HDMI Bitstream Passthrough + libavcodec / libopus",
-                hardwareStatus: "Direct Bitstream / Accelerate vDSP",
-                isHardwareAccelerated: true
-            ),
-            KroutonWorkflowCodecRow(
-                id: "optical-subtitles",
-                category: "Optical Bitmap & Styled Text Subtitles (Blu-ray CEA-608 / VobSub Track Passthrough & DVD VobSub)",
-                formatsAndExtensions: ".sup (BD CEA-608 / VobSub Track Passthrough), .idx/.sub (VobSub), .ass, .ssa, .srt, .vtt, CEA-608/708",
-                primaryEngine: "Metal CoreImage Compositor + CoreText Subtitle Layout + CEA-608 / VobSub Track Passthrough Muxer",
-                hardwareStatus: "Metal GPU Accelerated",
-                isHardwareAccelerated: true
-            )
-        ]
-    }
 
     /// Probes any audio/video/container URL and returns its exact decoder pipeline & hardware acceleration badge
     public static func probeFile(_ url: URL) -> KroutonStreamProbeResult {

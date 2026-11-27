@@ -34,7 +34,7 @@ extension KroutonStateStore {
         if fmt?.usesRawCueBinImage == true {
             return ("~/Desktop/\(cleanTitle).cue", "2,352-Byte Raw .BIN + .CUE Image")
         } else if fmt?.usesAppleDiskImage == true {
-            return ("~/Desktop/\(cleanTitle).dmg", "Apple HFS+ / APFS Disk Image")
+            return ("~/Desktop/\(cleanTitle).dmg", "Apple HFS+ Disk Image")
         }
         return ("~/Desktop/\(cleanTitle).iso", "Sector-Exact .ISO Optical Image")
     }
@@ -294,7 +294,7 @@ extension KroutonStateStore {
             }
         case .label:
             destinationQueue = [
-                KroutonBakeBatchItem(kind: .discPrinter, targetDriveID: "", hardwareOrPath: "Epson EcoTank Photo ET-8550 (CD/DVD Tray)", speedOrCodec: "Claria ET 6-Ink • 120mm / 18mm", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
+                KroutonBakeBatchItem(kind: .discPrinter, targetDriveID: "", hardwareOrPath: "~/Desktop/\(discVolumeTitle)_Label Sheet.pdf", speedOrCodec: "1:1 PDF + 300-DPI PNG • 120mm / 18mm", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
             ]
         }
         savedQueuesByDomain[targetDomain] = destinationQueue

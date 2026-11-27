@@ -222,8 +222,9 @@ extension KroutonWorkspaceCommands {
 
             Divider()
 
-            Link(KroutonL10n.tr("Krouton Online Documentation (krouton.app)"), destination: KroutonDomainIdentity.documentationURL)
-            Link(KroutonL10n.tr("Verify Archival Disc Certificate Online"), destination: KroutonDomainIdentity.archivalVerifyURL)
+            Link(KroutonL10n.tr("Krouton Manual Online (krouton.app)"), destination: KroutonDomainIdentity.manualURL)
+            Link(KroutonL10n.tr("Report a Drive"), destination: KroutonDomainIdentity.driveReportURL)
+            Link(KroutonL10n.tr("Report a Problem"), destination: KroutonDomainIdentity.problemReportURL)
         }
     }
 }

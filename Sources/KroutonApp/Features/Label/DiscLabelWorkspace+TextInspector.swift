@@ -311,54 +311,9 @@ extension KroutonDiscLabelWorkspaceView {
     }
 
     @MainActor
-    func exportHighRes300DPILabelPNG(preset: KroutonDiscLabelGeometry, isTestPrintSheet: Bool) {
-        let exportPixels: CGFloat = preset.outerDiameterMM <= 85.0 ? 945.0 : 1417.0
-        let exportCanvas = KroutonDiscLabelArtworkCanvas(
-            preset: preset,
-            template: store.selectedLabelTemplate,
-            title: store.labelDiscTitle,
-            subtitle: store.labelSubtitle,
-            performer: store.discPerformer,
-            mcnBarcode: store.discMCNBarcode,
-            trackLines: [],
-            showTracklist: false,
-            primaryColor: store.activeAccent,
-            harmonyColor: store.uiSecondaryAccent,
-            isExportMode: true,
-            diameterPoints: exportPixels,
-            backgroundStyle: store.labelBackgroundStyle,
-            bgPrimaryColor: store.labelBgPrimaryColor,
-            bgSecondaryColor: store.labelBgSecondaryColor,
-            gradientMidpoint: store.labelGradientMidpoint,
-            gradientAngle: store.labelGradientAngle,
-            gpuSeedPattern: store.labelGPUSeedPattern,
-            kaleidoscopeFacets: store.labelKaleidoscopeFacets,
-            kaleidoscopeRig: store.labelKaleidoscopeRig,
-            chamberTumble: store.labelChamberTumble,
-            tinyPlanetRadius: store.labelTinyPlanetRadius,
-            bgAdjustments: store.labelBgAdjustments,
-            textElements: store.labelTextElements
-        )
-        let renderer = ImageRenderer(content: exportCanvas)
-        renderer.scale = 1.0
-        if let cgImg = renderer.cgImage {
-            let files = KroutonLabelGeometryEngine.writeDiscLabelExportFiles(
-                discCGImage: cgImg,
-                presetName: preset.name,
-                outerDiameterMM: preset.outerDiameterMM,
-                innerDiameterMM: preset.innerDiameterMM,
-                offsetXMM: preset.offsetXMM,
-                offsetYMM: preset.offsetYMM,
-                discTitle: store.discVolumeTitle,
-                exportPNG: !isTestPrintSheet,
-                exportPDF: isTestPrintSheet
-            )
-            if let pdfURL = files.pdfURL {
-                showTransientBanner("Saved 1:1 Print Sheet PDF -> ~/Downloads/\(pdfURL.lastPathComponent)")
-            } else if let pngURL = files.pngURL {
-                showTransientBanner("Saved 300-DPI PNG -> ~/Downloads/\(pngURL.lastPathComponent)")
-            }
-        }
+    /// Exports the label with the Print tool's settings and shows where it went.
+    func exportLabel(_ kind: KroutonStateStore.LabelExportKind) {
+        showTransientBanner(store.exportDiscLabel(kind))
     }
 
     func workspaceSwatchButton(_ label: String, c1: Color, c2: Color) -> some View {

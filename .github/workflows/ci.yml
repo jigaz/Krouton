@@ -8,12 +8,104 @@ on:
 
 jobs:
   verify-macos:
-    runs-on: macos-15
+    # Matches the toolchain Krouton is developed on (Xcode 26 / Swift 6.2 SDK annotations).
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
+      - name: Toolchain
+        run: swift --version && xcodebuild -version
+      - name: Manual on krouton.app matches the app's manual
+        run: python3 Scripts/build-manual.py --check
       - name: Build All Targets
         run: swift build
       - name: Run Unit Tests
         run: swift test
-      - name: Run 28-Suite Deterministic Verification Harness
+      - name: Run Deterministic Verification Harness
         run: swift run krouton-verify
+        env:
+          KROUTON_HFS_OUT: ${{ runner.temp }}/hfs
+      - name: An independent reader checks the classic HFS image (Suite 38)
+        run: python3 Scripts/check-hfs-image.py "$RUNNER_TEMP/hfs/classic.cdr"
+      - name: Keep the classic HFS image for the Linux mount
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hfs-image
+          path: ${{ runner.temp }}/hfs/classic.cdr
+          if-no-files-found: ignore
+
+  avchd-real-encode:
+    # The AVCHD pipeline end to end: ffmpeg makes two test clips (30 and 25 fps, stereo and 5.1),
+    # krouton-verify Suite 36 converts, authors and images them, then libbluray (what VLC, Kodi
+    # and mpv play Blu-rays with) opens the folder and the UDF 2.50 image, reads the title, clips
+    # and chapters and seeks through the EP map, and hdiutil mounts the image.
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: ffmpeg and libbluray
+        run: brew install ffmpeg libbluray
+      - name: Test clips
+        run: |
+          mkdir -p "$RUNNER_TEMP/avchd"
+          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=1280x720:rate=30 -f lavfi -i sine=frequency=440:sample_rate=48000 \
+            -t 12 -c:v libx264 -pix_fmt yuv420p -c:a aac -ac 2 "$RUNNER_TEMP/avchd/a.mp4"
+          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=1920x1080:rate=25 -f lavfi -i sine=frequency=330:sample_rate=48000 \
+            -t 8 -c:v libx264 -pix_fmt yuv420p -c:a aac -ac 6 "$RUNNER_TEMP/avchd/b.mov"
+      - name: Convert, author and image them (Suite 36)
+        run: swift run krouton-verify
+        env:
+          KROUTON_AVCHD_INPUTS: ${{ runner.temp }}/avchd/a.mp4,${{ runner.temp }}/avchd/b.mov
+          KROUTON_AVCHD_OUT: ${{ runner.temp }}/avchd/out
+      - name: libbluray reads the disc; macOS mounts the image
+        run: python3 Scripts/check-avchd-disc.py "$RUNNER_TEMP/avchd/out"
+      - name: macOS mounts the DVD-Video image and lists VIDEO_TS in order
+        run: |
+          mnt=$(mktemp -d)
+          hdiutil attach -readonly -nobrowse -mountpoint "$mnt" "$RUNNER_TEMP/avchd/out/dvd-vector.iso"
+          ls -l "$mnt/VIDEO_TS"
+          test -f "$mnt/VIDEO_TS/VTS_01_1.VOB"
+          cmp <(head -c 300000 "$mnt/VIDEO_TS/VTS_01_1.VOB") <(python3 -c "import sys; sys.stdout.buffer.write(bytes(((i*31+12)&255) for i in range(300000)))")
+          hdiutil detach "$mnt"
+      - name: Keep the DVD-Video image when the vector fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dvd-vector
+          path: ${{ runner.temp }}/avchd/out/dvd-vector.iso
+
+  hfs-linux-mount:
+    # Linux's own HFS driver mounts the classic HFS image Suite 38 wrote (macOS can't read
+    # HFS Standard any more), and the files read back as written.
+    needs: verify-macos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: hfs-image
+      - name: Mount and read it
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq "linux-modules-extra-$(uname -r)" || true
+          sudo modprobe hfs
+          sudo mkdir -p /mnt/hfs
+          sudo mount -t hfs -o loop,ro,offset=32768 classic.cdr /mnt/hfs
+          ls -laR /mnt/hfs
+          printf 'Read me first\r' | cmp - '/mnt/hfs/Read Me'
+          test "$(stat -c %s '/mnt/hfs/System Folder/Extensions/apple Ext')" = 70000
+          sudo umount /mnt/hfs
+
+  ipados-portable-core:
+    # The libraries an iPad app would share (krouton-verify Suite 31) must compile for iPadOS.
+    # NetworkSpool pulls in OpticalCore; LabelKit pulls in AudioKit and RescueKit.
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        scheme: [ NetworkSpool, LabelKit, Persistence ]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ${{ matrix.scheme }} for iPadOS
+        run: |
+          xcodebuild -scheme '${{ matrix.scheme }}' -destination 'generic/platform=iOS' \
+            -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO build > build.log 2>&1 && status=0 || status=$?
+          grep -E 'error:|warning:|BUILD (SUCCEEDED|FAILED)' build.log | sort -u | head -n 80
+          exit "$status"
