@@ -172,17 +172,7 @@ extension KroutonTestHarness {
                && forwardingSrc.contains("WritableKeyPath<RipSettings, T>"),
                "KroutonStateStore+SubStoreForwarding.swift must route all 4 sub-stores via @dynamicMemberLookup key-path subscripts")
 
-        // Sessions and projects saved before 2026-11-27 store these destination kinds; they
-        // must keep decoding, and must not come back as raw values.
-        let modelsURL = KroutonTestHarness.repositoryRoot
-            .appendingPathComponent("Sources/KroutonApp/Shell/StateAndModels/KroutonStateDomainModels.swift")
-        let modelsSrc = (try? String(contentsOf: modelsURL, encoding: .utf8)) ?? ""
-        let savedBefore = ["Physical Burner", "Network Server Burner", "Disc Image File", "Audio Rip (ALAC / AAC / FLAC)",
-                           "Video Transcode (H.265 / HEVC)", "Disc Printer (Epson ET-8550)", "Vector PDF Label"]
-        h.lint(savedBefore.allSatisfy { modelsSrc.contains("\"\($0)\": .") }
-               && !savedBefore.contains { modelsSrc.contains("= \"\($0)\"") }
-               && modelsSrc.contains("init(from decoder: Decoder)"),
-               "KroutonBurnDestinationKind must still read every destination kind saved before 2026-11-27, and not write them")
+        Self.checkSavedDestinationKinds(&h)
     }
 
     private mutating func runVerifyMultiDiscSpanningSuitePart() {
