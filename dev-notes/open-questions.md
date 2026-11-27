@@ -46,39 +46,102 @@ Related: `pure-swiftui-shell.md` (the one AppKit file), `removed-formats.md`, `P
 - **Known:** Project and session models (`KroutonKrutCoreSpec`, `KroutonEmbeddedLabelSpec`, `KroutonLabelTextElement`, `KroutonPlanetSettings` and others) use Swift's generated `Codable` with default values. Generated decoding ignores defaults: if a later version adds a non-optional field, a project saved before that field existed fails to decode as a whole. `hasDropShadow` on text layers looks like such a later addition.
 - **Answer by:** Collect project files saved by older builds (or rebuild them from git history) and decode them in a test. Where it fails, add `init(from:)` with `decodeIfPresent ?? default`, or make new fields optional. Then add a test that keeps an old project file decoding.
 
-### 8. Persisted names that overstate what Krouton does
-- **Known:** `KroutonBurnDestinationKind` saves raw values such as "Video Transcode (H.265 / HEVC)" (it remuxes, no H.265) and "Disc Printer (Epson ET-8550)" (it writes a PDF). Saved queues depend on them, so they were left in place with a warning not to show them.
-- **Answer by:** Plan a migration: new honest raw values, plus decoding that accepts the old ones. Then check nothing displays `rawValue`.
+### 8. Destination cards that say one thing and do another
+*Re-examined 2026-11-26.* The enum's raw values are a smaller problem than they looked: `KroutonBurnDestinationKind.title` is already honest and is what the card shows. The real overstatements are in `speedOrCodec`, the free-text string each card carries, and in how saved queues come back.
+- **Wrong output, today:**
+  - `KroutonStateStore+DestinationQueue.swift` adds a second rip card labelled "MP3 (320 kbps CBR)" with the folder "MP3 320kbps". `KroutonRealCDExtractor.extractSingleTrack` (AudioKit/AudioSampleDecoder.swift) picks the codec by substring (FLAC, ALAC, WAV, else AIFF), so that card writes **AIFF** files into a folder named MP3. Krouton has no MP3 encoder.
+  - Switching a card to Audio Rip (`KroutonDestinationCardView+Sections.swift`) sets the folder to "Apple Lossless" but keeps the burner's "Max Safe (Auto)" as the codec, so it also writes AIFF.
+  - The first rip card's codec is "FLAC (Lossless) + AccurateRip"; the queue rip doesn't check AccurateRip (its own report says so).
+  - A video-extract card labelled "Apple HEVC 10-Bit (.mp4)" (folder "HEVC_10Bit") only ever refuses: extraction runs from the workspace.
+  - A Krouton Server card added from the queue shows "localhost:7420", but `SpoolRemoteNodeClient.burnImage` falls back to the first paired server, so the job may go to another machine than the card says.
+  - The PDF label card's default file name is "Epson_ET8550_Label_120mm.pdf".
+- **Saved queues:** they're stored twice, and fail differently when a raw value changes. The project vault (`KroutonSavedDestinationRecord.toBatchItem`) maps an unknown kind to `.physicalBurner`, so a rip card would come back as a burner. The session snapshot (`KroutonPersistedSessionSnapshot`, synthesized `Codable`) fails as a whole, and `SessionStore.load()` quietly starts fresh. See also #7.
+- **Answer by:**
+  1. Replace `speedOrCodec: String` with typed settings per kind (a rip codec enum that only lists FLAC, ALAC, WAV and AIFF; a burn speed), decoding old strings into them.
+  2. Store the server's node ID on network cards, never "localhost:7420"; show the server's name.
+  3. Rename the enum's raw values only together with a decoder that accepts the old ones, and make an unknown kind drop that card with a notice instead of becoming a burner.
+  4. A verify check that every preset card's settings are ones its executor supports.
 
 ### 9. Unused-code report triage (248 findings)
-- **Known:** CI's `unused-code` job (Periphery) lists 70 unused declarations, 120 properties that are written but never read, and 56 needlessly public ones. The first pass removed the clear cases. The rest share names with used code, or are fields of hashable cache keys and result types, which are usually fine.
-- **Answer by:** Go module by module and check each finding by hand; remove only what is truly unused. Making the 56 declarations internal also shrinks Suite 28's surface.
-- **Also:** Periphery's upstream repository has been archived, and Homebrew disables the formula on 2027-08-12. Find a maintained alternative, or pin a release binary in CI.
+*Re-examined 2026-11-26* from the CI log of main at 0c569bc: 70 unused, 120 assigned but never read, 56 needlessly public, 2 redundant protocols or conformances.
+- **The 120 write-only properties** are mostly harmless: fields of hashable cache keys (`LabelGeometry+OpticalPlayground.swift`, 11), file-identity snapshots compared whole (`BurnSetStager`, 6), and result fields. Leave them, or mark them with `// periphery:ignore` once checked. Two are features that compute work nobody uses:
+  - **Auto-Label** (`LabelKit/AutoLabelEngine.swift`) harvests artwork, frames it around the hole with Vision, extracts a palette, and builds a tracklist and rim banner. `AutoLabelStoreAdapter` applies only the title and subtitle, yet the summary says "embedded/folder artwork + Vision center-hole framing". Wire the rest in or cut the summary down. **Owner decides.**
+  - Head and tail loudness (`AudioAnalysisService`, `headLUFS`/`tailLUFS`) are measured for every track and never read.
+- **Of the 70 unused, the ones that matter:**
+  - `preserveMenus` in `VideoKit/VideoAuthoringEngine+Shrink.swift`: the shrink always keeps the menus (`preserveMenusAndExtras: true`), so the Settings toggle "otherwise only the main feature is kept" does nothing. Remove the toggle, or make the flag work.
+  - Capability bits (`SpoolNodeCapabilities.writesCD/DVD/BD`): the client parses the server's `caps` and never checks or shows them, so a Blu-ray job can go to a CD-only server.
+  - The notification service ignores the `progress`, `driveName` and `speedLabel` it is passed.
+  - `KroutonDomainIdentity.spoolDefaultPort` is unused while "7420" is written out in three places.
+  - Duplicates to fold: two CUE parsers in `DiscImageDepot.swift`, `buildOpticalRescueMap` in RescueKit and a LabelKit wrapper (#6), `BurnPoolSnapshot` and `withdraw(drive:)`.
+- **Likely false positives, keep:** `appDelegate` (an adaptor), the App Intents' `description` (read by the system), `burnQueueSubStore` (key paths), `KroutonViewportTier` (see #14).
+- **The 56 public ones:** making them internal also shrinks Suite 28's surface. Do it module by module, with `swift build` for iOS in the loop.
+
+### 10. Periphery is archived; choose what CI runs
+*Found 2026-11-26.*
+- **Known:** The author archived `peripheryapp/periphery` on 2026-08-12 and moved to a closed-source commercial successor, Periphery Pro (prebuilt `periphery-cli`). Homebrew deprecated the formula and disables it on 2027-08-12; until then CI keeps getting the last open-source release, 3.8.0, under the MIT licence. A community fork (`tiny-earth-moon`) has since been renamed **outskirts**. It builds with Xcode 27.1 / Swift 6.4, has fixed false positives, and installs with `brew install tiny-earth-moon/tap/outskirts`. It is run by one account and has no release binaries outside its Apple-silicon bottle.
+- **Options:**
+  1. Do nothing until 2027-08-12.
+  2. Build 3.8.0 from its tag in CI and cache the binary. Stable, but frozen, and it may stop understanding newer index stores.
+  3. Switch to outskirts. Same config and CSV format; pin a version and keep the summary script.
+  4. Buy Periphery Pro.
+  5. Drop the job and rely on Suite 28 plus review.
+- **Recommendation:** 3, pinned to a version, falling back to 2 if the fork stalls. The job is a report, not a gate, so a tool change can't break builds. **Owner decides** (licence and trust in a one-account fork).
 
 ---
 
 ## Architecture and tooling
 
-### 10. A burn coordinator outside the UI store
-- **Known:** About 1,500 lines of burn orchestration live in `KroutonStateStore+BurnInput`, `+BurnSupport`, `+PhysicalBurn`, `+NetworkBurn`, `+DestinationExecution`, `+DestinationQueue` and `+SpannedDestinations`. Periphery found almost no dead code there, so it is real work in the wrong place.
-  `KroutonOpticalDriveBank+BurnSession.swift` is at 499 of 500 lines, and its "NOTE(status, 2026-11)" comment predates the HFS and CD-Extra paths.
-- **Answer by:** Propose a design: where the coordinator lives (BurnKit?), how the UI observes progress, how it's tested with `ScriptedOpticalDrive`. Do the move after the first hardware test burns, so a regression can be told apart from a format problem.
+### 11. A burn coordinator outside the UI store
+*Re-examined 2026-11-26.*
+- **Known:**
+  - **There are already two burn paths.**
+    - Multi-disc sets go `KroutonBurnSetController` → `BurnSetScheduler` (an actor in BurnKit) → `DiscRecordingOpticalDrive`. That path freezes the sources, journals each event (`BurnEventJournal`), and claims drives through the arbiter.
+    - Everything else goes through about 1,680 lines in seven store extensions (`+BurnInput`, `+BurnSupport`, `+PhysicalBurn`, `+NetworkBurn`, `+DestinationExecution`, `+DestinationQueue`, `+SpannedDestinations`) into `KroutonOpticalDriveBank.beginBurn…` (DriveKit). That path has its own ticket pool (`waitingBurnPool`, `promoteWaitingTicket`, `advancePoolAfterCardBurnCompleted`), while OpticalCore's `BurnClaimLedger` sits mostly unused.
+  - The scheduler's `OpticalDrive` protocol only has `write(image:)`, so audio tracks, CD-Extra's two sessions, `.cdi` sector layouts and folder burns can't use it yet.
+  - The store code mostly touches `destinationQueue` (70 references), `waitingBurnPool` (24), `discVolumeTitle`, `stagedFiles` and the pool counters. That is a small surface to hand to a coordinator.
+  - BurnKit already depends on DriveKit and ImageKit, but not on AudioKit or NetworkSpool.
+  - `KroutonOpticalDriveBank+BurnSession.swift` is at 499 of 500 lines. Its "NOTE(status, 2026-11)" says there is no HFS-standard data writer, which is out of date: HFS now arrives as an image.
+- **Proposal:** one path, not a third.
+  1. Generalize the payload: `enum BurnPayload { image(URL), dataFolder(…), audio(KroutonAudioBurnDisc), sectors(SectorLayout) }`, and `OpticalDrive.write(_ payload:)`. The drive bank's sessions become one `OpticalDrive` implementation; `DiscRecordingOpticalDrive` merges into it.
+  2. A `BurnCoordinator` actor in BurnKit owns the queue run and the pool, on top of `BurnClaimLedger`. It publishes progress as an `AsyncStream` that a small `@Observable` adaptor in the app mirrors.
+  3. The app keeps only what needs AudioKit, VideoKit or NetworkSpool, behind two protocols: preparing a payload (render audio, master an image), and a remote burner (implemented over `SpoolRemoteNodeClient`).
+  4. Tests: drive the coordinator with `ScriptedOpticalDrive` in `swift test` and Suite runs. The journal comes for free.
+  5. Order: after the first hardware test burns, so a regression can be told apart from a format problem. Move one destination kind at a time: disc image first, then physical, network, audio and CD-Extra.
 - **Owner decides.**
 
-### 11. Can we drop `--build-system native`?
-- **Known:** `Scripts/bundle-app.sh` forces SwiftPM's native build system wherever it's offered. Swift 6.4's default build system failed with "Unknown error parsing property list", but that happened before Xcode was selected on the Mac, so the cause may have been the Command Line Tools. SwiftPM now warns that the option is deprecated.
-  Also, `swift build` copies `Localizable.xcstrings` instead of compiling it, so `bundle-app.sh` compiles it with `xcstringstool`. The default build system might compile it itself.
-- **Answer by:** With Xcode 27 selected, run `swift build` without the option and with it, and compare the results, including whether `.lproj` folders appear in the resource bundle.
+### 12. Can we drop `--build-system native`?
+*Re-examined 2026-11-26.*
+- **Known:**
+  - CI runs `macos-26` with Xcode 26.6 and Swift 6.3.3. There the native build system is still the default, so the warning and the old failure never appear in CI. Losa runs Xcode 27 with Swift 6.4, where SwiftPM's new build system (Swift Build, the same engine as Xcode) is the default and `native` is deprecated.
+  - Both Swift 6.4 errors we hit on Losa got past CI: the `@State` macro plugin, and `#ImplicitStrongCapture`.
+  - The 2026-11 plist failure on Losa happened while the Command Line Tools were selected, before Xcode was, so the most likely cause has gone.
+  - Xcode builds packages through Swift Build and runs `xcstringstool compile` on `.xcstrings` resources. SwiftPM's native build only copies them, which is why `bundle-app.sh` compiles the catalog itself. So the new build system will probably compile the catalog too. Unverified.
+  - GitHub's `xcode-27` runner label (macOS 27, Apple Silicon) has been generally available since 2026-10.
+- **Answer by:**
+  1. Add a CI job on `runs-on: xcode-27` that runs `swift build`, `swift test` and `krouton-verify` with the default build system. This alone would have caught both errors.
+  2. In that job, list `Krouton_KroutonApp.bundle` and check for `.lproj` folders. If they're there, make the `xcstringstool` step in `bundle-app.sh` run only when they're missing.
+  3. Once that job is green, remove `--build-system native` from `bundle-app.sh`. Keep it only if an older toolchain still needs it.
 
-### 12. Text the String Catalog can't see yet
-- **Known:** `Scripts/extract-strings.py` collects SwiftUI literals and `KroutonL10n.tr("…")`. Text built with interpolation (`Text("\(n) tracks")`) and text shown from enum `rawValue`s isn't extracted, so it stays English. The 17 existing translations are marked "needs review".
-- **Answer by:** List the interpolated user-facing strings and convert them to `String(localized:)` format strings. Give enums a localized `title`.
+### 13. Text the String Catalog can't see yet
+*Measured 2026-11-26 in `Sources/KroutonApp`* (668 keys; translations into de, es, fr, it, ja, ko, nl, pt-BR and zh-Hans, all marked needs review).
+- **Known:** four kinds of text stay English. Each needs a different fix.
+  1. **137 interpolated SwiftUI literals in 48 files**, such as `Text("STEP \(n) OF \(count)")`. These *would* translate: SwiftUI looks them up under a format key such as `STEP %lld OF %lld`. `extract-strings.py` skips them, so the keys never reach the catalog. Fix: teach the script to emit format keys (`%lld` for integers, `%@` for strings, `%f`-style for doubles), as Xcode does.
+  2. **133 `Text(someString)` calls.** A `String` variable is shown verbatim, never localized. Among them are tutorial step headlines and bodies, chapter titles and preset names. Fix: make those model fields `LocalizedStringResource` (or pass them through `tr`), and mark data that is really data (drive names, file names) with `Text(verbatim:)` so it is clear.
+  3. **Enum raw values.** 14 `Text(x.rawValue)` calls, plus 30 `tr(nonLiteral)` calls whose keys the script can't see. `KroutonSettingsCategory` has 1 of its 9 raw values in the catalog; `KroutonPoolDispatchMode` has 0 of 2; 6 of the 7 destination `title`s are missing. Fix: a `title: LocalizedStringResource` on each enum, and stop showing `rawValue`.
+  4. **`tr()` with interpolation**, 3 calls (such as `tr("Pair with \(name)")`). They look up the finished sentence, so they can never match. Fix: `String(localized: "Pair with \(name)")`.
+  Also, 37 `Text(String(format:))` labels are mostly numbers and units; they need `.formatted()` or `Measurement` so decimals and units follow the locale.
+- **Answer by:** 1 and 4 are mechanical, so start there; then 3, then 2. Extend `--check` so a new `Text(variable)` without `verbatim:` fails CI.
 - **Owner decides** which languages to commission, and who reviews them.
 
-### 13. The shared workspace parameters
-- **Known:** Every workspace view receives the same parameters, including `isCenterWorkspaceNarrow`, which three of them never read.
-- **Answer by:** Consider an environment value (`@Environment(\.kroutonIsNarrow)`) instead of passing it through every workspace's initializer.
+### 14. The shared workspace parameters
+*Re-examined 2026-11-26.*
+- **Known:**
+  - `KroutonMainWorkspaceView` measures the centre column and keeps five layout flags, with hysteresis (narrow below 510, wide above 535): `isCenterWorkspaceNarrow`, `isCenterWorkspaceUltraCompact`, `isLeftSidebarCompact`, `isLeftSidebarUltraSkinny` and `isRightQueueCompact` (18 uses in 7 files).
+  - `isCenterWorkspaceNarrow` is passed by hand into 8 workspace initializers. Three of them never read it: `KroutonCopyAndRipWorkspaceView`, the video authoring and the retro console workspaces.
+  - `KroutonViewportTier` (in `KroutonDesignSystem.swift`, four width tiers) was a fuller version of the same idea and is unused.
+  - Only 12 views use `ViewThatFits` or `onGeometryChange` themselves.
+- **Proposal:** one `KroutonLayoutTier` (compact, regular, wide), computed once with the existing hysteresis and passed down as `@Environment(\.kroutonLayout)`. It replaces the five flags and the abandoned enum, and removes the parameter from every initializer. Views that only swap a label for a shorter one should use `ViewThatFits` instead and need no flag at all. Small, safe, and testable with SwiftUI previews at several widths.
 
-### 14. Checks that need a person: VoiceOver and performance
+### 15. Checks that need a person: VoiceOver and performance
 - **Known:** The VoiceOver descriptions added on 2026-11-26 (label canvas layers, splice waveform, burn graph) have only been checked by CI. The Panorama Planet renders on the main thread whenever a setting changes.
 - **Answer by:** Turn VoiceOver on (⌘F5) and go through the label workspace and audio editor, noting anything confusing. Measure planet rendering at the largest canvas zoom on Apple Silicon. If it stutters, render off the main actor and show the last image meanwhile.
