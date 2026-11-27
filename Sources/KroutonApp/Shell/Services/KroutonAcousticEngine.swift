@@ -58,11 +58,6 @@ final class KroutonAcousticEngine: Sendable {
         }
     }
 
-    /// Clears the in-memory `AVAudioPCMBuffer` cache.
-    func purgeCache() {
-        stateLock.withLockUnchecked { $0.cache.removeAll() }
-    }
-
     // MARK: - Unified Source Acquisition + Single-Pass DSP Pipeline
 
     private func buildBuffer(for cue: KroutonAcousticCue, format: AVAudioFormat) -> AVAudioPCMBuffer? {
@@ -213,12 +208,6 @@ final class KroutonAcousticEngine: Sendable {
 // MARK: - Declarative SwiftUI Modifier
 
 extension View {
-    /// Declarative SwiftUI modifier that triggers a `KroutonAcousticCue` and synchronized trackpad
-    /// haptic feedback whenever `trigger` satisfies `condition`.
-    func acousticFeedback<T: Equatable>(
-        _ cue: KroutonAcousticCue,
-        trigger: T,
-        condition: @escaping (T, T) -> Bool = { _, _ in true }
     ) -> some View {
         self
             .onChange(of: trigger) { oldValue, newValue in

@@ -213,20 +213,6 @@ public struct KroutonDrivePoolState: Equatable, Codable, Sendable {
         return ticket
     }
 
-    /// Returns a drive's pending-approval or unstarted assigned ticket back to the front of `waitingTasks`
-    /// so another available burner can claim it.
-    public mutating func returnTicketToWaitingPool(fromDriveID driveID: String) {
-        if var pending = pendingApprovalByDriveID.removeValue(forKey: driveID) {
-            pending.preferredDriveID = nil
-            waitingTasks.insert(pending, at: 0)
-            sortWaitingTasksBySequence()
-        } else if var assigned = assignedByDriveID.removeValue(forKey: driveID) {
-            assigned.preferredDriveID = nil
-            waitingTasks.insert(assigned, at: 0)
-            sortWaitingTasksBySequence()
-        }
-    }
-
     /// Manually promotes a specific waiting ticket from the lower waiting pool into an upper burner slot.
     /// If that burner slot already held an unstarted ticket, the previous ticket is returned to the waiting pool.
     @discardableResult
@@ -338,10 +324,6 @@ public struct BurnClaimLedger: Sendable, Equatable {
         committed[drive] = disc
         awaitingOperator.remove(drive)
         return disc
-    }
-
-    public mutating func markAwaitingOperator(_ drive: DriveID) {
-        awaitingOperator.insert(drive)
     }
 
     public mutating func release(drive: DriveID, succeeded: Bool, requeue: Bool) {

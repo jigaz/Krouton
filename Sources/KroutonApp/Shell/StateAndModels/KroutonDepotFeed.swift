@@ -1,7 +1,6 @@
 import CryptoKit
 import Foundation
 import ImageKit
-import OpticalCore
 
 // MARK: - Depot Feed (depot.krouton.app/v1/manifest.json)
 

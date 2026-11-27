@@ -2,7 +2,6 @@ import Foundation
 import LabelKit
 import Observation
 import OpticalCore
-import RescueKit
 import SwiftUI
 
 /// Feature model owning the Polar Disc Label Workspace document state and printer presets.

@@ -1,7 +1,6 @@
 import CoreText
 import LabelKit
 import OpticalCore
-import RescueKit
 import SwiftUI
 
 // MARK: - Stage 1 Clean Printable Disc Canvas (Live Reactive Inputs + Interactive Drag-on-Disc)

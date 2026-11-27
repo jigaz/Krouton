@@ -199,7 +199,8 @@ extension KroutonStagedFileEntry {
 }
 
 // MARK: - Live Disc Image Sector Hex/ASCII Reader & CryptoKit SHA-256 Engine
-extension KroutonElToritoBootInspector {
+/// Reads disc images sector by sector: hex dumps for the inspector and SHA-256 digests.
+public enum KroutonElToritoBootInspector {
     public struct HexDumpRow: Identifiable, Hashable, Sendable {
         public let id: Int
         public let offsetHex: String
@@ -332,11 +333,6 @@ public enum KroutonPureColorMath {
         case 4: return (t, p, clampedV)
         default: return (clampedV, p, q)
         }
-    }
-
-    public static func hsbToColor(h: CGFloat, s: CGFloat, v: CGFloat, a: CGFloat = 1.0) -> Color {
-        let (r, g, b) = hsbToRGB(h: h, s: s, v: v)
-        return Color(.sRGB, red: Double(r), green: Double(g), blue: Double(b), opacity: Double(a))
     }
 
     public static func p3Color(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat) -> Color {

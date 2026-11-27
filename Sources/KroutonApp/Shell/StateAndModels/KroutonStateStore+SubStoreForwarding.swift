@@ -1,5 +1,4 @@
 import Foundation
-import OpticalCore
 import SwiftUI
 
 // MARK: - KroutonStateStore @dynamicMemberLookup Sub-Store Routing

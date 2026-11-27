@@ -70,7 +70,6 @@ struct KroutonSceneActionBinder: ViewModifier {
             }
             .onChange(of: scenePhase) { _, phase in
                 let active = (phase == .active)
-                KroutonOSDesktopBridge.setApplicationVisiblyActive(active)
                 NotificationCenter.default.post(name: active ? KroutonOSDesktopBridge.didBecomeActiveNotification : KroutonOSDesktopBridge.didResignActiveNotification, object: nil)
             }
     }

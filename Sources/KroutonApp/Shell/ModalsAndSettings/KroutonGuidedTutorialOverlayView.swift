@@ -1,6 +1,5 @@
 import DriveKit
 import Foundation
-import OpticalCore
 import SwiftUI
 
 // MARK: - Live Graphical Spotlight & Coach-Mark Overlay View

@@ -1,7 +1,6 @@
 import CryptoKit
 import Foundation
 import Network
-import OpticalCore
 import Security
 
 // MARK: - Bonjour Discovery

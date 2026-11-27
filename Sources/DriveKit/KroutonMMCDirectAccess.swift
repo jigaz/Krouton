@@ -40,15 +40,6 @@ public enum KroutonMMCDirectAccess {
         return drives
     }
 
-    /// Opens `drive` with exclusive access and asks it who it is, what it supports and what disc
-    /// is loaded. Fails while a mounted disc or another app holds the drive.
-    public static func readReport(from drive: Drive) async throws(MMCTransportError) -> MMCDriveReport {
-        let session = try KroutonMMCDeviceSession(registryID: drive.id)
-        let report = try await MMCDriveReport.read(from: session)
-        await session.close()
-        return report
-    }
-
     /// Lines for a drive report (Report a drive, burn logs): identity, MMCProfile support and the
     /// MMCDiscInformation of the loaded disc, from an MMCInquiry and an MMCConfiguration.
     public static func describe(_ report: MMCDriveReport) -> [String] {

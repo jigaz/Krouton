@@ -103,12 +103,6 @@ public actor AudioAnalysisService {
         return result
     }
 
-    /// Returns cached analysis buffers immediately to the system when leaving audio workspaces.
-    public func purgeCache() {
-        cache.removeAll(keepingCapacity: false)
-        accessOrder.removeAll(keepingCapacity: false)
-    }
-
     // MARK: - Concurrency limit
 
     private func acquireDecodeSlot() async {

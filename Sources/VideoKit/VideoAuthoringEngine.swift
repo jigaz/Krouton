@@ -1,5 +1,4 @@
 import Foundation
-import OpticalCore
 
 public enum KroutonVideoTargetMedium: String, Codable, Sendable, CaseIterable {
     case dvd5SingleLayer = "DVD-5 (4.7 GB SL)"

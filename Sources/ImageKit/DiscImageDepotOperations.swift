@@ -1,5 +1,4 @@
 import Foundation
-import OpticalCore
 
 // MARK: - Disc Image Depot Real Disk Operations (BIN->ISO Sector Extraction, hdiutil Convert/Mount/Verify)
 

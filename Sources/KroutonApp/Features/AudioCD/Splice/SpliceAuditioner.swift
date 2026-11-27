@@ -1,7 +1,6 @@
 import AVFoundation
 import AudioKit
 import Observation
-import OpticalCore
 import SwiftUI
 import os
 

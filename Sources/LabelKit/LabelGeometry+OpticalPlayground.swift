@@ -3,7 +3,6 @@ import CoreImage
 import CoreImage.CIFilterBuiltins
 import Foundation
 import OpticalCore
-import RescueKit
 import os
 
 // MARK: - Stylized Procedural Optical Chamber & CoreImage Kaleidoscope Engine
