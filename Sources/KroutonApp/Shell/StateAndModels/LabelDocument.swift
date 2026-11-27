@@ -27,7 +27,17 @@ final class LabelDocument {
     var labelKaleidoscopeFacets: Int = 8
     var labelKaleidoscopeRig: KroutonKaleidoscopeMirrorRig = .twoMirrorRosette
     var labelChamberTumble: Double = 0.35
-    var labelTinyPlanetRadius: Double = 0.75
+    /// The panorama planet (Background › Panorama Planet) and the photo it wraps.
+    var labelPlanet = KroutonPlanetSettings()
+    var labelPlanetPhotoURL: URL? = nil
+    /// The photo decoded for the canvas, about 2,400 pixels wide; export reads the file again at
+    /// full size.
+    var labelPlanetPreviewSource: KroutonPlanetSource? = nil
+    /// A small copy of the photo for the Planet tool's framing view.
+    var labelPlanetThumbnail: CGImage? = nil
+    var labelPrint = KroutonLabelPrintSettings()
+    /// Shows the print's ink density on the canvas (a soft proof).
+    var labelPreviewInkDensity: Bool = false
     var labelUseVisionForeground: Bool = false
     var labelTextElements: [KroutonLabelTextElement] = []
     var labelSelectedTextID: UUID? = nil

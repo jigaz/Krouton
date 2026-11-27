@@ -42,7 +42,9 @@ extension KroutonLabelGeometryEngine {
         offsetXMM: Double,
         offsetYMM: Double,
         discTitle: String,
-        includeCalibrationMarks: Bool = true
+        includeCalibrationMarks: Bool = true,
+        bleedOuterMM: Double = 0,
+        bleedInnerMM: Double = 0
     ) -> Data? {
         guard let pdfData = CFDataCreateMutable(nil, 0),
               let consumer = CGDataConsumer(data: pdfData) else { return nil }
@@ -77,13 +79,15 @@ extension KroutonLabelGeometryEngine {
             height: innerRadiusPt * 2.0
         )
 
-        // 1. Clip to annular disc ring (outer circle minus inner spindle hub hole using even-odd rule)
+        // 1. Clip to the printed ring: the disc plus its bleed, minus the hub less its bleed. A
+        //    bled image (`addBleed`) is wider than the disc by the outer bleed on each side.
+        let bleedOut = CGFloat(max(0, bleedOuterMM)) * ptPerMM, bleedIn = CGFloat(max(0, bleedInnerMM)) * ptPerMM
         ctx.saveGState()
         ctx.beginPath()
-        ctx.addEllipse(in: discRect)
-        ctx.addEllipse(in: hubRect)
+        ctx.addEllipse(in: discRect.insetBy(dx: -bleedOut, dy: -bleedOut))
+        ctx.addEllipse(in: hubRect.insetBy(dx: bleedIn, dy: bleedIn))
         ctx.clip(using: .evenOdd)
-        ctx.draw(discCGImage, in: discRect)
+        ctx.draw(discCGImage, in: discRect.insetBy(dx: -bleedOut, dy: -bleedOut))
         ctx.restoreGState()
 
         // 2. Hairline perimeter, hub boundary & registration crosshairs for tray calibration
@@ -140,7 +144,11 @@ extension KroutonLabelGeometryEngine {
         offsetYMM: Double,
         discTitle: String,
         exportPNG: Bool,
-        exportPDF: Bool
+        exportPDF: Bool,
+        dpi: Double = 300,
+        bleedOuterMM: Double = 0,
+        bleedInnerMM: Double = 0,
+        cropMarks: Bool = true
     ) -> (pngURL: URL?, pdfURL: URL?) {
         let safeStem = discTitle
             .replacingOccurrences(of: "[^A-Za-z0-9_-]", with: "_", options: .regularExpression)
@@ -152,8 +160,8 @@ extension KroutonLabelGeometryEngine {
         var writtenPNG: URL? = nil
         var writtenPDF: URL? = nil
 
-        if exportPNG, let pngData = encodeCGImageToPNGData(discCGImage, dpi: 300.0) {
-            let url = outDir.appendingPathComponent("\(baseName)_300DPI_Label.png")
+        if exportPNG, let pngData = encodeCGImageToPNGData(discCGImage, dpi: dpi) {
+            let url = outDir.appendingPathComponent("\(baseName)_\(Int(dpi))DPI_Label.png")
             if (try? pngData.write(to: url, options: Data.WritingOptions.atomic)) != nil {
                 writtenPNG = url
             }
@@ -166,7 +174,9 @@ extension KroutonLabelGeometryEngine {
             offsetXMM: offsetXMM,
             offsetYMM: offsetYMM,
             discTitle: baseName,
-            includeCalibrationMarks: true
+            includeCalibrationMarks: cropMarks,
+            bleedOuterMM: bleedOuterMM,
+            bleedInnerMM: bleedInnerMM
         ) {
             let url = outDir.appendingPathComponent("\(baseName)_1to1_PrintSheet.pdf")
             if (try? pdfData.write(to: url, options: Data.WritingOptions.atomic)) != nil {

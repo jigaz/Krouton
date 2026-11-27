@@ -33,7 +33,10 @@ struct KroutonDiscLabelArtworkCanvas: View {
     var kaleidoscopeFacets: Int
     var kaleidoscopeRig: KroutonKaleidoscopeMirrorRig
     var chamberTumble: Double
-    var tinyPlanetRadius: Double
+    var planet: KroutonPlanetSettings
+    var planetSource: KroutonPlanetSource?
+    /// Soft proof: lightens the canvas as the print's ink density will.
+    var inkDensityPreview: Double
     var bgAdjustments: KroutonBackgroundAdjustments
     var vectorShapes: [KroutonVectorShapeLayer]
     var textElements: [KroutonLabelTextElement]
@@ -64,7 +67,9 @@ struct KroutonDiscLabelArtworkCanvas: View {
         kaleidoscopeFacets: Int = 8,
         kaleidoscopeRig: KroutonKaleidoscopeMirrorRig = .twoMirrorRosette,
         chamberTumble: Double = 0.35,
-        tinyPlanetRadius: Double = 0.75,
+        planet: KroutonPlanetSettings = KroutonPlanetSettings(),
+        planetSource: KroutonPlanetSource? = nil,
+        inkDensityPreview: Double = 1.0,
         bgAdjustments: KroutonBackgroundAdjustments = KroutonBackgroundAdjustments(),
         vectorShapes: [KroutonVectorShapeLayer] = [],
         textElements: [KroutonLabelTextElement] = [],
@@ -95,7 +100,9 @@ struct KroutonDiscLabelArtworkCanvas: View {
         self.kaleidoscopeFacets = kaleidoscopeFacets
         self.kaleidoscopeRig = kaleidoscopeRig
         self.chamberTumble = chamberTumble
-        self.tinyPlanetRadius = tinyPlanetRadius
+        self.planet = planet
+        self.planetSource = planetSource
+        self.inkDensityPreview = inkDensityPreview
         self.bgAdjustments = bgAdjustments
         self.vectorShapes = vectorShapes
         self.textElements = textElements
@@ -122,6 +129,11 @@ struct KroutonDiscLabelArtworkCanvas: View {
         ZStack {
             // 1. Printable Disc Surface (Unified CoreImage pipeline when adjustments or procedural styles are active)
             discSurfaceBackground
+
+            // 1B. Soft proof of the print's ink density (lightening towards the white disc)
+            if inkDensityPreview < 0.999 {
+                Color.white.opacity(1 - inkDensityPreview).allowsHitTesting(false)
+            }
 
             // 2. Optional 10mm Alignment Grid
             if showAlignmentGrid && !isExportMode {
@@ -230,7 +242,9 @@ struct KroutonDiscLabelArtworkCanvas: View {
 
         let (r1, g1, b1, _) = KroutonPureColorMath.extractSRGB(bgPrimaryColor)
         let (r2, g2, b2, _) = KroutonPureColorMath.extractSRGB(bgSecondaryColor)
-        if (!bgAdjustments.isIdentity && backgroundStyle != .templateDefault) || backgroundStyle == .gpuKaleidoscope || backgroundStyle == .tinyPlanetGlobe {
+        if backgroundStyle == .tinyPlanetGlobe {
+            planetBackground
+        } else if (!bgAdjustments.isIdentity && backgroundStyle != .templateDefault) || backgroundStyle == .gpuKaleidoscope {
             if let cgImg = KroutonLabelGeometryEngine.renderOpticalPlaygroundCGImage(
                 style: backgroundStyle,
                 seedPattern: gpuSeedPattern,
@@ -241,7 +255,6 @@ struct KroutonDiscLabelArtworkCanvas: View {
                 secondaryColor: KroutonRGBAColor(r: Double(r2), g: Double(g2), b: Double(b2)),
                 angleDegrees: gradientAngle,
                 facetCount: kaleidoscopeFacets,
-                planetRadiusRatio: tinyPlanetRadius,
                 bgAdjustments: bgAdjustments,
                 dimensionPixels: Int(max(300, min(1417, diameterPoints * (isExportMode ? 1.0 : 1.4))))
             ) {
@@ -300,6 +313,22 @@ struct KroutonDiscLabelArtworkCanvas: View {
             case .gpuKaleidoscope, .tinyPlanetGlobe:
                 Circle().fill(bgPrimaryColor)
             }
+        }
+    }
+
+    /// The panorama wrapped into the disc (`KroutonPlanetProjection`), at the canvas's pixel
+    /// size for export and about twice it on screen; grey until a photo is chosen.
+    @ViewBuilder
+    var planetBackground: some View {
+        let pixels = Int(isExportMode ? diameterPoints : min(1_400, diameterPoints * 2))
+        if let planetSource, let image = KroutonPlanetProjection.render(
+            planetSource, settings: planet, pixels: pixels, hubRatio: innerMM / outerMM) {
+            Image(decorative: KroutonLabelGeometryEngine.applyAdjustments(to: image, bgAdjustments), scale: 1.0)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFill()
+        } else {
+            Circle().fill(Color(red: 0.80, green: 0.82, blue: 0.85))
         }
     }
 

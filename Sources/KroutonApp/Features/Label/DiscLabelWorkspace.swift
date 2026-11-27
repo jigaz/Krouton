@@ -11,8 +11,10 @@ enum KroutonStage1Tool: String, CaseIterable, Identifiable {
     case text       = "Text Tool"
     case shapes     = "Vector Shapes"
     case background = "Background"
+    case planet     = "Panorama Planet"
     case adjust     = "Adjust FX"
     case discSize   = "Disc Size"
+    case print      = "Print Setup"
     var id: String { rawValue }
 
     var iconName: String {
@@ -21,8 +23,10 @@ enum KroutonStage1Tool: String, CaseIterable, Identifiable {
         case .text:       return "textformat"
         case .shapes:     return "seal.fill"
         case .background: return "circle.lefthalf.filled"
+        case .planet:     return "globe.americas.fill"
         case .adjust:     return "slider.horizontal.3"
         case .discSize:   return "ruler"
+        case .print:      return "printer"
         }
     }
 
@@ -32,8 +36,10 @@ enum KroutonStage1Tool: String, CaseIterable, Identifiable {
         case .text:       return "Text"
         case .shapes:     return "Shapes"
         case .background: return "Bg"
+        case .planet:     return "Planet"
         case .adjust:     return "Adjust"
         case .discSize:   return "Size"
+        case .print:      return "Print"
         }
     }
 }
@@ -133,7 +139,9 @@ struct KroutonDiscLabelWorkspaceView: View {
                                 kaleidoscopeFacets: store.labelKaleidoscopeFacets,
                                 kaleidoscopeRig: store.labelKaleidoscopeRig,
                                 chamberTumble: store.labelChamberTumble,
-                                tinyPlanetRadius: store.labelTinyPlanetRadius,
+                                planet: store.labelPlanet,
+                                planetSource: store.labelPlanetPreviewSource,
+                                inkDensityPreview: store.labelPreviewInkDensity ? store.labelPrint.inkDensity : 1.0,
                                 bgAdjustments: store.labelBgAdjustments,
                                 vectorShapes: store.labelVectorShapes,
                                 textElements: store.labelTextElements,

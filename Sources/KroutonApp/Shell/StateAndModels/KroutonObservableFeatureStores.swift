@@ -19,7 +19,7 @@ struct KroutonLabelCanvasSnapshot: Equatable, Sendable {
     var kaleidoscopeRig: KroutonKaleidoscopeMirrorRig
     var kaleidoscopeFacets: Int
     var chamberTumble: Double
-    var tinyPlanetRadius: Double
+    var planet: KroutonPlanetSettings
     var bgAdjustments: KroutonBackgroundAdjustments
     var textElements: [KroutonLabelTextElement]
     var selectedTextID: UUID?
@@ -40,7 +40,7 @@ struct KroutonLabelCanvasSnapshot: Equatable, Sendable {
         self.kaleidoscopeRig = store.labelKaleidoscopeRig
         self.kaleidoscopeFacets = store.labelKaleidoscopeFacets
         self.chamberTumble = store.labelChamberTumble
-        self.tinyPlanetRadius = store.labelTinyPlanetRadius
+        self.planet = store.labelPlanet
         self.bgAdjustments = store.labelBgAdjustments
         self.textElements = store.labelTextElements
         self.selectedTextID = store.labelSelectedTextID
@@ -60,7 +60,7 @@ struct KroutonLabelCanvasSnapshot: Equatable, Sendable {
         if abs(gradientMidpoint - other.gradientMidpoint) > 0.002 { return true }
         if abs(gradientAngle - other.gradientAngle) > 0.05 { return true }
         if abs(chamberTumble - other.chamberTumble) > 0.002 { return true }
-        if abs(tinyPlanetRadius - other.tinyPlanetRadius) > 0.002 { return true }
+        if planet != other.planet { return true }
         if !Self.rgbaNearEqual(primaryRGBA, other.primaryRGBA) { return true }
         if !Self.rgbaNearEqual(secondaryRGBA, other.secondaryRGBA) { return true }
         if textElements.count != other.textElements.count { return true }
@@ -94,7 +94,7 @@ struct KroutonLabelCanvasSnapshot: Equatable, Sendable {
         store.labelKaleidoscopeRig = kaleidoscopeRig
         store.labelKaleidoscopeFacets = kaleidoscopeFacets
         store.labelChamberTumble = chamberTumble
-        store.labelTinyPlanetRadius = tinyPlanetRadius
+        store.labelPlanet = planet
         store.labelBgAdjustments = bgAdjustments
         store.labelTextElements = textElements
         if let sel = selectedTextID, textElements.contains(where: { $0.id == sel }) {
@@ -114,6 +114,8 @@ final class KroutonLabelWorkspaceSubStore {
     var transientStatusBanner: String = ""
     var isFreehandDrawMode: Bool = false
     var autoSnapFreehandShapes: Bool = true
+    /// The Planet tool's photo picker is showing.
+    var isChoosingPlanetPhoto: Bool = false
     private(set) var timeline: [KroutonLabelCanvasSnapshot] = []
     private(set) var cursor: Int = -1
     let maxHistoryDepth: Int = 32

@@ -6,7 +6,7 @@ import OpticalCore
 import RescueKit
 import os
 
-// MARK: - Stylized Procedural Optical Chamber & CoreImage Kaleidoscope / Tiny Planet Engine
+// MARK: - Stylized Procedural Optical Chamber & CoreImage Kaleidoscope Engine
 
 extension KroutonLabelGeometryEngine {
 
@@ -34,7 +34,6 @@ extension KroutonLabelGeometryEngine {
         let secondaryRGBA: [Int]
         let angleQuantized: Int
         let facetCount: Int
-        let planetRadiusQuantized: Int
         let adjustments: KroutonBackgroundAdjustments
         let dimensionPixels: Int
     }
@@ -54,7 +53,6 @@ extension KroutonLabelGeometryEngine {
         secondaryColor: KroutonRGBAColor,
         angleDegrees: Double,
         facetCount: Int = 8,
-        planetRadiusRatio: Double = 0.72,
         bgAdjustments: KroutonBackgroundAdjustments = KroutonBackgroundAdjustments(),
         dimensionPixels: Int = 460
     ) -> CGImage? {
@@ -69,7 +67,6 @@ extension KroutonLabelGeometryEngine {
             secondaryRGBA: [Int(secondaryColor.r * 255), Int(secondaryColor.g * 255), Int(secondaryColor.b * 255)],
             angleQuantized: Int((angleDegrees * 10.0).rounded()),
             facetCount: facetCount,
-            planetRadiusQuantized: Int((planetRadiusRatio * 1000.0).rounded()),
             adjustments: bgAdjustments,
             dimensionPixels: dimInt
         )
@@ -85,7 +82,7 @@ extension KroutonLabelGeometryEngine {
 
         let baseCI: CIImage
         switch style {
-        case .templateDefault, .solidColor, .radialGradient, .linearGradient, .angularGradient:
+        case .templateDefault, .solidColor, .radialGradient, .linearGradient, .angularGradient, .tinyPlanetGlobe:
             baseCI = makeSimpleVectorGradientCIImage(
                 style: style,
                 primaryColor: primaryColor,
@@ -94,7 +91,7 @@ extension KroutonLabelGeometryEngine {
                 angleDegrees: angleDegrees,
                 dimension: dim
             )
-        case .gpuKaleidoscope, .tinyPlanetGlobe:
+        case .gpuKaleidoscope:
             let chamberCI = makePhysicalObjectChamberCIImage(
                 pattern: seedPattern,
                 primaryColor: primaryColor,
@@ -103,28 +100,15 @@ extension KroutonLabelGeometryEngine {
                 backdropLightness: backdropLightness,
                 dimension: dim
             )
-            if style == .gpuKaleidoscope {
-                baseCI = applyKaleidoscopeMirrorRig(
-                    chamberCI: chamberCI,
-                    mirrorRig: mirrorRig,
-                    chamberTumble: chamberTumble,
-                    facetCount: facetCount,
-                    angleRad: angleRad,
-                    center: center,
-                    rect: rect
-                )
-            } else {
-                baseCI = applyTinyPlanetProjection(
-                    chamberCI: chamberCI,
-                    primaryColor: primaryColor,
-                    secondaryColor: secondaryColor,
-                    backdropLightness: backdropLightness,
-                    planetRadiusRatio: planetRadiusRatio,
-                    angleRad: angleRad,
-                    center: center,
-                    rect: rect
-                )
-            }
+            baseCI = applyKaleidoscopeMirrorRig(
+                chamberCI: chamberCI,
+                mirrorRig: mirrorRig,
+                chamberTumble: chamberTumble,
+                facetCount: facetCount,
+                angleRad: angleRad,
+                center: center,
+                rect: rect
+            )
         }
 
         let adjustedCI = applyApplePhotosAdjustments(to: baseCI, adjustments: bgAdjustments, extentRect: rect)
@@ -389,7 +373,7 @@ extension KroutonLabelGeometryEngine {
         }
     }
 
-    // MARK: - CoreImage Kaleidoscope & Tiny Planet Filter Stages
+    // MARK: - CoreImage Kaleidoscope Filter Stage
 
     private static func applyKaleidoscopeMirrorRig(
         chamberCI: CIImage, mirrorRig: KroutonKaleidoscopeMirrorRig,
@@ -433,44 +417,5 @@ extension KroutonLabelGeometryEngine {
             starKal.angle = angleRad + 0.3926991
             return starKal.outputImage?.cropped(to: rect) ?? chamberCI
         }
-    }
-
-    private static func applyTinyPlanetProjection(
-        chamberCI: CIImage, primaryColor: KroutonRGBAColor, secondaryColor: KroutonRGBAColor,
-        backdropLightness: Double, planetRadiusRatio: Double, angleRad: Float,
-        center: CGPoint, rect: CGRect
-    ) -> CIImage {
-        let dim = rect.width
-        let planetR = Float(dim * 0.44 * max(0.30, min(0.95, planetRadiusRatio)))
-        let lift = max(0.0, min(1.0, backdropLightness))
-        let c2 = CIColor(red: secondaryColor.r, green: secondaryColor.g, blue: secondaryColor.b, alpha: 1.0)
-        let skyColor = CIColor(
-            red: primaryColor.r * (1.0 - lift * 0.7) + lift * 0.7,
-            green: primaryColor.g * (1.0 - lift * 0.7) + lift * 0.7,
-            blue: primaryColor.b * (1.0 - lift * 0.7) + lift * 0.7,
-            alpha: 1.0
-        )
-
-        let globeGrad = CIFilter.radialGradient()
-        globeGrad.center = center
-        globeGrad.radius0 = planetR * 0.50
-        globeGrad.radius1 = planetR * 1.15
-        globeGrad.color0 = c2
-        globeGrad.color1 = skyColor
-
-        let wrap = CIFilter.circularWrap()
-        wrap.inputImage = chamberCI.clampedToExtent()
-        wrap.center = center
-        wrap.radius = planetR * 0.78
-        wrap.angle = angleRad
-
-        if let wrapped = wrap.outputImage?.cropped(to: rect),
-           let atmosphere = globeGrad.outputImage?.cropped(to: rect) {
-            let blend = CIFilter.hardLightBlendMode()
-            blend.inputImage = wrapped
-            blend.backgroundImage = atmosphere
-            return (blend.outputImage ?? wrapped).cropped(to: rect)
-        }
-        return chamberCI
     }
 }

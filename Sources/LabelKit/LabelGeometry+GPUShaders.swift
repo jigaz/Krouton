@@ -81,7 +81,7 @@ extension KroutonLabelGeometryEngine {
         return abs(dy * pt.nx - dx * pt.ny + lineEnd.nx * lineStart.ny - lineEnd.ny * lineStart.nx) / mag
     }
 
-    // MARK: - Apple Silicon Metal GPU Kaleidoscope, 360° Tiny Planet Globe & Vision Foreground Lifter
+    // MARK: - Apple Silicon Metal GPU Kaleidoscope & Vision Foreground Lifter
 
     /// `CIContext` is not `Sendable` in the macOS 26 SDK, so the shared context lives behind a lock
     /// (the same pattern `HybridImageBuilder` uses); renders through it are serialized.
@@ -190,15 +190,14 @@ extension KroutonLabelGeometryEngine {
         return base.cropped(to: rect)
     }
 
-    /// Executes Apple Silicon Metal GPU Kaleidoscope or a True 360° Tiny Planet Globe
-    public static func renderGPUKaleidoscopeOrTinyPlanetCGImage(
+    /// Renders the GPU kaleidoscope from a seed pattern.
+    public static func renderGPUKaleidoscopeCGImage(
         style: KroutonVectorBackgroundStyle,
         seedPattern: KroutonGPUSeedPattern,
         primaryColor: KroutonRGBAColor,
         secondaryColor: KroutonRGBAColor,
         angleDegrees: Double,
         facetCount: Int = 8,
-        planetRadiusRatio: Double = 0.72,
         dimensionPixels: Int = 420
     ) -> CGImage? {
         let dim = CGFloat(max(64, min(1024, dimensionPixels)))
@@ -223,33 +222,6 @@ extension KroutonLabelGeometryEngine {
             kal.angle = angleRad
             if let kOut = kal.outputImage?.cropped(to: rect) {
                 outputCI = kOut
-            }
-        } else if style == .tinyPlanetGlobe {
-            // Build a true 360° Tiny Planet Globe:
-            // Inner planet core + equatorial horizon ring + outer space atmosphere
-            let planetR = Float(dim * 0.44 * max(0.30, min(0.95, planetRadiusRatio)))
-            let c2 = CIColor(red: secondaryColor.r, green: secondaryColor.g, blue: secondaryColor.b, alpha: 1.0)
-            let deepSpace = CIColor(red: primaryColor.r * 0.15, green: primaryColor.g * 0.16, blue: primaryColor.b * 0.22, alpha: 1.0)
-
-            let globeGrad = CIFilter.radialGradient()
-            globeGrad.center = center
-            globeGrad.radius0 = planetR * 0.55
-            globeGrad.radius1 = planetR * 1.18
-            globeGrad.color0 = c2
-            globeGrad.color1 = deepSpace
-
-            let wrap = CIFilter.circularWrap()
-            wrap.inputImage = seed.clampedToExtent()
-            wrap.center = center
-            wrap.radius = planetR * 0.75
-            wrap.angle = angleRad
-
-            if let wrapped = wrap.outputImage?.cropped(to: rect),
-               let atmosphere = globeGrad.outputImage?.cropped(to: rect) {
-                let blend = CIFilter.softLightBlendMode()
-                blend.inputImage = wrapped
-                blend.backgroundImage = atmosphere
-                outputCI = (blend.outputImage ?? atmosphere).cropped(to: rect)
             }
         }
 

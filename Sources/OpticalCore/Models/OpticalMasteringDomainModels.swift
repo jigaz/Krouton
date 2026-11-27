@@ -361,7 +361,10 @@ public struct KroutonEmbeddedLabelSpec: Codable, Hashable, Sendable {
     public var kaleidoscopeFacetCount: Int = 8
     public var kaleidoscopeMirrorRig: KroutonKaleidoscopeMirrorRig = .twoMirrorRosette
     public var kaleidoscopeChamberTumble: Double = 0.35
-    public var tinyPlanetRadiusRatio: Double = 0.72
+    /// The panorama planet's settings and photo; nil in projects saved before it existed.
+    public var planet: KroutonPlanetSettings?
+    public var planetPhotoPath: String?
+    public var printSettings: KroutonLabelPrintSettings?
     public var useVisionForegroundCutout: Bool = false
     public var topArcRadiusMM: Double = 47.0
     public var bottomArcRadiusMM: Double = 45.0

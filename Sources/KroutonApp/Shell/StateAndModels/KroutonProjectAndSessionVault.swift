@@ -257,7 +257,9 @@ extension KroutonStateStore {
         embeddedLabel.kaleidoscopeFacetCount = self.labelKaleidoscopeFacets
         embeddedLabel.kaleidoscopeMirrorRig = self.labelKaleidoscopeRig
         embeddedLabel.kaleidoscopeChamberTumble = self.labelChamberTumble
-        embeddedLabel.tinyPlanetRadiusRatio = self.labelTinyPlanetRadius
+        embeddedLabel.planet = self.labelPlanet
+        embeddedLabel.planetPhotoPath = self.labelPlanetPhotoURL?.path
+        embeddedLabel.printSettings = self.labelPrint
         embeddedLabel.useVisionForegroundCutout = self.labelUseVisionForeground
 
         return KroutonProjectManifest(
@@ -312,7 +314,9 @@ extension KroutonStateStore {
         self.labelKaleidoscopeFacets = lbl.kaleidoscopeFacetCount
         self.labelKaleidoscopeRig = lbl.kaleidoscopeMirrorRig
         self.labelChamberTumble = lbl.kaleidoscopeChamberTumble
-        self.labelTinyPlanetRadius = lbl.tinyPlanetRadiusRatio
+        self.labelPlanet = lbl.planet ?? KroutonPlanetSettings()
+        self.labelPrint = lbl.printSettings ?? KroutonLabelPrintSettings()
+        if let path = lbl.planetPhotoPath { loadPlanetPhoto(URL(fileURLWithPath: path)) }
         self.labelUseVisionForeground = lbl.useVisionForegroundCutout
         if let breakLBA = manifest.coreSpec.dualLayerBreakSectorLBA {
             dualLayerBreakSectorLBA = breakLBA
