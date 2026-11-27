@@ -100,7 +100,7 @@ extension KroutonOpticalDriveBank {
             baseIDs.append(KroutonDriveIdentity.baseID(
                 vendor: (info[DRDeviceVendorNameKey] as? String ?? "").trimmingCharacters(in: .whitespaces),
                 product: (info[DRDeviceProductNameKey] as? String ?? "Optical Drive").trimmingCharacters(in: .whitespaces),
-                firmware: (info[DRDeviceFirmwareRevisionKey] as? String ?? "1.0").trimmingCharacters(in: .whitespaces)
+                firmware: (info[DRDeviceFirmwareRevisionKey] as? String ?? "—").trimmingCharacters(in: .whitespaces)
             ))
             registryPaths.append(info[DRDeviceIORegistryEntryPathKey] as? String ?? "")
         }
@@ -212,8 +212,8 @@ extension KroutonOpticalDriveBank {
                     volumeName: volumeTitle,
                     sectorsWrittenLBA: totalLBA,
                     bytesWritten: totalBytes,
-                    averageSpeedText: "SSD Direct",
-                    peakSpeedText: "SSD Direct",
+                    averageSpeedText: "—",
+                    peakSpeedText: "—",
                     elapsedDurationText: String(format: "%02d:%02d", secs / 60, secs % 60),
                     diagnosticAdvice: "Double-click the image in Finder to mount it, or burn it to physical media anytime."
                 )

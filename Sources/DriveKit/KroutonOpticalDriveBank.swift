@@ -115,7 +115,7 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
 
                 let vendor = (info[DRDeviceVendorNameKey] as? String ?? "").trimmingCharacters(in: .whitespaces)
                 let product = (info[DRDeviceProductNameKey] as? String ?? "Optical Drive").trimmingCharacters(in: .whitespaces)
-                let revision = (info[DRDeviceFirmwareRevisionKey] as? String ?? "1.0").trimmingCharacters(in: .whitespaces)
+                let revision = (info[DRDeviceFirmwareRevisionKey] as? String ?? "—").trimmingCharacters(in: .whitespaces)
                 let interconnect = (info[DRDevicePhysicalInterconnectKey] as? String ?? "USB").trimmingCharacters(in: .whitespaces)
 
                 let writeCaps = info[DRDeviceWriteCapabilitiesKey] as? [String: Any] ?? [:]
