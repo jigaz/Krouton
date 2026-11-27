@@ -123,12 +123,18 @@ extension KroutonTestHarness {
                 let dirFiles = filesByDir[fDir.path] ?? []
                 h.lint(dirFiles.contains { $0.contains("Workspace") }, "Feature domain \(fDir.lastPathComponent) must contain at least one primary *Workspace*.swift file")
             }
-            // Pure-SwiftUI Feature Gate: Features/ views must use pure SwiftUI (zero AppKit / NSColor / NSView / NSImage)
-            for (relPath, src) in clusterSourceByPrefix where relPath.contains("/KroutonApp/Features/") {
-                h.check(
-                    !src.contains("import AppKit") && !src.contains("NSColor") && !src.contains("NSView") && !src.contains("NSImage"),
-                    "\(relPath) must use pure SwiftUI (no import AppKit, NSColor, NSView, or NSImage in Features/)"
-                )
+            // Pure-SwiftUI Gate: Features/ and Shell/ use SwiftUI only. The one exception is
+            // Shell/App/KroutonAppKitBridge.swift, for what SwiftUI on macOS has no API for. Looking
+            // AppKit classes up by name at runtime counts as using AppKit.
+            let appKitTokens = ["import AppKit", "import Cocoa", "NSColor", "NSView", "NSImage", "NSApplication.shared",
+                                "NSWorkspace", "NSPasteboard", "NSClassFromString", "NSSelectorFromString"]
+            for fileURL in allSwiftFiles {
+                let relPath = fileURL.path.replacingOccurrences(of: rootURL.path + "/", with: "")
+                guard relPath.hasPrefix("Sources/KroutonApp/Features/") || relPath.hasPrefix("Sources/KroutonApp/Shell/"),
+                      relPath != "Sources/KroutonApp/Shell/App/KroutonAppKitBridge.swift" else { continue }
+                let src = (try? String(contentsOf: fileURL, encoding: .utf8)) ?? ""
+                let found = appKitTokens.filter { src.contains($0) }
+                h.check(found.isEmpty, "\(relPath) must use pure SwiftUI; AppKit goes in Shell/App/KroutonAppKitBridge.swift (found \(found.joined(separator: ", ")))")
             }
 
             for (clusterKey, combinedSrc) in clusterSourceByPrefix where clusterKey.contains("/KroutonApp/Features/") {

@@ -27,7 +27,7 @@ extension KroutonStateStore {
                 title: "File List Is Empty",
                 summary: "There are no files or folders staged in the central workspace.",
                 driveModel: primarySelectedDrive?.displayName ?? "Optical Burner",
-                firmwareRevision: primarySelectedDrive?.firmware ?? "1.0",
+                firmwareRevision: primarySelectedDrive?.firmware ?? "—",
                 mediaFormattedName: primarySelectedDrive?.mediaType ?? "None",
                 volumeName: discVolumeTitle,
                 sectorsWrittenLBA: 0,
@@ -62,7 +62,7 @@ extension KroutonStateStore {
                 title: "File List Is Empty",
                 summary: "There are no files or folders staged in the central workspace.",
                 driveModel: primarySelectedDrive?.displayName ?? "Optical Burner",
-                firmwareRevision: primarySelectedDrive?.firmware ?? "1.0",
+                firmwareRevision: primarySelectedDrive?.firmware ?? "—",
                 mediaFormattedName: primarySelectedDrive?.mediaType ?? "None",
                 volumeName: discVolumeTitle,
                 sectorsWrittenLBA: 0,
@@ -180,7 +180,7 @@ extension KroutonStateStore {
                 averageSpeedText: "-", peakSpeedText: "-", elapsedDurationText: "00:00",
                 diagnosticAdvice: "See Help › Krouton User Manual › Video, copying and other formats."
             )
-        default:
+        case .audioRip:
             if selectedCategory == .copy && selectedCopyTaskID == .ripAudioCD,
                let liveCD = KroutonRealCDExtractor.scanMountedAudioCD() {
                 let rawOut = target.hardwareOrPath.isEmpty ? "~/Music/Krouton Rips" : target.hardwareOrPath
@@ -204,20 +204,26 @@ extension KroutonStateStore {
                     title: failedTracks == 0 ? "Audio CD Extraction Complete (\(okTracks) Tracks)" : "Audio CD Partial Extraction (\(okTracks)/\(liveCD.tracks.count) Tracks)",
                     summary: "Extracted \(okTracks)/\(liveCD.tracks.count) Red Book tracks (\(failedTracks) errors) from \(liveCD.mountPath) (DiscID \(liveCD.musicBrainzDiscID)) to \(outDir.path).",
                     driveModel: primarySelectedDrive?.displayName ?? "Optical Drive",
-                    firmwareRevision: primarySelectedDrive?.firmware ?? "1.0",
+                    firmwareRevision: primarySelectedDrive?.firmware ?? "—",
                     mediaFormattedName: "Red Book Audio CD (\(liveCD.tracks.count) Audio Tracks)",
                     volumeName: liveCD.albumTitle,
                     sectorsWrittenLBA: Int64(liveCD.leadoutBlockLBA),
                     bytesWritten: totalBytes,
                     averageSpeedText: String(format: "%.1fx", avgX),
-                    peakSpeedText: String(format: "%.1fx", avgX * 1.25),
+                    peakSpeedText: "-",
                     elapsedDurationText: String(format: "%02d:%02d", elapsed / 60, elapsed % 60),
-                    diagnosticAdvice: failedTracks == 0 ? "All \(okTracks) audio tracks verified with IEEE 802.3 CRC-32 and AccurateRip v1 checksums." : "\(failedTracks) track(s) encountered hardware read errors."
+                    diagnosticAdvice: failedTracks == 0
+                        ? "All \(okTracks) tracks were read. To check them against AccurateRip, rip from the Audio CD Ripper in Copy."
+                        : "\(failedTracks) track(s) couldn't be read. The Audio CD Ripper in Copy retries and checks against AccurateRip."
                 )
                 KroutonOSDesktopBridge.revealInFinder(url: outDir)
                 return
             }
-            await masterStagedFilesToHybridISO()
+            // Before 2026-11-26 this fell through to building an ISO of the deck in a temporary
+            // folder that nothing ever read.
+            driveManager.completionReport = refusalReport(
+                "Insert an audio CD, choose Rip Audio CD under Copy, then rip again. Nothing was written.",
+                title: "No Audio CD to Rip")
         }
     }
 }

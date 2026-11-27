@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 
 struct KroutonApp: App {
@@ -6,7 +5,7 @@ struct KroutonApp: App {
     @State private var wm = KroutonWindowManager.shared
 
     init() {
-        NSApplication.shared.setActivationPolicy(.regular)
+        KroutonAppKitBridge.becomeRegularApp()
     }
 
     var body: some Scene {

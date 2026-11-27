@@ -131,7 +131,11 @@ struct SpliceWaveformCanvas: View, Equatable {
             SpliceCanvasRenderer(snapshot: snapshot, geometry: geometry, palette: palette, size: size)
                 .draw(in: &context)
         }
+        .accessibilityElement()
+        .accessibilityLabel("Transition between tracks")
+        .accessibilityValue(Self.spokenDescription(snapshot.spec, mode: snapshot.mode))
     }
+
 }
 
 // MARK: - SpliceCanvasRenderer

@@ -60,7 +60,7 @@ public struct KroutonDiscJugglerImage: Sendable, Equatable {
         guard length > 8 else { throw ParseError(message: "\(url.lastPathComponent) is too short to be a .cdi image.") }
         try handle.seek(toOffset: UInt64(length - 8))
         let tail = [UInt8](handle.readData(ofLength: 8))
-        let version = le32(tail, 0), pointer = Int64(le32(tail, 4))
+        let version = KroutonBytes.readLE32(tail, 0), pointer = Int64(KroutonBytes.readLE32(tail, 4))
         let start = version == version35 ? length - pointer : pointer
         guard [version2, version3, version35].contains(version), start > 0, start < length - 8 else {
             throw ParseError(message: "\(url.lastPathComponent) isn't a DiscJuggler image Krouton can read (version 2, 3 or 3.5).")
@@ -138,9 +138,6 @@ public struct KroutonDiscJugglerImage: Sendable, Equatable {
 
     // MARK: - Bytes
 
-    static func le32(_ b: [UInt8], _ i: Int) -> UInt32 {
-        UInt32(b[i]) | UInt32(b[i + 1]) << 8 | UInt32(b[i + 2]) << 16 | UInt32(b[i + 3]) << 24
-    }
 
     struct Cursor {
         let bytes: [UInt8]
@@ -156,6 +153,6 @@ public struct KroutonDiscJugglerImage: Sendable, Equatable {
         mutating func skip(_ n: Int) throws { _ = try take(n) }
         mutating func u8() throws -> UInt8 { try take(1)[0] }
         mutating func u16() throws -> Int { let b = try take(2); return Int(b[0]) | Int(b[1]) << 8 }
-        mutating func u32() throws -> UInt32 { KroutonDiscJugglerImage.le32(try take(4), 0) }
+        mutating func u32() throws -> UInt32 { KroutonBytes.readLE32(try take(4), 0) }
     }
 }

@@ -228,10 +228,8 @@ public struct MMCSense: Sendable, Equatable, CustomStringConvertible {
 }
 
 enum MMCBytes {
-    static func u16(_ d: [UInt8], _ i: Int) -> UInt16 { UInt16(d[i]) << 8 | UInt16(d[i + 1]) }
-    static func u32(_ d: [UInt8], _ i: Int) -> UInt32 {
-        UInt32(d[i]) << 24 | UInt32(d[i + 1]) << 16 | UInt32(d[i + 2]) << 8 | UInt32(d[i + 3])
-    }
+    static func u16(_ d: [UInt8], _ i: Int) -> UInt16 { KroutonBytes.readBE16(d, i) }
+    static func u32(_ d: [UInt8], _ i: Int) -> UInt32 { KroutonBytes.readBE32(d, i) }
 }
 
 // MARK: - Transport

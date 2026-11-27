@@ -86,8 +86,8 @@ extension KroutonOpticalDriveBank {
                     volumeName: outISO.lastPathComponent,
                     sectorsWrittenLBA: max(1, writtenBytes / 2048),
                     bytesWritten: writtenBytes,
-                    averageSpeedText: "Streamed Direct",
-                    peakSpeedText: "Streamed Direct",
+                    averageSpeedText: "—",
+                    peakSpeedText: "—",
                     elapsedDurationText: String(format: "%02d:%02d", secs / 60, secs % 60),
                     diagnosticAdvice: "The converted .iso image has been added to your workspace and can be mounted or burned immediately."
                 )
@@ -165,8 +165,8 @@ extension KroutonOpticalDriveBank {
                     volumeName: outBIN.lastPathComponent,
                     sectorsWrittenLBA: Int64(totalSectors),
                     bytesWritten: Int64(totalSectors) * 2352,
-                    averageSpeedText: "RAM Direct",
-                    peakSpeedText: "RAM Direct",
+                    averageSpeedText: "—",
+                    peakSpeedText: "—",
                     elapsedDurationText: String(format: "%02d:%02d", secs / 60, secs % 60),
                     diagnosticAdvice: "Both the .BIN and .CUE files have been generated and staged in your File List."
                 )
@@ -180,7 +180,7 @@ extension KroutonOpticalDriveBank {
                 title: "Sector Conversion Error",
                 summary: error.localizedDescription,
                 driveModel: "Krouton Sector Transcoder",
-                firmwareRevision: "1.0",
+                firmwareRevision: "—",
                 mediaFormattedName: "Disc Image",
                 volumeName: sourceURL.lastPathComponent,
                 sectorsWrittenLBA: 0,

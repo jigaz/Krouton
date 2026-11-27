@@ -99,6 +99,7 @@ struct KroutonWorkflowBlueprintView: View {
         )
         .drawingGroup(opaque: false, colorMode: .extendedLinear)
         .allowsHitTesting(false)
+        .accessibilityHidden(true)   // decorative blueprint art behind the Depot heading
     }
 
     private func drawCADNode(context: inout GraphicsContext, _ pt: CGPoint, handle: CGPoint, primaryStroke: Color, accent: Color) {

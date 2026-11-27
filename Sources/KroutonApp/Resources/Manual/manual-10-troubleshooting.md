@@ -12,7 +12,7 @@ Open Settings with ⌘,. The search field at the top finds a setting by any word
 - **Burners & Network**: connected drives, Auto-Load and Krouton Servers.
 - **Labels & Printers**: disc sizes and printer tray offsets.
 - **Notifications**: a banner and a sound when a burn or rip starts, finishes or fails, when Auto-Load wants the next blank, and when a Depot download is checked.
-- **Accessibility & Language**: higher contrast, spoken progress for VoiceOver, and the app's language. Translation into nine languages has started with a handful of labels; most of the app and this manual are in English for now.
+- **Accessibility & Language**: higher contrast, spoken progress for VoiceOver, and the app's language. Krouton also follows Reduce Motion in System Settings › Accessibility › Display, which turns off its animations. Translation into nine languages has started with a handful of labels; most of the app and this manual are in English for now. A change of language takes effect the next time Krouton opens; you can also set it in System Settings › General › Language & Region › Applications.
 
 ## Where Krouton keeps things
 

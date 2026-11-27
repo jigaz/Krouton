@@ -68,10 +68,10 @@ struct KroutonMainWorkspaceView: View {
             .modifier(KroutonStageImporterModifier(store: store))
             .modifier(KroutonProjectSheetModifier(store: store, driveManager: driveManager))
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("krouton.toggleLeftSidebar"))) { _ in
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) { isLeftSidebarCollapsed.toggle() }
+                withAnimation(kroutonMotion(.spring(response: 0.32, dampingFraction: 0.78))) { isLeftSidebarCollapsed.toggle() }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("krouton.toggleRightSidebar"))) { _ in
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) { isRightSidebarCollapsed.toggle() }
+                withAnimation(kroutonMotion(.spring(response: 0.32, dampingFraction: 0.78))) { isRightSidebarCollapsed.toggle() }
             }
     }
 
@@ -89,7 +89,7 @@ struct KroutonMainWorkspaceView: View {
     var topProToolbar: some View {
         HStack(spacing: 14) {
             Button {
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                withAnimation(kroutonMotion(.spring(response: 0.32, dampingFraction: 0.78))) {
                     isLeftSidebarCollapsed.toggle()
                 }
             } label: {
@@ -137,7 +137,7 @@ struct KroutonMainWorkspaceView: View {
                 .buttonStyle(.plain)
 
                 Button {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                    withAnimation(kroutonMotion(.spring(response: 0.32, dampingFraction: 0.78))) {
                         isRightSidebarCollapsed.toggle()
                     }
                 } label: {

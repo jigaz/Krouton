@@ -93,6 +93,10 @@ struct KroutonFloatingPhaseScopeView: View {
                         context.stroke(traces.speedLine, with: .color(primaryColor), lineWidth: 2.4)
                     }
                 }
+                .accessibilityElement()
+                .accessibilityLabel("Burn speed graph")
+                .accessibilityValue(String(format: "%.0f kilobytes per second, %d RPM, %.0f percent written",
+                                           telemetry.currentSpeedKBs, telemetry.currentSpindleRPM, progress * 100))
                 VStack {
                     HStack {
                         Text("24.0x MAX SPEED").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundStyle(primaryColor)

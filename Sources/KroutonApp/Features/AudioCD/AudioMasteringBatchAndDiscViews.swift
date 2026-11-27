@@ -221,7 +221,7 @@ struct AudioTrackReorderDropDelegate: DropDelegate {
               draggedID != targetTrackID,
               let fromIdx = controller.project.index(of: draggedID),
               let toIdx = controller.project.index(of: targetTrackID) else { return }
-        withAnimation(.easeInOut(duration: 0.14)) {
+        withAnimation(kroutonMotion(.easeInOut(duration: 0.14))) {
             controller.moveTrack(from: fromIdx, to: toIdx)
         }
     }

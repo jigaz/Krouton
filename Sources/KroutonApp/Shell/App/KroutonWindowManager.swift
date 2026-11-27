@@ -1,4 +1,3 @@
-import AppKit
 import DriveKit
 import Observation
 import OpticalCore
@@ -35,7 +34,7 @@ final class KroutonWindowManager {
     func openTrackMontageWindow() {
         TrackMontageWindowState.shared.isFloatingWindowOpen = true
         openWindowAction?(id: "track-montage")
-        NSApplication.shared.activate(ignoringOtherApps: true)
+        KroutonAppKitBridge.activate()
     }
 
     func openSettingsWindow(store: KroutonStateStore, driveManager: KroutonOpticalDriveBank, pane: KroutonSettingsCategory? = nil) {
@@ -45,12 +44,12 @@ final class KroutonWindowManager {
 
     func openUserManualWindow() {
         openWindowAction?(id: "user-manual")
-        NSApplication.shared.activate(ignoringOtherApps: true)
+        KroutonAppKitBridge.activate()
     }
 
     func startGuidedTutorialOnMainWorkspace(_ tutorial: KroutonGuidedTutorialID) {
         openMainWindow()
-        NSApplication.shared.activate(ignoringOtherApps: true)
+        KroutonAppKitBridge.activate()
         KroutonGuidedTutorialController.shared.start(tutorial, store: store, driveManager: driveManager)
     }
 }
@@ -62,9 +61,10 @@ struct KroutonSceneActionBinder: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .modifier(KroutonReduceMotionReader())
             .onAppear {
-                NSApplication.shared.setActivationPolicy(.regular)
-                NSApplication.shared.activate(ignoringOtherApps: true)
+                KroutonAppKitBridge.becomeRegularApp()
+                KroutonAppKitBridge.activate()
                 KroutonWindowManager.shared.bindSceneActions(openWindow: openWindow, dismissWindow: dismissWindow)
                 KroutonCrashRecoveryController.shared.evaluateLaunchStateAndHydrateIfClean(store: KroutonWindowManager.shared.store)
             }

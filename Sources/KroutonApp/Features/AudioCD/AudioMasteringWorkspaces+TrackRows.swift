@@ -162,7 +162,7 @@ extension KroutonRedBookAudioWorkspaceView {
                 Spacer().frame(width: 118)
             } else {
                 Button {
-                    withAnimation(.easeInOut(duration: 0.16)) {
+                    withAnimation(kroutonMotion(.easeInOut(duration: 0.16))) {
                         let nextID = isExpanded ? nil : track.id
                         expandedTransitionTrackID = nextID
                         if let nextID { montageState.activeTrackID = nextID }

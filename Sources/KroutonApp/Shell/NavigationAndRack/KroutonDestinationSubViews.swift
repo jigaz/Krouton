@@ -273,7 +273,7 @@ struct NetworkSpoolDriveCardSectionView: View {
 
     private var scopeButton: some View {
         Button {
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+            withAnimation(kroutonMotion(.spring(response: 0.28, dampingFraction: 0.82))) {
                 if isFloatingOpen {
                     KroutonWindowManager.shared.closeFloatingPhaseScopeWindow(driveID: activeCardDriveID, suckIntoMiniGraph: true)
                 } else if isInlineVisible {

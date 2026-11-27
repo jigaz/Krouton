@@ -9,9 +9,10 @@ This file provides canonical architectural context, build/verification commands,
 - **Krouton Server (Rust):** `cd krouton-server && cargo test --workspace && cargo clippy --workspace --all-targets`
 - **Launch macOS App:** `swift run Krouton`
 - **User Manual:** chapters are Markdown in `Sources/KroutonApp/Resources/Manual/` (read by the app); after editing run `python3 Scripts/build-manual.py`, and CI runs it with `--check` (also fails if a menu shortcut is missing from `manual-09-keyboard-shortcuts.md`). Describe only what works today.
+- **Interface text:** `Sources/KroutonApp/Resources/Localizable.xcstrings` (String Catalog). After adding or changing text run `python3 Scripts/extract-strings.py`; CI runs it with `--check`. Write user-facing text as SwiftUI literals or `KroutonL10n.tr("…")`.
 - **Package the App:** `./Scripts/bundle-app.sh` (`ARCH`, `VERSION`)
 
-> **Mandatory Verification Rule:** Every code change or architectural proposal MUST pass `swift test && swift run krouton-verify` (and `python3 Scripts/build-manual.py --check`) with zero warnings and zero failures. Changes under `krouton-server/` or `Vectors/` must also pass `cargo test --workspace` and `cargo clippy --workspace --all-targets` (CI runs them on Linux, macOS, Windows and ARM). A wire change regenerates `Vectors/krsp-control-v1.txt` (`KRSP_WRITE_CONTROL_VECTORS=1 cargo test -p krsp --test control_vectors`), and a bundle-format change regenerates `Vectors/krsp-bundle-v1.tar` and `krsp-bundle-names-v1.txt` (`KRSP_WRITE_BUNDLE_VECTORS=1 cargo test -p krsp --test bundle_vectors`), and a change to the UDF writer's output regenerates `Vectors/udf-bd-v1.sha256` and `udf-dvd-v1.sha256` (`KRSP_WRITE_UDF_VECTORS=1 cargo test -p server-core disc::tests::udf_vector`); all are checked on both sides.
+> **Mandatory Verification Rule:** Every code change or architectural proposal MUST pass `swift test && swift run krouton-verify` (and `python3 Scripts/build-manual.py --check` and `python3 Scripts/extract-strings.py --check`) with zero warnings and zero failures. Changes under `krouton-server/` or `Vectors/` must also pass `cargo test --workspace` and `cargo clippy --workspace --all-targets` (CI runs them on Linux, macOS, Windows and ARM). A wire change regenerates `Vectors/krsp-control-v1.txt` (`KRSP_WRITE_CONTROL_VECTORS=1 cargo test -p krsp --test control_vectors`), and a bundle-format change regenerates `Vectors/krsp-bundle-v1.tar` and `krsp-bundle-names-v1.txt` (`KRSP_WRITE_BUNDLE_VECTORS=1 cargo test -p krsp --test bundle_vectors`), and a change to the UDF writer's output regenerates `Vectors/udf-bd-v1.sha256` and `udf-dvd-v1.sha256` (`KRSP_WRITE_UDF_VECTORS=1 cargo test -p server-core disc::tests::udf_vector`); all are checked on both sides.
 
 ---
 
@@ -28,7 +29,7 @@ Krouton is a native macOS optical disc mastering, extraction, bad-sector rescue,
 7. `RescueKit` — Bad-sector optical rescue copy engine & archival disc quality grading.
 8. `LabelKit` — 300-DPI polar disc geometry & 1:1 vector PDF print sheet engine.
 9. `NetworkSpool` — Client for **Krouton Server** (`krouton-server/`, Rust): KRSP v1 frames (`SpoolWireFrame`), Merkle manifests and the resumable `SpoolUploadSender`, pairing and session proofs (`SpoolPairing`), pinned mutual TLS (`SpoolTLS`, `SpoolServerConnection`), keys (`SpoolClientIdentity`), control messages (`SpoolControl`), folder bundles for server-side mastering (`SpoolBundleWriter`), and `SpoolRemoteNodeClient` (`burnImage`, `burnFolder`). The server side of the protocol lives only in Rust. Depends only on `OpticalCore`.
-10. `Persistence` — `SessionStore`, `RunLock` crash recovery, L10n catalog.
+10. `Persistence` — `SessionStore`, `RunLock` crash recovery.
 11. `KroutonApp` — macOS application target split into `Shell/` and `Features/` (plus `KroutonVerify` and 9 module test targets = 21 SPM targets total).
 
 ---
@@ -36,9 +37,10 @@ Krouton is a native macOS optical disc mastering, extraction, bad-sector rescue,
 ## 3. Non-Negotiable Code Style & Verification Gates (`krouton-verify`)
 All code written or proposed for Krouton is automatically linted by **Suite 1, Suite 2, and Suite 18**:
 
-- **Pure-SwiftUI Feature Gate (`Sources/KroutonApp/Features/`):**
-  - Files under `Features/` must use **100% Pure SwiftUI**.
-  - ** strictly banned in `Features/`:** `import AppKit`, `NSColor`, `NSView`, `NSImage`, `NSViewRepresentable`.
+- **Pure-SwiftUI Gate (`Sources/KroutonApp/Features/` and `Sources/KroutonApp/Shell/`):**
+  - Files under `Features/` and `Shell/` must use **100% Pure SwiftUI**.
+  - **Strictly banned there:** `import AppKit`, `import Cocoa`, `NSColor`, `NSView`, `NSImage`, `NSViewRepresentable`, `NSApplication.shared`, `NSWorkspace`, `NSPasteboard`, and looking AppKit up at runtime (`NSClassFromString`, `NSSelectorFromString`).
+  - **The one exception** is `Shell/App/KroutonAppKitBridge.swift`, for what SwiftUI on macOS has no API for (blocking Quit mid-burn, the Dock icon and badge, the clipboard, selecting files in Finder, activation). Add to it only when SwiftUI can't do the job, and call it through `KroutonOSDesktopBridge`.
   - Use `Color.resolve(in: EnvironmentValues())` for color math and `ImageIO` (`CGImageSource`) + `Image(decorative:scale:)` for file thumbnails.
 - **Strict File & Function Size Ceilings:**
   - SwiftUI View files (`*View*.swift`, `*Bar.swift`, `*Canvas.swift`): **<= 400 LOC**

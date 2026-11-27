@@ -12,7 +12,7 @@ struct KroutonDualHarmonySwitch: View {
 
     var body: some View {
         Button {
-            withAnimation(.spring(response: 0.24, dampingFraction: 0.78)) {
+            withAnimation(kroutonMotion(.spring(response: 0.24, dampingFraction: 0.78))) {
                 isOn.toggle()
             }
         } label: {

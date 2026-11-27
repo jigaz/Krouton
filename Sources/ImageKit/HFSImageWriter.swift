@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import OpticalCore
 
 // MARK: - HFS Image Writer (Mac OS 9 and Earlier)
 
@@ -134,7 +135,7 @@ public enum KroutonHFSImageWriter {
                                        freeBlocks: UInt16(totalBlocks) - UInt16(usedBlocks), firstBlockSector: UInt16(firstBlockSector),
                                        extentsBlocks: UInt16(extentsBlocks), catalogBlocks: UInt16(catalogBlocks))
         // Finder info word 0 names the blessed System Folder, which a Mac boots from.
-        if let systemFolder { mdb.replaceSubrange(92..<96, with: hfsBE32(items[systemFolder].cnid)) }
+        if let systemFolder { mdb.replaceSubrange(92..<96, with: KroutonBytes.be32(items[systemFolder].cnid)) }
         try put(base + 2 * 512, mdb)
         try put(base + (volumeSectors - 2) * 512, mdb)
         let files = items.filter { !$0.isDir }.count

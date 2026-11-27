@@ -1,0 +1,1529 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "+ Add Text": {},
+    "+ Index": {},
+    "+ Shapes & Badges": {},
+    "+Scale": {},
+    "+Text": {},
+    "-Scale": {},
+    "0 sec (Gapless)": {},
+    "1 sec Pause": {},
+    "10mm Grid": {},
+    "19 kHz Low-Pass Filter": {},
+    "192 kbps CBR MP3 (12-Hr Trip)": {},
+    "2 sec Standard Pause": {},
+    "2.5s Crossfade": {},
+    "2.5s X-Fade": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "2,5s Überblenden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Fundido 2,5s"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Fondu 2,5s"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Dissolvenza 2,5s"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "2.5秒クロスフェード"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "2.5초 크로스페이드"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "2,5s crossfade"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Crossfade 2,5s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "2.5秒交叉淡化"
+          }
+        }
+      }
+    },
+    "24.0x MAX SPEED": {},
+    "2s Pause": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "2s Pause"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Pausa de 2s"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Pause 2s"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Pausa 2s"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "2秒ポーズ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "2초 휴지"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "2s pauze"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Pausa de 2s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "2秒间隔"
+          }
+        }
+      }
+    },
+    "320 kbps CBR MP3 (Car Safe)": {},
+    "4× Ring": {},
+    "6,000 RPM CEILING": {},
+    "A disc that is being written right now cannot be reused if it is write-once media. To stop without losing a disc, use Stop After Current Discs.": {},
+    "Abort Active Operation": {},
+    "Abort and Spoil Discs in Progress": {},
+    "Abort Now...": {},
+    "ABOUT THIS DISC": {},
+    "Acknowledge": {},
+    "Active Interface Language": {},
+    "Active optical operation in progress — abort the job in the Destination Queue before quitting so media is not damaged.": {},
+    "Active Pattern:": {},
+    "Actual Size (100%)": {},
+    "Add a draggable Red Book sub-index marker (INDEX 02..99); drag across INDEX 01 to switch track ownership & color": {},
+    "Add a new curved or straight text layer to the disc": {},
+    "Add all connected optical burners to the upper active pool (fastest burner prioritized first)": {},
+    "Add comment…": {},
+    "Add Curved Text Layer": {},
+    "Add Destination Output Card": {},
+    "Add Files or Disc Images...": {},
+    "Add Files...": {},
+    "Add Files…": {},
+    "Add Finder comment…": {},
+    "Add Geometric Shape": {},
+    "Add Image...": {},
+    "Add Output": {},
+    "Add Text": {},
+    "Address, e.g. burner.local or 192.168.1.20": {},
+    "Adjust Background": {},
+    "AIFF (1:1 Red Book PCM)": {},
+    "Album": {},
+    "Album is a compilation of songs by various artists": {},
+    "Album Performer (≤60 Latin-1 chars)": {},
+    "Album Title": {},
+    "Album Title (≤60 Latin-1 chars)": {},
+    "Album:": {},
+    "Alignment Test": {},
+    "All queued discs are assigned to active burner slots above. Increase Copies or stage a multi-disc spanned set to queue waiting tasks here.": {},
+    "Announce optical drive events, disc insertions, and burn phase changes via macOS VoiceOver": {},
+    "APM + Blessed Classic HFS": {},
+    "Appearance Mode": {},
+    "Apple Lossless (ALAC)": {},
+    "Application Language": {},
+    "Apply": {},
+    "Approve & Assign": {},
+    "Artist": {},
+    "Artist:": {},
+    "Assign ↑": {},
+    "Audio & Music Discs": {},
+    "Audio CD": {},
+    "Audio CD Ripper & AccurateRip Archiver": {},
+    "Audition Track Transition": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Übergang vorhören"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Escuchar transición"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Écouter la transition"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ascolta transizione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "トランジションを試聴"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "트랙 전환 미리 듣기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Overgang beluisteren"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ouvir transição"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "试听音轨过渡"
+          }
+        }
+      }
+    },
+    "Audition zero-file procedural synth cues and real-time AVFoundation DSP augmentations.": {},
+    "Augmented macOS System .AIFF Presets": {},
+    "Auto Label": {},
+    "Auto-ISRC…": {},
+    "Auto-Load Next Disc: Eject finished disc & automatically start next burn after fresh blank disc insertion": {},
+    "Auto-Snap Loops to Crisp Circles/Polygons": {},
+    "Automatically harvest embedded/folder/MusicBrainz artwork, extract Display-P3 palette with Vision center-hole avoidance, and lay out curved arc typography": {},
+    "Automatically remember application state, staged files, and active task on launch (offers to start empty if a crash is detected)": {},
+    "AVCHD High-Definition": {},
+    "B&W Mono": {},
+    "Back": {},
+    "Background Fill": {},
+    "Background:": {},
+    "BDXL Triple/Quad-Layer UHD (100 GB)": {},
+    "Begins the photo at the edge of the hole, so the stretched middle of the planet isn't printed": {},
+    "Beige Book CD-ROM XA (.PCD)": {},
+    "Bitrate & Fit": {},
+    "Blank": {},
+    "Blank White Printable Disc is active (unprinted surface). Select a gradient or optical background in 'Bg' to preview color & blur adjustments.": {},
+    "Bleed carries the artwork a little past the printable area, so a print slightly off centre leaves no white edge. Keep text a few millimetres inside the rim.": {},
+    "Blu-ray Disc Dual-Layer (BD-R 50 GB)": {},
+    "Blu-ray Disc Single-Layer (BD-R 25 GB)": {},
+    "Blue Book CD-Extra (Audio + Data)": {},
+    "Bold": {},
+    "Botanical Golden Spirals": {},
+    "Bottom (180°)": {},
+    "Build Images and Burn": {},
+    "BURN": {},
+    "Burn Disc Image (.iso / .cue / .dmg)": {},
+    "Burn on a Raspberry Pi, PC, NAS or another Mac running Krouton Server. To add one, run `krouton-server pair` on it, then choose Pair here. Both screens show the same 6-digit code.": {},
+    "Burn Remaining Discs": {},
+    "Burn speed graph": {},
+    "Burn Station Workspace": {},
+    "Burn the Last Image Again": {},
+    "Burned as it is: DiscRecording picks the write mode the image needs (disc-at-once for .cue/.bin).": {},
+    "BURNER AVAILABLE • WAITING FOR TASK": {},
+    "Calculate all sizes": {},
+    "Cancel Batch": {},
+    "Canvas is currently blank. Use the left tool rail to set a Circular Gradient, stamp Vector Shapes, or add Curved Arc Text.": {},
+    "Canvas Layers Overview": {},
+    "Capacity": {},
+    "Capacity & Addressing Units": {},
+    "CAR_MP3_DISC": {},
+    "CCXXXYYNNNNN": {},
+    "CCXXXYYNNNNN (12 chars)": {},
+    "CD Info": {},
+    "CD Info & Metadata Tags": {},
+    "CD Info & Metadata Tags...": {},
+    "CD-TEXT Artist": {},
+    "CD-TEXT Title (≤60 Latin-1)": {},
+    "Chamber Tumble (Slide Shards)": {},
+    "Change…": {},
+    "CHAPTERS": {},
+    "Check each ripped track against the AccurateRip database": {},
+    "Check that the server shows the same code, then confirm on both. The server's operator types y in the `krouton-server pair` window.": {},
+    "Check With AccurateRip": {},
+    "Choose a blank printable disc, a solid color, or a smooth circular gradient radiating from the center hub to the outer rim.": {},
+    "Choose a Panorama…": {},
+    "Choose Another Panorama…": {},
+    "Choose Folder…": {},
+    "Classic HFS in a Partition Map: Resource Forks, Types & Creators Kept": {},
+    "Clear All": {},
+    "Clear Crops": {},
+    "Clear disc back to a blank white printable surface": {},
+    "Clear search query": {},
+    "Clear settings search": {},
+    "Clear Staged Files": {},
+    "Clear Sub-Indexes": {},
+    "Click 'Add Text' to place a title, subtitle, or artist credit that wraps smoothly along the curve of the disc.": {},
+    "Click any column header to sort, drag column dividers to resize width, or drag headers to rearrange columns (just like Finder List View).": {},
+    "Click anywhere on the mini Phase Scope to pop out the full hardware telemetry analyzer": {},
+    "Click to bring the popped-out Track Montage Editor window to the front": {},
+    "Click value to reset this slider": {},
+    "Clock Position Angle (0° = Top)": {},
+    "Close": {},
+    "Close interactive guided tutorial": {},
+    "Codec:": {},
+    "Color": {},
+    "Colour, contrast and blur are in Adjust; they apply to the planet too.": {},
+    "Comments": {},
+    "Composer": {},
+    "Composer:": {},
+    "Compress Image": {},
+    "Computers open these files from the disc; CD players play the tracks above and skip them. A CDPLUS folder is added for you.": {},
+    "Configure visible formats in Settings -> Format Chooser": {},
+    "CONSOLE DISC IMAGES": {},
+    "Controls how format badges, drive icons, and telemetry tiles render": {},
+    "Copied": {},
+    "COPY": {},
+    "Copy .CUE": {},
+    "Copy Archival Certificate": {},
+    "Copy Archival Quality Certificate": {},
+    "Copy Budget": {},
+    "Copy File Path & Sector Count": {},
+    "Copy Format Specification": {},
+    "Copy Map": {},
+    "Copy Results": {},
+    "Copy Selected Disc or Image Metadata": {},
+    "Copy Target Hardware / Path": {},
+    "Copy Telemetry Log": {},
+    "Copy, Rip & Rescue Workflows": {},
+    "Copy, Rip & Rescue Workspace": {},
+    "Custom OS .AIFF DSP Augmenter": {},
+    "Customize Finder Layout": {},
+    "Damaged, still trying": {},
+    "Data & Archival Media": {},
+    "Data discs only: CD-ROM, DVD and Blu-ray. For a scratched audio CD, rip it in Rip Audio CD.": {},
+    "Data Session": {},
+    "Date Created": {},
+    "Date Modified": {},
+    "Default": {},
+    "Delete": {},
+    "Delete Label Preset": {},
+    "Delete Selected Text Layer": {},
+    "Delete Text Layer": {},
+    "Delete Vector Shape": {},
+    "Depot feed address": {},
+    "Deselect All Tracks": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Auswahl aufheben"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Deseleccionar todo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Tout désélectionner"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Deseleziona tutto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "すべての選択を解除"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "모든 선택 해제"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Deselecteer alles"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Desmarcar tudo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "取消全选"
+          }
+        }
+      }
+    },
+    "Deselect Track": {},
+    "Dichroic Neon Filaments": {},
+    "Disabled": {},
+    "Disc": {},
+    "DISC IMAGE DEPOT": {},
+    "Disc Image Depot Library": {},
+    "DISC IMAGE DEPOT • BOOT INSPECTOR, CONVERTER & SECTOR VIEWER": {},
+    "Disc label": {},
+    "Disc Size & Preset Override": {},
+    "Disc Size:": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Disk-Größe:"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Tamaño de disco:"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Taille du disque :"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Dimensione disco:"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "ディスク容量:"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "디스크 크기:"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Schijfgrootte:"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Tamanho do disco:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "光盘容量:"
+          }
+        }
+      }
+    },
+    "Disc Text Tool": {},
+    "Disc Title:": {},
+    "Disc type": {},
+    "Disc View Options": {},
+    "Disc Volume Title": {},
+    "Disc:": {},
+    "Discard Its Staged Images": {},
+    "Dismiss": {},
+    "Distance from Center (Radius)": {},
+    "Dock Inline": {},
+    "Done": {},
+    "Double-click to open the floating Phase Scope window": {},
+    "Draft": {},
+    "Drag row to reorder track position on disc": {},
+    "Drag up or down on the photo to set where its horizon is": {},
+    "Drag vertically to resize inline Track Montage Editor height": {},
+    "Drive on the Krouton Server": {},
+    "Dual-layer DVD, 8.5 GB": {},
+    "Duplicate Disc & Fit-to-Disc Requantizer": {},
+    "Duplicate Disc / Fit-to-Disc DVD-9 Shrink": {},
+    "Duplicate Selected Text Layer": {},
+    "Duplicate Text Layer (180° Mirror)": {},
+    "DVD, 4.7 GB": {},
+    "DVD-9 (8.54 GB DL) -> DVD-5 (4.70 GB SL) FIT-TO-DISC REQUANTIZATION PLAN": {},
+    "DVD-9 -> DVD-5 MENU BUTTONS, .IFO RELINKING & LAYER-BREAK REMOVAL": {},
+    "DVD-Video (VIDEO_TS)": {},
+    "DVD_VIDEO": {},
+    "Each disc is a self-contained ISO-9660 + Joliet + UDF volume with a checksum manifest and an index of the whole set. Every connected burner is used, and every disc is read back and compared before it counts as done.": {},
+    "Edges": {},
+    "Eject": {},
+    "Eject Optical Disc": {},
+    "Eject Optical Media": {},
+    "Enabled": {},
+    "Enter Disc Text...": {},
+    "Epson disc printing works in multiples of 360 dpi, Canon and HP in multiples of 300": {},
+    "Erase RW": {},
+    "Every depot download is checked against the SHA-256 depot.krouton.app recorded for it. A file that doesn't match is deleted, never burned.": {},
+    "Every file is copied and hashed once. Nothing is written to a disc until all images are ready.": {},
+    "Every OS: HFS+ • ISO 9660 + Joliet • UDF": {},
+    "Execute Active Queue / Burn Now": {},
+    "Execute Only This Destination": {},
+    "Exit Active Guided Tutorial": {},
+    "Export 1:1 PDF": {},
+    "Export PDF": {},
+    "Export PNG": {},
+    "Fade To": {},
+    "Files As They Are (No Conversion)": {},
+    "Filter Depot or Search Internet Archive": {},
+    "Filter or search Archive.org...": {},
+    "Filter or search archive.org...": {},
+    "Finder View": {},
+    "Finest": {},
+    "Fit Dual-Layer DVD-9 (8.5 GB) onto Single-Layer DVD-5 (4.7 GB)": {},
+    "FLAC (Lossless)": {},
+    "Flip (run the photo anticlockwise)": {},
+    "Folder color": {},
+    "Folder...": {},
+    "Follow Circular Disc Arc": {},
+    "Font": {},
+    "Font Size": {},
+    "Format": {},
+    "Format Chooser": {},
+    "FORMAT CHOOSER": {},
+    "FORMATS": {},
+    "Freehand Draw & Vision AI Contours": {},
+    "Frosted": {},
+    "Full Erase": {},
+    "Full Hub (18/120)": {},
+    "Gapless (0s)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Unterbrechungsfrei (0s)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Sin pausas (0s)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Sans blanc (0s)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Senza pause (0s)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "ギャップレス (0秒)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "갭리스 (0초)"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Gapless (0s)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Sem intervalos (0s)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "无缝衔接 (0秒)"
+          }
+        }
+      }
+    },
+    "Genre": {},
+    "Genre:": {},
+    "Get Info (CD Info...)": {},
+    "Get Track Names": {},
+    "Glossy and water-resistant discs take less ink than matte ones: if prints smear or stay wet, lower the density or lift the shadows. Both are applied when you export.": {},
+    "Grid spacing:": {},
+    "Group By:": {},
+    "GUIDED TOURS": {},
+    "Hardware, Theme & Language Settings...": {},
+    "HARMONY": {},
+    "HERO": {},
+    "HFS+ beside ISO + UDF": {},
+    "HFS+ for Macs, beside ISO 9660 + Joliet + UDF": {},
+    "HFS+ • ISO + Joliet • UDF": {},
+    "Hide 10mm Alignment Grid": {},
+    "Hide Format from Sidebar": {},
+    "Hide from macOS (HFS+)": {},
+    "Hide from Windows (Joliet/UDF)": {},
+    "High-definition video on a DVD": {},
+    "Highlight loudest frames with distinct colors for Outgoing (chartreuse-gold) and Incoming (amber-gold) tracks": {},
+    "Highlights the controls on screen": {},
+    "https://...": {},
+    "Hybrid ISO-9660 + Joliet + UDF": {},
+    "Icon & widget style": {},
+    "Icon size:": {},
+    "ID3v2.3 + ID3v1 Tags": {},
+    "Import CD": {},
+    "Increase Contrast (High-contrast borders on Format Chooser, Tracklists & Phase Scope)": {},
+    "Ink": {},
+    "Inline Phase Scope Telemetry": {},
+    "Inner Hub (r = 24.0 mm • LBA 0)": {},
+    "Inner Hub Diameter (18–50 mm)": {},
+    "Inner:": {},
+    "Insert Bottom Curved Arc Text": {},
+    "Insert Disc Break": {},
+    "Insert Top Curved Arc Title": {},
+    "Inspect Compiled Red Book CUE Sheet": {},
+    "Inspect Hex": {},
+    "Inspect Hybrid ISO/UDF LBA Layout": {},
+    "Inspect in Disc Image Depot": {},
+    "Inspect LBA Sector Allocation Map": {},
+    "Inspect Video Bitrate Budget": {},
+    "Interactive Guided Tutorials": {},
+    "ISO 3901 ISRC: 2 country letters + 3 registrant chars + 2 year digits + 5 serial digits (12 chars)": {},
+    "ISO 9660 Level 1: 8.3 Uppercase Names for DOS / Win 3.1": {},
+    "ISO Level 1: 8.3 Names": {},
+    "ISRC (ISO 3901)": {},
+    "ITEM NAME & PATH": {},
+    "Joint Stereo": {},
+    "Keep Bottom Arc Text Upright (Readable)": {},
+    "Keep Burning": {},
+    "Keep the menus and extras when shrinking (otherwise only the main feature is kept)": {},
+    "Kind": {},
+    "Kodak Beige Book CD-ROM XA (Multi-Resolution .PCD Image Pac)": {},
+    "KROUTON": {},
+    "Krouton Accent Swatch": {},
+    "Krouton copies everything that reads easily first, then goes back to the damaged areas one sector at a time. Sectors that never read are saved as zeros and listed in a map file beside the image (GNU ddrescue's format), so you can try again later, in another drive, or with ddrescue itself.": {},
+    "Krouton Manual Online (krouton.app)": {},
+    "Krouton Server": {},
+    "Krouton User Manual & Mastering Guide...": {},
+    "Krouton User Manual & Search...": {},
+    "LABEL": {},
+    "Label Canvas Zoom": {},
+    "Label position:": {},
+    "Large": {},
+    "Laser": {},
+    "LBA": {},
+    "LBA Map": {},
+    "LBA Sector Map": {},
+    "Leave Disc Open for More Sessions": {},
+    "Left (270°)": {},
+    "Length": {},
+    "Letter Spacing (Tracking)": {},
+    "Level Horizon (Middle of the Photo)": {},
+    "Liquid Oil Interference": {},
+    "Locate Source File in Finder": {},
+    "M-DISC 1,000-Year Archival Vault": {},
+    "M-DISC PAR2 Parity Percentage": {},
+    "M-DISC ROCK-LAYER VAULT": {},
+    "M-DISC ROCK-LAYER VAULT + PAR2 PARITY:": {},
+    "Mac": {},
+    "Make Disc Image": {},
+    "Manual & Tours": {},
+    "Mark this slot's current disc finished and pull the next waiting task from the pool": {},
+    "Medium": {},
+    "Merge Back With Previous Disc": {},
+    "Mini 80mm": {},
+    "Mirror Rig": {},
+    "MKV, all audio and subtitles (needs ffmpeg)": {},
+    "Mode:": {},
+    "Mono": {},
+    "Montage": {},
+    "Mount": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Aktivieren"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Montar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Monter"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "attiva"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "マウント"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "마운트"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Activeer"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Montar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "挂载"
+          }
+        }
+      }
+    },
+    "Move this task back down into the Waiting Burn Pool": {},
+    "Move this waiting task across the divider into the active burner slot above": {},
+    "MP3 / FLAC Car Audio CD": {},
+    "MPEG file, copied as it is": {},
+    "Multi-Disc Set": {},
+    "Multicolor (Adapts per workspace)": {},
+    "MUX / SUBS / CHAPTERS": {},
+    "Name": {},
+    "Nearby, not paired": {},
+    "New Blank Project": {},
+    "New Preset Name (e.g. Verbatim Full Hub)...": {},
+    "Next": {},
+    "Next track transition": {},
+    "Next transition": {},
+    "Nintendo GameCube (MiniDVD)": {},
+    "Nintendo Wii Optical Disc": {},
+    "No files yet. Add the videos, lyrics or artwork for the data session.": {},
+    "No hidden files": {},
+    "No optical media is loaded in this drive.": {},
+    "No physical optical drives detected. Plug in your USB burner and click Rescan Bus.": {},
+    "No servers paired yet.": {},
+    "No text layers on this disc yet.": {},
+    "No USB Optical Drive Connected": {},
+    "No vector shapes on disc yet. Click any shape or optical badge above to stamp it.": {},
+    "Not tried yet": {},
+    "Object Chamber": {},
+    "of": {},
+    "OK": {},
+    "Only the audio is put on the disc: no .DS_Store or ._ files.": {},
+    "Open Floating Phase Scope Telemetry": {},
+    "Open in Finder": {},
+    "Open Project (.krut)...": {},
+    "Open the Planet Controls": {},
+    "Open Track Montage Editor Window": {},
+    "Optical Bad-Sector Rescue & Recovery": {},
+    "Optical Disc Label Designer": {},
+    "Optical Mirror Assembly": {},
+    "Optical Object Chamber": {},
+    "Orientation": {},
+    "Original Xbox (XDVDFS)": {},
+    "OS VISIBILITY": {},
+    "Outer Disc Diameter (70–120 mm)": {},
+    "Outer Rim (r = 58.0 mm • Lead-Out)": {},
+    "Outer:": {},
+    "Override the Inner Hub and Outer Rim diameters for the current disc, or save your custom geometry as a reusable preset in Settings.": {},
+    "Pair a Krouton Server in Settings › Burners & Network": {},
+    "Panorama Planet": {},
+    "par2 recovery files on the disc": {},
+    "Pastel Ink-Saver": {},
+    "Pause": {},
+    "Pauses, crossfades and the MP3 CD options are set in their own workspaces.": {},
+    "PC": {},
+    "Peaks": {},
+    "Per-track results appear here after an Audio CD rip. A track with a read error is reported as failed; for a damaged data disc, use Rescue a Damaged Disc.": {},
+    "Photo": {},
+    "Picture…": {},
+    "Planet": {},
+    "Planet Position": {},
+    "Planning, copying and building disc images...": {},
+    "Platform / Plays On": {},
+    "Play Custom Cue": {},
+    "Play Track in Default Player": {},
+    "Polar Disc Label Workspace": {},
+    "Post-Insertion Spin-Up & Auto-Fire Delay": {},
+    "Posts priority VoiceOver Accessibility announcements when blank media is locked, when the 5-second Auto-Load timer counts down, and when verification completes.": {},
+    "Pre-Gap": {},
+    "Pre-roll lead and post-roll lag time around the transition when listening to Preview (±1s, ±2s, ±3s, ±10s)": {},
+    "Preserve Interactive Menus & Subpictures": {},
+    "Preset": {},
+    "Preset Name": {},
+    "Preset:": {},
+    "Previous track transition": {},
+    "Previous transition": {},
+    "PRIMARY": {},
+    "Print On": {},
+    "Print Setup": {},
+    "Print the alignment test on a spare disc. If the crosshair lands off the centre, enter how far: positive X moves the print right, positive Y moves it down.": {},
+    "Printer X Offset (-2.0 to +2.0 mm)": {},
+    "Printer Y Offset (-2.0 to +2.0 mm)": {},
+    "Procedural Studio & Bakery Synth Presets": {},
+    "Profile:": {},
+    "Projection": {},
+    "Promote": {},
+    "Promote this waiting task into an active burner slot above": {},
+    "Promote to Fastest Free Burner": {},
+    "PROVISIONAL": {},
+    "Pull Next ↑": {},
+    "Query live Internet Archive REST API (archive.org/advancedsearch.php) for optical ISO / CD-ROM images": {},
+    "Quick Erase": {},
+    "Quick Presets": {},
+    "Quick Workspace Palettes": {},
+    "Randomize the physical glass shards and mirror angle inside the optical chamber": {},
+    "Read this chapter on krouton.app": {},
+    "Reading the image header…": {},
+    "RED BOOK .CUE SHEET & 18-BYTE CD-TEXT INSPECTOR": {},
+    "Red Book Audio CD (CD-DA)": {},
+    "Redo": {},
+    "Redo Label Canvas Edit (Cmd+Shift+Z)": {},
+    "Reduce Motion in System Settings › Accessibility › Display turns off Krouton's animations.": {},
+    "Refresh": {},
+    "Remove Destination Card": {},
+    "Remove from Data Session": {},
+    "Remove from Stage": {},
+    "Remove from the data session": {},
+    "Remove Item": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Objekt entfernen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Eliminar elemento"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Supprimer l’élément"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Rimuovi elemento"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "項目を削除"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "항목 제거"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Item verwijderen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Remover item"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "移除项目"
+          }
+        }
+      }
+    },
+    "Remove Track": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Titel entfernen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Eliminar pista"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Supprimer la piste"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Rimuovi traccia"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "トラックを削除"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "트랙 제거"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Track verwijderen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Remover faixa"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "移除音轨"
+          }
+        }
+      }
+    },
+    "Replicate this shape with 4-way polar rosette symmetry": {},
+    "Report a Drive": {},
+    "Report a Problem": {},
+    "Rescan Optical Drives": {},
+    "RESCUE A DAMAGED DISC": {},
+    "Rescue a Damaged Disc": {},
+    "Rescue map": {},
+    "Rescued Disc": {},
+    "Reset": {},
+    "Reset Default": {},
+    "Reset Layout": {},
+    "Resize columns to fit filenames": {},
+    "Resolution": {},
+    "Restore Session": {},
+    "Resume This Set": {},
+    "Retro Console Optical Media": {},
+    "Return to Waiting Pool": {},
+    "Reveal in Finder": {},
+    "Reveal Krouton Rips Folder in Finder": {},
+    "Reveal Staged Files in Finder": {},
+    "Reverse": {},
+    "Rewritable Data Disc (ISO 9660 + Joliet + UDF 1.02)": {},
+    "Rewritable: ISO + UDF 1.02": {},
+    "Right (90°)": {},
+    "Rim and hub marks on the PDF": {},
+    "Rip / Retry this track": {},
+    "Rip Selected": {},
+    "Rip Selected Audio CD Tracks": {},
+    "Ripped tracks are named with this pattern. Click a token to add it; click a token in the pattern to remove it. A / makes a folder.": {},
+    "Rot 15°": {},
+    "Rounded": {},
+    "Run Apple Vision VNDetectContoursRequest on the procedural GPU pattern and add vector contour paths": {},
+    "Run Phase Scope Diagnostic Sweep": {},
+    "Samples per pixel: Smooth removes jagged edges near the centre; Finest is slower": {},
+    "Sans": {},
+    "Save a 1:1 millimeter-calibrated Vector PDF print sheet to ~/Downloads": {},
+    "Save Alignment Test (PDF)": {},
+    "Save as": {},
+    "Save as Preset in Settings": {},
+    "Save As...": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Sichern unter…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Guardar como…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Enregistrer sous…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Salva col nome…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "別名で保存..."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "별도 저장..."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Bewaar als…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Salvar como…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "另存为..."
+          }
+        }
+      }
+    },
+    "Save Override as New Preset": {},
+    "Save Preset": {},
+    "Save Project (.krut)...": {},
+    "Save rings 1 mm apart and a crosshair at 1:1, to print on a spare disc and read the tray offset": {},
+    "Scan Audio CD TOC & Lookup MusicBrainz": {},
+    "Seam": {},
+    "Search": {},
+    "Search settings": {},
+    "Search the manual": {},
+    "Sector Hex Inspector:": {},
+    "SECTORS": {},
+    "Select All Tracks": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Alle Titel auswählen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Seleccionar todas las pistas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Tout sélectionner"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Seleziona tutte le tracce"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "すべてのトラックを選択"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "모든 트랙 선택"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Selecteer alle tracks"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Selecionar todas as faixas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "全选音轨"
+          }
+        }
+      }
+    },
+    "Select target optical disc storage size for this task — automatically recalculates multi-disc spanning": {},
+    "Select Text Layer": {},
+    "Select Track": {},
+    "Selected Text Layer": {},
+    "Send to Video Author ->": {},
+    "Sends only the disc's AccurateRip ID. A match means other people's rips of the same CD came out identical.": {},
+    "SEQUENTIAL ISO 3901 ISRC GENERATOR": {},
+    "Serif": {},
+    "Settings...": {},
+    "Shadow": {},
+    "Show": {},
+    "Show 10mm Alignment Grid": {},
+    "Show Columns:": {},
+    "Show filename": {},
+    "Show icon preview": {},
+    "Show icons": {},
+    "Show item info": {},
+    "Show Main Krouton Workspace Window": {},
+    "Show on macOS (HFS+)": {},
+    "Show on Windows (Joliet/UDF)": {},
+    "Show preview column": {},
+    "Show the density on the canvas": {},
+    "Show the remote burn's live telemetry in the Phase Scope": {},
+    "Sidebar icon size": {},
+    "Simulate": {},
+    "Simulate Burn": {},
+    "Simulate Burn (Test laser write without committing to media)": {},
+    "SIZE": {},
+    "Size": {},
+    "Small": {},
+    "Smooth": {},
+    "Smoothing": {},
+    "Soften, brighten, or shift the colors of the disc background while keeping foreground text layers sharp.": {},
+    "Sony PlayStation 1 (CD-XA Mode 2)": {},
+    "Sony PlayStation 2 (DVD-ROM)": {},
+    "Sort By:": {},
+    "Source": {},
+    "Split subsequent staged items onto Disc 2": {},
+    "Split the staged files across several discs, burn them on every connected burner, and verify each one": {},
+    "Splits continuous transition": {},
+    "Spotlight Comment": {},
+    "Stage at least two audio tracks in the Audio CD deck to edit transitions and crossfades.": {},
+    "Stage Image & Open Sector Hex Inspector": {},
+    "Stage image and open directly in the Sector & Hex Inspector": {},
+    "Staging, conversions and disc images are built in the system's temporary folder and removed when each task ends.": {},
+    "Stained Glass & Gem Shards": {},
+    "Stamp concentric trim rings, geometric emblems, or optical format badges onto the disc surface.": {},
+    "Stamp Optical Format Badge": {},
+    "Stamp staged files or Red Book audio tracks onto the disc face": {},
+    "Stamp the Album Artist onto all checked tracks": {},
+    "Stamp Tracks": {},
+    "Standard (41/118)": {},
+    "Standard / Mode": {},
+    "Start at the hub's edge": {},
+    "Start Empty": {},
+    "Start New Disc Here (Disc Break)": {},
+    "Start the Guided Tour": {},
+    "Starting Points": {},
+    "Status": {},
+    "Stop": {},
+    "Stop After Current Discs": {},
+    "Stop Audition": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Vorhören stoppen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Detener escucha"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Arrêter l’écoute"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ferma ascolto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "試聴を停止"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "미리 듣기 중지"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Stop beluisteren"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Parar audição"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "停止试听"
+          }
+        }
+      }
+    },
+    "Stop converting this track": {},
+    "Stop Ripping": {},
+    "Stopping...": {},
+    "Strip Cover Art & Lyrics": {},
+    "Stroke": {},
+    "Swap Inner / Outer Colors": {},
+    "Sync to Label": {},
+    "Tags": {},
+    "Takes effect the next time Krouton opens. Krouton is in English; translations are being added, and until then other languages change only a few labels. You can also choose the language in System Settings › General › Language & Region › Applications.": {},
+    "Takes effect the next time Krouton opens. Only a few labels are translated so far; the rest stays in English.": {},
+    "Tension": {},
+    "Test Crash Prompt": {},
+    "Test Sweep": {},
+    "Test VoiceOver Telemetry Speech": {},
+    "Text size:": {},
+    "The Codes Differ": {},
+    "The Codes Match": {},
+    "The videos play one after another as a single title, with a chapter at each video and every five minutes. Each is converted to 1080p or 720p H.264 with Dolby Digital sound, at up to 18 Mbit/s or less if needed to fit.": {},
+    "Thumbnail size:": {},
+    "Tint windows & UI accents with secondary harmony color": {},
+    "TITLE": {},
+    "Toggle between 5s precision crossfade view and zoomed-out 15s extended view": {},
+    "Toggle Destination Queue Sidebar": {},
+    "Toggle Format Chooser Sidebar": {},
+    "Toggle Left Format Chooser Sidebar (^⌘S)": {},
+    "Toggle Right Destination Queue Sidebar (⌥⌘S)": {},
+    "Top (0°)": {},
+    "Trace GPU Pattern Contours (Vision)": {},
+    "Track Montage Editor": {},
+    "TRACK RIP RESULTS": {},
+    "Track rip results": {},
+    "Track Title": {},
+    "Transition between tracks": {},
+    "Transitions:": {},
+    "Tray Alignment": {},
+    "Try searching for terms like Crossfade, BPM, AccurateRip, 7420, VoiceOver, or Scratch.": {},
+    "Tumble Gems": {},
+    "Tunnel": {},
+    "Turns your Mac into a hands-free duplication station when burning multiple copies or multi-disc spanned archives.": {},
+    "UDF 2.50 (Any File Size)": {},
+    "UDF 2.50 Large-File Volume": {},
+    "UDF 2.50: Files of Any Size (No ISO 9660 for Old Systems)": {},
+    "Undo": {},
+    "Undo Label Canvas Edit (Cmd+Z)": {},
+    "Unexpected Shutdown Detected": {},
+    "Unprotected discs only: Krouton doesn't remove copy protection.": {},
+    "Unreadable": {},
+    "Unstage image": {},
+    "UPC/EAN:": {},
+    "USB Burner": {},
+    "USB Burner — In Use": {},
+    "Use Album Artist": {},
+    "Use as Defaults": {},
+    "Use relative dates": {},
+    "Use the Planet as the Background": {},
+    "Vector Shapes & Badges": {},
+    "Verify": {},
+    "Verify written sectors against source image/files after burn": {},
+    "Video & Cinema Discs": {},
+    "Video Disc Extractor (Lossless MKV Remux)": {},
+    "Video Disc Extractor (MKV Remux)": {},
+    "VIDEO STREAM & CHAPTER TOPOLOGY": {},
+    "VIDEOKIT BITRATE BUDGET & DVD-9 SHRINK INSPECTOR": {},
+    "View Options": {},
+    "Volume Title": {},
+    "Waits for macOS DiskArbitration and optical spindle lock before firing the laser": {},
+    "WAV (Uncompressed PCM)": {},
+    "Window & UI Harmony": {},
+    "Would you like to restore your previous session or start with an empty workspace?": {},
+    "Wraps a panorama into the disc: the ground curls into a small world and the sky runs round the rim. A 360° panorama twice as wide as it is tall wraps without a seam.": {},
+    "Write .CUE + .LOG": {},
+    "Write CD-TEXT": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "CD-TEXT schreiben"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Escribir CD-TEXT"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Écrire CD-TEXT"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Scrivi CD-TEXT"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "CD-TEXTを書き込む"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "CD-TEXT 쓰기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "CD-TEXT schrijven"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Gravar CD-TEXT"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "写入 CD-TEXT"
+          }
+        }
+      }
+    },
+    "Write Root .M3U Playlist": {},
+    "Write Speed": {},
+    "X-Fade": {},
+    "X/Y Offset:": {},
+    "Year": {},
+    "Year:": {},
+    "YYYY": {},
+    "Zero-Pad Prefixes (001 - Title.mp3)": {},
+    "Zoom In Canvas": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Arbeitsfläche vergrößern"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Acercar lienzo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Zoomer le canevas"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ingrandisci zoom tela"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "キャンバスを拡大"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "캔버스 확대"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Zoom in op canvas"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ampliar zoom da tela"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "放大画布"
+          }
+        }
+      }
+    },
+    "Zoom In Label Canvas": {},
+    "Zoom Out Canvas": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Arbeitsfläche verkleinern"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Alejar lienzo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Dézoomer le canevas"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Riduci zoom tela"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "キャンバスを縮小"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "캔버스 축소"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Zoom uit op canvas"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Reduzir zoom da tela"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "缩小画布"
+          }
+        }
+      }
+    },
+    "Zoom Out Label Canvas": {},
+    "~/Desktop/Krouton_Master.dmg": {},
+    "~115 kbps VBR MP3 (Super Long Play)": {},
+    "• Drag ≡ to reorder": {},
+    "• LBA 000016 : ISO-9660 Primary Volume Descriptor (CD001)": {},
+    "• par2 recovery files on the disc": {},
+    "⌘J": {}
+  },
+  "version": "1.0"
+}

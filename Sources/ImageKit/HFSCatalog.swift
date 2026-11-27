@@ -1,4 +1,5 @@
 import Foundation
+import OpticalCore
 
 // MARK: - HFS Name Order
 
@@ -55,14 +56,14 @@ enum KroutonHFSBTree {
 
         /// keyLength, reserved, parent ID, Pascal name; padded so the data starts even.
         var keyBytes: [UInt8] {
-            var key: [UInt8] = [UInt8(6 + name.count), 0] + hfsBE32(parent) + [UInt8(name.count)] + name
+            var key: [UInt8] = [UInt8(6 + name.count), 0] + KroutonBytes.be32(parent) + [UInt8(name.count)] + name
             if key.count % 2 == 1 { key.append(0) }
             return key
         }
 
         /// The same key at the catalog's maximum length (37), for index nodes.
         var indexKey: [UInt8] {
-            var key: [UInt8] = [37, 0] + hfsBE32(parent) + [UInt8(name.count)] + name
+            var key: [UInt8] = [37, 0] + KroutonBytes.be32(parent) + [UInt8(name.count)] + name
             key += [UInt8](repeating: 0, count: 38 - key.count)
             return key
         }
@@ -71,19 +72,19 @@ enum KroutonHFSBTree {
     /// One node: descriptor, records from offset 14, and the offset table at the end.
     static func node(forward: UInt32, backward: UInt32, kind: Int8, height: UInt8, records: [[UInt8]]) -> [UInt8] {
         var n = [UInt8](repeating: 0, count: nodeSize)
-        n.replaceSubrange(0..<4, with: hfsBE32(forward))
-        n.replaceSubrange(4..<8, with: hfsBE32(backward))
+        n.replaceSubrange(0..<4, with: KroutonBytes.be32(forward))
+        n.replaceSubrange(4..<8, with: KroutonBytes.be32(backward))
         n[8] = UInt8(bitPattern: kind)
         n[9] = height
-        n.replaceSubrange(10..<12, with: hfsBE16(UInt16(records.count)))
+        n.replaceSubrange(10..<12, with: KroutonBytes.be16(UInt16(records.count)))
         var at = 14
         for (i, record) in records.enumerated() {
             n.replaceSubrange(at..<at + record.count, with: record)
-            n.replaceSubrange((nodeSize - 2 * (i + 1))..<(nodeSize - 2 * i), with: hfsBE16(UInt16(at)))
+            n.replaceSubrange((nodeSize - 2 * (i + 1))..<(nodeSize - 2 * i), with: KroutonBytes.be16(UInt16(at)))
             at += record.count
         }
         let free = nodeSize - 2 * (records.count + 1)
-        n.replaceSubrange(free..<free + 2, with: hfsBE16(UInt16(at)))
+        n.replaceSubrange(free..<free + 2, with: KroutonBytes.be16(UInt16(at)))
         return n
     }
 
@@ -119,8 +120,8 @@ enum KroutonHFSBTree {
             height += 1
             var groups: [[(node: Int, key: Record)]] = [[]]
             for entry in level {
-                let bytes = entry.key.indexKey + hfsBE32(UInt32(entry.node))
-                if !fits(groups[groups.count - 1].map { $0.key.indexKey + hfsBE32(UInt32($0.node)) }, plus: bytes) {
+                let bytes = entry.key.indexKey + KroutonBytes.be32(UInt32(entry.node))
+                if !fits(groups[groups.count - 1].map { $0.key.indexKey + KroutonBytes.be32(UInt32($0.node)) }, plus: bytes) {
                     groups.append([])
                 }
                 groups[groups.count - 1].append(entry)
@@ -130,7 +131,7 @@ enum KroutonHFSBTree {
             for (i, group) in groups.enumerated() {
                 let forward = i + 1 < groups.count ? UInt32(base + i + 1) : 0
                 let backward = i > 0 ? UInt32(base + i - 1) : 0
-                let records = group.map { $0.key.indexKey + hfsBE32(UInt32($0.node)) }
+                let records = group.map { $0.key.indexKey + KroutonBytes.be32(UInt32($0.node)) }
                 nodes.append(node(forward: forward, backward: backward, kind: 0, height: height, records: records))
                 next.append((base + i, group[0].key))
             }
@@ -143,9 +144,9 @@ enum KroutonHFSBTree {
 
         // Header node: header record, 128-byte user record, node map.
         var header = [UInt8]()
-        header += hfsBE16(depth) + hfsBE32(root) + hfsBE32(UInt32(sorted.count))
-        header += hfsBE32(sorted.isEmpty ? 0 : UInt32(leafBase)) + hfsBE32(sorted.isEmpty ? 0 : UInt32(leafBase + leaves.count - 1))
-        header += hfsBE16(UInt16(nodeSize)) + hfsBE16(maxKeyLength) + hfsBE32(UInt32(nodeCount)) + hfsBE32(UInt32(nodeCount - used))
+        header += KroutonBytes.be16(depth) + KroutonBytes.be32(root) + KroutonBytes.be32(UInt32(sorted.count))
+        header += KroutonBytes.be32(sorted.isEmpty ? 0 : UInt32(leafBase)) + KroutonBytes.be32(sorted.isEmpty ? 0 : UInt32(leafBase + leaves.count - 1))
+        header += KroutonBytes.be16(UInt16(nodeSize)) + KroutonBytes.be16(maxKeyLength) + KroutonBytes.be32(UInt32(nodeCount)) + KroutonBytes.be32(UInt32(nodeCount - used))
         header += [UInt8](repeating: 0, count: 76)
         var map = [UInt8](repeating: 0, count: nodeSize - 14 - 106 - 128 - 8)
         for i in 0..<used { map[i / 8] |= 0x80 >> UInt8(i % 8) }
@@ -158,7 +159,3 @@ enum KroutonHFSBTree {
     }
 }
 
-// MARK: - Big-Endian Fields
-
-func hfsBE16(_ v: UInt16) -> [UInt8] { [UInt8(v >> 8), UInt8(v & 0xFF)] }
-func hfsBE32(_ v: UInt32) -> [UInt8] { [UInt8(v >> 24), UInt8(v >> 16 & 0xFF), UInt8(v >> 8 & 0xFF), UInt8(v & 0xFF)] }

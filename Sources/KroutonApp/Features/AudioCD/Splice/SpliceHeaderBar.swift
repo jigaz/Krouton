@@ -71,6 +71,7 @@ struct SpliceHeaderBar: View {
                             Image(systemName: "chevron.left").font(.system(size: 9, weight: .bold))
                         }
                         .buttonStyle(KroutonPillButtonStyle(isOn: false))
+                        .accessibilityLabel("Previous transition")
                         .disabled(trackNumber <= 1)
                         .help("Previous track transition")
 
@@ -78,6 +79,7 @@ struct SpliceHeaderBar: View {
                             Image(systemName: "chevron.right").font(.system(size: 9, weight: .bold))
                         }
                         .buttonStyle(KroutonPillButtonStyle(isOn: false))
+                        .accessibilityLabel("Next transition")
                         .disabled(trackNumber >= totalTransitions)
                         .help("Next track transition")
                     }
@@ -113,7 +115,7 @@ struct SpliceHeaderBar: View {
                 title: "Zoom Out",
                 isOn: montageState.horizontalZoom < 2.0
             ) {
-                withAnimation(.easeInOut(duration: 0.14)) {
+                withAnimation(kroutonMotion(.easeInOut(duration: 0.14))) {
                     montageState.horizontalZoom = montageState.horizontalZoom < 2.0 ? 3.0 : 1.0
                 }
             }

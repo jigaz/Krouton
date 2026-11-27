@@ -72,6 +72,26 @@ extension KroutonDiscLabelArtworkCanvas {
             }
         }
         .allowsHitTesting(false)
+        // VoiceOver reads the layer as one element (not letter by letter), selects it, and
+        // turns it round the disc with swipe up / down.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(item.text)
+        .accessibilityValue(Self.textLayerDescription(item))
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAction { onSelectOrDragText?(item.id, item.radiusMM, item.angleDegrees) }
+        .accessibilityAdjustableAction { direction in
+            let step = direction == .increment ? 5.0 : -5.0
+            onSelectOrDragText?(item.id, item.radiusMM, item.angleDegrees + step)
+        }
+        .accessibilityHidden(isExportMode)
+    }
+
+    /// "Curved text at 12 o'clock, 52 mm from the centre, 18 point bold".
+    static func textLayerDescription(_ item: KroutonLabelTextElement) -> String {
+        let normalized = (item.angleDegrees.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+        let hour = Int((normalized / 30).rounded()) % 12
+        let shape = item.isCurvedArc ? "Curved text" : "Straight text"
+        return "\(shape) at \(hour == 0 ? 12 : hour) o'clock, \(Int(item.radiusMM.rounded())) mm from the centre, \(Int(item.fontSizePoints.rounded())) point\(item.isBold ? " bold" : "")"
     }
 
     struct ArcGlyphPlacement {
@@ -258,5 +278,8 @@ extension KroutonDiscLabelArtworkCanvas {
                 style: StrokeStyle(lineWidth: max(1.0, CGFloat(shape.strokeWidthPoints * scalePts)), lineCap: .round, lineJoin: .round)
             )
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Shape: \(shape.name)")
+        .accessibilityHidden(isExportMode)
     }
 }

@@ -187,7 +187,7 @@ extension KroutonStateStore {
     }
 }
 
-// MARK: - Native SwiftUI Semantic Surface Colors (Zero NSColor Dependency)
+// MARK: - Native SwiftUI Semantic Surface Colors
 extension Color {
     private static var isEffectiveDarkAppearance: Bool {
         if let raw = KroutonPreferences.string(for: .appearanceMode),

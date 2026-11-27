@@ -1,9 +1,8 @@
 import Foundation
-import ObjectiveC.runtime
 import SwiftUI
 import os
 
-// MARK: - KroutonOSDesktopBridge (Pure SwiftUI & In-Process Runtime Bridge)
+// MARK: - KroutonOSDesktopBridge (desktop services; AppKit calls go through KroutonAppKitBridge)
 
 enum KroutonOSDesktopBridge {
     private static let visiblyActiveLock = OSAllocatedUnfairLock(initialState: true)
@@ -16,43 +15,26 @@ enum KroutonOSDesktopBridge {
         KroutonAcousticEngine.shared.play(cue)
     }
 
+    @MainActor
     static func copyTextToClipboard(_ text: String) {
-        guard let pbClass = NSClassFromString("NSPasteboard") as? NSObject.Type,
-              let generalPB = pbClass.perform(NSSelectorFromString("generalPasteboard"))?.takeUnretainedValue() as? NSObject else {
-            return
-        }
-        _ = generalPB.perform(NSSelectorFromString("clearContents"))
-        _ = generalPB.perform(NSSelectorFromString("setString:forType:"), with: text as NSString, with: "public.utf8-plain-text" as NSString)
+        KroutonAppKitBridge.copyToClipboard(text)
     }
 
+    @MainActor
     static func revealInFinder(url: URL) {
         revealURLsInFinder([url])
     }
 
+    @MainActor
     static func revealURLsInFinder(_ urls: [URL]) {
-        guard let firstURL = urls.first else { return }
-        if let wsClass = NSClassFromString("NSWorkspace") as? NSObject.Type,
-           let sharedWS = wsClass.perform(NSSelectorFromString("sharedWorkspace"))?.takeUnretainedValue() as? NSObject {
-            let sel = NSSelectorFromString("activateFileViewerSelectingURLs:")
-            if sharedWS.responds(to: sel) {
-                _ = sharedWS.perform(sel, with: urls as NSArray)
-                return
-            }
-        }
-        Task { @MainActor in EnvironmentValues().openURL(firstURL) }
+        guard !urls.isEmpty else { return }
+        KroutonAppKitBridge.selectInFinder(urls)
     }
 
+    /// Opens the folder itself in Finder (SwiftUI's openURL does this for a folder).
+    @MainActor
     static func revealFolderInFinder(path: String) {
-        let folderURL = URL(fileURLWithPath: path)
-        if let wsClass = NSClassFromString("NSWorkspace") as? NSObject.Type,
-           let sharedWS = wsClass.perform(NSSelectorFromString("sharedWorkspace"))?.takeUnretainedValue() as? NSObject {
-            let sel = NSSelectorFromString("openURL:")
-            if sharedWS.responds(to: sel) {
-                _ = sharedWS.perform(sel, with: folderURL as NSURL)
-                return
-            }
-        }
-        Task { @MainActor in EnvironmentValues().openURL(folderURL) }
+        EnvironmentValues().openURL(URL(fileURLWithPath: path, isDirectory: true))
     }
 
     static func isSystemDarkMode() -> Bool {

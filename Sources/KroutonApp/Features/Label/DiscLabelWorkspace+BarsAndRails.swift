@@ -133,6 +133,7 @@ extension KroutonDiscLabelWorkspaceView {
                 } label: {
                     Image(systemName: "arrow.uturn.backward")
                 }
+                .accessibilityLabel("Undo")
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(!store.labelWorkspaceSubStore.canUndo)
@@ -145,6 +146,7 @@ extension KroutonDiscLabelWorkspaceView {
                 } label: {
                     Image(systemName: "arrow.uturn.forward")
                 }
+                .accessibilityLabel("Redo")
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(!store.labelWorkspaceSubStore.canRedo)

@@ -113,6 +113,16 @@ struct KroutonDiscLabelArtworkCanvas: View {
         self.onCommitFreehandStroke = onCommitFreehandStroke
     }
 
+    /// "120 mm disc, Panorama Planet background, 3 text layers, 1 shape".
+    var canvasDescription: String {
+        let texts = textElements.filter { !$0.text.isEmpty }.count
+        var parts = ["\(Int(outerMM.rounded())) mm disc", backgroundStyle == .tinyPlanetGlobe ? "Panorama Planet background"
+                     : backgroundStyle == .templateDefault ? "blank white" : "\(backgroundStyle.rawValue) background",
+                     "\(texts) text layer\(texts == 1 ? "" : "s")"]
+        if !vectorShapes.isEmpty { parts.append("\(vectorShapes.count) shape\(vectorShapes.count == 1 ? "" : "s")") }
+        return parts.joined(separator: ", ")
+    }
+
     var outerMM: Double {
         max(70.0, min(120.0, preset.outerDiameterMM))
     }
@@ -129,6 +139,7 @@ struct KroutonDiscLabelArtworkCanvas: View {
         ZStack {
             // 1. Printable Disc Surface (Unified CoreImage pipeline when adjustments or procedural styles are active)
             discSurfaceBackground
+                .accessibilityHidden(true)
 
             // 1B. Soft proof of the print's ink density (lightening towards the white disc)
             if inkDensityPreview < 0.999 {
@@ -137,7 +148,7 @@ struct KroutonDiscLabelArtworkCanvas: View {
 
             // 2. Optional 10mm Alignment Grid
             if showAlignmentGrid && !isExportMode {
-                alignmentGridOverlay
+                alignmentGridOverlay.accessibilityHidden(true)
             }
 
             // 2B. Parametric Vector Shapes & Live Freehand Draft Stroke
@@ -161,8 +172,12 @@ struct KroutonDiscLabelArtworkCanvas: View {
 
             // 4. Center Hub Clamping Guide & Spindle Hole Cutout
             spindleHoleCutout
+                .accessibilityHidden(true)
         }
         .frame(width: diameterPoints, height: diameterPoints)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Disc label")
+        .accessibilityValue(canvasDescription)
         .clipShape(Circle())
         .overlay(
             Circle()

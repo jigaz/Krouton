@@ -27,11 +27,11 @@ final class TrackMontageWindowState {
 
     /// Triggers a GPU-composited "foosh" launch or dock animation across the inline & floating views
     func triggerFooshTransition(openingFloating: Bool, action: @escaping @MainActor () -> Void) {
-        withAnimation(.spring(response: 0.22, dampingFraction: 0.68)) {
+        withAnimation(kroutonMotion(.spring(response: 0.22, dampingFraction: 0.68))) {
             fooshPhase = openingFloating ? 1.0 : -1.0
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.13) {
-            withAnimation(.spring(response: 0.34, dampingFraction: 0.76)) {
+            withAnimation(kroutonMotion(.spring(response: 0.34, dampingFraction: 0.76))) {
                 action()
                 self.fooshPhase = 0.0
             }
@@ -131,7 +131,7 @@ struct SpliceDragModifier: ViewModifier {
                 if let finished = session, finished.startSpec != spec {
                     onCommit(finished.startSpec, spec)
                 }
-                withAnimation(.spring(response: 0.38, dampingFraction: 0.68)) {
+                withAnimation(kroutonMotion(.spring(response: 0.38, dampingFraction: 0.68))) {
                     rubberBandSpan = nil
                 }
                 session = nil

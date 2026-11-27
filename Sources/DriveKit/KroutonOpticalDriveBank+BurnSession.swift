@@ -39,7 +39,7 @@ extension KroutonOpticalDriveBank {
         let requestedID = driveID ?? selectedDrive?.id
         let resolvedMeta = driveForID(requestedID ?? "")
         let driveName = resolvedMeta?.displayName ?? "Optical Drive"
-        let fwRev = resolvedMeta?.firmware ?? "1.0"
+        let fwRev = resolvedMeta?.firmware ?? "—"
 
         func refuse(title: String, summary: String, media: String, advice: String) {
             let report = KroutonBurnSessionReport(
