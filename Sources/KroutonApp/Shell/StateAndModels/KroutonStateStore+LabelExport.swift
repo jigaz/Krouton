@@ -11,7 +11,7 @@ extension KroutonStateStore {
     @MainActor
     var activeLabelGeometry: KroutonDiscLabelGeometry {
         let idx = min(max(0, self.selectedLabelPresetIndex), max(0, self.labelPresets.count - 1))
-        return labelWorkspaceSubStore.workingGeometryOverride ?? (self.labelPresets.isEmpty
+        return self.labelWorkspaceSubStore.workingGeometryOverride ?? (self.labelPresets.isEmpty
             ? KroutonDiscLabelGeometry(name: "Standard 120mm Disc", outerDiameterMM: 120, innerDiameterMM: 18, offsetXMM: 0, offsetYMM: 0)
             : self.labelPresets[idx])
     }
@@ -24,9 +24,9 @@ extension KroutonStateStore {
               let source = KroutonPlanetSource(cgImage: image, maxWidth: 2_400) else {
             return "Krouton couldn't open \(url.lastPathComponent) as a photo."
         }
-        labelPlanetPhotoURL = url
-        labelPlanetPreviewSource = source
-        labelPlanetThumbnail = KroutonPlanetSource.loadImage(at: url, maxPixel: 720)
+        self.labelPlanetPhotoURL = url
+        self.labelPlanetPreviewSource = source
+        self.labelPlanetThumbnail = KroutonPlanetSource.loadImage(at: url, maxPixel: 720)
         return nil
     }
 
@@ -39,11 +39,11 @@ extension KroutonStateStore {
     @MainActor
     func exportDiscLabel(_ kind: LabelExportKind) -> String {
         let preset = activeLabelGeometry
-        let print = labelPrint
+        let print = self.labelPrint
         let dpi = Double(max(150, min(1_200, print.dotsPerInch)))
         let pixels = CGFloat((preset.outerDiameterMM / 25.4 * dpi).rounded())
-        var planetSource = labelPlanetPreviewSource
-        if labelBackgroundStyle == .tinyPlanetGlobe, let url = labelPlanetPhotoURL,
+        var planetSource = self.labelPlanetPreviewSource
+        if self.labelBackgroundStyle == .tinyPlanetGlobe, let url = self.labelPlanetPhotoURL,
            let full = KroutonPlanetSource.loadImage(at: url).flatMap({ KroutonPlanetSource(cgImage: $0, maxWidth: 8_192) }) {
             planetSource = full
         }
@@ -52,12 +52,12 @@ extension KroutonStateStore {
             template: self.selectedLabelTemplate,
             title: self.labelDiscTitle,
             subtitle: self.labelSubtitle,
-            performer: discPerformer,
-            mcnBarcode: discMCNBarcode,
+            performer: self.discPerformer,
+            mcnBarcode: self.discMCNBarcode,
             trackLines: [],
             showTracklist: false,
-            primaryColor: activeAccent,
-            harmonyColor: uiSecondaryAccent,
+            primaryColor: self.activeAccent,
+            harmonyColor: self.uiSecondaryAccent,
             isExportMode: true,
             diameterPoints: pixels,
             backgroundStyle: self.labelBackgroundStyle,
@@ -89,7 +89,7 @@ extension KroutonStateStore {
             innerDiameterMM: preset.innerDiameterMM,
             offsetXMM: preset.offsetXMM,
             offsetYMM: preset.offsetYMM,
-            discTitle: discVolumeTitle,
+            discTitle: self.discVolumeTitle,
             exportPNG: kind == .png,
             exportPDF: kind == .pdf,
             dpi: dpi,
@@ -122,6 +122,6 @@ extension KroutonStateStore {
     @MainActor
     func executeLabelDestinationExport() {
         _ = exportDiscLabel(.png)
-        labelWorkspaceSubStore.transientStatusBanner = exportDiscLabel(.pdf)
+        self.labelWorkspaceSubStore.transientStatusBanner = exportDiscLabel(.pdf)
     }
 }
