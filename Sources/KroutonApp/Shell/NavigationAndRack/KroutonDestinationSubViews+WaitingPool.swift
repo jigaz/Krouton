@@ -33,7 +33,7 @@ extension KroutonDestinationCardView {
                     }
                     HStack(spacing: 6) {
                         Button {
-                            withAnimation(.spring(response: 0.26, dampingFraction: 0.82)) {
+                            withAnimation(kroutonMotion(.spring(response: 0.26, dampingFraction: 0.82))) {
                                 store.approvePendingTicketOnCard(cardID)
                             }
                         } label: {
@@ -48,7 +48,7 @@ extension KroutonDestinationCardView {
                         .buttonStyle(.plain)
 
                         Button {
-                            withAnimation(.spring(response: 0.26, dampingFraction: 0.82)) {
+                            withAnimation(kroutonMotion(.spring(response: 0.26, dampingFraction: 0.82))) {
                                 store.skipDriveForPendingTicket(onCardID: cardID)
                             }
                         } label: {
@@ -87,7 +87,7 @@ extension KroutonDestinationCardView {
                     Spacer(minLength: 4)
                     if !store.waitingBurnPool.isEmpty {
                         Button {
-                            withAnimation(.spring(response: 0.26, dampingFraction: 0.82)) {
+                            withAnimation(kroutonMotion(.spring(response: 0.26, dampingFraction: 0.82))) {
                                 _ = store.advancePoolAfterCardBurnCompleted(cardID: cardID)
                             }
                         } label: {
@@ -106,7 +106,7 @@ extension KroutonDestinationCardView {
                         .help("Mark this slot's current disc finished and pull the next waiting task from the pool")
                     }
                     Button {
-                        withAnimation(.spring(response: 0.26, dampingFraction: 0.82)) {
+                        withAnimation(kroutonMotion(.spring(response: 0.26, dampingFraction: 0.82))) {
                             store.demoteAssignedTicketToWaitingPool(fromCardID: cardID)
                         }
                     } label: {
@@ -133,7 +133,7 @@ extension KroutonDestinationCardView {
                     Spacer(minLength: 4)
                     if let firstWaiting = store.waitingBurnPool.first {
                         Button {
-                            withAnimation(.spring(response: 0.26, dampingFraction: 0.82)) {
+                            withAnimation(kroutonMotion(.spring(response: 0.26, dampingFraction: 0.82))) {
                                 store.promoteWaitingTicket(firstWaiting.id, toCardID: cardID, driveManager: driveManager)
                             }
                         } label: {
@@ -236,7 +236,7 @@ extension KroutonDestinationRackColumnView {
 
                     if unpooledDriveCount > 0 {
                         Button {
-                            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                            withAnimation(kroutonMotion(.spring(response: 0.28, dampingFraction: 0.82))) {
                                 store.poolAllConnectedBurners(driveManager: driveManager)
                             }
                         } label: {
@@ -327,7 +327,7 @@ extension KroutonDestinationRackColumnView {
 
             if activeBurners.count <= 1 {
                 Button {
-                    withAnimation(.spring(response: 0.26, dampingFraction: 0.82)) {
+                    withAnimation(kroutonMotion(.spring(response: 0.26, dampingFraction: 0.82))) {
                         store.promoteWaitingTicket(ticket.id, toCardID: activeBurners.first?.id, driveManager: driveManager)
                     }
                 } label: {
@@ -345,7 +345,7 @@ extension KroutonDestinationRackColumnView {
             } else {
                 Menu {
                     Button {
-                        withAnimation(.spring(response: 0.26, dampingFraction: 0.82)) {
+                        withAnimation(kroutonMotion(.spring(response: 0.26, dampingFraction: 0.82))) {
                             store.promoteWaitingTicket(ticket.id, toCardID: nil, driveManager: driveManager)
                         }
                     } label: {
@@ -354,7 +354,7 @@ extension KroutonDestinationRackColumnView {
                     Divider()
                     ForEach(activeBurners) { burnerCard in
                         Button {
-                            withAnimation(.spring(response: 0.26, dampingFraction: 0.82)) {
+                            withAnimation(kroutonMotion(.spring(response: 0.26, dampingFraction: 0.82))) {
                                 store.promoteWaitingTicket(ticket.id, toCardID: burnerCard.id, driveManager: driveManager)
                             }
                         } label: {

@@ -202,9 +202,9 @@ extension KroutonSettingsWindowView {
                 Divider()
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(KroutonL10n.tr("Application Language (Live UI Localization)"))
+                        Text(KroutonL10n.tr("Application Language"))
                             .fontWeight(.medium)
-                        Text(KroutonL10n.tr("Switches workspace headers, buttons & VoiceOver labels immediately without restarting"))
+                        Text(KroutonL10n.tr("Only a few labels are translated so far; the rest stays in English."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }

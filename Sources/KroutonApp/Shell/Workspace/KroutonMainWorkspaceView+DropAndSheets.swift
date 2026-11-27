@@ -29,7 +29,7 @@ extension KroutonMainWorkspaceView {
 
     func triggerDropRejectShake() {
         dropRejectShakePhase = 1.0
-        withAnimation(.easeOut(duration: 0.42)) {
+        withAnimation(kroutonMotion(.easeOut(duration: 0.42))) {
             dropRejectShakePhase = 0.0
         }
     }

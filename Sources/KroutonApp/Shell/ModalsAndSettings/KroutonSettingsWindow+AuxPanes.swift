@@ -151,7 +151,7 @@ extension KroutonSettingsWindowView {
 
             settingsCard(title: "Display, Contrast & Motion Accessibility") {
                 Toggle(KroutonL10n.tr("Increase Contrast (High-contrast borders on Format Chooser, Tracklists & Phase Scope)"), isOn: Bindable(store).a11yIncreaseContrast)
-                Text(KroutonL10n.tr("For reduced motion and status shown without colour, Krouton follows System Settings › Accessibility › Display."))
+                Text(KroutonL10n.tr("Reduce Motion in System Settings › Accessibility › Display turns off Krouton's animations."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -171,7 +171,7 @@ extension KroutonSettingsWindowView {
                     .frame(width: 230)
                 }
                 Divider()
-                Text(KroutonL10n.tr("Supported Locales: English (US) • 日本語 (Japanese) • Deutsch (German) • Français (French) • Español (Spanish) • 简体中文 (Simplified Chinese) • 한국어 (Korean). All CD-TEXT & Joliet/UDF descriptors remain hardware-sanitized per regional optical standards."))
+                Text(KroutonL10n.tr("Krouton is in English. Translations are being added; until then, other languages change only a few labels."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

@@ -103,7 +103,7 @@ struct KroutonGuidedTutorialOverlayView: View {
                             .lineLimit(1)
                         Spacer()
                         Button {
-                            withAnimation(.easeInOut(duration: 0.18)) {
+                            withAnimation(kroutonMotion(.easeInOut(duration: 0.18))) {
                                 tutorialController.stop()
                             }
                         } label: {
@@ -162,7 +162,7 @@ struct KroutonGuidedTutorialOverlayView: View {
 
                         if step.id > 0 {
                             Button("Back") {
-                                withAnimation(.spring(response: 0.28, dampingFraction: 0.80)) {
+                                withAnimation(kroutonMotion(.spring(response: 0.28, dampingFraction: 0.80))) {
                                     tutorialController.previousStep(store: store, driveManager: driveManager)
                                 }
                             }
@@ -171,7 +171,7 @@ struct KroutonGuidedTutorialOverlayView: View {
                         }
 
                         Button(step.id + 1 < stepsCount ? "Next Step" : "Finish Tour") {
-                            withAnimation(.spring(response: 0.28, dampingFraction: 0.80)) {
+                            withAnimation(kroutonMotion(.spring(response: 0.28, dampingFraction: 0.80))) {
                                 tutorialController.nextStep(store: store, driveManager: driveManager)
                             }
                         }

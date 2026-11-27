@@ -147,7 +147,7 @@ struct SpliceControlsBar: View {
                                     }
                                 } else {
                                     onCommit(spec)
-                                    withAnimation(.spring(response: 0.38, dampingFraction: 0.68)) {
+                                    withAnimation(kroutonMotion(.spring(response: 0.38, dampingFraction: 0.68))) {
                                         rubberBandSpan = nil
                                     }
                                 }

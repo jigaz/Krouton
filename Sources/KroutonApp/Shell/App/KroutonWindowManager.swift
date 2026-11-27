@@ -62,6 +62,7 @@ struct KroutonSceneActionBinder: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .modifier(KroutonReduceMotionReader())
             .onAppear {
                 NSApplication.shared.setActivationPolicy(.regular)
                 NSApplication.shared.activate(ignoringOtherApps: true)
