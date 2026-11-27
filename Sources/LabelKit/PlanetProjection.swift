@@ -149,8 +149,12 @@ public enum KroutonPlanetProjection {
         let fade = (r: s.fadeColor.r * 255, g: s.fadeColor.g * 255, b: s.fadeColor.b * 255)
         var output = [UInt8](repeating: 255, count: n * n * 4)
         output.withUnsafeMutableBufferPointer { out in
-            let base = UnsafeSendablePointer(out.baseAddress!)
+            // Rows are written by separate threads, each to its own bytes; the address goes
+            // across as an integer.
+            guard let start = out.baseAddress else { return }
+            let address = Int(bitPattern: start)
             DispatchQueue.concurrentPerform(iterations: n) { row in
+                guard let rowBase = UnsafeMutablePointer<UInt8>(bitPattern: address) else { return }
                 for col in 0..<n {
                     var acc = (0.0, 0.0, 0.0)
                     for sy in 0..<aa {
@@ -179,9 +183,9 @@ public enum KroutonPlanetProjection {
                     }
                     let samples = Double(aa * aa)
                     let i = (row * n + col) * 4
-                    base.pointer[i] = UInt8(min(255, max(0, acc.0 / samples)).rounded())
-                    base.pointer[i + 1] = UInt8(min(255, max(0, acc.1 / samples)).rounded())
-                    base.pointer[i + 2] = UInt8(min(255, max(0, acc.2 / samples)).rounded())
+                    rowBase[i] = UInt8(min(255, max(0, acc.0 / samples)).rounded())
+                    rowBase[i + 1] = UInt8(min(255, max(0, acc.1 / samples)).rounded())
+                    rowBase[i + 2] = UInt8(min(255, max(0, acc.2 / samples)).rounded())
                 }
             }
         }
@@ -204,10 +208,4 @@ public enum KroutonPlanetProjection {
         let t = min(1, max(0, (x - a) / (b - a)))
         return t * t * (3 - 2 * t)
     }
-}
-
-/// Rows are written by separate threads, each to its own bytes.
-private struct UnsafeSendablePointer: @unchecked Sendable {
-    let pointer: UnsafeMutablePointer<UInt8>
-    init(_ pointer: UnsafeMutablePointer<UInt8>) { self.pointer = pointer }
 }
