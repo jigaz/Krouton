@@ -57,9 +57,24 @@ if [ ! -d "$RESOURCE_BUNDLE" ]; then
   exit 1
 fi
 cp -R "$RESOURCE_BUNDLE" "$CONTENTS_DIR/Resources/"
-# The String Catalog compiles into one .lproj per language inside that bundle. SwiftUI looks
-# literals such as Text("Burn") up in the app's own bundle, so the .lproj folders go there too.
-find "$RESOURCE_BUNDLE" -type d -name "*.lproj" -prune -exec cp -R {} "$CONTENTS_DIR/Resources/" \;
+# The String Catalog: SwiftPM's command-line build copies it as a plain file, so compile it here
+# (Xcode's xcstringstool) into one .lproj per language. SwiftUI looks literals such as
+# Text("Burn") up in the app's bundle and KroutonL10n.tr in the resource bundle, so both get them.
+COPIED_BUNDLE="$CONTENTS_DIR/Resources/$(basename "$RESOURCE_BUNDLE")"
+BUNDLE_RESOURCES="$COPIED_BUNDLE"
+if [ -d "$COPIED_BUNDLE/Contents/Resources" ]; then BUNDLE_RESOURCES="$COPIED_BUNDLE/Contents/Resources"; fi
+STRINGS_DIR="$(mktemp -d)"
+if xcrun xcstringstool compile "Sources/KroutonApp/Resources/Localizable.xcstrings" --output-directory "$STRINGS_DIR"; then
+  for lproj in "$STRINGS_DIR"/*.lproj; do
+    [ -d "$lproj" ] || continue
+    cp -R "$lproj" "$CONTENTS_DIR/Resources/"
+    cp -R "$lproj" "$BUNDLE_RESOURCES/"
+  done
+  echo "Localizations: $(cd "$STRINGS_DIR" && ls -d *.lproj | tr '\n' ' ')"
+else
+  echo "warning: xcstringstool isn't available (it comes with Xcode); the app will be in English only" >&2
+fi
+rm -rf "$STRINGS_DIR"
 
 echo "=== 3. Signing ==="
 DEV_ID_CERT="$(security find-identity -v -p codesigning 2>/dev/null | grep "Developer ID Application" | grep "$TEAM_ID" | head -n 1 | awk -F '"' '{print $2}' || true)"

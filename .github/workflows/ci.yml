@@ -18,6 +18,12 @@ jobs:
         run: python3 Scripts/build-manual.py --check
       - name: String Catalog has every interface string
         run: python3 Scripts/extract-strings.py --check
+      - name: String Catalog compiles
+        run: |
+          out="$(mktemp -d)"
+          xcrun xcstringstool compile Sources/KroutonApp/Resources/Localizable.xcstrings --output-directory "$out"
+          ls "$out"
+          test -f "$out/zh-Hans.lproj/Localizable.strings"
       - name: Build All Targets
         run: swift build
       - name: Run Unit Tests

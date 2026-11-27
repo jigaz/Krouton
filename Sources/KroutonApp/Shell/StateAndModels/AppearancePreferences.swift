@@ -19,6 +19,8 @@ enum KroutonPreferenceKey: String, CaseIterable, Sendable {
     case lastCategory = "krouton.pref.lastCategory"
     case lastTaskID = "krouton.pref.lastTaskID"
     case burnSetMedium = "krouton.pref.burnSetMedium"
+    /// macOS's own per-app language list, read when the app opens (`KroutonL10n`).
+    case appleLanguages = "AppleLanguages"
 }
 
 enum KroutonPreferences {

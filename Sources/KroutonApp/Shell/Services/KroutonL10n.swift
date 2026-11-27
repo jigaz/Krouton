@@ -15,10 +15,6 @@ enum KroutonL10n {
     /// Applications does. macOS reads it when the app opens, so it takes effect at the next
     /// launch. `nil` follows the system languages again.
     static func applyLanguagePreference(isoCode: String?) {
-        if let isoCode {
-            UserDefaults.standard.set([isoCode], forKey: "AppleLanguages")
-        } else {
-            UserDefaults.standard.removeObject(forKey: "AppleLanguages")
-        }
+        KroutonPreferences.set(isoCode.map { [$0] }, for: .appleLanguages)
     }
 }
