@@ -48,15 +48,6 @@ extension KroutonStateStore {
         }
         let exportCanvas = KroutonDiscLabelArtworkCanvas(
             preset: preset,
-            template: self.selectedLabelTemplate,
-            title: self.labelDiscTitle,
-            subtitle: self.labelSubtitle,
-            performer: self.discPerformer,
-            mcnBarcode: self.discMCNBarcode,
-            trackLines: [],
-            showTracklist: false,
-            primaryColor: self.activeAccent,
-            harmonyColor: self.uiSecondaryAccent,
             isExportMode: true,
             diameterPoints: pixels,
             backgroundStyle: self.labelBackgroundStyle,

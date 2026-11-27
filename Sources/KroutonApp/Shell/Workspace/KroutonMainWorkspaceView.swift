@@ -12,7 +12,6 @@ import UniformTypeIdentifiers
 struct KroutonMainWorkspaceView: View {
     var store: KroutonStateStore
     var driveManager: KroutonOpticalDriveBank
-    var spoolClient: SpoolRemoteNodeClient = .shared
 
     @State var leftColumnLiveWidth: CGFloat = 196
     @State var rightColumnLiveWidth: CGFloat = 315

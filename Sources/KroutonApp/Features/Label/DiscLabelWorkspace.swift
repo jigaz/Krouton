@@ -118,15 +118,6 @@ struct KroutonDiscLabelWorkspaceView: View {
                             let baseDim = min(max(240, min(geo.size.width - 48, geo.size.height - 48)), 420)
                             KroutonDiscLabelArtworkCanvas(
                                 preset: activePreset,
-                                template: store.selectedLabelTemplate,
-                                title: store.labelDiscTitle,
-                                subtitle: store.labelSubtitle,
-                                performer: store.discPerformer,
-                                mcnBarcode: store.discMCNBarcode,
-                                trackLines: [],
-                                showTracklist: false,
-                                primaryColor: store.activeAccent,
-                                harmonyColor: store.uiSecondaryAccent,
                                 isExportMode: false,
                                 diameterPoints: baseDim * CGFloat(store.labelCanvasZoom),
                                 backgroundStyle: store.labelBackgroundStyle,

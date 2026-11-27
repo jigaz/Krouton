@@ -10,15 +10,6 @@ struct KroutonDiscLabelArtworkCanvas: View {
     @State var freehandDraftPoints: [KroutonNormalizedPoint] = []
     var onCommitFreehandStroke: (([KroutonNormalizedPoint]) -> Void)? = nil
     let preset: KroutonDiscLabelGeometry
-    let template: KroutonCroutonLabelStyle
-    let title: String
-    let subtitle: String
-    let performer: String
-    let mcnBarcode: String
-    let trackLines: [String]
-    let showTracklist: Bool
-    let primaryColor: Color
-    let harmonyColor: Color
     let isExportMode: Bool
     let diameterPoints: CGFloat
 
@@ -46,15 +37,6 @@ struct KroutonDiscLabelArtworkCanvas: View {
 
     init(
         preset: KroutonDiscLabelGeometry,
-        template: KroutonCroutonLabelStyle,
-        title: String,
-        subtitle: String,
-        performer: String,
-        mcnBarcode: String,
-        trackLines: [String],
-        showTracklist: Bool,
-        primaryColor: Color,
-        harmonyColor: Color,
         isExportMode: Bool = false,
         diameterPoints: CGFloat = 360.0,
         backgroundStyle: KroutonVectorBackgroundStyle = .templateDefault,
@@ -79,15 +61,6 @@ struct KroutonDiscLabelArtworkCanvas: View {
         onCommitFreehandStroke: (([KroutonNormalizedPoint]) -> Void)? = nil
     ) {
         self.preset = preset
-        self.template = template
-        self.title = title
-        self.subtitle = subtitle
-        self.performer = performer
-        self.mcnBarcode = mcnBarcode
-        self.trackLines = trackLines
-        self.showTracklist = showTracklist
-        self.primaryColor = primaryColor
-        self.harmonyColor = harmonyColor
         self.isExportMode = isExportMode
         self.diameterPoints = diameterPoints
         self.backgroundStyle = backgroundStyle
