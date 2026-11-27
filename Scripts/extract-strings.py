@@ -34,8 +34,9 @@ CATALOG = SOURCES / "Resources" / "Localizable.xcstrings"
 
 CALLS = (r"KroutonL10n\.tr|Text|Button|Label|Toggle|Picker|Section|Menu|ColorPicker|Stepper|"
          r"DisclosureGroup|TextField|SecureField|LabeledContent|GroupBox|Link|"
-         r"\.help|\.navigationTitle|\.accessibilityLabel|\.accessibilityHint|\.badge")
-CALL_START = re.compile(r"(?<![\w.])(" + CALLS + r")\(\s*\"(?!\"\")")
+         r"\.help|\.navigationTitle|\.accessibilityLabel|\.accessibilityHint|\.accessibilityValue|\.badge")
+CALL_START = re.compile(r"(?<![\w.])(" + CALLS + r")\(")
+SPECIFIER = re.compile(r"%(?:\d+\$)?[-+ #0]*\d*(?:\.\d+)?(?:hh|h|ll|l|L|q|j|z|t)?[@dDiuUxXoOfFeEgGcCsSpaA]")
 LITERAL = re.compile(r"\"((?:[^\"\\\n]|\\.)*)\"")
 UNESCAPE = {'"': '"', "\\": "\\", "n": "\n", "t": "\t", "'": "'"}
 REPO_SOURCES = ROOT / "Sources"
@@ -110,18 +111,54 @@ STRING_TAILS = re.compile(
 
 
 def declared_types():
-    """Property and function names across Sources/ mapped to the types they're declared with."""
-    table = {}
-    decl = re.compile(r"\b(?:let|var)\s+(\w+)\s*:\s*([A-Z]\w*)\b(?!\s*[<\[?!])")
-    literal_default = re.compile(r"\b(?:let|var)\s+(\w+)\s*=\s*(-?\d+(\.\d+)?)\s*$", re.M)
-    func = re.compile(r"\bfunc\s+(\w+)\s*\([^)]*\)\s*(?:throws\s*)?->\s*([A-Z]\w*)\b(?!\s*[<\[?!])")
+    """Names mapped to the types they most likely have, per file and for the whole package:
+    from a type annotation, a function's return type, a loop or closure over integers, or the
+    expression a `let` or `var` is initialised with. A name is looked up in its own file first,
+    since the same name can mean different things in different files."""
+    decl = re.compile(r"\b(?:let|var)\s+(\w+)\s*:\s*([A-Z]\w*)\??(?![\w.<\[!])")
+    func = re.compile(r"\bfunc\s+(\w+)\s*\([^)]*\)\s*(?:throws\s*)?->\s*([A-Z]\w*)\b(?![\w.<\[?!])")
+    init = re.compile(r"\b(?:let|var)\s+(\w+)\s*=\s*([^\n]+?)\s*(?:\{|else\s*\{)?\s*$", re.M)
+    # A parameter such as `index: Int,` in a function or initializer signature.
+    parameter = re.compile(r"(?:^|[(,])\s*(?:\w+\s+)?(\w+)\s*:\s*([A-Z]\w*)\??\s*(?=[,)=]|$)", re.M)
+    integer_loops = [
+        re.compile(r"\bfor\s+(\w+)\s+in\s+\(?[\w.]*\d*\s*(?:\.\.\.|\.\.<)"),
+        re.compile(r"\bfor\s+\((\w+),\s*\w+\)\s+in\s+[^\n{]*\.enumerated\(\)"),
+        re.compile(r"\bfor\s+(\w+)\s+in\s+[^\n{]*\.indices\b"),
+        re.compile(r"ForEach\(\s*\(?[\w.]*\s*(?:\.\.\.|\.\.<)[^\n{]*\{\s*(\w+)\s+in"),
+        re.compile(r"ForEach\([^\n{]*\.indices[^\n{]*\{\s*(\w+)\s+in"),
+        re.compile(r"\.enumerated\(\)[^\n{]*\{\s*\(?(\w+),\s*\w+\)?\s+in"),
+    ]
+    package, per_file, initialisers = {}, {}, {}
     for path in REPO_SOURCES.rglob("*.swift"):
         text = path.read_text(encoding="utf-8")
-        for name, kind in decl.findall(text) + func.findall(text):
-            table.setdefault(name, Counter())[kind] += 1
-        for name, number, fraction in literal_default.findall(text):
-            table.setdefault(name, Counter())["Double" if fraction else "Int"] += 1
-    return {name: kinds.most_common(1)[0][0] for name, kinds in table.items()}
+        local = per_file.setdefault(path, {})
+        found = decl.findall(text) + func.findall(text) + parameter.findall(text)
+        found += [(name, "Int") for pattern in integer_loops for name in pattern.findall(text)]
+        for name, kind in found:
+            local.setdefault(name, Counter())[kind] += 1
+            package.setdefault(name, Counter())[kind] += 1
+        initialisers[path] = init.findall(text)
+    package_types = {name: most_likely(kinds) for name, kinds in package.items()}
+    file_types = {}
+    for path, local in per_file.items():
+        types = dict(package_types)
+        types.update({name: most_likely(kinds) for name, kinds in local.items()})
+        guesses = {}
+        for name, expression in initialisers[path]:
+            if name not in local:
+                guesses.setdefault(name, Counter())[value_type(expression, types, {name})] += 1
+        types.update({name: most_likely(kinds) for name, kinds in guesses.items()})
+        file_types[path] = types
+    return file_types
+
+
+def most_likely(kinds):
+    """The commonest type; a name declared as a number in one place and as text in another
+    (`badge`, `id`) is shown as text, which SwiftUI accepts for any value."""
+    numeric = sum(n for kind, n in kinds.items() if kind in SPECIFIERS)
+    if numeric and numeric < sum(kinds.values()):
+        return "String"
+    return kinds.most_common(1)[0][0]
 
 
 def top_level_split(expr, token):
@@ -142,22 +179,45 @@ def top_level_split(expr, token):
     return None
 
 
-def value_type(expr, types):
+# Expressions whose type the rules below can't see; each was checked against swiftc.
+TYPE_HINTS = {
+    "disc.id": "Int",
+    "preset.id": "Int",
+    "heroMeta.badge": "String",
+}
+
+
+def value_type(expr, types, resolving=frozenset()):
     """The Swift type an interpolated expression most likely has: a key of SPECIFIERS, or
     "String" for anything shown as text."""
     expr = expr.strip()
+    if expr in TYPE_HINTS:
+        return TYPE_HINTS[expr]
     ternary = top_level_split(expr, " ? ")
     if ternary:
         branches = top_level_split(ternary[1], " : ")
-        return value_type(branches[0] if branches else ternary[1], types)
-    for op in (" ?? ", " + ", " - ", " * ", " / "):
+        return value_type(branches[0] if branches else ternary[1], types, resolving)
+    split = top_level_split(expr, " ?? ")
+    if split:
+        return value_type(split[0], types, resolving)
+    for op in (" + ", " - ", " * ", " / ", " % "):
         split = top_level_split(expr, op)
         if split:
-            return value_type(split[0], types)
-    if expr.startswith("(") and expr.endswith(")"):
-        return value_type(expr[1:-1], types)
+            left = value_type(split[0], types, resolving)
+            right = value_type(split[1], types, resolving)
+            if left in SPECIFIERS:
+                return left
+            if re.fullmatch(r"\d+", split[1].strip()) or re.fullmatch(r"\d+", split[0].strip()):
+                return "Int"
+            return right if right in SPECIFIERS else left
+    if expr.startswith("(") and expr.endswith(")") and top_level_split(expr[1:-1], ",") is None:
+        return value_type(expr[1:-1], types, resolving)
     if expr.startswith('"') or STRING_TAILS.search(expr):
         return "String"
+    minmax = re.match(r"^(?:max|min|abs)\((.*)\)$", expr)
+    if minmax:
+        first = top_level_split(minmax.group(1), ",")
+        return value_type(first[0] if first else minmax.group(1), types, resolving)
     call = re.match(r"^([A-Z]\w*)\(", expr)
     if call:
         return call.group(1) if call.group(1) in SPECIFIERS else "String"
@@ -166,7 +226,9 @@ def value_type(expr, types):
     if re.match(r"^-?\d+\.\d+$", expr):
         return "Double"
     last = re.findall(r"(\w+)[?!]?(?:\(\))?$", expr)
-    return types.get(last[0], "String") if last else "String"
+    if not last or last[0] in resolving:
+        return "String"
+    return types.get(last[0], "String")
 
 
 def specifier(expr, types):
@@ -189,25 +251,65 @@ def format_key(parts, types):
 
 # MARK: - Collecting
 
+def first_argument_literals(text, open_paren):
+    """The string literals SwiftUI treats as localizable keys in a call's first argument: a
+    literal itself, either side of a ternary or ??, inside grouping parentheses, or returned by
+    a closure (`.map { "…" }`). Literals passed to another call, such as String(format:), are
+    plain strings and are skipped."""
+    literals, i, depth = [], open_paren + 1, 0
+    while i < len(text):
+        c = text[i]
+        if c == '"':
+            if text.startswith('"""', i):
+                return literals
+            scanned = scan_literal(text, i)
+            if scanned is None:
+                return literals
+            if depth == 0:
+                literals.append(scanned[0])
+            i = scanned[1]
+            continue
+        if c == "(":
+            before = text[:i].rstrip()[-1:]
+            is_call = bool(before) and (before.isalnum() or before in "_)]?!>")
+            depth += 1 if is_call or depth else 0
+            if not is_call and not depth:
+                grouping_end = skip_interpolation(text, i + 1)
+                if grouping_end is None:
+                    return literals
+                literals.extend(first_argument_literals(text, i))
+                i = grouping_end
+                continue
+        elif c == ")":
+            if depth == 0:
+                return literals
+            depth -= 1
+        elif c == "," and depth == 0:
+            return literals
+        i += 1
+    return literals
+
+
 def strings_in_code():
     found = {}
-    types = declared_types()
+    file_types = declared_types()
     for path in sorted(SOURCES.rglob("*.swift")):
         text = path.read_text(encoding="utf-8")
+        types = file_types.get(path, {})
         where = path.relative_to(ROOT).as_posix()
         for match in CALL_START.finditer(text):
-            scanned = scan_literal(text, match.end() - 1)
-            if scanned is None:
+            if match.group(1) == "KroutonL10n.tr":
                 continue
-            parts = scanned[0]
-            if len(parts) == 1:
-                key = unescape(parts[0][1])
-            elif match.group(1) == "KroutonL10n.tr":
-                continue
-            else:
-                key = format_key(parts, types)
-            plain = "".join(raw for kind, raw in parts if kind == "text")
-            if key.strip() and any(c.isalpha() for c in plain):
+            for parts in first_argument_literals(text, match.end() - 1):
+                if len(parts) == 1:
+                    key = unescape(parts[0][1])
+                    if not any(c.isalpha() for c in key):
+                        continue
+                else:
+                    key = format_key(parts, types)
+                    plain = "".join(raw for kind, raw in parts if kind == "text")
+                    if not (any(c.isalpha() for c in plain) or SPECIFIER.search(key)):
+                        continue
                 found.setdefault(key, where)
         # Every literal inside KroutonL10n.tr(...), so tr(flag ? "A" : "B") gives both.
         for start in (m.end() for m in re.finditer(r"KroutonL10n\.tr\(", text)):
@@ -232,7 +334,7 @@ def compiler_format_keys(folder):
         for table, entries in data.get("tables", {}).items():
             for entry in entries:
                 key = entry.get("key", "")
-                if table == "Localizable" and re.search(r"%(?!%)", key):
+                if table == "Localizable" and SPECIFIER.search(key.replace("%%", "")):
                     keys.setdefault(key, source.split("/Sources/", 1)[-1])
     return keys
 
