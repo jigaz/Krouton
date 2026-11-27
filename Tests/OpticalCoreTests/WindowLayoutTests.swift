@@ -33,7 +33,7 @@ final class WindowLayoutTests: XCTestCase {
     }
 
     func testEveryGapIsAboveItsLowerEdge() {
-        for b in [KroutonWindowLayout.sidebarBreakpoint, .workspaceBreakpoint, .queueBreakpoint] {
+        for b in [KroutonWindowLayout.sidebarBreakpoint, KroutonWindowLayout.workspaceBreakpoint, KroutonWindowLayout.queueBreakpoint] {
             XCTAssertTrue(b.regularAbove > b.narrowBelow)
             XCTAssertTrue(b.startsNarrowBelow >= b.narrowBelow && b.startsNarrowBelow <= b.regularAbove)
         }
