@@ -41,7 +41,7 @@ All code written or proposed for Krouton is automatically linted by **Suite 1, S
 - **Pure-SwiftUI Gate (`Sources/KroutonApp/Features/` and `Sources/KroutonApp/Shell/`):**
   - Files under `Features/` and `Shell/` must use **100% Pure SwiftUI**.
   - **Strictly banned there:** `import AppKit`, `import Cocoa`, `NSColor`, `NSView`, `NSImage`, `NSViewRepresentable`, `NSApplication.shared`, `NSWorkspace`, `NSPasteboard`, and looking AppKit up at runtime (`NSClassFromString`, `NSSelectorFromString`).
-  - **The one exception** is `Shell/App/KroutonAppKitBridge.swift`, for what SwiftUI on macOS has no API for (blocking Quit mid-burn, the Dock icon and badge, the clipboard, selecting files in Finder, activation). Add to it only when SwiftUI can't do the job, and call it through `KroutonOSDesktopBridge`.
+  - **The one exception** is `Shell/App/KroutonAppKitBridge.swift`, for what SwiftUI on macOS has no API for (blocking Quit mid-burn, the Dock icon and badge, the clipboard, selecting files in Finder, activation). Add to it only when SwiftUI can't do the job, and call it through `KroutonOSDesktopBridge`. Emptying it is an open goal: see `dev-notes/pure-swiftui-shell.md` for what each part needs and what to check with each new SDK.
   - Use `Color.resolve(in: EnvironmentValues())` for color math and `ImageIO` (`CGImageSource`) + `Image(decorative:scale:)` for file thumbnails.
 - **Strict File & Function Size Ceilings:**
   - SwiftUI View files (`*View*.swift`, `*Bar.swift`, `*Canvas.swift`): **<= 400 LOC**
