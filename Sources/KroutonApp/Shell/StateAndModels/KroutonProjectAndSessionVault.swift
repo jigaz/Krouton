@@ -110,7 +110,7 @@ struct KroutonSavedDestinationRecord: Codable, Hashable, Sendable {
     /// The card, or nil when its kind is one this version doesn't know. Before 2026-11-27 an
     /// unknown kind came back as a disc burner, so a rip card could return as a burn.
     func toBatchItem() -> KroutonBakeBatchItem? {
-        guard let resolvedKind = KroutonBurnDestinationKind(rawValue: kindRawValue) else { return nil }
+        guard let resolvedKind = KroutonBurnDestinationKind(storedValue: kindRawValue) else { return nil }
         return KroutonBakeBatchItem(
             kind: resolvedKind,
             targetDriveID: targetDriveID,
