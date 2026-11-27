@@ -13,7 +13,7 @@ Krouton is one Swift package (`Package.swift`, Swift 6 language mode, warnings a
 8. **`LabelKit`** — 300-DPI polar disc label geometry and 1:1 vector PDF print sheet generation.
 9. **`NetworkSpool`** — Client for Krouton Server: `KRSP` 64-byte wire framing, RFC 6962 Merkle manifests, resumable uploads, commit-then-reveal pairing, pinned mutual TLS 1.3 with Ed25519 session proofs, Bonjour discovery, and folder bundles (`SpoolBundleWriter`) for discs the server builds itself.
 10. **`Persistence`** — `SessionStore`, `RunLock` (`flock` crash recovery), localization catalog.
-11. **`KroutonApp`** — Pure-SwiftUI macOS application. `Shell/` holds the app, windows, menus, settings, state stores and services; `Features/` holds the workspaces (Data, AudioCD, Depot, Label, Retro, Rip, Video). `Resources/Manual/` is the user manual in Markdown, shown by `KroutonUserManualWindowView` and rendered for the web by `Scripts/build-manual.py`.
+11. **`KroutonApp`** — Pure-SwiftUI macOS application (`Shell/App/KroutonAppKitBridge.swift` is its one AppKit file). `Shell/` holds the app, windows, menus, settings, state stores and services; `Features/` holds the workspaces (Data, AudioCD, Depot, Label, Retro, Rip, Video). `Resources/Manual/` is the user manual in Markdown, shown by `KroutonUserManualWindowView` and rendered for the web by `Scripts/build-manual.py`.
 
 ## 2. Dependency rules
 
@@ -23,7 +23,7 @@ Krouton is one Swift package (`Package.swift`, Swift 6 language mode, warnings a
 - Only `KroutonApp` and `KroutonVerify` see every module.
 
 ## 3. Verification Gates (`krouton-verify`)
-- **Suite 1 & 2:** 11-module DAG isolation, Pure-SwiftUI Feature Gate (zero `AppKit`/`NSColor`/`NSImage`/`NSView` in `Features/`), 400-LOC view ceiling, 500-LOC non-view ceiling, 200-LOC function ceiling, canonical `// MARK: -` headers, and `+Role.swift` naming.
+- **Suite 1 & 2:** 11-module DAG isolation, Pure-SwiftUI Gate (zero `AppKit`/`NSColor`/`NSImage`/`NSView`, and no runtime AppKit lookups, in `Features/` and `Shell/` apart from `KroutonAppKitBridge.swift`), 400-LOC view ceiling, 500-LOC non-view ceiling, 200-LOC function ceiling, canonical `// MARK: -` headers, and `+Role.swift` naming.
 - **Suite 3–27:** Domain math, sector formatting, 500-frame telemetry fuzzing, APFS CoW staging, lock-free audio parameter mailbox, and SplitMix64 distributed spool fault recovery.
 - **Suite 28:** Integration Reachability Ratchet (`PENDING_INTEGRATION.md`), ensuring unwired public library types can only shrink over time.
 - **Suite 29:** KRSP golden vectors, shared byte for byte with Krouton Server's Rust tests.

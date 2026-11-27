@@ -4,9 +4,38 @@ import Observation
 import OpticalCore
 import SwiftUI
 
+// MARK: - The one AppKit file
+
+/// Krouton's interface is SwiftUI throughout `Features/` and `Shell/`. This file is the single
+/// exception (Suite 2 allows it and no other): what SwiftUI on macOS can't do yet. Blocking
+/// Quit while a disc is burning, the Dock icon and its burn badge, the clipboard, selecting
+/// files in Finder, and bringing the app forward. Add to it only what SwiftUI has no API for.
 @MainActor
+enum KroutonAppKitBridge {
+    /// Needed when Krouton runs as a bare executable (`swift run`), which starts without a
+    /// Dock icon or menu bar.
+    static func becomeRegularApp() {
+        NSApplication.shared.setActivationPolicy(.regular)
+    }
+
+    static func activate() {
+        NSApplication.shared.activate(ignoringOtherApps: true)
+    }
+
+    static func copyToClipboard(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+
+    /// Opens Finder windows with these files selected.
+    static func selectInFinder(_ urls: [URL]) {
+        NSWorkspace.shared.activateFileViewerSelecting(urls)
+    }
+}
+
 // MARK: - KroutonAppDelegate
 
+@MainActor
 final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
     private var appearanceObserver: NSKeyValueObservation?
 
