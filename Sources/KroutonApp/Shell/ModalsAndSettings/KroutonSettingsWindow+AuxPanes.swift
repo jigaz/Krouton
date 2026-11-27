@@ -171,7 +171,7 @@ extension KroutonSettingsWindowView {
                     .frame(width: 230)
                 }
                 Divider()
-                Text(KroutonL10n.tr("Krouton is in English. Translations are being added; until then, other languages change only a few labels."))
+                Text(KroutonL10n.tr("Takes effect the next time Krouton opens. Krouton is in English; translations are being added, and until then other languages change only a few labels. You can also choose the language in System Settings › General › Language & Region › Applications."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

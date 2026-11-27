@@ -16,6 +16,8 @@ jobs:
         run: swift --version && xcodebuild -version
       - name: Manual on krouton.app matches the app's manual
         run: python3 Scripts/build-manual.py --check
+      - name: String Catalog has every interface string
+        run: python3 Scripts/extract-strings.py --check
       - name: Build All Targets
         run: swift build
       - name: Run Unit Tests

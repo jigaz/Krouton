@@ -12,7 +12,7 @@ Krouton is one Swift package (`Package.swift`, Swift 6 language mode, warnings a
 7. **`RescueKit`** — `KroutonDiscRescuer` (ddrescue's copy, trim, scrape and retry passes over any `KroutonSectorSource`), `KroutonRescueMap` (reads and writes GNU ddrescue mapfiles) and archival disc quality grading. The drive side is `MMCSectorSource` in `OpticalCore` (READ CAPACITY, READ(10)) over the `DriveKit` session; a disc without a C1/C2 scan is reported as not measured.
 8. **`LabelKit`** — 300-DPI polar disc label geometry and 1:1 vector PDF print sheet generation.
 9. **`NetworkSpool`** — Client for Krouton Server: `KRSP` 64-byte wire framing, RFC 6962 Merkle manifests, resumable uploads, commit-then-reveal pairing, pinned mutual TLS 1.3 with Ed25519 session proofs, Bonjour discovery, and folder bundles (`SpoolBundleWriter`) for discs the server builds itself.
-10. **`Persistence`** — `SessionStore`, `RunLock` (`flock` crash recovery), localization catalog.
+10. **`Persistence`** — `SessionStore`, `RunLock` (`flock` crash recovery). Interface text is in `KroutonApp`'s String Catalog (`Resources/Localizable.xcstrings`).
 11. **`KroutonApp`** — Pure-SwiftUI macOS application (`Shell/App/KroutonAppKitBridge.swift` is its one AppKit file). `Shell/` holds the app, windows, menus, settings, state stores and services; `Features/` holds the workspaces (Data, AudioCD, Depot, Label, Retro, Rip, Video). `Resources/Manual/` is the user manual in Markdown, shown by `KroutonUserManualWindowView` and rendered for the web by `Scripts/build-manual.py`.
 
 ## 2. Dependency rules

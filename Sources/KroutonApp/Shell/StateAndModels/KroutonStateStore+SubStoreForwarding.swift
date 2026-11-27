@@ -48,8 +48,8 @@ extension KroutonStateStore {
             }
         }
         if appearance.appLanguage != oldLanguage {
-            KroutonL10n.activeISOCode = appearance.appLanguage.isoCode
             if !isHydratingPreferences {
+                KroutonL10n.applyLanguagePreference(isoCode: appearance.appLanguage == .system ? nil : appearance.appLanguage.isoCode)
                 KroutonPreferences.set(appearance.appLanguage.rawValue, for: .appLanguage)
             }
         }

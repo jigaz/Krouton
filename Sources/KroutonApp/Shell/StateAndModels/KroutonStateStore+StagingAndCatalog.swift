@@ -176,11 +176,6 @@ extension KroutonStateStore {
         KroutonOSDesktopBridge.postVoiceOverAnnouncement(message)
     }
 
-    /// Forwards localization lookup to the single KroutonL10n.tr implementation
-    func tr(_ key: String) -> String {
-        KroutonL10n.activeISOCode = self.appLanguage.isoCode
-        return KroutonL10n.tr(key)
-    }
 
     func parseSizeDisplayToBytes(_ sizeDisplay: String) -> Int64 {
         let parts = sizeDisplay.split(separator: " ")

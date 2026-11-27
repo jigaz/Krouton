@@ -204,7 +204,7 @@ extension KroutonSettingsWindowView {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(KroutonL10n.tr("Application Language"))
                             .fontWeight(.medium)
-                        Text(KroutonL10n.tr("Only a few labels are translated so far; the rest stays in English."))
+                        Text(KroutonL10n.tr("Takes effect the next time Krouton opens. Only a few labels are translated so far; the rest stays in English."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }

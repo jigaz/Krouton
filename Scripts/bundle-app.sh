@@ -57,6 +57,9 @@ if [ ! -d "$RESOURCE_BUNDLE" ]; then
   exit 1
 fi
 cp -R "$RESOURCE_BUNDLE" "$CONTENTS_DIR/Resources/"
+# The String Catalog compiles into one .lproj per language inside that bundle. SwiftUI looks
+# literals such as Text("Burn") up in the app's own bundle, so the .lproj folders go there too.
+find "$RESOURCE_BUNDLE" -type d -name "*.lproj" -prune -exec cp -R {} "$CONTENTS_DIR/Resources/" \;
 
 echo "=== 3. Signing ==="
 DEV_ID_CERT="$(security find-identity -v -p codesigning 2>/dev/null | grep "Developer ID Application" | grep "$TEAM_ID" | head -n 1 | awk -F '"' '{print $2}' || true)"

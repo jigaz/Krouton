@@ -83,30 +83,21 @@ extension KroutonTestHarness {
         h.check(restoreDecision(verdict: .clean, hasSnapshot: true, rememberSession: true) == .restoreSilently, "Clean launch with snapshot must restoreSilently")
         h.check(restoreDecision(verdict: .anotherInstanceRunning, hasSnapshot: true, rememberSession: true) == .startFresh, "Secondary instance must startFresh")
 
-        // LocalizableCatalog.json schema & locale fallback resolution
+        // Localizable.xcstrings: a String Catalog with English as the source and the first
+        // translations in place (Scripts/extract-strings.py --check keeps it complete).
+        struct StringCatalog: Decodable {
+            struct Entry: Decodable { let localizations: [String: [String: [String: String]]]? }
+            let sourceLanguage: String
+            let strings: [String: Entry]
+        }
         let catalogURL = KroutonTestHarness.repositoryRoot
-            .appendingPathComponent("Sources/KroutonApp/Resources/LocalizableCatalog.json")
-        let catalogData = (try? Data(contentsOf: catalogURL)) ?? Data()
-        let catalog = (try? JSONDecoder().decode([String: [String: String]].self, from: catalogData)) ?? [:]
-        let expectedLocales: Set<String> = ["de", "es", "fr", "it", "ja", "ko", "nl", "pt", "zh-Hans"]
-        h.check(catalog.count == 17, "LocalizableCatalog.json must contain all 17 canonical localized phrase keys")
-        let allLocalesComplete = !catalog.isEmpty && catalog.values.allSatisfy { map in
-            expectedLocales.isSubset(of: Set(map.keys)) && expectedLocales.allSatisfy { !(map[$0]?.isEmpty ?? true) }
-        }
-        h.check(allLocalesComplete, "Every key in LocalizableCatalog.json must provide non-empty translations for all 9 supported locales")
-
-        func resolveL10n(_ key: String, code: String) -> String {
-            if code == "en" || code.isEmpty { return key }
-            let shortCode = String(code.prefix(2))
-            if let map = catalog[key] {
-                if let exact = map[code] { return exact }
-                if let prefix = map[shortCode] { return prefix }
-            }
-            return key
-        }
-        h.check(resolveL10n("2.5s X-Fade", code: "en") == "2.5s X-Fade", "English locale must return canonical key")
-        h.check(resolveL10n("2.5s X-Fade", code: "zh-Hans") != "2.5s X-Fade", "Exact regional locale zh-Hans must resolve translated string")
-        h.check(resolveL10n("2.5s X-Fade", code: "es-MX") == catalog["2.5s X-Fade"]?["es"], "Regional code es-MX must fall back to 2-char 'es' translation")
+            .appendingPathComponent("Sources/KroutonApp/Resources/Localizable.xcstrings")
+        let catalog = (try? Data(contentsOf: catalogURL)).flatMap { try? JSONDecoder().decode(StringCatalog.self, from: $0) }
+        h.check(catalog?.sourceLanguage == "en" && (catalog?.strings.count ?? 0) >= 600,
+                "Localizable.xcstrings must be a String Catalog in English holding the interface strings")
+        let crossfade = catalog?.strings["2.5s X-Fade"]?.localizations
+        h.check(crossfade?["zh-Hans"]?["stringUnit"]?["value"]?.isEmpty == false && crossfade?["pt-BR"] != nil,
+                "The catalog must keep the existing translations (zh-Hans, pt-BR and the rest)")
 
         // @dynamicMemberLookup persistence side-effect & isHydratingPreferences suppression verification
         @dynamicMemberLookup
