@@ -10,7 +10,8 @@ import UniformTypeIdentifiers
 struct KroutonDestinationRackColumnView: View {
     var store: KroutonStateStore
     var driveManager: KroutonOpticalDriveBank
-    let isRightQueueCompact: Bool
+    @Environment(\.kroutonLayout) var windowLayout
+    var isRightQueueCompact: Bool { windowLayout.queue == .narrow }
     let primarySelectedDrive: KroutonOpticalDriveInfo?
     var burnSet: KroutonBurnSetController = .shared
     @State private var showBurnSetSheet = false
@@ -65,7 +66,6 @@ struct KroutonDestinationRackColumnView: View {
                             store: store,
                             driveManager: driveManager,
                             item: item,
-                            isRightQueueCompact: isRightQueueCompact,
                             primarySelectedDrive: primarySelectedDrive
                         )
                     }

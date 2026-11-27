@@ -1,4 +1,5 @@
 import Foundation
+import OpticalCore
 import SwiftUI
 
 enum KroutonDesign {
@@ -19,17 +20,10 @@ enum KroutonDesign {
     }
 }
 
-enum KroutonViewportTier: String, CaseIterable, Sendable {
-    case compact
-    case medium
-    case wideWorkspace
-    case ultraWide
+// MARK: - Window Layout
 
-    static func from(centerWidth: CGFloat) -> KroutonViewportTier {
-        if centerWidth < 520 { return .compact }
-        if centerWidth < 780 { return .medium }
-        if centerWidth < 1080 { return .wideWorkspace }
-        return .ultraWide
-    }
-
+extension EnvironmentValues {
+    /// The main window's column sizes, set once by `KroutonMainWorkspaceView` from the column
+    /// widths. A view reads it instead of taking a narrow flag through its initializer.
+    @Entry var kroutonLayout: KroutonWindowLayout = .regular
 }
