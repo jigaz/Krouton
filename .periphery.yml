@@ -1,0 +1,6 @@
+# Periphery (https://github.com/peripheryapp/periphery): finds declarations nothing uses, from
+# the compiler's index rather than text matching. CI runs it as a report (the unused-code job);
+# it doesn't fail the build. Scripts/periphery-summary.py turns its CSV into the job summary.
+retain_objc_accessible: true      # DiscRecording calls the track producers' @objc methods
+retain_codable_properties: true   # saved projects and sessions decode these
+retain_swift_ui_previews: true
