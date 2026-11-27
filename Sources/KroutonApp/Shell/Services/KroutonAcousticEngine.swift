@@ -204,22 +204,3 @@ final class KroutonAcousticEngine: Sendable {
         return outBuf
     }
 }
-
-// MARK: - Declarative SwiftUI Modifier
-
-extension View {
-    ) -> some View {
-        self
-            .onChange(of: trigger) { oldValue, newValue in
-                if condition(oldValue, newValue) {
-                    KroutonOSDesktopBridge.playAcousticCue(cue)
-                }
-            }
-            .sensoryFeedback(
-                cue.hapticRole == .warning ? .error : (cue.hapticRole == .success ? .success : .impact),
-                trigger: trigger
-            ) { oldValue, newValue in
-                condition(oldValue, newValue)
-            }
-    }
-}
