@@ -1,4 +1,5 @@
 import Foundation
+import OpticalCore
 
 // MARK: - ISO 9660 Bridge (DVD-Video)
 
@@ -154,7 +155,7 @@ extension KroutonUDFImageWriter {
                 let loc = dirSector[dir]
                 for big in [false, true] {
                     var entry: [UInt8] = [UInt8(id.count), 0]
-                    entry += big ? KroutonISO.be32(loc) : KroutonISO.le32(loc)
+                    entry += big ? KroutonBytes.be32(loc) : KroutonBytes.le32(loc)
                     entry += big ? [UInt8(parent >> 8), UInt8(parent & 0xFF)] : [UInt8(parent & 0xFF), UInt8(parent >> 8)]
                     entry += id
                     if id.count % 2 == 1 { entry.append(0) }
@@ -182,8 +183,8 @@ extension KroutonUDFImageWriter {
             KroutonISO.putBoth16(&d, 124, 1)
             KroutonISO.putBoth16(&d, 128, 2048)
             KroutonISO.putBoth32(&d, 132, UInt32(clamping: pathTableBytes))
-            d.replaceSubrange(140..<144, with: KroutonISO.le32(lTable))
-            d.replaceSubrange(148..<152, with: KroutonISO.be32(mTable))
+            d.replaceSubrange(140..<144, with: KroutonBytes.le32(lTable))
+            d.replaceSubrange(148..<152, with: KroutonBytes.be32(mTable))
             let root = record([0], location: rootSector, size: dirBytes[0], isDir: true, date: KroutonISO.recordDate(created))
             d.replaceSubrange(156..<190, with: root)
             text(190, 128, ""); text(318, 128, ""); text(446, 128, "")
@@ -202,15 +203,13 @@ extension KroutonUDFImageWriter {
 // MARK: - ISO 9660 Fields
 
 enum KroutonISO {
-    static func le32(_ v: UInt32) -> [UInt8] { [UInt8(v & 0xFF), UInt8(v >> 8 & 0xFF), UInt8(v >> 16 & 0xFF), UInt8(v >> 24)] }
-    static func be32(_ v: UInt32) -> [UInt8] { le32(v).reversed() }
 
     static func putBoth16(_ d: inout [UInt8], _ at: Int, _ v: UInt16) {
         d.replaceSubrange(at..<at + 4, with: [UInt8(v & 0xFF), UInt8(v >> 8), UInt8(v >> 8), UInt8(v & 0xFF)])
     }
 
     static func putBoth32(_ d: inout [UInt8], _ at: Int, _ v: UInt32) {
-        d.replaceSubrange(at..<at + 8, with: le32(v) + be32(v))
+        d.replaceSubrange(at..<at + 8, with: KroutonBytes.le32(v) + KroutonBytes.be32(v))
     }
 
     /// Directory-record date: years since 1900, month, day, hour, minute, second, UTC.

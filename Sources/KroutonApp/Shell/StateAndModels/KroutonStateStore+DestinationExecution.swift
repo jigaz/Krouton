@@ -180,7 +180,7 @@ extension KroutonStateStore {
                 averageSpeedText: "-", peakSpeedText: "-", elapsedDurationText: "00:00",
                 diagnosticAdvice: "See Help › Krouton User Manual › Video, copying and other formats."
             )
-        default:
+        case .audioRip:
             if selectedCategory == .copy && selectedCopyTaskID == .ripAudioCD,
                let liveCD = KroutonRealCDExtractor.scanMountedAudioCD() {
                 let rawOut = target.hardwareOrPath.isEmpty ? "~/Music/Krouton Rips" : target.hardwareOrPath
@@ -217,7 +217,11 @@ extension KroutonStateStore {
                 KroutonOSDesktopBridge.revealInFinder(url: outDir)
                 return
             }
-            await masterStagedFilesToHybridISO()
+            // Before 2026-11-26 this fell through to building an ISO of the deck in a temporary
+            // folder that nothing ever read.
+            driveManager.completionReport = refusalReport(
+                "Insert an audio CD, choose Rip Audio CD under Copy, then rip again. Nothing was written.",
+                title: "No Audio CD to Rip")
         }
     }
 }

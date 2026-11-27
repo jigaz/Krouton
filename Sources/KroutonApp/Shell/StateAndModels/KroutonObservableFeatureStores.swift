@@ -190,7 +190,5 @@ final class KroutonLabelWorkspaceSubStore {
 @Observable
 @MainActor
 final class KroutonBurnQueueSubStore {
-    var lastMasteredISOURL: URL? = nil
-    var lastMasteredSHA256: String = ""
     init() {}
 }

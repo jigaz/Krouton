@@ -228,40 +228,6 @@ extension KroutonStateStore {
 
 @MainActor
 extension KroutonStateStore {
-    /// Masters the staged files into a mountable ISO-9660 + Joliet + UDF image with `hdiutil makehybrid`
-    /// and records its location and SHA-256. On failure both are cleared, so nothing downstream
-    /// (the LAN spool client, the Depot) can pick up a stale or partial image.
-    func masterStagedFilesToHybridISO() async {
-        burnQueueSubStore.lastMasteredISOURL = nil
-        burnQueueSubStore.lastMasteredSHA256 = ""
-        guard !stagedFiles.isEmpty else { return }
-
-        let fm = FileManager.default
-        let stagingRoot = fm.temporaryDirectory.appendingPathComponent("KroutonDepotStaging", isDirectory: true)
-        let treeURL = stagingRoot.appendingPathComponent("Tree_\(UUID().uuidString)", isDirectory: true)
-        let outputURL = stagingRoot.appendingPathComponent("Krouton_Master_Output.iso")
-        defer {
-            Task.detached(priority: .utility) { try? FileManager.default.removeItem(at: treeURL) }
-        }
-
-        let items = stagedFiles.map { KroutonBurnStageItem(source: $0.url, name: $0.name) }
-        if let stagingError = await KroutonBurnStager.stage(items, into: treeURL) {
-            KroutonDiagnostics.masteringLogger.error("Image staging failed: \(stagingError, privacy: .public)")
-            return
-        }
-        do {
-            let image = try await KroutonHybridImageBuilder.build(
-                sourceDirectory: treeURL,
-                outputURL: outputURL,
-                options: KroutonHybridImageOptions(volumeName: discVolumeTitle, includeHFSPlus: true, finderLayout: enableCustomFinderLayoutTab ? finderLayoutBlueprint : nil)
-            )
-            burnQueueSubStore.lastMasteredISOURL = image.url
-            burnQueueSubStore.lastMasteredSHA256 = "sha256:" + image.sha256Hex
-        } catch {
-            KroutonDiagnostics.masteringLogger.error("Image mastering failed: \(error.localizedDescription, privacy: .public)")
-        }
-    }
-
     // MARK: - Shared Data Disc Spanning Helpers
 
     func resolvedDataDiscMedium(forFormatID formatID: String) -> KroutonSpanningDiscMedium {

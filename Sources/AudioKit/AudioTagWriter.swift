@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import OpticalCore
 import os
 
 // MARK: - Tags for Ripped Tracks
@@ -107,7 +108,7 @@ public enum KroutonAudioTagWriter {
         }
         var comment = le32Field(Array("Krouton".utf8))
         let fields = tags.vorbisFields
-        comment += le32(UInt32(fields.count))
+        comment += KroutonBytes.le32(UInt32(fields.count))
         for (key, value) in fields { comment += le32Field(Array("\(key)=\(value)".utf8)) }
         blocks.insert((4, ArraySlice(comment)), at: min(1, blocks.count))
 
@@ -133,14 +134,14 @@ public enum KroutonAudioTagWriter {
         ]
         for (id, value) in fields where !value.isEmpty {
             var text = Array(value.utf8) + [0]
-            info += Array(id.utf8) + le32(UInt32(text.count))
+            info += Array(id.utf8) + KroutonBytes.le32(UInt32(text.count))
             if text.count % 2 == 1 { text.append(0) }
             info += text
         }
         var out = [UInt8](data)
         if out.count % 2 == 1 { out.append(0) }
-        out += Array("LIST".utf8) + le32(UInt32(info.count)) + info
-        let riff = le32(UInt32(out.count - 8))
+        out += Array("LIST".utf8) + KroutonBytes.le32(UInt32(info.count)) + info
+        let riff = KroutonBytes.le32(UInt32(out.count - 8))
         out.replaceSubrange(4..<8, with: riff)
         return Data(out)
     }
@@ -152,11 +153,11 @@ public enum KroutonAudioTagWriter {
         let note = [tags.album, tags.year].filter { !$0.isEmpty }.joined(separator: ", ")
         for (id, value) in [("NAME", tags.title), ("AUTH", tags.artist), ("ANNO", note)] where !value.isEmpty {
             var text = Array(value.utf8)
-            out += Array(id.utf8) + be32(UInt32(text.count))
+            out += Array(id.utf8) + KroutonBytes.be32(UInt32(text.count))
             if text.count % 2 == 1 { text.append(0) }
             out += text
         }
-        out.replaceSubrange(4..<8, with: be32(UInt32(out.count - 8)))
+        out.replaceSubrange(4..<8, with: KroutonBytes.be32(UInt32(out.count - 8)))
         return Data(out)
     }
 
@@ -201,9 +202,7 @@ public enum KroutonAudioTagWriter {
 
     // MARK: - Byte Helpers
 
-    private static func le32(_ v: UInt32) -> [UInt8] { [UInt8(v & 0xFF), UInt8(v >> 8 & 0xFF), UInt8(v >> 16 & 0xFF), UInt8(v >> 24)] }
-    private static func be32(_ v: UInt32) -> [UInt8] { [UInt8(v >> 24), UInt8(v >> 16 & 0xFF), UInt8(v >> 8 & 0xFF), UInt8(v & 0xFF)] }
-    private static func le32Field(_ bytes: [UInt8]) -> [UInt8] { le32(UInt32(bytes.count)) + bytes }
+    private static func le32Field(_ bytes: [UInt8]) -> [UInt8] { KroutonBytes.le32(UInt32(bytes.count)) + bytes }
 }
 
 /// Carries `writeBlocking`'s result out of its task.
