@@ -47,20 +47,19 @@ Related: `pure-swiftui-shell.md` (the one AppKit file), `removed-formats.md`, `P
 - **Answer by:** Collect project files saved by older builds (or rebuild them from git history) and decode them in a test. Where it fails, add `init(from:)` with `decodeIfPresent ?? default`, or make new fields optional. Then add a test that keeps an old project file decoding.
 
 ### 8. Destination cards that say one thing and do another
-*Re-examined 2026-11-26.* The enum's raw values are a smaller problem than they looked: `KroutonBurnDestinationKind.title` is already honest and is what the card shows. The real overstatements are in `speedOrCodec`, the free-text string each card carries, and in how saved queues come back.
-- **Wrong output, today:**
-  - `KroutonStateStore+DestinationQueue.swift` adds a second rip card labelled "MP3 (320 kbps CBR)" with the folder "MP3 320kbps". `KroutonRealCDExtractor.extractSingleTrack` (AudioKit/AudioSampleDecoder.swift) picks the codec by substring (FLAC, ALAC, WAV, else AIFF), so that card writes **AIFF** files into a folder named MP3. Krouton has no MP3 encoder.
-  - Switching a card to Audio Rip (`KroutonDestinationCardView+Sections.swift`) sets the folder to "Apple Lossless" but keeps the burner's "Max Safe (Auto)" as the codec, so it also writes AIFF.
-  - The first rip card's codec is "FLAC (Lossless) + AccurateRip"; the queue rip doesn't check AccurateRip (its own report says so).
-  - A video-extract card labelled "Apple HEVC 10-Bit (.mp4)" (folder "HEVC_10Bit") only ever refuses: extraction runs from the workspace.
-  - A Krouton Server card added from the queue shows "localhost:7420", but `SpoolRemoteNodeClient.burnImage` falls back to the first paired server, so the job may go to another machine than the card says.
-  - The PDF label card's default file name is "Epson_ET8550_Label_120mm.pdf".
-- **Saved queues:** they're stored twice, and fail differently when a raw value changes. The project vault (`KroutonSavedDestinationRecord.toBatchItem`) maps an unknown kind to `.physicalBurner`, so a rip card would come back as a burner. The session snapshot (`KroutonPersistedSessionSnapshot`, synthesized `Codable`) fails as a whole, and `SessionStore.load()` quietly starts fresh. See also #7.
-- **Answer by:**
-  1. Replace `speedOrCodec: String` with typed settings per kind (a rip codec enum that only lists FLAC, ALAC, WAV and AIFF; a burn speed), decoding old strings into them.
-  2. Store the server's node ID on network cards, never "localhost:7420"; show the server's name.
-  3. Rename the enum's raw values only together with a decoder that accepts the old ones, and make an unknown kind drop that card with a notice instead of becoming a burner.
-  4. A verify check that every preset card's settings are ones its executor supports.
+*Re-examined 2026-11-26; mostly fixed by PR #5 (`fix/honest-destination-cards`).*
+- **Fixed in #5:**
+  - Rip cards use a typed `KroutonRipCodec` (FLAC, ALAC, WAV, AIFF), shown and chosen on the card. The "MP3" card that wrote AIFF is gone, and so is the AIFF-into-"Apple Lossless" switch.
+  - Rip Audio CD and Extract Video Disc no longer offer a disc-image card: it imaged the burn deck, not the disc, while claiming ".BIN + .CUE" and "Decrypted". A saved one refuses and points to Duplicate Disc. There's no HEVC extract card any more.
+  - Label cards save into their own folder (Downloads for new cards); Vector PDF Label writes only the PDF.
+  - An unknown kind in a saved project is dropped instead of becoming a disc burner. Cards saved earlier are repaired on restore (`repairingLegacyPresets`).
+  - "localhost:7420" is gone; an empty server means the first paired server. *Correction:* the card's picker already showed that server, so card and burn agreed. Only the placeholder text was wrong.
+- **Still open:**
+  1. Saving an audio CD in the drive as .bin/.cue (raw 2,352-byte reads). Krouton can't yet, so no card offers it.
+  2. Letting a queue disc-image card in Copy run the same sector copy as Duplicate Disc (`store.rescue`), instead of refusing.
+  3. Choosing the folder on rip and label cards; today it's shown, not editable.
+  4. Renaming `KroutonBurnDestinationKind`'s raw values (for example "Video Transcode (H.265 / HEVC)"). They're storage keys, never shown. A rename needs decoding that accepts the old values, and older builds couldn't read new sessions. Do it with #7, or not at all.
+  5. `speedOrCodec` is still one free-text field for every kind; typed settings per kind would end this class of bug. That needs tolerant decoding (#7).
 
 ### 9. Unused-code report triage (248 findings)
 *Re-examined 2026-11-26* from the CI log of main at 0c569bc: 70 unused, 120 assigned but never read, 56 needlessly public, 2 redundant protocols or conformances.
