@@ -4,6 +4,8 @@ import CryptoKit
 import Foundation
 import SwiftUI
 
+// MARK: - Staged files
+
 public struct KroutonStagedFileEntry: Identifiable, Hashable, Sendable {
     public let id: UUID
     public let url: URL
@@ -64,6 +66,8 @@ public struct KroutonStagedFileEntry: Identifiable, Hashable, Sendable {
         return l.hasSuffix(".bin") || l.hasSuffix(".iso") || l.hasSuffix(".cue")
     }
 }
+
+// MARK: - Burn telemetry
 
 public struct KroutonBurnTelemetrySample: Identifiable, Hashable, Sendable {
     public let id: UUID
@@ -226,6 +230,8 @@ public struct KroutonDrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable 
         averageSpeedX = sumX / Double(max(1, samples.count))
     }
 }
+
+// MARK: - Burn reports
 
 public struct KroutonBurnSessionReport: Identifiable, Hashable, Sendable {
     public let id: UUID
