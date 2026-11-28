@@ -16,6 +16,7 @@ Index checked 2026-11-28.
 | [`icloud.md`](icloud.md) | What syncs through iCloud and what stays on each Mac, the developer-account setup, signing, and a test checklist. | work on settings sync, projects in iCloud Drive, or signing. | Current, 2026-11-28 |
 | [`live-updates-iphone-watch-mac.md`](live-updates-iphone-watch-mac.md) | The plan for burn progress outside the window: Mac Live Activities, iPhone and Apple Watch. | work on the widget extension or Live Activities. | Plan, parked; updated 2026-11-28 |
 | [`removed-formats.md`](removed-formats.md) | Formats taken out of Krouton (CD+G, SACD-R, PS3) and what bringing one back would take. | want to add a disc format. | Current, 2026-11-26 |
+| [`demo.md`](demo.md) | Showing Krouton with no burner or discs: a simulated Krouton Server, sample files, pairing and reset. | give a demo or test burns without hardware. | Current, 2026-11-28 |
 | [`agents.md`](agents.md) | How a lead session runs AI subagents in their own git worktrees, and how their work comes back as draft PRs. | use AI coding agents on this repository. | Current, 2026-11-28 |
 
 ## Archive
