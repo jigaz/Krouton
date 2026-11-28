@@ -4,6 +4,7 @@ import OpticalCore
 
 // MARK: - HFS Image Writer (Mac OS 9 and Earlier)
 
+/// Why an HFS image couldn't be written. The descriptions are for the user.
 public enum KroutonHFSError: Error, LocalizedError, Equatable, Sendable {
     case tooLarge
     case catalogTooLarge
@@ -54,14 +55,20 @@ public enum KroutonHFSImageWriter {
         var resourceStart: UInt64 = 0
     }
 
+    /// What `build` wrote.
     public struct Built: Sendable, Equatable {
+        /// The image's size in bytes.
         public let bytes: UInt64
+        /// Files written.
         public let files: Int
+        /// Folders written, counting the root.
         public let folders: Int
     }
 
     // MARK: - Build
 
+    /// Writes `folder` as an HFS volume named `label` inside an Apple Partition Map at `output`.
+    /// `now` and `timeZone` set the volume's dates, so tests are repeatable.
     @discardableResult
     public static func build(folder: URL, output: URL, label: String,
                              now: Date = Date(), timeZone: TimeZone = .current) throws -> Built {

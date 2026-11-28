@@ -2,40 +2,63 @@ import CryptoKit
 import Foundation
 import OpticalCore
 
-// MARK: - HybridImagePlanner
+// MARK: - Hybrid Image Planner (size preview)
 
+/// One entry's place in a planned hybrid layout.
 public struct KroutonHybridExtent: Sendable, Equatable, Identifiable {
     public let id: UUID
     let originalName: String
+    /// The entry's ISO 9660 name.
     public let iso9660Name: String
     let jolietName: String
+    /// The first sector of its data in the plan.
     public let startLBA: Int64
+    /// Its data's length in sectors.
     public let sectorCountLBA: Int64
+    /// Its size in bytes.
     public let byteSize: Int64
+    /// Shown in the Mac (HFS+) tree.
     public let visibleInMacTree: Bool
+    /// Shown in the ISO 9660, Joliet and UDF trees.
     public let visibleInPCTree: Bool
+    /// True for a file over 4 GiB, which ISO 9660 can't hold in one extent.
     public let requiresUDFMultiExtent: Bool
 }
 
+/// A planned hybrid layout, for previews (see `planHybridDataLayout`).
 public struct KroutonHybridLayoutPlan: Sendable, Equatable {
+    /// The cleaned ISO 9660 volume identifier.
     public let volumeIdentifier: String
-    public let pvdSectorLBA: Int64              // Always LBA 16
-    public let elToritoBootRecordLBA: Int64?    // LBA 17 when bootable
-    public let jolietSVDSectorLBA: Int64        // LBA 17 or 18
-    public let udfAnchorAVDPLBA: Int64          // Always LBA 256 per ECMA-167
-    public let dataPayloadStartLBA: Int64       // Starts at LBA 288 after descriptors & path tables
+    /// The primary volume descriptor's sector: always 16.
+    public let pvdSectorLBA: Int64
+    /// The El Torito boot record's sector (17) when bootable.
+    public let elToritoBootRecordLBA: Int64?
+    /// The Joliet supplementary volume descriptor's sector: 17, or 18 after a boot record.
+    public let jolietSVDSectorLBA: Int64
+    /// The UDF anchor volume descriptor pointer's sector: always 256 (ECMA-167).
+    public let udfAnchorAVDPLBA: Int64
+    /// Where file data starts in the plan: sector 288.
+    public let dataPayloadStartLBA: Int64
+    /// The planned image size in sectors.
     public let totalSectorsLBA: Int64
+    /// The planned image size in bytes.
     public let totalBytes: Int64
+    /// Every planned entry, in order.
     public let sharedHybridExtents: [KroutonHybridExtent]
+    /// Names and sizes that won't fit some file system, for the user.
     public let warnings: [String]
 }
 
+/// Plans hybrid layouts for size previews and cleans names for ISO 9660.
 public struct KroutonHybridImagePlanner {
+    /// The module version krouton-verify checks.
     public static let version = "0.1.0-alpha.1"
+    /// The data sector size.
     public static let sectorSize: Int64 = 2048
     static let iso9660FourGiBLimit: Int64 = 4_294_967_295
 
-    /// Normalizes a volume label to strict 32-char ECMA-119 d-characters (A-Z, 0-9, _)
+    /// The label as an ISO 9660 (ECMA-119) volume identifier: upper case, A–Z, 0–9 and "_",
+    /// at most 32 characters.
     public static func sanitizeVolumeIdentifier(_ raw: String) -> String {
         let upper = raw.uppercased()
         let filtered = upper.map { ch -> Character in
@@ -49,7 +72,8 @@ public struct KroutonHybridImagePlanner {
         return String(fallback.prefix(32))
     }
 
-    /// Generates a strict ISO-9660 Level 2 (31-char + ;1 version) identifier
+    /// The name as an ISO 9660 Level 2 identifier: upper case d-characters, at most 31
+    /// characters, with ";1" after a file name.
     public static func sanitizeISO9660FileIdentifier(_ filename: String, isDirectory: Bool = false) -> String {
         let upper = filename.uppercased()
         let parts = upper.split(separator: ".", omittingEmptySubsequences: false)
@@ -76,7 +100,10 @@ public struct KroutonHybridImagePlanner {
         }
     }
 
-    /// Plans a deduplicated Hybrid Mac (HFS+/UDF) + PC (ISO-9660/Joliet) + El Torito LBA sector layout
+    /// A size preview of a hybrid disc: each visible entry gets one shared extent after the
+    /// descriptors, with its ISO 9660 and Joliet names and warnings for names and sizes that
+    /// won't fit. Images are built by `hdiutil makehybrid`, whose layout differs; use this only
+    /// to estimate size.
     public static func planHybridDataLayout(
         volumeLabel: String,
         entries: [KroutonStagedFileEntry],
@@ -125,7 +152,7 @@ public struct KroutonHybridImagePlanner {
             cursorLBA += sectors
         }
 
-        // Reserve 16 sectors at end of session for secondary UDF AVDP + Lead-Out pad
+        // 16 sectors at the end for the second UDF anchor and padding.
         let totalSectors = cursorLBA + 16
         return KroutonHybridLayoutPlan(
             volumeIdentifier: cleanVol,
@@ -140,6 +167,4 @@ public struct KroutonHybridImagePlanner {
             warnings: warnings
         )
     }
-
-    /// El Torito Boot Record Volume Descriptor sits at LBA 17 and points to the Boot Catalog sector (LBA 18).
 }

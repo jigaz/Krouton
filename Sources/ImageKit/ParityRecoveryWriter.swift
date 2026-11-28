@@ -2,6 +2,7 @@ import Foundation
 
 // MARK: - PAR2 Recovery Files
 
+/// Why recovery files couldn't be written. The descriptions are for the user.
 public enum KroutonParityError: Error, LocalizedError, Sendable, Equatable {
     case par2Missing
     case failed(Int32)
@@ -23,6 +24,7 @@ public enum KroutonParityError: Error, LocalizedError, Sendable, Equatable {
 /// the folder recursively and `-B` makes the stored names relative to it, so the set still
 /// matches when the disc mounts elsewhere. `-n1` keeps one recovery file beside the index.
 public enum KroutonParityWriter {
+    /// The first par2 found in Homebrew's or the system's bin folders, or nil.
     public static func locatePar2() -> URL? {
         for candidate in ["/opt/homebrew/bin/par2", "/usr/local/bin/par2", "/usr/bin/par2"]
         where FileManager.default.isExecutableFile(atPath: candidate) {
@@ -31,6 +33,7 @@ public enum KroutonParityWriter {
         return nil
     }
 
+    /// The par2 arguments for `percent` % redundancy over `folder`.
     public static func arguments(folder: URL, percent: Int) -> [String] {
         ["create", "-q", "-q", "-R", "-r\(percent)", "-n1", "-B", folder.path,
          folder.appendingPathComponent("KROUTON_RECOVERY.par2").path, folder.path]
