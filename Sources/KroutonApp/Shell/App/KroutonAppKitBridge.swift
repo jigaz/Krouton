@@ -35,6 +35,8 @@ enum KroutonAppKitBridge {
 
 // MARK: - KroutonAppDelegate
 
+/// The app delegate: sets the Dock icon and its burn badge, keeps the Mac awake during a burn
+/// (`KroutonPowerAndBurnAssertion`), and refuses to quit while the queue is running.
 @MainActor
 final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
     private var appearanceObserver: NSKeyValueObservation?
@@ -79,7 +81,8 @@ final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
     func applyDynamicDockIcon(for store: KroutonStateStore) {
         let styleRaw = store.iconWidgetStyle.rawValue.lowercased()
 
-        // When set to Default/System, let macOS natively switch Default/Dark/Tinted/Clear via Assets.car!
+        // With the default style, the app icon's own Default, Dark, Tinted and Clear variants
+        // (Assets.car) are used, and macOS picks between them.
         if styleRaw == "default" || styleRaw == "system" || styleRaw == "auto" {
             NSApplication.shared.applicationIconImage = nil
             NSApplication.shared.dockTile.display()
@@ -174,7 +177,7 @@ final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
         let dm = KroutonWindowManager.shared.driveManager
         if dm.isExecutingQueue {
             let store = KroutonWindowManager.shared.store
-            store.rejectedDropNotice = KroutonL10n.tr("Active optical operation in progress — abort the job in the Destination Queue before quitting so media is not damaged.")
+            store.rejectedDropNotice = KroutonL10n.tr("Krouton is still running the destination queue. Abort it first (Disc › Abort Active Operation), then quit: a burn stopped halfway can ruin the disc.")
             KroutonOSDesktopBridge.playAcousticCue()
             KroutonWindowManager.shared.openMainWindow()
             NSApplication.shared.activate(ignoringOtherApps: true)

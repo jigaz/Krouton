@@ -3,7 +3,7 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Settings Window: Format Chooser Table Pane
+// MARK: - Settings › Format Chooser
 
 extension KroutonSettingsWindowView {
     var filteredAndSortedFormats: [KroutonOpticalWorkflowSpec] {

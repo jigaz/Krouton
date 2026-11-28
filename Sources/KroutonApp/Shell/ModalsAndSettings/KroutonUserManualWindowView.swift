@@ -2,8 +2,10 @@ import DriveKit
 import Foundation
 import SwiftUI
 
-// MARK: - User Manual Window (chapters from Resources/Manual, see KroutonUserManual.swift)
+// MARK: - User Manual Window
 
+/// The user manual window: the chapters from `Resources/Manual` (see `KroutonUserManual`),
+/// a search field, and the guided tours.
 struct KroutonUserManualWindowView: View {
     var store: KroutonStateStore
     var driveManager: KroutonOpticalDriveBank

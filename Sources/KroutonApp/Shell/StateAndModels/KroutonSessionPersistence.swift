@@ -6,8 +6,10 @@ import OpticalCore
 import Persistence
 import SwiftUI
 
-// MARK: - KroutonSessionPersistence
+// MARK: - Saved Session and Crash Recovery
 
+/// What Krouton saves of the open workspace so it can reopen it at launch or after a crash:
+/// the task, the disc's text, the staged files, the Audio CD project and the destination queue.
 struct KroutonPersistedSessionSnapshot: Codable, Sendable, Equatable {
     var selectedCategoryRaw: String
     var selectedTaskID: String
@@ -45,6 +47,9 @@ struct KroutonPersistedSessionSnapshot: Codable, Sendable, Equatable {
     }
 }
 
+/// Saves the session as you work (`saveCurrentState`), holds a run lock so the next launch can
+/// tell a crash from a normal quit, and offers to restore after a crash. It also reads the
+/// burn journal, so a burn that a crash cut short is reported instead of forgotten.
 @Observable
 @MainActor
 final class KroutonCrashRecoveryController {
@@ -296,10 +301,10 @@ struct KroutonCrashRecoveryBannerView: View {
                         .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(.orange)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(KroutonL10n.tr("Unexpected Shutdown Detected"))
+                        Text(KroutonL10n.tr("Krouton Didn't Quit Normally"))
                             .font(.system(size: 12, weight: .bold))
                         Text(recovery.crashReasonText.isEmpty
-                             ? KroutonL10n.tr("Would you like to restore your previous session or start with an empty workspace?")
+                             ? KroutonL10n.tr("Restore what was open last time, or start with an empty workspace?")
                              : recovery.crashReasonText)
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
@@ -334,7 +339,7 @@ struct KroutonCrashRecoveryBannerView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "folder.badge.questionmark")
                         .foregroundStyle(.yellow)
-                    Text("Missing staged file(s) from saved session: \(recovery.missingStagedFilePaths.map { URL(fileURLWithPath: $0).lastPathComponent }.joined(separator: ", "))")
+                    Text("Files from the last session that are no longer there: \(recovery.missingStagedFilePaths.map { URL(fileURLWithPath: $0).lastPathComponent }.joined(separator: ", "))")
                         .font(.system(size: 11, weight: .medium))
                     Spacer()
                     Button(KroutonL10n.tr("Dismiss")) {
@@ -352,10 +357,10 @@ struct KroutonCrashRecoveryBannerView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "opticaldisc.fill")
                         .foregroundStyle(.red)
-                    Text("Interrupted burn detected on \(unfinished.deviceName) for '\(unfinished.projectTitle)' (phase: \(unfinished.phase.rawValue)) — that disc is likely unusable.")
+                    Text("A burn of '\(unfinished.projectTitle)' on \(unfinished.deviceName) was cut short, so that disc is probably unusable.")
                         .font(.system(size: 11, weight: .semibold))
                     Spacer()
-                    Button(KroutonL10n.tr("Acknowledge")) {
+                    Button(KroutonL10n.tr("Dismiss")) {
                         recovery.acknowledgeInterruptedBurns()
                     }
                     .buttonStyle(.bordered)
