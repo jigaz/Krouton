@@ -168,14 +168,13 @@ struct KroutonWorkspaceCommands: Commands {
     var discMenuCommands: some Commands {
         CommandMenu(KroutonL10n.tr("Disc")) {
             Button(KroutonL10n.tr("Run Destination Queue")) {
-                let primaryDrive = wm.driveManager.availableDrives.first
-                for item in wm.store.destinationQueue {
-                    wm.store.executeSingleDestination(
-                        item,
-                        driveManager: wm.driveManager,
-                        primarySelectedDrive: primaryDrive
-                    )
-                }
+                // The same run as the BURN button: one card after another, and Abort ends it all.
+                // The drive matches the main window's: the first burner card's, else the selected one.
+                let dm = wm.driveManager
+                let firstBurner = wm.store.destinationQueue.first(where: { $0.kind == .physicalBurner })
+                let primaryDrive = firstBurner.flatMap { dm.driveForID($0.targetDriveID) }
+                    ?? dm.selectedDrive ?? dm.availableDrives.first
+                wm.store.executeDestinationQueue(driveManager: dm, primarySelectedDrive: primaryDrive)
             }
             .keyboardShortcut("b", modifiers: .command)
             .disabled(wm.driveManager.isExecutingQueue || wm.store.destinationQueue.isEmpty)
