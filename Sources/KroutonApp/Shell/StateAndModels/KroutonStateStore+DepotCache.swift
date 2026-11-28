@@ -20,7 +20,13 @@ extension KroutonStateStore {
                    let remoteName = isoEntry["name"] as? String,
                    let encodedName = remoteName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
                    let dlURL = URL(string: "https://archive.org/download/\(identifier)/\(encodedName)") {
-                    let (tempFileURL, _) = try await URLSession.shared.download(from: dlURL)
+                    let (tempFileURL, response) = try await URLSession.shared.download(from: dlURL)
+                    // An error page (a restricted or removed item) must not be cached as the disc image:
+                    // the next attempt would stage it without downloading again.
+                    guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+                        try? FileManager.default.removeItem(at: tempFileURL)
+                        throw URLError(.badServerResponse)
+                    }
                     if FileManager.default.fileExists(atPath: destinationURL.path) {
                         try? FileManager.default.removeItem(at: destinationURL)
                     }
