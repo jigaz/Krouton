@@ -171,6 +171,8 @@ extension KroutonTestHarness {
                && forwardingSrc.contains("WritableKeyPath<DepotCatalogue, T>")
                && forwardingSrc.contains("WritableKeyPath<RipSettings, T>"),
                "KroutonStateStore+SubStoreForwarding.swift must route all 4 sub-stores via @dynamicMemberLookup key-path subscripts")
+
+        Self.checkSavedDestinationKinds(&h)
     }
 
     private mutating func runVerifyMultiDiscSpanningSuitePart() {

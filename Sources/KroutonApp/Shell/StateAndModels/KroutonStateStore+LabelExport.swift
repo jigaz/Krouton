@@ -34,9 +34,9 @@ extension KroutonStateStore {
     enum LabelExportKind { case png, pdf }
 
     /// Renders the label at the print resolution with the print settings (ink, bleed) and saves
-    /// it to Downloads. Returns the status line to show.
+    /// it to `folder`, or Downloads. Returns the status line to show.
     @MainActor
-    func exportDiscLabel(_ kind: LabelExportKind) -> String {
+    func exportDiscLabel(_ kind: LabelExportKind, to folder: URL? = nil) -> String {
         let preset = activeLabelGeometry
         let print = self.labelPrint
         let dpi = Double(max(150, min(1_200, print.dotsPerInch)))
@@ -85,11 +85,13 @@ extension KroutonStateStore {
             dpi: dpi,
             bleedOuterMM: print.bleedOuterMM,
             bleedInnerMM: print.bleedInnerMM,
-            cropMarks: print.cropMarks)
+            cropMarks: print.cropMarks,
+            outputDirectory: folder)
+        let folderName = folder?.lastPathComponent ?? "Downloads"
         if let url = files.pdfURL ?? files.pngURL {
-            return "Saved \(url.lastPathComponent) to Downloads"
+            return "Saved \(url.lastPathComponent) to \(folderName)"
         }
-        return "Krouton couldn't save the label to Downloads."
+        return "Krouton couldn't save the label to \(folderName)."
     }
 
     /// Saves the alignment test sheet (rings 1 mm apart and a crosshair) to Downloads.
@@ -109,9 +111,12 @@ extension KroutonStateStore {
         }
     }
 
+    /// A label destination card: Label Print Sheet saves a PNG and a PDF, Vector PDF Label only
+    /// the PDF, into the card's folder.
     @MainActor
-    func executeLabelDestinationExport() {
-        _ = exportDiscLabel(.png)
-        self.labelWorkspaceSubStore.transientStatusBanner = exportDiscLabel(.pdf)
+    func executeLabelDestinationExport(_ card: KroutonBakeBatchItem) {
+        let folder = card.labelExportFolderURL
+        if card.kind == .discPrinter { _ = exportDiscLabel(.png, to: folder) }
+        self.labelWorkspaceSubStore.transientStatusBanner = exportDiscLabel(.pdf, to: folder)
     }
 }

@@ -67,17 +67,12 @@ extension KroutonDestinationCardView {
                                     qItem.hardwareOrPath = imgTarget.path
                                     qItem.speedOrCodec = imgTarget.description
                                 case .audioRip:
+                                    qItem.becomeAudioRip()
+                                case .videoExtract, .discPrinter, .pdfVector:
+                                    let preset = kind == .videoExtract ? KroutonBakeBatchItem.videoExtract() : KroutonBakeBatchItem.label(kind)
                                     qItem.targetDriveID = ""
-                                    qItem.hardwareOrPath = "~/Music/Krouton Rips/Apple Lossless"
-                                case .videoExtract:
-                                    qItem.targetDriveID = ""
-                                    qItem.hardwareOrPath = "~/Movies/Krouton Extracts"
-                                case .discPrinter:
-                                    qItem.targetDriveID = ""
-                                    qItem.hardwareOrPath = "~/Desktop/\(store.discVolumeTitle)_Label Sheet.pdf"
-                                case .pdfVector:
-                                    qItem.targetDriveID = ""
-                                    qItem.hardwareOrPath = "~/Desktop/\(store.discVolumeTitle)_Label.pdf"
+                                    qItem.hardwareOrPath = preset.hardwareOrPath
+                                    qItem.speedOrCodec = preset.speedOrCodec
                                 }
                             }
                             store.reconcileUniqueDriveAssignments(driveManager: driveManager)

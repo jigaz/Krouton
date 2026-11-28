@@ -146,14 +146,18 @@ extension KroutonLabelGeometryEngine {
         dpi: Double = 300,
         bleedOuterMM: Double = 0,
         bleedInnerMM: Double = 0,
-        cropMarks: Bool = true
+        cropMarks: Bool = true,
+        outputDirectory: URL? = nil
     ) -> (pngURL: URL?, pdfURL: URL?) {
         let safeStem = discTitle
             .replacingOccurrences(of: "[^A-Za-z0-9_-]", with: "_", options: .regularExpression)
             .trimmingCharacters(in: CharacterSet(charactersIn: "_"))
         let baseName = safeStem.isEmpty ? "Krouton_Disc_Label" : safeStem
-        let outDir = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
+        // Downloads unless the caller names a folder (a label destination card does).
+        let outDir = outputDirectory
+            ?? FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
+        try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
 
         var writtenPNG: URL? = nil
         var writtenPDF: URL? = nil

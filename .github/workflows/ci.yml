@@ -42,6 +42,23 @@ jobs:
           path: ${{ runner.temp }}/hfs/classic.cdr
           if-no-files-found: ignore
 
+  string-catalog-format-keys:
+    # SwiftUI looks up Text("STEP \(n) OF \(count)") under "STEP %lld OF %lld", with a specifier
+    # chosen by each value's type. extract-strings.py guesses the types; swiftc knows them. Build
+    # the app with -emit-localized-strings (what Xcode does for its catalogs) and fail if the
+    # compiler looks up a format key the catalog doesn't have.
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the app and write the keys it looks up
+        run: |
+          swift build --product Krouton \
+            -Xswiftc -emit-localized-strings \
+            -Xswiftc -emit-localized-strings-path -Xswiftc "$RUNNER_TEMP/loc-strings"
+          find "$RUNNER_TEMP/loc-strings" -name '*.stringsdata' | wc -l
+      - name: The catalog has every format key swiftc looks up
+        run: python3 Scripts/extract-strings.py --check --compiler-strings "$RUNNER_TEMP/loc-strings"
+
   avchd-real-encode:
     # The AVCHD pipeline end to end: ffmpeg makes two test clips (30 and 25 fps, stereo and 5.1),
     # krouton-verify Suite 36 converts, authors and images them, then libbluray (what VLC, Kodi
