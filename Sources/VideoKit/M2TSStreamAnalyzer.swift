@@ -6,6 +6,7 @@ import Foundation
 /// video and audio, the first and last presentation times, and an entry point for every
 /// key frame (where a player may start or seek to).
 public struct KroutonM2TSAnalysis: Sendable, Equatable {
+    /// A key frame: its time and the source packet it starts in.
     public struct EntryPoint: Sendable, Equatable {
         /// 90 kHz presentation time stamp of the key frame.
         public let pts: UInt64
@@ -18,18 +19,27 @@ public struct KroutonM2TSAnalysis: Sendable, Equatable {
         }
     }
 
+    /// The PID of the program map table.
     public var programMapPID: UInt16 = 0x0100
+    /// The PID that carries the program clock.
     public var pcrPID: UInt16 = 0
+    /// The video stream's PID.
     public var videoPID: UInt16 = 0
+    /// The video stream type from the PMT (0x1B for H.264).
     public var videoCoding: UInt8 = 0
+    /// The first audio stream's PID, when there is one.
     public var audioPID: UInt16?
+    /// The audio stream type from the PMT (0x81 for AC-3).
     public var audioCoding: UInt8 = 0
     /// Blu-ray audio presentation type: 1 mono, 3 stereo, 6 multi-channel.
     public var audioPresentation: UInt8 = 3
+    /// How many 192-byte packets the file has.
     public var sourcePackets: UInt32 = 0
     /// 90 kHz, of the earliest and (end of the) latest video frame.
     public var firstPTS: UInt64 = 0
+    /// See `firstPTS`.
     public var endPTS: UInt64 = 0
+    /// One per key frame, in order.
     public var entryPoints: [EntryPoint] = []
 
     public init() {}
@@ -52,6 +62,7 @@ enum KroutonM2TSError: Error, LocalizedError, Sendable, Equatable {
 
 /// Reads an `.m2ts` file once, front to back, in 1 MiB pieces.
 public struct KroutonM2TSAnalyzer: Sendable {
+    /// A Blu-ray source packet: a 4-byte arrival time stamp and a 188-byte transport packet.
     public static let packetSize = 192
 
     private var result = KroutonM2TSAnalysis()
@@ -89,6 +100,8 @@ public struct KroutonM2TSAnalyzer: Sendable {
         }
     }
 
+    /// The analysis, once every byte was fed in. Throws when the file isn't 192-byte packets or no
+    /// H.264 key frame was found.
     public func finish(name: String = "The stream") throws -> KroutonM2TSAnalysis {
         guard result.videoPID != 0, minPTS != .max, !result.entryPoints.isEmpty else {
             throw KroutonM2TSError.noVideo(name)
