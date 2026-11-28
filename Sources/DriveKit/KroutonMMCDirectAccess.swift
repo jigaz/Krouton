@@ -6,8 +6,8 @@ import OpticalCore
 // MARK: - Direct Drive Access (prototype, read-only)
 
 /// Talks MMC straight to a CD/DVD/BD burner through IOKit's authoring-device interface
-/// (`SCSITaskLib`), without DiscRecording. This is the path Krouton keeps if Apple retires its
-/// burning frameworks: the same kernel family serves every USB and SCSI storage device.
+/// (`SCSITaskLib`), without DiscRecording, so Krouton can still reach its drives if Apple retires
+/// its burning frameworks.
 ///
 /// The prototype only reads (INQUIRY, GET CONFIGURATION, READ DISC INFORMATION). Commands are
 /// built and parsed by OpticalCore's `MMCCommand` family, so the burning sequence can be added and
@@ -15,9 +15,13 @@ import OpticalCore
 public enum KroutonMMCDirectAccess {
     /// A burner the system lists as an authoring device.
     public struct Drive: Sendable, Equatable, Identifiable {
+        /// The drive's IORegistry entry ID; pass it to `KroutonMMCDeviceSession`.
         public let id: UInt64
+        /// The vendor name the kernel read.
         public let vendor: String
+        /// The product name the kernel read.
         public let product: String
+        /// The firmware revision the kernel read.
         public let revision: String
     }
 
@@ -88,6 +92,8 @@ public actor KroutonMMCDeviceSession: MMCTransport {
         UnsafeMutablePointer(bitPattern: deviceAddress)
     }
 
+    /// Opens the drive with exclusive access. Throws `.unavailable` when it is gone, has no MMC
+    /// interface, or another app or a mounted disc holds it.
     public init(registryID: UInt64) throws(MMCTransportError) {
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IORegistryEntryIDMatching(registryID))
         guard service != 0 else { throw .unavailable("The drive is no longer connected") }
@@ -117,6 +123,7 @@ public actor KroutonMMCDeviceSession: MMCTransport {
         exclusive = true
     }
 
+    /// Sends one command as its own SCSI task and returns the data the drive sent back.
     public func execute(_ command: MMCCommand) async throws(MMCTransportError) -> [UInt8] {
         guard let device, let task = device.pointee?.pointee.CreateSCSITask?(device) else {
             throw .unavailable("The drive session is closed")

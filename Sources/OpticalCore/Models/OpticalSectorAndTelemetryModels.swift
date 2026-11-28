@@ -19,7 +19,7 @@ public struct KroutonStagedFileEntry: Identifiable, Hashable, Sendable {
     public let byteSize: Int64
     /// Items inside a folder; 1 for a file.
     public let itemCount: Int
-    /// The permissions as text, such as "rw-r--r--", for display.
+    /// The permissions in octal, such as "0644", for display.
     public let posixPermissions: String
     /// When the source was last modified.
     public let modifiedDate: Date

@@ -11,21 +11,31 @@ import OpticalCore
 import SwiftUI
 import os
 
+/// The drives of this Mac and everything that runs on them: it polls DiscRecording for drives every
+/// 2 seconds, runs one burn, erase, rip or copy at a time, and publishes progress and telemetry for
+/// the UI. Only `KroutonBurnCoordinator` (BurnKit) starts a burn.
 @Observable
 @MainActor
 public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriveTelemetryStore {
     public var mediaKind: OpticalMediaKind {
         OpticalMediaKind(mediaDescription: availableDrives.first?.mediaType ?? "DVD-R")
     }
+    /// The drives found by the last poll.
     public var availableDrives: [KroutonOpticalDriveInfo] = []
+    /// The drive the user picked, if any.
     public var selectedDrive: KroutonOpticalDriveInfo?
+    /// The latest status line for the drive panel.
     public var hardwareStatusLog: String = "Scanning IOKit / DiscRecording bus..."
 
-        public var isExecutingQueue: Bool = false
+    /// True while a job runs; polling pauses meanwhile.
+    public var isExecutingQueue: Bool = false
+    /// What the running job is doing, for display.
     public var activeJobPhase: String = "Idle"
     public var activeJobProgress: Double = 0.0
     public var activeJobDetail: String = ""
+    /// Live burn graph state per drive ID.
     public var driveTelemetry: [String: KroutonDrivePhaseScopeTelemetry] = [:]
+    /// Multi-copy run state per drive ID.
     public var batchStates: [String: KroutonBatchBurnState] = [:]
     var batchCountdownTimers: [String: Timer] = [:]
     var perDriveTimers: [String: Timer] = [:]
@@ -43,6 +53,7 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
     public var writeStrategyText: String = "P-CAV / CLV"
     var activeTrackNumber: Int = 1
     public var elapsedSeconds: Int = 0
+    /// The report of the last job that finished.
     public var completionReport: KroutonBurnSessionReport? = nil
 
     var pollTimer: Timer?
@@ -89,6 +100,8 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
         return stripped.isEmpty ? "Optical Media" : stripped
     }
 
+    /// Book, dye, laser and block-size text for display, guessed from the media type alone. Nothing
+    /// here is read from the disc.
     static func deduceMediaPhysics(mediaType: String, isErasable: Bool) -> (book: String, dye: String, laser: String, block: String) {
         if mediaType.contains("BD") {
             let book = isErasable ? "Blu-ray System Description BD-RE Part 1" : "Blu-ray System Description BD-R Part 1"
@@ -105,6 +118,7 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
         }
     }
 
+    /// Asks DiscRecording for the drives and their discs, and updates `availableDrives`.
     public func refreshDrives() {
         var found: [KroutonOpticalDriveInfo] = []
 
@@ -333,7 +347,10 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
         )
     }
 
-    // MARK: - Hands-Free Multi-Copy Batch Duplication & 5s Auto-Load Station
+    // MARK: - Multi-Copy Runs
+
+    /// After copy `completedCopy` of `totalCopies`, watches the drive for the disc to be ejected
+    /// and a blank inserted, counts down, then calls `onFireNextCopy`.
     public func startBatchAutoLoadMonitor(
         for driveID: String,
         completedCopy: Int,
@@ -410,12 +427,13 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
                     st.countdownSecondsRemaining = startSec
                     st.statusMessage = "Blank Disc Locked — Auto-Starting Copy #\(nextCopy)/\(totalCopies) in \(startSec)s..."
                     self.batchStates[key] = st
-                    /* Acoustic cue handled by KroutonApp UI layer */
                 }
             }
         }
     }
 
+    /// Starts the next-copy countdown now, as if a blank had been inserted. Despite the name, the
+    /// burner card's start button uses it.
     public func triggerImmediateBatchCountdownForTesting(
         driveID: String,
         countdownSeconds: Int = 5,
@@ -465,6 +483,7 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
         }
     }
 
+    /// Stops a multi-copy run on a drive.
     public func cancelBatchDuplication(for driveID: String) {
         let resolved = driveForID(driveID)
         let key = resolved?.id ?? driveID
@@ -473,5 +492,4 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
         batchStates.removeValue(forKey: key)
         hardwareStatusLog = "[Duplication Station] Cancelled multi-copy batch on \(resolved?.displayName ?? driveID)."
     }
-
 }

@@ -8,12 +8,21 @@ import IOKit.storage
 import OpticalCore
 import SwiftUI
 
-// MARK: - KroutonOpticalDriveBank .BIN/.CUE <-> .ISO Sector Converter & Staging Inspectors
+// MARK: - .bin/.cue and .iso Conversion, and Staged File Inspection
 // (The physical burn lifecycle lives in KroutonOpticalDriveBank+BurnSession.swift.)
 
 @MainActor
 extension KroutonOpticalDriveBank {
-    // MARK: - UltraISO / PowerISO .BIN/.CUE (2,352 B/sector) <-> .ISO (2,048 B/sector) Sector Converter
+    // MARK: - Sector Converter
+
+    /// Converts a raw .bin (or the .bin beside a .cue) to an .iso by keeping each sector's 2,048
+    /// bytes of user data, or an .iso to a Mode 1 .bin/.cue. Writes next to the source and
+    /// reports the result as a burn report.
+    ///
+    /// Limits today: a .bin whose size isn't a whole number of 2,352-byte sectors is copied
+    /// unchanged; every sector is treated as data (Mode 1 or Mode 2 Form 1), so audio tracks
+    /// come out as noise; and an .iso becomes a .bin with zeros where each sector's EDC and ECC
+    /// belong, which drives and emulators that check them will reject.
     public func convertBinAndIsoSectorImage(sourceURL: URL) async -> (outputURL: URL?, report: KroutonBurnSessionReport) {
         let lower = sourceURL.lastPathComponent.lowercased()
         let baseName = sourceURL.deletingPathExtension().lastPathComponent
@@ -74,7 +83,6 @@ extension KroutonOpticalDriveBank {
                 activeJobProgress = 1.0
                 activeJobPhase = "Converted .BIN to .ISO Successfully"
                 isExecutingQueue = false
-                /* Acoustic cue handled by KroutonApp UI layer */
                 let secs = max(1, Int(Date().timeIntervalSince(startTime)))
                 let rep = KroutonBurnSessionReport(
                     isSuccess: true,
@@ -115,7 +123,8 @@ extension KroutonOpticalDriveBank {
                 defer { try? outHandle.close() }
 
                 let syncPattern: [UInt8] = [0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00]
-                let zeroTrailer = Data(count: 288) // 4B EDC + 8B Zero + 276B RSPC ECC
+                // EDC (4 bytes), 8 zero bytes and ECC (276 bytes) are left as zeros, not computed.
+                let zeroTrailer = Data(count: 288)
                 func toBCD(_ value: Int) -> UInt8 { UInt8(((value / 10) << 4) | (value % 10)) }
 
                 var sectorIndex = 0
@@ -153,7 +162,6 @@ extension KroutonOpticalDriveBank {
                 activeJobProgress = 1.0
                 activeJobPhase = "Generated .BIN + .CUE Pair Successfully"
                 isExecutingQueue = false
-                /* Acoustic cue handled by KroutonApp UI layer */
                 let secs = max(1, Int(Date().timeIntervalSince(startTime)))
                 let rep = KroutonBurnSessionReport(
                     isSuccess: true,
@@ -195,6 +203,9 @@ extension KroutonOpticalDriveBank {
         }
     }
 
+    /// A staged entry for a file or folder: its size (a folder's visible files added up), item
+    /// count, octal permissions and date. Windows executables and `autorun.inf` start hidden on
+    /// the Mac side; `.DS_Store` and `.localized` start hidden on the PC side.
     public static func inspectFileOrFolder(url: URL) -> KroutonStagedFileEntry {
         let fm = FileManager.default
         var isDir: ObjCBool = false
