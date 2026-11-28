@@ -54,7 +54,9 @@ jobs:
         run: Scripts/ci-select-xcode.sh 27.2
       - name: Build the app and write the keys it looks up
         run: |
-          swift build --product Krouton \
+          # The native build system writes the .stringsdata where -emit-localized-strings-path
+          # says; Swift 6.4's default (swiftbuild) doesn't yet.
+          swift build --build-system native --product Krouton \
             -Xswiftc -emit-localized-strings \
             -Xswiftc -emit-localized-strings-path -Xswiftc "$RUNNER_TEMP/loc-strings"
           find "$RUNNER_TEMP/loc-strings" -name '*.stringsdata' | wc -l
@@ -114,10 +116,10 @@ jobs:
       - name: Install Periphery
         run: brew install periphery && periphery version
       - name: Scan
-        # Swift 6.4's build puts the index store somewhere Periphery no longer looks, so build
-        # first and point Periphery at the store the build wrote.
+        # Swift 6.4's default build system writes no index store Periphery can find; the native
+        # one does, so build with it and point Periphery at the store.
         run: |
-          swift build
+          swift build --build-system native
           store=$(find .build -type d -path '*index/store' | head -n 1)
           echo "Index store: $store"
           periphery scan --skip-build --index-store-path "$store" --format csv --quiet > periphery.csv
