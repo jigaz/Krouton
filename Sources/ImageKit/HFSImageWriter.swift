@@ -73,7 +73,9 @@ public enum KroutonHFSImageWriter {
         // Sizes, then the allocation block size that keeps the count under 65,536.
         let forkBytes = items.reduce(UInt64(0)) { $0 + roundUp($1.dataLength, 512) + roundUp(UInt64($1.resource.count), 512) }
         let records = 2 * items.filter(\.isDir).count + items.filter { !$0.isDir }.count
-        let catalogNodes = max(8, records / 3 + 16)
+        // Record sizes don't depend on the block size, so a draft gives the tree's exact size.
+        let neededNodes = KroutonHFSBTree.nodesNeeded(records: catalogRecords(items, stamp: stamp, blockSize: 512))
+        let catalogNodes = max(8, records / 3 + 16, neededNodes)
         let estimate = forkBytes + UInt64(catalogNodes + 8) * 512 + 64 * 1024
         var blockSize: UInt64 = 512
         while estimate / blockSize > 60_000 { blockSize += 512 }
