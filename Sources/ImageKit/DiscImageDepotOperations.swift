@@ -104,7 +104,11 @@ public enum DiscImageDepotOperations {
         defer { try? outHandle.close() }
 
         let fileBytes = Int64((try? binURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
-        let isRaw2352 = (fileBytes > 0 && fileBytes % 2352 == 0)
+        // A size that divides by 2352 isn't enough (one ISO in 147 has one): raw sectors start
+        // with the CD-ROM sync pattern.
+        let head = try inHandle.read(upToCount: 12) ?? Data()
+        try inHandle.seek(toOffset: 0)
+        let isRaw2352 = fileBytes > 0 && fileBytes % 2352 == 0 && [UInt8](head) == KroutonDiscImageDepot.cdRomSyncPattern
         let sectorStride = isRaw2352 ? 2352 : 2048
         let batchSectors = 512
         var writtenBytes: Int64 = 0
