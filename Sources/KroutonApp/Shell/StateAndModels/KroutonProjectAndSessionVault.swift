@@ -26,6 +26,9 @@ struct KroutonProjectSourceRecord: Codable, Hashable, Sendable {
     var posixPermissions: String
     var showOnMac: Bool
     var showOnPC: Bool
+    /// A manual disc break before this source. Optional so files saved before it existed read
+    /// as they are (no break) instead of being reported as repaired.
+    var startsNewDisc: Bool?
 
     static func redactHomePath(_ rawPath: String) -> String {
         let normalized = KroutonKrutSecurityEngine.normalizeCrossFilesystemPath(rawPath)
@@ -53,6 +56,7 @@ struct KroutonProjectSourceRecord: Codable, Hashable, Sendable {
         self.posixPermissions = entry.posixPermissions
         self.showOnMac = entry.showOnMac
         self.showOnPC = entry.showOnPC
+        self.startsNewDisc = entry.startsNewDisc
     }
 
     /// 4-tier cross-filesystem resolver (APFS Inode -> Safe Relative Path -> Case-Insensitive ext4/Btrfs/NTFS -> Expanded '~' Path)
@@ -353,7 +357,8 @@ extension KroutonStateStore {
                 posixPermissions: src.posixPermissions,
                 modifiedDate: Date(),
                 showOnMac: src.showOnMac,
-                showOnPC: src.showOnPC
+                showOnPC: src.showOnPC,
+                startsNewDisc: src.startsNewDisc ?? false
             )
             restoredFiles.append(entry)
         }
