@@ -33,3 +33,19 @@ final class PersistenceTests: XCTestCase {
         second.lock?.markCleanExit()
     }
 }
+
+final class BurnJournalClearTests: XCTestCase {
+    func testClearDeletesTheJournalAndItsSizeGoesToZero() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("BurnJournalClear_\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let journal = BurnJournal(directory: folder)
+        try await journal.clear()
+        try Data("{}\n".utf8).write(to: folder.appendingPathComponent("burn-journal.jsonl"))
+        let before = await journal.bytesOnDisk()
+        XCTAssertTrue(before > 0)
+        try await journal.clear()
+        let after = await journal.bytesOnDisk()
+        XCTAssertEqual(after, 0)
+    }
+}

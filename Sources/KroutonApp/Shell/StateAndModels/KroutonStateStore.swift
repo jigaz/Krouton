@@ -79,29 +79,14 @@ final class KroutonStateStore {
     var finderLayoutBlueprint = KroutonFinderLayoutBlueprint()
     var discFormats: [KroutonOpticalWorkflowSpec] = KroutonOpticalWorkflowCatalog.defaultFormats
 
-    var notificationMatrix: [KroutonKitchenEventRow] = [
-        KroutonKitchenEventRow(id: "start", eventTitle: "Burn or rip started", eventSubtitle: "When a destination card starts or a rip begins", bannerEnabled: true, soundEnabled: false),
-        KroutonKitchenEventRow(id: "done", eventTitle: "Burn or rip finished", eventSubtitle: "When a destination card or a rip finishes without error", bannerEnabled: true, soundEnabled: true),
-        KroutonKitchenEventRow(id: "err", eventTitle: "Burn or rip failed", eventSubtitle: "When a destination card or a rip stops with an error", bannerEnabled: true, soundEnabled: true),
-        KroutonKitchenEventRow(id: "swap", eventTitle: "Insert the next blank", eventSubtitle: "Auto-Load is waiting for a blank disc", bannerEnabled: true, soundEnabled: true),
-        KroutonKitchenEventRow(id: "depot", eventTitle: "Depot download checked", eventSubtitle: "An image was downloaded and matched its SHA-256", bannerEnabled: true, soundEnabled: true)
-    ]
+    var notificationMatrix: [KroutonKitchenEventRow] = KroutonStateStore.defaultNotificationMatrix
 
     var poolDispatchMode: KroutonPoolDispatchMode = .autoAssign
     var poolTotalCopies: Int = 1
     var waitingBurnPool: [KroutonPoolBurnTicket] = []
     var completedPoolTicketCount: Int = 0
 
-    var destinationQueue: [KroutonBakeBatchItem] = [
-        KroutonBakeBatchItem(
-            kind: .physicalBurner,
-            hardwareOrPath: "",
-            speedOrCodec: "Max Safe (Auto)",
-            simulationMode: false,
-            verifyAfterBurn: true,
-            compressAfterCreation: false
-        )
-    ]
+    var destinationQueue: [KroutonBakeBatchItem] = KroutonStateStore.defaultDestinationQueue
 
     // MARK: - Single Consolidated Colour-Scheme & Accent Resolution
     func refreshOpticalDrives() { KroutonWindowManager.shared.driveManager.refreshDrives() }

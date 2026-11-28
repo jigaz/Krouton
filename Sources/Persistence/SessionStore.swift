@@ -399,6 +399,18 @@ public actor BurnJournal {
         return last.values.filter { !$0.phase.isTerminal }.sorted { $0.at < $1.at }
     }
 
+    /// Deletes the journal (Settings › Storage & Reset). Only call it while nothing is burning.
+    public func clear() throws {
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        try FileManager.default.removeItem(at: url)
+    }
+
+    /// The journal's size on disk.
+    public func bytesOnDisk() -> Int64 {
+        // Not `url.resourceValues`: a URL caches those, so a size read before `clear()` would stay.
+        ((try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? NSNumber)?.int64Value ?? 0
+    }
+
     public func acknowledge(_ jobs: [BurnJournalRecord]) throws {
         for job in jobs {
             var closed = job

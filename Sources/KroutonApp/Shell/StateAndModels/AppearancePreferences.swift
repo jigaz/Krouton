@@ -42,6 +42,11 @@ enum KroutonPreferences {
     static func has(_ key: KroutonPreferenceKey) -> Bool {
         UserDefaults.standard.object(forKey: key.rawValue) != nil
     }
+    /// Removes every Krouton preference, so each one reads as its default again. The app's own
+    /// language list goes too, which means following the system's languages from the next launch.
+    static func removeAll() {
+        for key in KroutonPreferenceKey.allCases { UserDefaults.standard.removeObject(forKey: key.rawValue) }
+    }
 }
 
 /// Feature model owning appearance, accent palette, localization, unit, and accessibility preferences.
@@ -116,5 +121,22 @@ final class AppearancePreferences {
         if KroutonPreferences.has(.rememberLastTask) {
             rememberLastTaskOnLaunch = KroutonPreferences.bool(for: .rememberLastTask)
         }
+    }
+
+    /// Every appearance setting back to what a first launch shows.
+    func resetToDefaults() {
+        let fresh = AppearancePreferences()
+        enableSecondaryAccentUITints = fresh.enableSecondaryAccentUITints
+        appearanceMode = fresh.appearanceMode
+        selectedAccentIndex = fresh.selectedAccentIndex
+        iconWidgetStyle = fresh.iconWidgetStyle
+        folderColorMode = fresh.folderColorMode
+        sidebarIconSize = fresh.sidebarIconSize
+        // The saved choice is removed, so from the next launch the app follows the system.
+        appLanguage = .system
+        voiceOverSpokenTelemetry = fresh.voiceOverSpokenTelemetry
+        a11yIncreaseContrast = fresh.a11yIncreaseContrast
+        rememberLastTaskOnLaunch = fresh.rememberLastTaskOnLaunch
+        useBase10Units = fresh.useBase10Units
     }
 }
