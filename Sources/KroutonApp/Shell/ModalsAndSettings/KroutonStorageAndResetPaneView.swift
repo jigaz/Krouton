@@ -33,9 +33,9 @@ struct KroutonStorageAndResetPaneView: View {
         var consequence: String {
             switch self {
             case .emptyCaches:
-                return KroutonL10n.tr("Downloaded Depot images, the Depot list and leftover work folders are deleted. Projects, rips and images you saved stay. Depot images download again when you need them.")
+                return KroutonL10n.tr("Downloaded Depot images, the Depot list and leftover work folders are deleted. Projects, rips and images you saved stay, and so do images on the deck and a disc set you can still resume. Depot images download again when you need them.")
             case .forgetSession:
-                return KroutonL10n.tr("The session Krouton restores at launch is deleted. What's open now stays open.")
+                return KroutonL10n.tr("The session Krouton restores at launch is deleted. What's open now stays open; while Remember the Session is on, Krouton saves it again the next time it autosaves.")
             case .clearBurnHistory:
                 return KroutonL10n.tr("The record of past burns is deleted, so a burn a crash interrupted before now won't be reported.")
             case .resetSettings:
@@ -47,7 +47,7 @@ struct KroutonStorageAndResetPaneView: View {
             case .resetIdentity:
                 return KroutonL10n.tr("This Mac's server keys are deleted from the keychain and every server is forgotten. Each server has to be paired again.")
             case .everything:
-                return KroutonL10n.tr("Caches, the saved session, burn history, settings, destination queues and server pairings are all cleared. Projects, rips and images you saved stay, and so does what's open now.")
+                return KroutonL10n.tr("Caches, the saved session, burn history, settings, destination queues and server pairings are all cleared, and this Mac's server keys are deleted, so every server has to be paired again. Projects, rips and images you saved stay, and so does what's open now.")
             }
         }
 
@@ -87,7 +87,7 @@ struct KroutonStorageAndResetPaneView: View {
                     .disabled(isWorking || KroutonStorageAndReset.isBusy(store))
             }
             if KroutonStorageAndReset.isBusy(store) {
-                Text(KroutonL10n.tr("Some of these wait until the burn, copy or download in progress has finished."))
+                Text(KroutonL10n.tr("Some of these are unavailable until the burn, copy or download in progress has finished."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -148,24 +148,27 @@ struct KroutonStorageAndResetPaneView: View {
     private func run(_ action: Action) {
         isWorking = true
         Task {
+            var keysDeleted = true
             switch action {
-            case .emptyCaches: await KroutonStorageAndReset.emptyCaches()
+            case .emptyCaches: await KroutonStorageAndReset.emptyCaches(store)
             case .forgetSession: await KroutonStorageAndReset.forgetSavedSession()
             case .clearBurnHistory: await KroutonStorageAndReset.clearBurnHistory()
             case .resetSettings: KroutonStorageAndReset.resetSettings(store)
             case .resetQueues: KroutonStorageAndReset.resetDestinationQueues(store)
             case .forgetServers: await KroutonStorageAndReset.forgetAllServers()
-            case .resetIdentity: await KroutonStorageAndReset.resetServerIdentity()
+            case .resetIdentity: keysDeleted = await KroutonStorageAndReset.resetServerIdentity()
             case .everything: await KroutonStorageAndReset.resetEverything(store)
             }
             usage = await KroutonStorageAndReset.measure()
-            lastDone = String(format: KroutonL10n.tr("Done: %@"), action.title)
+            lastDone = keysDeleted
+                ? String(format: KroutonL10n.tr("Done: %@"), action.title)
+                : KroutonL10n.tr("The keychain didn't let Krouton delete this Mac's server keys. Delete the Krouton items in Keychain Access, then try again.")
             isWorking = false
         }
     }
 }
 
 extension KroutonStorageAndResetPaneView.Action {
-    /// Actions that delete files something running may be writing.
-    var touchesFiles: Bool { [.emptyCaches, .clearBurnHistory, .everything].contains(self) }
+    /// Actions that delete files something running may be writing, or cut a connection or queue in use.
+    var touchesFiles: Bool { [.emptyCaches, .clearBurnHistory, .resetQueues, .forgetServers, .resetIdentity, .everything].contains(self) }
 }
