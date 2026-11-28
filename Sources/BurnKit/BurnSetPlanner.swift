@@ -9,12 +9,15 @@ import OpticalCore
 // the caller must still compare each finished image with the disc capacity
 // (`BurnSetPlanError.imageExceedsDisc`) before anything is burned.
 
-// MARK: - BurnSetPlanner
+// MARK: - Burn Set Planner
 
+/// One file to place in a burn set: where it goes on the disc, where it comes from, and its size.
 public struct SpanInputFile: Identifiable, Sendable, Equatable {
     /// Path on the disc, "/"-separated. Unique within a set.
     public let relativePath: String
+    /// The file on this Mac.
     public let sourceURL: URL
+    /// The file's size in bytes.
     public let byteCount: Int64
     public var id: String { relativePath }
 
@@ -25,6 +28,7 @@ public struct SpanInputFile: Identifiable, Sendable, Equatable {
     }
 }
 
+/// Why a set can't be planned or burned. The descriptions are for the user.
 public enum BurnSetPlanError: Error, LocalizedError, Sendable, Equatable {
     case nothingToBurn
     case duplicatePath(String)
@@ -50,7 +54,9 @@ public enum BurnSetPlanError: Error, LocalizedError, Sendable, Equatable {
     }
 }
 
+/// Splits files across discs for a burn set (see the comment at the top of this file).
 public enum BurnSetPlanner {
+    /// The data sector size planning rounds to.
     public static let sectorSize: Int64 = 2048
 
     /// Space a file takes on disc for planning: its data rounded up to whole sectors,

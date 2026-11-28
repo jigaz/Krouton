@@ -1,6 +1,8 @@
 import Foundation
 import OpticalCore
 
+// MARK: - Burn Set Scheduler
+//
 // Runs a frozen set across however many drives are connected.
 //
 // Structure:
@@ -15,9 +17,13 @@ import OpticalCore
 //   - A disc that fails stays failed; nothing retries write-once media on its
 //     own. `run(only:)` is how the user retries exactly the discs they choose.
 
+/// The blank disc a drive found for one disc of the set.
 public struct BlankMedia: Sendable, Equatable {
-    public let mediaID: String       // manufacturer / ATIP or MID string
-    public let capacityBytes: Int64  // as reported by THIS disc, not a table
+    /// Identifies the blank: a manufacturer (ATIP or MID) string, or the media type when the
+    /// drive reports none.
+    public let mediaID: String
+    /// Space on this disc, as the drive reports it, not from a table.
+    public let capacityBytes: Int64
 
     public init(mediaID: String, capacityBytes: Int64) {
         self.mediaID = mediaID
@@ -25,43 +31,65 @@ public struct BlankMedia: Sendable, Equatable {
     }
 }
 
+/// What a drive asks the user to insert for one disc of the set.
 public struct BlankRequest: Sendable, Equatable {
+    /// The set's title.
     public let setTitle: String
+    /// The disc's number, from 1.
     public let discIndex: Int
+    /// How many discs the set has.
     public let discCount: Int
+    /// The disc's volume label.
     public let volumeLabel: String
+    /// The least space the blank must have.
     public let minimumBytes: Int64
 }
 
+/// A burner as the scheduler sees it: wait for a blank, write an image, verify it, eject.
+/// `DiscRecordingOpticalDrive` is the real one; krouton-verify uses a scripted one.
 public protocol OpticalDrive: Sendable {
+    /// Identifies the drive across reconnections.
     var id: DriveID { get }
+    /// The drive's name, for prompts.
     var displayName: String { get }
+    /// The drive's top write speed; faster drives are asked for discs first.
     var maxWriteSpeedX: Double { get }
     /// Waits for a blank that satisfies the request, prompting through the UI.
     /// Throws `BurnFailure.mediaRejected` if the user supplies something unusable,
     /// `.cancelledByUser` if they dismiss the prompt.
     func waitForBlank(_ request: BlankRequest) async throws(BurnFailure) -> BlankMedia
+    /// Writes the image, reporting each phase.
     func write(image: URL, onPhase: @Sendable (BurnPhase) async -> Void) async throws(BurnFailure)
+    /// Reads the disc back and compares it with the image's SHA-256.
     func verify(againstSHA256 digest: String, byteCount: Int64) async throws(BurnFailure)
+    /// Ejects the disc.
     func eject() async
 }
 
 extension OpticalDrive {
+    /// 16x when a drive doesn't say.
     public var maxWriteSpeedX: Double { 16.0 }
 }
 
+/// Where the scheduler records every event before the UI hears of it.
 public protocol BurnJournaling: Sendable {
+    /// Appends an event durably.
     func append(_ event: BurnEvent) async throws
 }
 
+/// What the scheduler reports to the UI as it runs.
 public enum BurnSchedulerEvent: Sendable {
+    /// A drive waits for the user to insert a blank.
     case waitingForBlank(drive: DriveID, request: BlankRequest)
+    /// A disc's job changed state.
     case discChanged(DiscJob)
     /// Tell the user which physical disc this is before it leaves the tray.
     case ejected(drive: DriveID, discIndex: Int, volumeLabel: String, succeeded: Bool)
+    /// The run ended; the set's progress as it stands.
     case finished(BurnSetProgress)
 }
 
+/// Burns a frozen set on every given drive at once; see the comment at the top of this file.
 public actor BurnSetScheduler {
     private var progress: BurnSetProgress
     private var claimed: Set<Int> = []
