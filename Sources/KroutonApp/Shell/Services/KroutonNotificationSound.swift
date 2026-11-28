@@ -15,6 +15,26 @@ struct KroutonNotificationSound: Hashable, Codable, Sendable {
     /// 0 = off; otherwise a ring-modulator frequency in Hz.
     var metallicHz: Double = 0
 
+    init(source: String, pitch: Double = 0, reversed: Bool = false, lofiBits: Int = 0, metallicHz: Double = 0) {
+        self.source = source
+        self.pitch = pitch
+        self.reversed = reversed
+        self.lofiBits = lofiBits
+        self.metallicHz = metallicHz
+    }
+
+    /// Fields a later version adds start at their defaults, so saved sounds aren't lost.
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        source = try values.decode(String.self, forKey: .source)
+        pitch = try values.decodeIfPresent(Double.self, forKey: .pitch) ?? 0
+        reversed = try values.decodeIfPresent(Bool.self, forKey: .reversed) ?? false
+        lofiBits = try values.decodeIfPresent(Int.self, forKey: .lofiBits) ?? 0
+        metallicHz = try values.decodeIfPresent(Double.self, forKey: .metallicHz) ?? 0
+    }
+
+    private enum CodingKeys: String, CodingKey { case source, pitch, reversed, lofiBits, metallicHz }
+
     struct Voice: Identifiable, Sendable {
         let id: String
         let name: String
@@ -44,6 +64,9 @@ struct KroutonNotificationSound: Hashable, Codable, Sendable {
     }
 
     var isShaped: Bool { pitch != 0 || reversed || lofiBits != 0 || metallicHz != 0 }
+
+    /// The system alert is played by macOS as the person set it, so the synth's effects don't apply.
+    var canBeShaped: Bool { source != "system-alert" }
 
     // MARK: - Playing
 

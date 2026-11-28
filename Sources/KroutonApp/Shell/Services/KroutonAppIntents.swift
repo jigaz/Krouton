@@ -32,10 +32,10 @@ public struct KroutonStatusIntent: AppIntent {
     }
 }
 
-/// Ejects the disc from the selected drive, or the first one. Refused mid-burn.
+/// Ejects the disc from the selected drive, or the first one. Refused mid-burn and mid-rescue.
 public struct KroutonEjectIntent: AppIntent {
     public static let title = LocalizedStringResource("Eject the Disc")
-    public static let description = IntentDescription("Ejects the disc from the drive Krouton has selected. It won't eject while a burn is running.")
+    public static let description = IntentDescription("Ejects the disc from the drive Krouton has selected. It won't eject while a burn or a disc rescue is running.")
 
     public init() {}
 
@@ -44,6 +44,9 @@ public struct KroutonEjectIntent: AppIntent {
         let drives = KroutonWindowManager.shared.driveManager
         guard !drives.isExecutingQueue else {
             return .result(dialog: IntentDialog(stringLiteral: KroutonL10n.tr("A burn is running, so the disc stays in. Abort it in Krouton first.")))
+        }
+        guard !KroutonWindowManager.shared.store.rescue.isRunning else {
+            return .result(dialog: IntentDialog(stringLiteral: KroutonL10n.tr("A disc rescue is running, so the disc stays in. Stop it in Krouton first.")))
         }
         guard let drive = drives.selectedDrive ?? drives.availableDrives.first else {
             return .result(dialog: IntentDialog(stringLiteral: KroutonL10n.tr("No optical drive is connected.")))

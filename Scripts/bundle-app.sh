@@ -84,6 +84,22 @@ DEV_ID_CERT="$(security find-identity -v -p codesigning 2>/dev/null | grep "Deve
 ENTITLEMENTS="XcodeHost/Krouton.entitlements"
 PROFILE="$ROOT_DIR/Packaging/Krouton.provisionprofile"
 if [ -n "$DEV_ID_CERT" ] && [ -f "$PROFILE" ]; then
+  # macOS refuses to launch an app whose profile doesn't grant what it claims, so check it first.
+  PROFILE_PLIST="$(mktemp)"
+  security cms -D -i "$PROFILE" > "$PROFILE_PLIST" || { echo "error: $PROFILE isn't a provisioning profile" >&2; exit 1; }
+  PROFILE_APP_ID="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.application-identifier' "$PROFILE_PLIST" 2>/dev/null || true)"
+  PROFILE_KVSTORE="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.ubiquity-kvstore-identifier' "$PROFILE_PLIST" 2>/dev/null || true)"
+  PROFILE_EXPIRES="$(/usr/libexec/PlistBuddy -c 'Print :ExpirationDate' "$PROFILE_PLIST" 2>/dev/null || true)"
+  rm -f "$PROFILE_PLIST"
+  if [ "$PROFILE_APP_ID" != "$TEAM_ID.app.krouton" ]; then
+    echo "error: the provisioning profile is for '$PROFILE_APP_ID', not $TEAM_ID.app.krouton" >&2; exit 1
+  fi
+  if [ -z "$PROFILE_KVSTORE" ]; then
+    echo "error: the provisioning profile doesn't grant iCloud key-value storage; enable iCloud for app.krouton and download it again" >&2; exit 1
+  fi
+  if [ -n "$PROFILE_EXPIRES" ] && [ "$(date -j -f '%a %b %d %T %Z %Y' "$PROFILE_EXPIRES" +%s 2>/dev/null || echo 0)" -lt "$(date +%s)" ]; then
+    echo "error: the provisioning profile expired on $PROFILE_EXPIRES; download a new one" >&2; exit 1
+  fi
   cp "$PROFILE" "$CONTENTS_DIR/embedded.provisionprofile"
   ENTITLEMENTS="XcodeHost/Krouton-iCloud.entitlements"
   echo "Provisioning profile embedded; settings can be kept in iCloud"

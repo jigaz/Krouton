@@ -131,6 +131,8 @@ jobs:
           test -d "$app/Contents/PlugIns/KroutonWidgets.appex"
           find "$app" -name 'Metadata.appintents' -o -name '*.appintents' | tee intents.txt
           test -s intents.txt
+          # The library's intents, not only the host's, made it into the metadata.
+          grep -rlq KroutonEjectIntent $(cat intents.txt)
 
   unused-code:
     # A report, not a gate: Periphery lists declarations nothing uses, from the compiler's index.

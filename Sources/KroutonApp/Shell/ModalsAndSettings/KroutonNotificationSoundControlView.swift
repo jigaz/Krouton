@@ -6,6 +6,8 @@ import SwiftUI
 /// the synth's effects (pitch, reverse, lo-fi, metallic) to shape it.
 struct KroutonNotificationSoundControlView: View {
     @Binding var sound: KroutonNotificationSound
+    /// The event this sound is for, so VoiceOver can tell the rows apart.
+    let eventTitle: String
     let isEnabled: Bool
     let accent: Color
     @State private var isShaping = false
@@ -29,17 +31,20 @@ struct KroutonNotificationSoundControlView: View {
             }
             .fixedSize()
             .help(KroutonL10n.tr("Sound for this notification"))
+            .accessibilityLabel(String(format: KroutonL10n.tr("Sound for %@"), eventTitle))
+            .accessibilityValue(sound.isShaped ? String(format: KroutonL10n.tr("%@, shaped"), sound.name) : sound.name)
 
             Button { preview() } label: { Image(systemName: "play.fill") }
                 .buttonStyle(.borderless)
-                .accessibilityLabel(KroutonL10n.tr("Play the Sound"))
+                .accessibilityLabel(String(format: KroutonL10n.tr("Play the sound for %@"), eventTitle))
                 .help(KroutonL10n.tr("Play the Sound"))
 
             Button { isShaping.toggle() } label: { Image(systemName: "slider.horizontal.3") }
                 .buttonStyle(.borderless)
                 .foregroundStyle(sound.isShaped ? accent : .secondary)
-                .accessibilityLabel(KroutonL10n.tr("Shape the Sound"))
-                .help(KroutonL10n.tr("Shape the Sound"))
+                .accessibilityLabel(String(format: KroutonL10n.tr("Shape the sound for %@"), eventTitle))
+                .help(sound.canBeShaped ? KroutonL10n.tr("Shape the Sound") : KroutonL10n.tr("The system alert plays as set in System Settings and can't be shaped"))
+                .disabled(!sound.canBeShaped)
                 .popover(isPresented: $isShaping, arrowEdge: .bottom) { shaper }
         }
         .disabled(!isEnabled)
@@ -58,7 +63,8 @@ struct KroutonNotificationSoundControlView: View {
                 .font(.headline)
             slider(KroutonL10n.tr("Pitch"), value: $sound.pitch, in: -12...12, step: 1,
                    shown: sound.pitch == 0 ? KroutonL10n.tr("as recorded") : String(format: "%+.0f st", sound.pitch))
-            Toggle(KroutonL10n.tr("Play backwards"), isOn: $sound.reversed)
+            Toggle(KroutonL10n.tr("Flip direction (forwards ↔ backwards)"), isOn: $sound.reversed)
+                .onChange(of: sound.reversed) { preview() }
             slider(KroutonL10n.tr("Lo-fi"), value: Binding(get: { Double(sound.lofiBits == 0 ? 13 : sound.lofiBits) },
                                                           set: { sound.lofiBits = $0 >= 13 ? 0 : Int($0) }),
                    in: 2...13, step: 1, shown: sound.lofiBits == 0 ? KroutonL10n.tr("clean") : "\(sound.lofiBits)-bit")
@@ -74,7 +80,6 @@ struct KroutonNotificationSoundControlView: View {
         }
         .padding(14)
         .frame(width: 300)
-        .onChange(of: sound) { preview() }
     }
 
     private func slider(_ title: String, value: Binding<Double>, in range: ClosedRange<Double>, step: Double, shown: String) -> some View {
@@ -86,7 +91,8 @@ struct KroutonNotificationSoundControlView: View {
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.secondary)
             }
-            Slider(value: value, in: range, step: step)
+            // Heard when the drag ends, not at every step.
+            Slider(value: value, in: range, step: step) { editing in if !editing { preview() } }
                 .accessibilityLabel(title)
                 .accessibilityValue(shown)
         }

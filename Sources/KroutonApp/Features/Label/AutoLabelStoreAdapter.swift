@@ -31,8 +31,10 @@ enum AutoLabelEngine {
         var currentTitle = store.discVolumeTitle.isEmpty ? store.labelDiscTitle : store.discVolumeTitle
         var currentArtist = store.discPerformer.isEmpty ? store.labelSubtitle : store.discPerformer
         // A raw volume or file name ("SUMMER_2026_FINAL") becomes words with the on-device model.
+        // A title the person typed on the label is theirs, and stays.
         var tidied = false
-        if KroutonLabelSuggester.needsTidying(currentTitle),
+        let typedByPerson = store.discVolumeTitle.isEmpty && !store.labelDiscTitle.isEmpty
+        if !typedByPerson, KroutonLabelSuggester.needsTidying(currentTitle),
            let suggestion = await KroutonLabelSuggester.suggest(volumeName: currentTitle, performer: currentArtist,
                                                                 itemNames: items.map(\.title)) {
             if !suggestion.title.isEmpty { currentTitle = suggestion.title }
