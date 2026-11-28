@@ -9,7 +9,7 @@ back to the app.
 Krouton (Mac)                                    Krouton Server (any OS, burner attached)
 ┌───────────────────────────┐  TLS 1.3, both     ┌──────────────────────────────────────────┐
 │ NetworkSpool              │  keys pinned,      │ krouton-server   TLS, keys, CLI           │
-│  KroutonServerClient      │◀── Ed25519 ───────▶│ server-core      sessions, staging, jobs, │
+│  SpoolRemoteNodeClient    │◀── Ed25519 ───────▶│ server-core      sessions, staging, jobs, │
 │  SpoolUploadSender        │  session proof     │                  drive workers, backends  │
 │  SpoolTransferManifest    │  KRSP v1 frames    │ krsp             protocol (no deps)       │
 └───────────────────────────┘                    └──────────────────────────────────────────┘
@@ -27,26 +27,27 @@ Krouton (Mac)                                    Krouton Server (any OS, burner 
 | Windows 10 and 11 (x64, x86, ARM64) | `windows-x64` / `-x86` / `-arm64` | IMAPI2 (built in) |
 | macOS 12 or later (Intel or Apple Silicon) | `macos-x86_64` / `macos-arm64` | `hdiutil` (built in) |
 
-The Linux builds are static (musl), so one binary runs on any distribution. Every pull request
-builds all of them; download them from the **Krouton Server** workflow's artifacts, or build
-locally with `cargo build --release -p krouton-server`.
+The Linux builds are static (musl), so one binary runs on any distribution. CI builds all of
+them for every change to the server; download them from the **Krouton Server** workflow's
+artifacts, or build one yourself with `cargo build --release -p krouton-server` in this folder.
+Each download holds the binary, the `deploy/` installers, this README and `SHA256SUMS`.
 
 ## Set up
 
-1. Copy the download for your box onto it and run its installer:
+1. Copy the download for your box onto it and, from the download's folder, run its installer:
 
    | System | Command |
    |---|---|
    | Linux | `sudo deploy/linux/install.sh ./krouton-server` |
-   | macOS | `deploy/macos/install.sh ./krouton-server` (as the logged-in user; turn on automatic login) |
-   | Windows | `deploy\windows\install.ps1` in an elevated PowerShell |
+   | macOS | `deploy/macos/install.sh ./krouton-server` (as the logged-in user, not with sudo; turn on automatic login) |
+   | Windows | `powershell -ExecutionPolicy Bypass -File deploy\windows\install.ps1` in an elevated PowerShell |
 
    The installer sets up the service, creates the keys, and runs `krouton-server check`.
 2. Pair your Mac. On the server run `krouton-server pair`. The Linux installer prints the
    exact command, which must run as the service user. In Krouton, open **Settings › Burners &
    Network**, find the server under **Krouton Servers** (or use **Pair by Address**) and click
-   **Connect**. Both screens show a 6-digit code; confirm it on
-   both. That's it.
+   **Connect**. Both screens show a 6-digit code. If they match, click **The Codes Match** in
+   Krouton and type `y` on the server. That's it.
 3. To try everything without a burner, set `backend = simulate` in `server.conf`.
 
 | | Linux | macOS | Windows |
@@ -54,8 +55,10 @@ locally with `cargo build --release -p krouton-server`.
 | Home (config, keys, pairings, spool) | `/var/lib/krouton-server` | `~/Library/Application Support/Krouton Server` | `C:\ProgramData\Krouton Server` |
 | Logs | `journalctl -u krouton-server` | `~/Library/Logs/Krouton Server.log` | `krouton-server.log` in the home folder |
 
-Commands: `init`, `run`, `pair`, `clients`, `unpair <name>`, `check`, `version`. All of them take
-`--home <dir>`.
+Commands: `init`, `run`, `pair`, `clients`, `unpair <name>`, `check`, `version`, `help`. All of
+them take `--home <dir>`. Without it, the home is `$KROUTON_SERVER_HOME` if set, else the folder
+in the table above. `init` also takes `--backend` and `--name`; `pair` takes `--minutes` (1 to 60,
+default 5).
 
 ### `server.conf`
 
@@ -70,7 +73,25 @@ allow_range = 10.8.0.0/24   # extra trusted ranges, e.g. a WireGuard subnet (rep
 drive = /dev/sr0            # only use these drives (default: all); repeatable
 ```
 
-Unknown keys are errors, so a typo cannot silently fall back to a default.
+One `key = value` per line; `#` starts a comment, so a value cannot contain `#`. Unknown keys
+are errors, so a typo cannot silently fall back to a default. Restart the service after editing.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `name` | the host name | the name Krouton shows (1 to 64 characters) |
+| `listen` | `0.0.0.0:7420` | address and port; repeat the line to listen on several (for example `[::]:7420`) |
+| `backend` | `auto` | `auto` picks `macos`, `linux` or `windows` for the system it runs on; `simulate` burns nothing |
+| `drive` | every drive found | only use this drive, for example `/dev/sr0` on Linux or `E:` on Windows; repeatable |
+| `max_image_gib` | `128` | largest image a client may send |
+| `min_free_gib` | `2` | space to keep free on the spool disk |
+| `spool_dir` | `spool` | where uploads and images go; a relative path is inside the home folder |
+| `keep_incomplete_hours` | `48` | how long a failed or abandoned upload is kept for a retry |
+| `allow_cgnat` | `false` | accept Tailscale and ZeroTier peers (100.64.0.0/10) |
+| `allow_range` | none | an extra trusted range in CIDR form (IPv4 /8 or longer, IPv6 /32 or longer); repeatable |
+| `max_connections` | `16` | open connections at once (1 to 256) |
+| `xorriso`, `hdiutil`, `powershell` | `xorriso`, `/usr/bin/hdiutil`, `powershell.exe` | the tools the backends run |
+| `simulate_drives` | `2` | drives the `simulate` backend offers (1 to 8) |
+| `simulate_seconds` | `30` | how long a simulated burn takes (1 to 3600) |
 
 ## What it does
 
@@ -155,14 +176,62 @@ See `crates/krsp/src/control.rs` for the full message list and session sequence.
 lives in `Sources/NetworkSpool`. Shared fixtures in `Vectors/` pin both implementations: frames and
 manifests (`krsp-golden-v1.txt`, Suite 29), every control message (`krsp-control-v1.txt`), the
 bundle format byte for byte (`krsp-bundle-v1.tar`) and the name rules (`krsp-bundle-names-v1.txt`),
-all checked by `cargo test` and by `krouton-verify` Suite 27.
+all checked by `cargo test` and by `krouton-verify` Suite 27. `udf-bd-v1.sha256` and
+`udf-dvd-v1.sha256` pin the disc writer's output for a Blu-ray and a DVD-Video folder; the Swift
+writer in `Sources/ImageKit` must produce the same bytes (Suite 36).
 
-## Development
+## Hacking on the server
+
+You need Rust 1.88 or later (`rust-version` in `Cargo.toml`). Nothing else: no C compiler beyond
+what `ring` needs, no cmake. Run everything from this folder.
 
 ```sh
-cargo test --workspace          # unit, golden-vector, end-to-end (TCP) and real-TLS tests
-cargo clippy --workspace --all-targets
+cargo test --workspace                  # unit, golden-vector, end-to-end (TCP) and real-TLS tests
+cargo clippy --workspace --all-targets  # CI treats warnings as errors
+cargo fmt --all                         # CI runs `cargo fmt --all --check`
+cargo doc --workspace --no-deps --open  # crate docs, with a map of each crate's modules
 ```
 
+To run a server with no burner, give it its own home folder and the `simulate` backend:
+
+```sh
+cargo run -p krouton-server -- --home /tmp/ks init --backend simulate
+cargo run -p krouton-server -- --home /tmp/ks check
+cargo run -p krouton-server -- --home /tmp/ks run
+```
+
+It offers two simulated drives, and Krouton on a Mac on the same network can pair with it
+(`… --home /tmp/ks pair` in a second terminal) and burn to it.
+
+### Layout
+
+| Path | What |
+|---|---|
+| `crates/krsp` | the protocol: frames, control messages, manifests, the upload pipeline, pairing, bundles. Pure functions and state machines, no I/O, no dependencies. |
+| `crates/server-core` | sessions, pairing window, staging store, jobs and drive queues, burn backends (`src/backend/`), the disc writer (`src/disc/`), `server.conf`. No dependencies. |
+| `crates/krouton-server` | the binary: command line, keys and signatures on `ring`, TLS on `rustls`, the listener and Bonjour. |
+| `crates/*/tests` | golden vectors, a faulty-link upload test, and the whole server end to end over TCP. |
+| `deploy/` | installers and uninstallers for Linux (systemd), macOS (LaunchAgent) and Windows (scheduled task). |
+| `scripts/check_disc_images.py` | mounts the disc writer's test images with the system's own drivers (CI runs it). |
+
 `krsp` and `server-core` have no third-party dependencies and contain every rule. The binary adds
-only `rustls` and `ring` (TLS 1.3, Ed25519, X25519) and `rcgen` (the server's certificate).
+only `rustls` and `ring` (TLS 1.3, Ed25519, X25519) and `rcgen` (the server's certificate). The
+workspace forbids `unsafe` code, and clippy denies `unwrap`, `expect`, `panic` and truncating
+casts (a 32-bit ARM build must handle 50 GB offsets).
+
+### Protocol spec and vectors
+
+The protocol is specified by its code: `crates/krsp/src/frame.rs` (header layout),
+`crates/krsp/src/control.rs` (every message and the session sequence), `crates/krsp/src/pipeline.rs`
+(uploads), `crates/krsp/src/pairing.rs` and `crates/krsp/src/bundle.rs`. The shared vectors live
+in `../Vectors/`. A change that alters what goes on the wire, the bundle format or the disc
+writer's output must regenerate the matching vectors and keep the Swift side passing:
+
+```sh
+KRSP_WRITE_CONTROL_VECTORS=1 cargo test -p krsp --test control_vectors
+KRSP_WRITE_BUNDLE_VECTORS=1 cargo test -p krsp --test bundle_vectors
+KRSP_WRITE_UDF_VECTORS=1 cargo test -p server-core disc::tests::udf_vector
+```
+
+The tests that check the disc writer can keep their images for inspection: set
+`KROUTON_DISC_OUT=<dir>`, then run `python3 scripts/check_disc_images.py <dir>` (on Linux it uses sudo to mount them).
