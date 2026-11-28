@@ -216,6 +216,10 @@ extension KroutonSettingsWindowView {
                 }
             }
 
+            settingsCard(title: "iCloud") {
+                KroutonCloudSettingsRowView(store: store)
+            }
+
             settingsCard(title: "Startup & Units") {
                 HStack {
                     Toggle(KroutonL10n.tr("Automatically remember application state, staged files, and active task on launch (offers to start empty if a crash is detected)"), isOn: Bindable(store).rememberLastTaskOnLaunch)

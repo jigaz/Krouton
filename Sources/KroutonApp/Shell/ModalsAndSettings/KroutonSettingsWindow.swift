@@ -38,7 +38,7 @@ enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendable {
     var searchKeywords: String {
         switch self {
         case .general:
-            return "general theme appearance accent color multicolor harmony tint icon widget style dark light auto folder color sidebar language localization startup remember crash recovery units base-10 binary lba scratch disk cache purge permissions mmc fskit"
+            return "general icloud sync other macs theme appearance accent color multicolor harmony tint icon widget style dark light auto folder color sidebar language localization startup remember crash recovery units base-10 binary lba scratch disk cache purge permissions mmc fskit"
         case .formatChooser:
             return "format chooser table columns show visible iso-9660 joliet udf m-disc red book audio cd dvd blu-ray bdxl wii gamecube ps1 ps2 xbox laser capacity year"
         case .discImageDepot:
@@ -52,7 +52,7 @@ enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendable {
         case .labelsPrinters:
             return "labels printers saved disc label geometry tray offset presets epson ecotank et-8550 outer inner hub hole diameter mm automatic artwork lookup apple vision subject detection hole-avoidance musicbrainz itunes tvmaze gametdb tmdb fanart api key"
         case .notifications:
-            return "notifications alerts macos banner iphone live activity apple watch smart stack wrist tap audio sound effect telemetry feed test alert"
+            return "notifications menu bar progress live status alerts macos banner audio sound effect telemetry feed test alert"
         case .accessibilityLanguage:
             return "accessibility language voiceover spoken hardware telemetry speech acoustic soundboard dsp lab display increase contrast differentiate without color reduce motion internationalization foreign languages locale english japanese german french spanish chinese korean"
         case .storageAndReset:

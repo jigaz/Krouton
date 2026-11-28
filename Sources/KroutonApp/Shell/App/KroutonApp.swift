@@ -8,6 +8,17 @@ struct KroutonApp: App {
         KroutonAppKitBridge.becomeRegularApp()
     }
 
+    /// The menu bar item is there always, never, or only while something runs.
+    private var menuBarStatusShown: Binding<Bool> {
+        let shown: Bool
+        switch wm.store.menuBarStatusMode {
+        case .always: shown = true
+        case .never: shown = false
+        case .whileWorking: shown = !KroutonLiveStatus.items(store: wm.store, driveManager: wm.driveManager).isEmpty
+        }
+        return .constant(shown)
+    }
+
     var body: some Scene {
         Window("Krouton", id: "main") {
             KroutonMainWorkspaceView(store: wm.store, driveManager: wm.driveManager)
@@ -52,5 +63,12 @@ struct KroutonApp: App {
         Settings {
             KroutonSettingsWindowView(store: wm.store, driveManager: wm.driveManager)
         }
+
+        MenuBarExtra(isInserted: menuBarStatusShown) {
+            KroutonMenuBarStatusView(store: wm.store, driveManager: wm.driveManager)
+        } label: {
+            KroutonMenuBarStatusLabel(store: wm.store, driveManager: wm.driveManager)
+        }
+        .menuBarExtraStyle(.window)
     }
 }
