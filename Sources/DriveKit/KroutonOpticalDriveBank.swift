@@ -391,10 +391,9 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
                     } else if remaining <= 1 {
                         self.batchCountdownTimers[key]?.invalidate()
                         self.batchCountdownTimers.removeValue(forKey: key)
-                        st.isWaitingForBlankDisc = false
-                        st.countdownSecondsRemaining = nil
-                        st.statusMessage = "Firing Laser for Copy #\(nextCopy) of \(totalCopies)..."
-                        self.batchStates[key] = st
+                        // The wait is over: a state left here kept the card's banner, and its
+                        // Simulate Blank Disc Insert button, up through the burn and after the last copy.
+                        self.batchStates.removeValue(forKey: key)
                         onFireNextCopy()
                     } else {
                         st.countdownSecondsRemaining = remaining - 1
