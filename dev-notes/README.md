@@ -10,3 +10,4 @@ Working logs from AI-assisted development sessions. These are records, not produ
 - `removed-formats.md`: formats taken out of Krouton (CD+G, SACD-R, PS3) and what bringing one back would take.
 - `pure-swiftui-shell.md`: **open investigation.** What still needs AppKit in `Shell/App/KroutonAppKitBridge.swift`, what SwiftUI offers instead, and what to check with each new macOS SDK.
 - `open-questions.md`: **open questions for agents**: hardware tests, honesty and correctness checks, and architecture decisions, each with what's known, where to look and who decides.
+- `demo.md`: the demo kit (`Scripts/demo/`): a drive-less Krouton Server on the same Mac and generated sample files, for showing real burns without a burner or discs.
