@@ -28,8 +28,20 @@ enum AutoLabelEngine {
             }
         }()
 
-        let currentTitle = store.discVolumeTitle.isEmpty ? store.labelDiscTitle : store.discVolumeTitle
-        let currentArtist = store.discPerformer.isEmpty ? store.labelSubtitle : store.discPerformer
+        var currentTitle = store.discVolumeTitle.isEmpty ? store.labelDiscTitle : store.discVolumeTitle
+        var currentArtist = store.discPerformer.isEmpty ? store.labelSubtitle : store.discPerformer
+        // A raw volume or file name ("SUMMER_2026_FINAL") becomes words with the on-device model.
+        // A title the person typed on the label is theirs, and stays.
+        var tidied = false
+        let typedByPerson = store.discVolumeTitle.isEmpty && !store.labelDiscTitle.isEmpty
+        if !typedByPerson, KroutonLabelSuggester.needsTidying(currentTitle),
+           let suggestion = await KroutonLabelSuggester.suggest(volumeName: currentTitle, performer: currentArtist,
+                                                                itemNames: items.map(\.title)) {
+            if !suggestion.title.isEmpty { currentTitle = suggestion.title }
+            if currentArtist.isEmpty { currentArtist = suggestion.subtitle }
+            if store.autoLabelSearchQuery.isEmpty { store.autoLabelSearchQuery = suggestion.artworkQuery }
+            tidied = true
+        }
 
         let composed = await AutoLabelComposer.compose(
             albumTitle: currentTitle,
@@ -43,6 +55,6 @@ enum AutoLabelEngine {
         if !composed.subtitleText.isEmpty {
             store.labelSubtitle = composed.subtitleText
         }
-        return composed.summary
+        return tidied ? composed.summary + KroutonL10n.tr("; title tidied on this Mac by Apple Intelligence") : composed.summary
     }
 }

@@ -86,6 +86,10 @@ final class KroutonStateStore {
     var distinctDriveVoices: Bool = true {
         didSet { if !isHydratingPreferences { KroutonPreferences.set(distinctDriveVoices, for: .distinctDriveVoices) } }
     }
+    /// Auto-Label tidies raw titles with the on-device model (Settings › Labels & Printers).
+    var labelSuggestionsEnabled: Bool = true {
+        didSet { if !isHydratingPreferences { KroutonPreferences.set(labelSuggestionsEnabled, for: .labelSuggestions) } }
+    }
     /// When the menu bar shows Krouton's progress (Settings › Notifications).
     var menuBarStatusMode: KroutonLiveStatus.MenuBarMode = .whileWorking {
         didSet { if !isHydratingPreferences { KroutonPreferences.set(menuBarStatusMode.rawValue, for: .menuBarStatus) } }
@@ -165,6 +169,7 @@ final class KroutonStateStore {
         appearance.load()
         notificationMatrix = KroutonPreferences.notificationEvents(defaults: Self.defaultNotificationMatrix)
         distinctDriveVoices = KroutonPreferences.bool(for: .distinctDriveVoices, default: true)
+        labelSuggestionsEnabled = KroutonPreferences.bool(for: .labelSuggestions, default: true)
         menuBarStatusMode = KroutonPreferences.string(for: .menuBarStatus).flatMap(KroutonLiveStatus.MenuBarMode.init(rawValue:)) ?? .whileWorking
         if let rawTpl = KroutonPreferences.string(for: .labelTemplate),
            let tpl = KroutonCroutonLabelStyle(rawValue: rawTpl) {

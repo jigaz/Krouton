@@ -14,5 +14,9 @@
     <true/>
     <key>com.apple.security.files.downloads.read-write</key>
     <true/>
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>D3BJL3F92P.app.krouton.shared</string>
+    </array>
 </dict>
 </plist>

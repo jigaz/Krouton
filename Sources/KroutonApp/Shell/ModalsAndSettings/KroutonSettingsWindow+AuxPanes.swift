@@ -10,6 +10,16 @@ extension KroutonSettingsWindowView {
 
     var labelsPrintersPane: some View {
         VStack(alignment: .leading, spacing: 18) {
+            settingsCard(title: "Auto-Label") {
+                Toggle(KroutonL10n.tr("Turn volume and file names into a readable title with Apple Intelligence"),
+                       isOn: Bindable(store).labelSuggestionsEnabled)
+                Text(KroutonLabelSuggester.isAvailable
+                     ? KroutonL10n.tr("Runs on this Mac; nothing is sent anywhere. Only titles that look like file or volume names, such as SUMMER_2026_FINAL, are changed.")
+                     : KroutonL10n.tr("Needs macOS 26 or later on Apple silicon with Apple Intelligence turned on. Until then, Auto-Label uses titles as they are."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             settingsCard(title: "Saved Disc Label Geometry & Tray Offset Presets (Epson EcoTank ET-8550 & Standard Trays)") {
                 ForEach(Array(store.labelPresets.enumerated()), id: \.element.id) { idx, preset in
                     HStack {

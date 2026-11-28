@@ -149,3 +149,9 @@ Related: `pure-swiftui-shell.md` (the one AppKit file), `removed-formats.md`, `P
 - **Known:** The menu bar item (Settings › Notifications › Show progress in the menu bar), Dock badge and synth notifications ship. macOS 27.3 (beta since 2026-11-03) lets Mac apps start their own Live Activities with ActivityKit; an iPhone app's Live Activity also reaches the Apple Watch Smart Stack. Both need a Widget extension, which SwiftPM can't build.
 - **Plan and costs:** `live-updates-iphone-watch-mac.md` (shared model, plan A for the Mac, routes B1–B3 for iPhone and Watch).
 - **Owner decides:** move the app host to an Xcode 27.2 `.xcproj`; start plan A when the macOS 27.3 SDK ships; iCloud (B1) or a relay (B2) for the phone.
+
+### 17. Ship Krouton.app from the Xcode project
+- **Known:** `XcodeHost/project.yml` (XcodeGen) builds Krouton.app with the desktop widget extension and App Intents (Get Krouton's Status, Eject the Disc, Show Krouton) for Shortcuts, Siri and Spotlight; CI's `xcode-app` job builds it. Release zips still come from `Scripts/bundle-app.sh` (SwiftPM), which has neither, so the manual doesn't describe them yet.
+- **To do:** sign and notarize the Xcode build in `bundle-app.sh` (`xcodebuild archive`, then `-exportArchive` with Developer ID), confirm the app-group container works for a Developer ID build on macOS 26/27, then document the widget and Shortcuts in the manual.
+- **Owner decides:** convert the generated project to Xcode 27.2's JSON format (`.xcproj`) in Xcode and commit it, retiring XcodeGen, or keep generating it.
+- **Also:** Swift 6.4's default build system still doesn't write `-emit-localized-strings-path` output or an index store Periphery finds, so those CI jobs use `--build-system native` (see 12).

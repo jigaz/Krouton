@@ -33,7 +33,7 @@ SOURCES = ROOT / "Sources" / "KroutonApp"
 CATALOG = SOURCES / "Resources" / "Localizable.xcstrings"
 
 CALLS = (r"KroutonL10n\.tr|Text|Button|Label|Toggle|Picker|Section|Menu|ColorPicker|Stepper|"
-         r"DisclosureGroup|TextField|SecureField|LabeledContent|GroupBox|Link|"
+         r"DisclosureGroup|TextField|SecureField|LabeledContent|GroupBox|Link|LocalizedStringResource|IntentDescription|"
          r"\.help|\.navigationTitle|\.accessibilityLabel|\.accessibilityHint|\.accessibilityValue|\.badge")
 CALL_START = re.compile(r"(?<![\w.])(" + CALLS + r")\(")
 SPECIFIER = re.compile(r"%(?:\d+\$)?[-+ #0]*\d*(?:\.\d+)?(?:hh|h|ll|l|L|q|j|z|t)?[@dDiuUxXoOfFeEgGcCsSpaA]")

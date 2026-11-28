@@ -139,6 +139,7 @@ enum KroutonStorageAndReset {
         store.poolDispatchMode = .autoAssign
         store.distinctDriveVoices = true
         store.menuBarStatusMode = .whileWorking
+        store.labelSuggestionsEnabled = true
     }
 
     /// The destination queue back to one disc burner card, and the queues saved per workspace cleared.

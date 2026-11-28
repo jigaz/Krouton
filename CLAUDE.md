@@ -8,6 +8,7 @@ This file provides canonical architectural context, build/verification commands,
 - **Run Deterministic Verification Harness:** `swift run krouton-verify`
 - **Krouton Server (Rust):** `cd krouton-server && cargo test --workspace && cargo clippy --workspace --all-targets`
 - **Launch macOS App:** `swift run Krouton`
+- **Xcode project (widget extension, App Intents):** `brew install xcodegen && cd XcodeHost && xcodegen generate`, then open `XcodeHost/Krouton.xcodeproj` (generated; not committed). CI's `xcode-app` job builds it.
 - **User Manual:** chapters are Markdown in `Sources/KroutonApp/Resources/Manual/` (read by the app); after editing run `python3 Scripts/build-manual.py`, and CI runs it with `--check` (also fails if a menu shortcut is missing from `manual-09-keyboard-shortcuts.md`). Describe only what works today.
 - **Interface text:** `Sources/KroutonApp/Resources/Localizable.xcstrings` (String Catalog). After adding or changing text run `python3 Scripts/extract-strings.py`; CI runs it with `--check`. Write user-facing text as SwiftUI literals or `KroutonL10n.tr("…")`.
 - **Package the App:** `./Scripts/bundle-app.sh` (`ARCH`, `VERSION`)
@@ -21,7 +22,7 @@ This file provides canonical architectural context, build/verification commands,
 ## 2. 11-Target Modular Architecture
 Krouton is a native macOS optical disc mastering, extraction, bad-sector rescue, and distributed burn-pool suite written in **Swift 6** (`swift-tools-version: 6.0`, macOS 14+), built and checked with **Xcode 27.2 / Swift 6.4** (CI selects it with `Scripts/ci-select-xcode.sh` on the `xcode-27` runner image):
 
-### 11 Core Architectural Modules (`KroutonDomainIdentity.Module`, 21 SPM Targets in `Package.swift`)
+### 11 Core Architectural Modules (`KroutonDomainIdentity.Module`, 22 SPM Targets in `Package.swift`)
 1. `OpticalCore` — Pure domain models, `KroutonDomainIdentity`, 28 optical format recipes, `BurnClaimLedger`, `SpanManifest`. Zero external dependencies.
 2. `DriveKit` — Optical hardware discovery & low-level I/O. **Strictly isolated:** never import UI or networking frameworks here.
 3. `BurnKit` — `BurnSetScheduler`, `BusArbitrationState`, `BurnPowerAndBandwidthArbiter`, APFS CoW staging.
@@ -32,7 +33,7 @@ Krouton is a native macOS optical disc mastering, extraction, bad-sector rescue,
 8. `LabelKit` — 300-DPI polar disc geometry & 1:1 vector PDF print sheet engine.
 9. `NetworkSpool` — Client for **Krouton Server** (`krouton-server/`, Rust): KRSP v1 frames (`SpoolWireFrame`), Merkle manifests and the resumable `SpoolUploadSender`, pairing and session proofs (`SpoolPairing`), pinned mutual TLS (`SpoolTLS`, `SpoolServerConnection`), keys (`SpoolClientIdentity`), control messages (`SpoolControl`), folder bundles for server-side mastering (`SpoolBundleWriter`), and `SpoolRemoteNodeClient` (`burnImage`, `burnFolder`). The server side of the protocol lives only in Rust. Depends only on `OpticalCore`.
 10. `Persistence` — `SessionStore`, `RunLock` crash recovery.
-11. `KroutonApp` — macOS application target split into `Shell/` and `Features/` (plus `KroutonVerify` and 9 module test targets = 21 SPM targets total).
+11. `KroutonApp` — the macOS app as a library, split into `Shell/` and `Features/`; `KroutonMain` (`swift run Krouton`) and the Xcode project's app target (`XcodeHost/project.yml`) both start it (plus `KroutonVerify` and 9 module test targets = 22 SPM targets total).
 
 ---
 
