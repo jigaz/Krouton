@@ -78,7 +78,7 @@ extension KroutonStateStore {
         }
         guard case .waitForNextBlank(let completedCopy, let totalCopies) = step else { return }
         let driveKey = target.targetDriveID.isEmpty ? (driveManager.selectedDrive?.id ?? "") : target.targetDriveID
-        notifyInsertNextBlank()
+        notifyInsertNextBlank(driveName: driveManager.availableDrives.first { $0.id == driveKey }?.displayName ?? "Optical Drive")
         driveManager.startBatchAutoLoadMonitor(
             for: driveKey,
             completedCopy: completedCopy,
@@ -96,10 +96,11 @@ extension KroutonStateStore {
     }
 
     /// Auto-Load has ejected a finished copy and waits for the next blank.
-    private func notifyInsertNextBlank() {
+    private func notifyInsertNextBlank(driveName: String) {
         KroutonNotificationAndCompanionService.shared.dispatchEvent(
             id: "swap", title: "Insert the Next Blank",
-            subtitle: "\(discVolumeTitle) finished; the next copy starts when a blank goes in.", store: self)
+            subtitle: "\(discVolumeTitle) finished; the next copy starts when a blank goes in.",
+            driveName: driveName, store: self)
     }
 
     /// Says so before a write that can't fit on the blank in the drive, as reported by the drive.

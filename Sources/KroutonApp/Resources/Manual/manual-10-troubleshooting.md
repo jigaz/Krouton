@@ -4,7 +4,7 @@
 
 Open Settings with ⌘,. The search field at the top finds a setting by any word in it.
 
-- **General**: appearance, accent colours, language, and whether Krouton reopens your last project. **Keep these settings in iCloud** shares appearance, units, notifications and their sounds, the label template and the menu bar choice with your other Macs signed in to the same iCloud account; language, drives, servers and keys stay on each Mac. If iCloud already holds another Mac's settings, Krouton asks which to keep. Turning it off leaves the settings as they are. Builds you make yourself aren't signed for iCloud and say so.
+- **General**: appearance, accent colours, language, and whether Krouton reopens your last project. **Keep these settings in iCloud** shares appearance, units, notifications and their sounds, and the menu bar choice with your other Macs signed in to the same iCloud account; language, the label template (it belongs to each project), drives, servers and keys stay on each Mac. If iCloud already holds another Mac's settings, Krouton asks which to keep. Turning it off leaves the settings as they are. Builds you make yourself aren't signed for iCloud and say so.
 - **Format Chooser**: which disc formats appear in the sidebar.
 - **Disc Image Depot**: where images are kept.
 - **Audio & Video**: whether DVD copies and shrinks keep their menus, or play every title in order without them.
