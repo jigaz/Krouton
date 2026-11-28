@@ -178,6 +178,10 @@
           },
           "showOnPC": {
             "type": "boolean"
+          },
+          "startsNewDisc": {
+            "type": "boolean",
+            "description": "A manual disc break before this source when the project spans several discs. Absent means no break."
           }
         }
       }
