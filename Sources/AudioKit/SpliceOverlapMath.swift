@@ -185,7 +185,7 @@ public struct SpliceCanvasGeometry: Equatable, Sendable {
         }
         self.subIndexXs = rawXs
 
-        // Partition by INDEX 01 boundary and number chronologically left-to-right within each track!
+        // Split the marks at INDEX 01 and number them left to right within each track.
         let indexed = spec.subIndexRatios.enumerated().map { (idx, r) -> (Int, Double, CGFloat) in
             let clamped = max(0.05, min(0.95, r))
             return (idx, clamped, w * CGFloat(clamped))

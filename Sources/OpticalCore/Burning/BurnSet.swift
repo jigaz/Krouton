@@ -2,7 +2,7 @@ import Foundation
 
 // A multi-disc burn as data: a frozen set, per-disc jobs, and an event log.
 //
-// The journal stores EVENTS (what happened), and every status on screen is
+// The journal stores events (what happened), and every status on screen is
 // computed from them by a pure function. That gives three things for free:
 //
 //   - Retry of one disc is just another attempt appended for that disc.

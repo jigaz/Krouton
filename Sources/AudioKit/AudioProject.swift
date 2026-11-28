@@ -7,7 +7,7 @@ import OpticalCore
 // session saves it, and the renderer and the cue sheet read it.
 //
 // One array of tracks, in disc order. Each track carries its own metadata and the
-// transition that FOLLOWS it. Reordering, deleting or editing touches one value,
+// transition that follows it. Reordering, deleting or editing touches one value,
 // so nothing can drift out of sync, and the whole project is one Codable value
 // that can be snapshotted for undo and persistence.
 

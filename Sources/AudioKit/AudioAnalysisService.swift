@@ -193,7 +193,7 @@ public actor AudioAnalysisService {
         guard let sampleCount = channels.map(\.count).min(), sampleCount > 0 else { return FramePeaks(values: []) }
         let samplesPerFrame = sampleRate / 75.0
         let frameCount = max(1, Int(Double(sampleCount) / samplesPerFrame))
-        // For a tail window the LAST bucket must end exactly at the end of the file.
+        // For a tail window the last bucket must end exactly at the end of the file.
         let offset = alignToEnd ? Double(sampleCount) - Double(frameCount) * samplesPerFrame : 0
 
         var values = [Float](repeating: 0, count: frameCount)

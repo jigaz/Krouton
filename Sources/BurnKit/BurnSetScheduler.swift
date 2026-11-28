@@ -13,7 +13,7 @@ import OpticalCore
 //     order and three drives burn three discs at once with the same code.
 //   - The actor owns the queue. Two drives can never take the same disc because
 //     taking one is a single actor-isolated step.
-//   - Every state change is appended to the journal BEFORE the UI hears about it.
+//   - Every state change is appended to the journal before the UI hears about it.
 //   - A disc that fails stays failed; nothing retries write-once media on its
 //     own. `run(only:)` is how the user retries exactly the discs they choose.
 

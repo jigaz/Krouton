@@ -138,7 +138,7 @@ extension KroutonLabelGeometryEngine {
 
         switch pattern {
         case .neonLaserPrism:
-            // Smooth multi-stop radial + diagonal silk waves (zero harsh checkerboards!)
+            // Soft radial and diagonal waves.
             let rad1 = CIFilter.radialGradient()
             rad1.center = CGPoint(x: dimension * 0.32, y: dimension * 0.68)
             rad1.radius0 = Float(dimension * 0.04)
