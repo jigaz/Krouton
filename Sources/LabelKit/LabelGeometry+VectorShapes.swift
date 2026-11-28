@@ -6,8 +6,11 @@ import OpticalCore
 import Vision
 
 extension KroutonLabelGeometryEngine {
-    // MARK: - Freehand Drawn Shape -> Automatic Crisp Vector Shape Recognizer
+    // MARK: - Freehand Shape Recognition
 
+    /// Turns a freehand stroke into a shape layer: with `autoSnapGeometry`, a closed stroke close
+    /// to round becomes a circle (or a hub ring), one with 4 to 6 corners a rectangle, otherwise a
+    /// simplified polygon; an open stroke becomes a smoothed curve.
     public static func recognizeAndVectorizeDrawnStroke(
         rawPoints: [KroutonNormalizedPoint],
         autoSnapGeometry: Bool = true,
@@ -92,6 +95,8 @@ extension KroutonLabelGeometryEngine {
         )
     }
 
+    /// A shape layer of `kind`, centred at (`centerX`, `centerY`) with `radius`, in label
+    /// coordinates.
     public static func makeParametricVectorShape(
         kind: KroutonVectorShapeKind,
         centerX: Double = 0.0,

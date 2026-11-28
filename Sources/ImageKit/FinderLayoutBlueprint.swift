@@ -1,14 +1,15 @@
 import Foundation
 
-/// Mirrors macOS Finder's four primary window display modes and their FourCC style codes.
-// MARK: - FinderLayoutBlueprint
+// MARK: - Finder Layout Blueprint
 
+/// Finder's four window views, with the four-character codes `.DS_Store` uses for them.
 public enum KroutonFinderDisplayMode: String, Codable, CaseIterable, Sendable {
     case icon = "Icon"
     case list = "List"
     case column = "Column"
     case gallery = "Gallery"
 
+    /// The view's code in `.DS_Store` (`vstl`).
     public var fourCC: String {
         switch self {
         case .icon: return "icnv"
@@ -18,6 +19,7 @@ public enum KroutonFinderDisplayMode: String, Codable, CaseIterable, Sendable {
         }
     }
 
+    /// The SF Symbols name for the view's icon.
     public var sfSymbol: String {
         switch self {
         case .icon: return "square.grid.2x2"
@@ -28,6 +30,7 @@ public enum KroutonFinderDisplayMode: String, Codable, CaseIterable, Sendable {
     }
 }
 
+/// Finder's sort orders. The raw values are display names.
 public enum KroutonFinderSortKey: String, Codable, CaseIterable, Sendable {
     case name = "Name"
     case kind = "Kind"
@@ -37,6 +40,7 @@ public enum KroutonFinderSortKey: String, Codable, CaseIterable, Sendable {
     case tags = "Tags"
 }
 
+/// Finder's grouping options. The raw values are display names.
 public enum KroutonFinderGroupKey: String, Codable, CaseIterable, Sendable {
     case none = "None"
     case kind = "Kind"
@@ -44,16 +48,19 @@ public enum KroutonFinderGroupKey: String, Codable, CaseIterable, Sendable {
     case tags = "Tags"
 }
 
+/// Where icon view puts the name.
 public enum KroutonFinderLabelPosition: String, Codable, CaseIterable, Sendable {
     case bottom = "Bottom"
     case right = "Right"
 }
 
+/// Gallery view's thumbnail sizes.
 public enum KroutonFinderGalleryThumbSize: Int, Codable, CaseIterable, Sendable {
     case small = 0
     case medium = 1
     case large = 2
 
+    /// The thumbnail height the Finder stage draws, in points.
     public var pixelHeight: Double {
         switch self {
         case .small: return 44
@@ -63,12 +70,14 @@ public enum KroutonFinderGalleryThumbSize: Int, Codable, CaseIterable, Sendable 
     }
 }
 
+/// The icon view background.
 public enum KroutonFinderBackgroundKind: Codable, Equatable, Sendable {
     case defaultSurface
     case solidColor(red: Double, green: Double, blue: Double)
     case picture(path: String)
 }
 
+/// Finder's tag colors.
 public enum KroutonFinderTagColor: String, Codable, CaseIterable, Sendable {
     case none = "None"
     case red = "Red"
@@ -78,12 +87,15 @@ public enum KroutonFinderTagColor: String, Codable, CaseIterable, Sendable {
     case blue = "Blue"
     case purple = "Purple"
     case gray = "Gray"
-
 }
 
+/// What the user set for one item at the disc root.
 public struct KroutonFinderItemAnnotation: Codable, Equatable, Sendable {
+    /// The item's tag color (not written to the disc).
     public var tagColor: KroutonFinderTagColor
+    /// The item's Spotlight comment.
     public var spotlightComment: String
+    /// Where the user dragged the icon, if they did.
     public var iconX: Int?
     public var iconY: Int?
 
@@ -100,9 +112,11 @@ public struct KroutonFinderItemAnnotation: Codable, Equatable, Sendable {
     }
 }
 
-/// Complete Finder View & View Options (`Cmd+J`) configuration for an optical disc root,
-/// capable of synthesizing binary `.DS_Store` metadata and macOS Finder xattrs.
+/// The Finder view and View Options (Command-J) the user chose for the disc's root window, as
+/// the Finder stage edits them. `serializeDSStore` turns part of it into a `.DS_Store` file;
+/// tag colors are kept here but written nowhere.
 public struct KroutonFinderLayoutBlueprint: Codable, Equatable, Sendable {
+    /// The window's view.
     public var displayMode: KroutonFinderDisplayMode
     public var alwaysOpenInPreferredView: Bool
     public var browseInPreferredView: Bool
@@ -139,7 +153,7 @@ public struct KroutonFinderLayoutBlueprint: Codable, Equatable, Sendable {
     public var galleryThumbnailSize: KroutonFinderGalleryThumbSize
     public var showGalleryFilename: Bool
 
-    // Per-item annotations keyed by filename
+    /// Tag color, comment and icon position per item, by file name.
     public var itemAnnotations: [String: KroutonFinderItemAnnotation]
 
     public init(
@@ -206,8 +220,8 @@ public struct KroutonFinderLayoutBlueprint: Codable, Equatable, Sendable {
         self.itemAnnotations = itemAnnotations
     }
 
-    /// Computes deterministic icon grid `(x, y)` coordinates (or uses user-dragged positions)
-    /// for every item in the disc root.
+    /// Icon positions for the items at the disc root: where the user dragged them, otherwise on
+    /// a grid in name order.
     func resolvedIconPositions(for itemNames: [String], canvasWidth: Int = 760) -> [(name: String, x: Int, y: Int)] {
         let cellW = max(90, Int(iconSize + gridSpacing))
         let cellH = max(84, Int(iconSize + (labelPosition == .bottom ? 46 : 26)))
@@ -224,9 +238,12 @@ public struct KroutonFinderLayoutBlueprint: Codable, Equatable, Sendable {
         }
     }
 
-    /// Synthesizes a valid macOS `.DS_Store` Buddy-Allocator binary blob encoding the
-    /// window view style (`vstl`), icon layout (`icvo`), window bounds (`bwsp`), per-item
-    /// icon coordinates (`Iloc`), and UTF-16BE Spotlight comments (`cmmt`).
+    /// A `.DS_Store`-style file with records for the view style (`vstl`), icon view options
+    /// (`icvo`), each item's icon position (`Iloc`) and Spotlight comments (`cmmt`).
+    ///
+    /// Limits: the records follow the Bud1 header as a flat list, without the buddy allocator
+    /// and B-tree a real `.DS_Store` stores them in, and no window bounds (`bwsp`) are written.
+    /// It hasn't been checked that Finder reads it; treat the layout as unverified.
     public func serializeDSStore(itemNames: [String]) -> Data {
         var payload = Data()
 

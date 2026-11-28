@@ -4,8 +4,9 @@ import Observation
 import OpticalCore
 import SwiftUI
 
-// MARK: - Live Graphical Guided Coach-Mark Tutorial Engine
+// MARK: - Guided Tours
 
+/// The part of the main window a tour step highlights.
 enum KroutonTutorialTargetZone: String, Sendable, Equatable {
     case leftFormatSidebar
     case centerMasteringDeck
@@ -14,6 +15,7 @@ enum KroutonTutorialTargetZone: String, Sendable, Equatable {
     case rightBurnerPool
 }
 
+/// The guided tours in Help › Guided Tours. The raw values are identifiers, never shown.
 enum KroutonGuidedTutorialID: String, CaseIterable, Identifiable, Sendable {
     case redBookCrossfade = "red-book-crossfade"
     case multiBurnerPool = "multi-burner-pool"
@@ -24,19 +26,19 @@ enum KroutonGuidedTutorialID: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .redBookCrossfade: return "Red Book Audio CD & 4-Point Bezier Crossfades"
-        case .multiBurnerPool: return "Multi-Burner Waiting Pool & Task Promotion"
-        case .multiDiscSpanning: return "Archival Multi-Disc Spanning & BagIt Sets"
-        case .polarLabelStudio: return "300-DPI Polar Disc Label Studio & Auto-Artwork"
+        case .redBookCrossfade: return "Audio CDs and Crossfades"
+        case .multiBurnerPool: return "Burning on Several Burners"
+        case .multiDiscSpanning: return "Data Across Several Discs"
+        case .polarLabelStudio: return "Designing a Disc Label"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .redBookCrossfade: return "Shape 1/4 & 3/4 track-colored Bezier diamond curves in a 5s viewport with live AVAudioSourceNode auditioning."
-        case .multiBurnerPool: return "Run multiple USB burners concurrently, toggle Auto-Assign vs. Manual mode, and promote tasks from the Waiting Pool."
-        case .multiDiscSpanning: return "Pack large archives across multiple discs with APFS fclonefileat staging and RFC 8493 BagIt SHA-256 manifests."
-        case .polarLabelStudio: return "Harvest artwork with Apple Vision 18mm center-hole avoidance, lay out curved arc text, and export 1:1 print sheets."
+        case .redBookCrossfade: return "Add CD-Text, shape the fade between two tracks while you listen, and burn."
+        case .multiBurnerPool: return "Burn copies on several burners at once, and choose how the waiting discs are handed out."
+        case .multiDiscSpanning: return "Split a large folder across discs, each with a checksum manifest, and resume a set after a quit."
+        case .polarLabelStudio: return "Let Auto Label fill in the title, add curved text and shapes, and export at true size for your printer."
         }
     }
 
@@ -50,6 +52,8 @@ enum KroutonGuidedTutorialID: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// One step of a tour: what to highlight, what to say, and the optional button that does the
+/// step's action for you (`performLiveStepAction`).
 struct KroutonGuidedTutorialStep: Identifiable, Sendable, Equatable {
     let id: Int
     let zone: KroutonTutorialTargetZone
@@ -59,6 +63,9 @@ struct KroutonGuidedTutorialStep: Identifiable, Sendable, Equatable {
     let actionButtonTitle: String?
 }
 
+/// Runs a guided tour: holds the tour and step on screen, switches the main window to the
+/// workspace each step talks about, and performs a step's action when its button is pressed.
+/// `KroutonGuidedTutorialOverlayView` draws the highlight and the step's text.
 @Observable
 @MainActor
 final class KroutonGuidedTutorialController {
@@ -157,33 +164,33 @@ final class KroutonGuidedTutorialController {
                 KroutonGuidedTutorialStep(
                     id: 0,
                     zone: .leftFormatSidebar,
-                    headline: "1. Select Red Book Audio CD (CD-DA)",
-                    body: "Choose Red Book Audio CD in the Format Chooser sidebar (or press ^⌘2). Krouton configures 44.1 kHz / 16-bit stereo PCM mastering with 75-frame-per-second timecode precision.",
-                    shortcutHint: "^⌘2 • Red Book Audio CD",
+                    headline: "1. Choose Audio CD",
+                    body: "Choose Red Book Audio CD in the Format Chooser, or press ⌃⌘2. Audio CDs are 44.1 kHz, 16-bit stereo, timed in frames of 1/75 of a second.",
+                    shortcutHint: "⌃⌘2 • Red Book Audio CD",
                     actionButtonTitle: nil
                 ),
                 KroutonGuidedTutorialStep(
                     id: 1,
                     zone: .centerMasteringDeck,
-                    headline: "2. Author ISO-8859-1 CD-TEXT & Inspect the .CUE Sheet",
-                    body: "Enter your Album Title, Artist, and 12/13-digit UPC/EAN barcode. Krouton compiles 18-byte Sony CD-TEXT packs with CRC-16 checksums in real time.",
-                    shortcutHint: "^⌘U • Inspect Red Book CUE",
-                    actionButtonTitle: "Inspect Live .CUE Sheet"
+                    headline: "2. Add CD-Text and Check the Cue Sheet",
+                    body: "Enter the album title, the artist and, if you have one, the UPC/EAN barcode. Krouton writes them as CD-Text, which many players show. The cue sheet lists what will go on the disc.",
+                    shortcutHint: "⌃⌘U • Inspect Cue Sheet",
+                    actionButtonTitle: "Show the Cue Sheet"
                 ),
                 KroutonGuidedTutorialStep(
                     id: 2,
                     zone: .centerWorkspaceBody,
-                    headline: "3. Shape 4-Point Bezier Diamond Crossfades in a 5s View",
-                    body: "Expand any track's Montage drawer (or pop out the floating Track Montage Editor). Hover near the 1/4 or 3/4 points of the Outgoing or Incoming curve and click to spawn independent track-colored Bezier diamond handles. Drag handles while listening via the lock-free AVAudioSourceNode auditioner!",
-                    shortcutHint: "⌥⌘M • Pop Out Track Montage",
-                    actionButtonTitle: "Open Floating Montage Editor"
+                    headline: "3. Shape a Crossfade",
+                    body: "Choose Crossfade on a transition to open the Track Montage Editor. It shows the end of one track and the start of the next over 5 seconds. Click near a curve to add a handle, and drag it while you listen.",
+                    shortcutHint: "⌥⌘M • Track Montage Editor",
+                    actionButtonTitle: "Open the Track Montage Editor"
                 ),
                 KroutonGuidedTutorialStep(
                     id: 3,
                     zone: .rightBurnerPool,
-                    headline: "4. Choose Write Speed & Verify on Physical Burners",
-                    body: "Select a concrete optical write speed on your USB burner card, enable sector verification, or increase the copy count to duplicate across multiple burners simultaneously.",
-                    shortcutHint: "⌘B • Execute Active Queue",
+                    headline: "4. Set the Burner and Burn",
+                    body: "On the burner's card, choose a write speed and turn on Verify to read the disc back after the burn. Raise the copy count to burn the same disc on several burners.",
+                    shortcutHint: "⌘B • Run Destination Queue",
                     actionButtonTitle: nil
                 )
             ]
@@ -192,33 +199,33 @@ final class KroutonGuidedTutorialController {
                 KroutonGuidedTutorialStep(
                     id: 0,
                     zone: .rightBurnerPool,
-                    headline: "1. Two-Zone Multi-Burner Pool Architecture",
-                    body: "The Right Queue Column is divided into two zones separated by a secondary-accent divider line: Active Optical Burners sit above the line (one card per connected USB burner), and the Waiting Burn Pool sits below the line.",
+                    headline: "1. Burners Above, Waiting Discs Below",
+                    body: "The right-hand column has two parts. Above the line is one card for each connected burner. Below it is the waiting pool: the copies or discs that no burner has taken yet.",
                     shortcutHint: "⇧⌘D • Add Destination Card",
                     actionButtonTitle: nil
                 ),
                 KroutonGuidedTutorialStep(
                     id: 1,
                     zone: .rightBurnerPool,
-                    headline: "2. Queue Multiple Copies or Spanned Discs",
-                    body: "Increase the Copies stepper (e.g. 4× or 20×) on any burner card. Each connected burner claims one copy immediately while remaining copies queue in the Waiting Burn Pool below the divider.",
-                    shortcutHint: "1×..99× • Pool Copy Stepper",
-                    actionButtonTitle: "Add +2 Copies to Waiting Pool"
+                    headline: "2. Queue Several Copies",
+                    body: "Raise the copy count on a burner card. Each burner takes one copy; the rest wait in the pool below the line.",
+                    shortcutHint: "1× to 99× • Copies",
+                    actionButtonTitle: "Add 2 Copies"
                 ),
                 KroutonGuidedTutorialStep(
                     id: 2,
                     zone: .rightBurnerPool,
-                    headline: "3. Auto-Assign vs. Manual & One-Click Promotion (↑)",
-                    body: "In Auto-Assign mode, whichever burner finishes and gets a fresh blank disc automatically claims the next waiting ticket via BurnClaimLedger. Click the ↑ arrow on any waiting ticket to promote it to the front of the queue or pin it to a specific burner.",
-                    shortcutHint: "Auto-Assign / Manual Pill",
-                    actionButtonTitle: "Toggle Auto-Load Mode"
+                    headline: "3. Auto-Assign or Ask Each Time",
+                    body: "With Auto-Assign, a burner that finishes takes the next waiting disc once a blank is in. With Ask / Manual, you approve each one. Click ↑ on a waiting disc to move it to a burner now.",
+                    shortcutHint: "Auto-Assign / Ask / Manual",
+                    actionButtonTitle: "Turn Auto-Load On or Off"
                 ),
                 KroutonGuidedTutorialStep(
                     id: 3,
                     zone: .rightBurnerPool,
-                    headline: "4. USB Bus Power & Bandwidth Arbitration",
-                    body: "When burning on 2–4 USB drives at once, Krouton's BusArbitrationState staggers lead-in laser calibration by 10 seconds and monitors hardware buffer fill to prevent USB bus underruns.",
-                    shortcutHint: "⌥⌘P • Phase Scope Telemetry",
+                    headline: "4. Watch Each Burner",
+                    body: "Each burner card has a Phase Scope that shows write speed, buffer fill and progress while it burns. Open it in its own window to see more.",
+                    shortcutHint: "⌥⌘P • Phase Scope Window",
                     actionButtonTitle: nil
                 )
             ]
@@ -227,33 +234,33 @@ final class KroutonGuidedTutorialController {
                 KroutonGuidedTutorialStep(
                     id: 0,
                     zone: .leftFormatSidebar,
-                    headline: "1. Choose Hybrid ISO-9660 + Joliet + UDF or M-DISC Vault",
-                    body: "Select Hybrid Data or M-DISC Archival Vault in the left sidebar. Krouton masters a single volume readable on macOS, Windows, and Linux simultaneously.",
-                    shortcutHint: "^⌘1 • Hybrid ISO/UDF",
+                    headline: "1. Choose a Data Disc",
+                    body: "Choose Hybrid Data or M-DISC in the Format Chooser. A hybrid disc reads on macOS, Windows and Linux.",
+                    shortcutHint: "⌃⌘1 • Hybrid ISO-9660 + Joliet + UDF",
                     actionButtonTitle: nil
                 ),
                 KroutonGuidedTutorialStep(
                     id: 1,
                     zone: .centerMasteringDeck,
-                    headline: "2. Inspect the 2048-Byte Sector & Hybrid LBA Map",
-                    body: "Verify Primary Volume Descriptor (LBA 16), El Torito Boot Catalog (LBA 17), and UDF Anchor Volume Descriptor Pointer (LBA 256) allocations before burning.",
-                    shortcutHint: "^⌘L • Inspect Hybrid LBA",
-                    actionButtonTitle: "Open Hybrid LBA Inspector"
+                    headline: "2. See Where Things Go on the Disc",
+                    body: "The sector map shows where the parts of the disc start: the ISO 9660 volume descriptor at sector 16 and the UDF anchor at sector 256.",
+                    shortcutHint: "⌃⌘L • Inspect LBA Layout",
+                    actionButtonTitle: "Show the Sector Map"
                 ),
                 KroutonGuidedTutorialStep(
                     id: 2,
                     zone: .centerCapacityBar,
-                    headline: "3. Automatic Multi-Disc Spanning & Capacity Bar",
-                    body: "When staged files exceed a single disc's capacity, Krouton's deterministic First-Fit-Decreasing DiscPlanner packs them across Disc 1..N and writes an RFC 8493 BagIt SHA-256 manifest onto every disc.",
-                    shortcutHint: "Capacity & Spanning Bar",
+                    headline: "3. More Than One Disc's Worth",
+                    body: "The capacity bar shows when the files are too big for one disc. Burn as Multi-Disc Set splits them across discs; each disc gets a checksum manifest and an index of the whole set.",
+                    shortcutHint: "Capacity Bar",
                     actionButtonTitle: nil
                 ),
                 KroutonGuidedTutorialStep(
                     id: 3,
                     zone: .rightBurnerPool,
-                    headline: "4. APFS Copy-on-Write Staging & Crash-Safe Journal",
-                    body: "BurnSetStager freezes source files instantaneously on APFS using descriptor-pinned fclonefileat() and logs every disc attempt to burn-set-events.jsonl so interrupted sets resume cleanly.",
-                    shortcutHint: "⌘B • Start Spanned Burn",
+                    headline: "4. A Set Survives a Quit",
+                    body: "Krouton copies the files before it burns, so changing the originals doesn't change the set, and records each disc as it goes. If Krouton quits halfway, the set resumes with its finished discs still finished.",
+                    shortcutHint: "Burn as Multi-Disc Set",
                     actionButtonTitle: nil
                 )
             ]
@@ -262,33 +269,33 @@ final class KroutonGuidedTutorialController {
                 KroutonGuidedTutorialStep(
                     id: 0,
                     zone: .leftFormatSidebar,
-                    headline: "1. Open the Polar 300-DPI Disc Label Studio",
-                    body: "Switch to the Label workspace (⌘4) to design edge-to-edge 120mm / 80mm optical disc artwork with true millimeter geometry.",
-                    shortcutHint: "⌘4 • Polar Disc Label Studio",
+                    headline: "1. Open the Label Workspace",
+                    body: "Press ⌘4 to design a disc label at true size: 120 mm for standard discs, 80 mm for mini discs.",
+                    shortcutHint: "⌘4 • Disc Label",
                     actionButtonTitle: nil
                 ),
                 KroutonGuidedTutorialStep(
                     id: 1,
                     zone: .centerMasteringDeck,
-                    headline: "2. Auto Label with Apple Vision Center-Hole Avoidance",
-                    body: "Click Auto Label to harvest album artwork, extract Display-P3 harmony swatches, and keep faces or logos outside the 18mm transparent center hub.",
-                    shortcutHint: "⌘G • Toggle 10mm Grid",
-                    actionButtonTitle: "Toggle 10mm Alignment Grid"
+                    headline: "2. Let Auto Label Start It",
+                    body: "Auto Label fills in the label's title and subtitle from the disc's title and artist. With Apple Intelligence, a raw name such as SUMMER_2026_FINAL becomes a readable title first. The grid helps you keep things clear of the centre hole.",
+                    shortcutHint: "⌘G • 10 mm Alignment Grid",
+                    actionButtonTitle: "Show or Hide the Grid"
                 ),
                 KroutonGuidedTutorialStep(
                     id: 2,
                     zone: .centerWorkspaceBody,
-                    headline: "3. Curved Arc Typography & Freehand Vector Shapes",
-                    body: "Use the left tool rail to add curved polar arc text, Metal/CoreImage circular gradients, or draw freehand strokes that automatically snap to clean vector geometry.",
+                    headline: "3. Add Text and Shapes",
+                    body: "Use the tool rail on the left to add text that follows the curve of the disc, a gradient background, or shapes. Freehand strokes can snap to clean circles and polygons.",
                     shortcutHint: "⌘T • Add Curved Text Layer",
                     actionButtonTitle: nil
                 ),
                 KroutonGuidedTutorialStep(
                     id: 3,
                     zone: .centerMasteringDeck,
-                    headline: "4. Export 1:1 Vector PDF Print Sheet or 300-DPI PNG",
-                    body: "Export a millimeter-calibrated 1:1 Vector PDF print sheet (with X/Y tray offset compensation for Epson EcoTank ET-8550 & Canon trays) or a 300-DPI archival PNG.",
-                    shortcutHint: "1:1 Vector PDF & 300-DPI PNG",
+                    headline: "4. Export for Your Printer",
+                    body: "Export a PNG for your printer's disc software, or a 1:1 PDF with your tray's X and Y offsets applied.",
+                    shortcutHint: "Export PNG • Export 1:1 PDF",
                     actionButtonTitle: nil
                 )
             ]

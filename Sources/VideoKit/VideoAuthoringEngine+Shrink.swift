@@ -2,6 +2,7 @@ import Foundation
 
 // MARK: - DVD-9 -> DVD-5 Shrink
 
+/// Why a shrink couldn't run. The descriptions are for the user.
 public enum KroutonVideoShrinkError: Error, LocalizedError, Sendable, Equatable {
     case requantizationUnavailable(sourceBytes: Int64, dvd5Bytes: Int64)
     case transcodeFailed(exitCode: Int32)

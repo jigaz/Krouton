@@ -24,6 +24,7 @@ public struct KroutonColumnBreakpoint: Sendable, Equatable {
         self.startsNarrowBelow = startsNarrowBelow
     }
 
+    /// The size for `width`, given the size the column had before (nil for the first layout).
     public func size(forWidth width: Double, previous: KroutonColumnSize?) -> KroutonColumnSize {
         switch previous {
         case nil: return width < startsNarrowBelow ? .narrow : .regular
@@ -42,8 +43,11 @@ public struct KroutonColumnBreakpoint: Sendable, Equatable {
 /// (`isLeftSidebarUltraSkinny`, `isCenterWorkspaceNarrow`, `isRightQueueCompact`), whose short
 /// labels were sized for them. Change one only together with the labels it guards.
 public struct KroutonWindowLayout: Sendable, Equatable {
+    /// The format sidebar.
     public var sidebar: KroutonColumnSize
+    /// The center workspace.
     public var workspace: KroutonColumnSize
+    /// The destination queue.
     public var queue: KroutonColumnSize
 
     public init(sidebar: KroutonColumnSize = .regular, workspace: KroutonColumnSize = .regular,
@@ -53,10 +57,14 @@ public struct KroutonWindowLayout: Sendable, Equatable {
         self.queue = queue
     }
 
+    /// Every column regular.
     public static let regular = KroutonWindowLayout()
 
+    /// Breakpoints for the format sidebar, in points.
     public static let sidebarBreakpoint = KroutonColumnBreakpoint(narrowBelow: 215, regularAbove: 228, startsNarrowBelow: 215)
+    /// Breakpoints for the workspace, in points.
     public static let workspaceBreakpoint = KroutonColumnBreakpoint(narrowBelow: 510, regularAbove: 535, startsNarrowBelow: 520)
+    /// Breakpoints for the destination queue, in points.
     public static let queueBreakpoint = KroutonColumnBreakpoint(narrowBelow: 355, regularAbove: 368, startsNarrowBelow: 355)
 
     /// The layout for these column widths. Pass the previous layout to keep the gap between

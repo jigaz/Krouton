@@ -1,5 +1,11 @@
 import SwiftUI
 
+// MARK: - App and Scenes
+
+/// The app's scenes: the main window, Settings, the Phase Scope window (one per drive), the
+/// Track Montage Editor, the user manual and the menu bar item. `KroutonWindowManager.shared`
+/// owns the state store and the drive bank they all share. Started by `KroutonEntryPoint` when
+/// Krouton isn't run as a command-line tool.
 struct KroutonApp: App {
     @NSApplicationDelegateAdaptor(KroutonAppDelegate.self) private var appDelegate
     @State private var wm = KroutonWindowManager.shared

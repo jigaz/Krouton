@@ -1,24 +1,31 @@
 import Foundation
 
-// MARK: - DVD-Video Binary NV_PCK (DSI) & .IFO / .BUP Sector Table Relinker
+// MARK: - DVD-Video Navigation Pack and IFO Relinker
 
+/// One cell's new sector range after relinking.
 public struct DVDVideoRelinkedCellRange: Sendable, Equatable {
     let vobID: UInt16
+    /// The cell's number within its VOB.
     public let cellID: UInt8
     let startSector: UInt32
     let endSector: UInt32
 }
 
+/// The sizes of one title set after a shrink, in sectors.
 public struct DVDVideoVTSLayout: Sendable, Equatable {
     let vtsNumber: Int
     let ifoSectors: UInt32
+    /// The menu VOB's size.
     public let menuVobSectors: UInt32
+    /// The title VOBs' size.
     public let titleVobSectors: UInt32
     var totalVTSSectors: UInt32 {
         (ifoSectors * 2) + menuVobSectors + titleVobSectors
     }
 }
 
+/// Rewrites the sector addresses in DVD-Video navigation packs and IFO tables after title VOBs
+/// change size, and re-encodes title VOBs with ffmpeg for the DVD-9 to DVD-5 shrink.
 public enum DVDVideoIFORelinker {
     static let sectorBytes = 2048
     /// Spec limit per VOB file: 1 GiB minus 32 KiB (524,272 sectors)
@@ -31,6 +38,7 @@ public enum DVDVideoIFORelinker {
         return (UInt16(bytes[offset]) << 8) | UInt16(bytes[offset + 1])
     }
 
+    /// The big-endian `UInt32` at `offset`, or 0 when it runs past the end.
     public static func readUInt32BE(_ bytes: [UInt8], at offset: Int) -> UInt32 {
         guard offset >= 0, offset + 4 <= bytes.count else { return 0 }
         return (UInt32(bytes[offset]) << 24)
@@ -39,12 +47,14 @@ public enum DVDVideoIFORelinker {
             | UInt32(bytes[offset + 3])
     }
 
+    /// Writes `value` big-endian at `offset`; does nothing when it would run past the end.
     public static func writeUInt16BE(_ value: UInt16, into bytes: inout [UInt8], at offset: Int) {
         guard offset >= 0, offset + 2 <= bytes.count else { return }
         bytes[offset] = UInt8((value >> 8) & 0xFF)
         bytes[offset + 1] = UInt8(value & 0xFF)
     }
 
+    /// Writes `value` big-endian at `offset`; does nothing when it would run past the end.
     public static func writeUInt32BE(_ value: UInt32, into bytes: inout [UInt8], at offset: Int) {
         guard offset >= 0, offset + 4 <= bytes.count else { return }
         bytes[offset] = UInt8((value >> 24) & 0xFF)
@@ -53,7 +63,7 @@ public enum DVDVideoIFORelinker {
         bytes[offset + 3] = UInt8(value & 0xFF)
     }
 
-    // MARK: - NV_PCK (Navigation Pack) Scanner & In-Place DSI Relinker
+    // MARK: - Navigation Packs (NV_PCK)
 
     /// Returns true if the 2048-byte pack at `packOffset` is a DVD-Video NV_PCK (PCI + DSI).
     static func isNavigationPack(_ bytes: [UInt8], at packOffset: Int) -> Bool {
@@ -121,27 +131,26 @@ public enum DVDVideoIFORelinker {
                 }
             }
 
-            // Recompute VOBU_SRI (42 x 4B entries starting at 0x04F1: 21 forward + 21 backward)
+            // Recompute VOBU_SRI (42 x 4B entries from 0x04F1): FWDI Video, FWDI 240 ... FWDI 1,
+            // FWDI Next, then BWDI Prev, BWDI 1 ... BWDI 240, BWDI Video.
             let stepOffsets = [240, 120, 60, 20, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-            // Forward Next VOBU with video (0x04F1) & Next VOBU (0x04F5)
+            let sri = base + 0x04F1
             let fwd1 = (idx + 1 < navSectors.count) ? (0x8000_0000 | (navSectors[idx + 1] - startSec)) : 0x3FFF_FFFF
-            writeUInt32BE(fwd1, into: &bytes, at: base + 0x04F1)
-            writeUInt32BE(fwd1, into: &bytes, at: base + 0x04F5)
+            writeUInt32BE(fwd1, into: &bytes, at: sri)
             for (sIdx, step) in stepOffsets.enumerated() {
                 let targetIdx = idx + step
                 let ptr = (targetIdx < navSectors.count) ? (0x8000_0000 | (navSectors[targetIdx] - startSec)) : 0x3FFF_FFFF
-                writeUInt32BE(ptr, into: &bytes, at: base + 0x04F9 + (sIdx * 4))
+                writeUInt32BE(ptr, into: &bytes, at: sri + 4 + (sIdx * 4))
             }
-            // Backward entries starting at 0x0545
-            let bwdBase = base + 0x0545
-            for (sIdx, step) in stepOffsets.enumerated() {
+            writeUInt32BE(fwd1, into: &bytes, at: sri + 80)
+            let prev1 = (idx > 0) ? (0x8000_0000 | (startSec - navSectors[idx - 1])) : 0x3FFF_FFFF
+            writeUInt32BE(prev1, into: &bytes, at: sri + 84)
+            for (sIdx, step) in stepOffsets.reversed().enumerated() {
                 let targetIdx = idx - step
                 let ptr = (targetIdx >= 0) ? (0x8000_0000 | (startSec - navSectors[targetIdx])) : 0x3FFF_FFFF
-                writeUInt32BE(ptr, into: &bytes, at: bwdBase + (sIdx * 4))
+                writeUInt32BE(ptr, into: &bytes, at: sri + 88 + (sIdx * 4))
             }
-            let prev1 = (idx > 0) ? (0x8000_0000 | (startSec - navSectors[idx - 1])) : 0x3FFF_FFFF
-            writeUInt32BE(prev1, into: &bytes, at: bwdBase + 19 * 4)
-            writeUInt32BE(prev1, into: &bytes, at: bwdBase + 20 * 4)
+            writeUInt32BE(prev1, into: &bytes, at: sri + 164)
         }
 
         // Group contiguous VOBUs by (vobID, cellID) into relinked cell ranges
@@ -170,7 +179,7 @@ public enum DVDVideoIFORelinker {
         return (Data(bytes), navSectors, cells)
     }
 
-    // MARK: - VTS_xx_0.IFO & VIDEO_TS.IFO Binary Sector Table Relinking
+    // MARK: - IFO Sector Tables
 
     /// Rebuilds `VTS_C_ADT`, `VTS_VOBU_ADMAP`, `VTS_PGCI` cell sector offsets, and `VTSI_MAT` pointers
     /// in a `VTS_xx_0.IFO` buffer (which is then written identically to both `.IFO` and `.BUP`).
@@ -261,8 +270,9 @@ public enum DVDVideoIFORelinker {
                     let pos = cellPosOff + (cIdx * 4)
                     guard pb + 24 <= bytes.count else { break }
 
-                    // Clear Dual-Layer STC_discontinuity / pause bit (0x08) and set seamless playback (0x02)
-                    bytes[pb] = (bytes[pb] & ~0x08) | 0x02
+                    // Set seamless playback (0x08) and clear the STC discontinuity (0x02): the
+                    // re-encoded title runs on one continuous clock.
+                    bytes[pb] = (bytes[pb] | 0x08) & ~0x02
 
                     let targetVobID: UInt16
                     let targetCellID: UInt8
@@ -280,7 +290,8 @@ public enum DVDVideoIFORelinker {
                         ?? (cIdx < cells.count ? cells[cIdx] : nil) {
                         writeUInt32BE(matched.startSector, into: &bytes, at: pb + 0x08) // firstVOBUStart
                         writeUInt32BE(matched.endSector, into: &bytes, at: pb + 0x0C)   // firstILVUEnd
-                        writeUInt32BE(matched.startSector, into: &bytes, at: pb + 0x10) // lastVOBUStart
+                        let lastVOBUStart = vobuStartSectors.last { $0 >= matched.startSector && $0 <= matched.endSector }
+                        writeUInt32BE(lastVOBUStart ?? matched.startSector, into: &bytes, at: pb + 0x10) // lastVOBUStart
                         writeUInt32BE(matched.endSector, into: &bytes, at: pb + 0x14)   // lastVOBUEnd
                     }
                 }
@@ -329,7 +340,7 @@ public enum DVDVideoIFORelinker {
         return Data(bytes)
     }
 
-    // MARK: - Direct FFmpeg MPEG-2 Requantizer (Zero Shell)
+    // MARK: - ffmpeg Re-encode
 
     static func locateFFmpegExecutable() -> URL? {
         for candidate in ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg"] {

@@ -4,7 +4,7 @@ import Foundation
 import SwiftUI
 import os
 
-// MARK: - Unified Synthesis & DSP Engine
+// MARK: - Sound Engine
 
 /// Thread-safe, pure `AVFoundation` audio synthesis and DSP engine.
 ///
@@ -58,7 +58,7 @@ final class KroutonAcousticEngine: Sendable {
         }
     }
 
-    // MARK: - Unified Source Acquisition + Single-Pass DSP Pipeline
+    // MARK: - Loading and Shaping Samples
 
     private func buildBuffer(for cue: KroutonAcousticCue, format: AVAudioFormat) -> AVAudioPCMBuffer? {
         let rawSamples: [Float]

@@ -19,6 +19,7 @@ import Foundation
 /// set, entries and directories, then the ISO path tables and directories; then file contents.
 /// A second anchor ends it.
 public enum KroutonUDFImageWriter {
+    /// Which layout to write.
     public enum Profile: Sendable, Equatable {
         case bluRay
         case dvdVideo
@@ -28,9 +29,13 @@ public enum KroutonUDFImageWriter {
     static let align: UInt64 = 32
     static let firstUniqueID: UInt64 = 16
 
+    /// What the writer wrote.
     public struct Built: Sendable, Equatable {
+        /// The image's size in 2,048-byte sectors.
         public let sectors: UInt64
+        /// Files written.
         public let files: Int
+        /// Folders written.
         public let folders: Int
     }
 

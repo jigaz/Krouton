@@ -2,16 +2,28 @@ import AVFoundation
 import Foundation
 import OpticalCore
 
+// MARK: - Video Disc Scanner
+
+/// A mounted video disc or folder, as Extract Video Disc lists it.
 public struct ScannedOpticalVideoDisc: Sendable, Equatable {
+    /// The volume's name.
     public var volumeTitle: String
+    /// Where it is mounted.
     public var mountPath: String
-    public var discKind: String // "DVD-Video (VIDEO_TS)", "Blu-ray (BDMV)", "Optical Data Volume"
+    /// "DVD-Video (VIDEO_TS)", "Blu-ray (BDMV)" or "Optical Data Volume".
+    public var discKind: String
+    /// The volume's size in bytes.
     public var totalBytes: Int64
+    /// The volume's size in 2,048-byte sectors.
     public var totalSectorsLBA: Int64
+    /// The titles found.
     public var titles: [KroutonVideoExtractTitleItem]
+    /// The files that make up each title, by title ID, in play order.
     public var titleSegmentURLs: [String: [URL]]
 }
 
+/// Finds the titles of a mounted DVD-Video or Blu-ray volume (or folder), and copies a title's
+/// segments into one file.
 public enum OpticalDiscVolumeScanner {
 
     private static let ignoredSystemVolumes: Set<String> = [
@@ -85,7 +97,7 @@ public enum OpticalDiscVolumeScanner {
         return nil
     }
 
-    // MARK: - DVD-Video VIDEO_TS Title Set Scanner (VTS_XX_0.IFO + VTS_XX_1..9.VOB)
+    // MARK: - DVD-Video Title Sets (VTS_xx_0.IFO, VTS_xx_1…9.VOB)
 
     static func scanVideoTSDirectory(videoTSDir: URL, volumeRoot: URL) -> ScannedOpticalVideoDisc {
         let fm = FileManager.default
@@ -185,7 +197,7 @@ public enum OpticalDiscVolumeScanner {
         Int((byte >> 4) & 0x0F) * 10 + Int(byte & 0x0F)
     }
 
-    // MARK: - Blu-ray BDMV/STREAM Scanner (*.m2ts)
+    // MARK: - Blu-ray Streams (BDMV/STREAM/*.m2ts)
 
     static func scanBDMVStreamDirectory(streamDir: URL, volumeRoot: URL) -> ScannedOpticalVideoDisc {
         let fm = FileManager.default
@@ -227,7 +239,7 @@ public enum OpticalDiscVolumeScanner {
         )
     }
 
-    // MARK: - Generic Mounted Optical / Video Folder Scanner
+    // MARK: - Other Volumes and Folders
 
     static func scanGenericOpticalVolume(volumeRoot: URL) -> ScannedOpticalVideoDisc {
         let fm = FileManager.default
@@ -280,7 +292,7 @@ public enum OpticalDiscVolumeScanner {
         return String(format: "%02d:%02d:%02d", hh, mm, ss)
     }
 
-    // MARK: - Real Stream Concatenation / Remux & Native hdiutil ISO Creation
+    // MARK: - Joining Segments and Making Images
 
     /// Concatenates one or more VOB/M2TS segments for a title into a single clean stream file in `outputDirectory`.
     public static func extractTitleSegments(

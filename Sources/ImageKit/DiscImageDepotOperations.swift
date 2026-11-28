@@ -1,17 +1,27 @@
 import Foundation
 
-// MARK: - Disc Image Depot Real Disk Operations (BIN->ISO Sector Extraction, hdiutil Convert/Mount/Verify)
+// MARK: - Disc Image Operations (inspect, convert, mount, verify)
 
+/// What the image inspector shows about one file.
 public struct DiscImageInspectionReport: Sendable, Equatable {
+    /// The file that was inspected.
     public let fileURL: URL
+    /// Its name.
     public let fileName: String
+    /// The size of the data file (the .bin for a .cue).
     public let byteSize: Int64
+    /// File systems, boot format and suggested blank.
     public let classification: KroutonDiscImageClassification
     let bootClassification: DiscImageBootClassification
+    /// The cue sheet's tracks, when there is one.
     public let cueTracks: [KroutonDiscImageCueTrack]
+    /// The .bin a .cue names, when it was found.
     public let resolvedBinURL: URL?
 }
 
+/// File operations on disc images: inspect, convert between .bin and .iso and between .dmg and
+/// .iso, mount, and verify. The `hdiutil` calls run as a `Process` with an argument array and block
+/// until it exits.
 public enum DiscImageDepotOperations {
     /// Inspects any `.iso`, `.dmg`, `.cdr`, `.img`, `.bin`, or `.cue` file on disk using `KroutonDiscImageDepot`.
     public static func inspectImageFile(at url: URL) -> DiscImageInspectionReport {
@@ -37,7 +47,8 @@ public enum DiscImageDepotOperations {
         }
 
         let fileSize = Int64((try? targetDataURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
-        // Read first 600 KB (covers LBA 0..299 including PVD at LBA 16, El Torito at LBA 17, UDF Anchor at LBA 256)
+        // The first 600 KB: sectors 0 to 299, which hold the ISO 9660 descriptors (16 on), an El
+        // Torito record (17) and the UDF anchor (256).
         var headerData = Data()
         if let fh = try? FileHandle(forReadingFrom: targetDataURL) {
             defer { try? fh.close() }
@@ -82,7 +93,8 @@ public enum DiscImageDepotOperations {
         return FileManager.default.fileExists(atPath: sibling.path) ? sibling : nil
     }
 
-    /// Converts a raw 2,352-byte/sector `.bin` (or `.cue` referencing a `.bin`) into a clean 2,048-byte/sector `.iso` on disk.
+    /// Converts a raw 2,352-byte-sector `.bin` (or the `.bin` a `.cue` names) into a 2,048-byte-
+    /// sector `.iso`, keeping each sector's user data. Returns the bytes written.
     public static func extractRawBinToISO(sourceURL: URL, outputISOURL: URL) throws -> Int64 {
         let fm = FileManager.default
         var binURL = sourceURL
@@ -104,7 +116,11 @@ public enum DiscImageDepotOperations {
         defer { try? outHandle.close() }
 
         let fileBytes = Int64((try? binURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
-        let isRaw2352 = (fileBytes > 0 && fileBytes % 2352 == 0)
+        // A size that divides by 2352 isn't enough (one ISO in 147 has one): raw sectors start
+        // with the CD-ROM sync pattern.
+        let head = try inHandle.read(upToCount: 12) ?? Data()
+        try inHandle.seek(toOffset: 0)
+        let isRaw2352 = fileBytes > 0 && fileBytes % 2352 == 0 && [UInt8](head) == KroutonDiscImageDepot.cdRomSyncPattern
         let sectorStride = isRaw2352 ? 2352 : 2048
         let batchSectors = 512
         var writtenBytes: Int64 = 0
@@ -195,7 +211,10 @@ public enum DiscImageDepotOperations {
         return "Mounted in Finder"
     }
 
-    /// Builds a valid 36-sector (73,728-byte) ISO-9660 + El Torito Bootable Image on disk
+    /// Writes a 36-sector test image with the signatures of an ISO 9660 primary volume
+    /// descriptor, an El Torito boot record and boot catalog, and `manifestText` from sector 20.
+    /// It is not a complete ISO 9660 volume (no volume size, root directory or path tables, no
+    /// validation-entry checksum) and doesn't boot. Only krouton-verify uses it.
     public static func writeBootableDepotISO(volumeID: String, manifestText: String, destinationURL: URL) throws {
         let sectorSize = 2048
         let totalSectors = 36

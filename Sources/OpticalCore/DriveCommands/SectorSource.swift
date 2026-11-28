@@ -11,6 +11,7 @@ public protocol KroutonSectorSource: Sendable {
     func read(lba: Int64, count: Int) async throws(KroutonSectorReadError) -> [UInt8]
 }
 
+/// Why a sector read failed, split by whether retrying can help.
 public enum KroutonSectorReadError: Error, LocalizedError, Sendable, Equatable {
     /// The disc could not be read there: a scratch, dye failure or dirt. Worth trying again later.
     case unreadable(String)
@@ -25,12 +26,15 @@ public enum KroutonSectorReadError: Error, LocalizedError, Sendable, Equatable {
     }
 }
 
+/// The size of a data sector's user data.
 public enum KroutonSector {
+    /// 2,048 bytes: the user data of a Mode 1 CD sector, or of a DVD or Blu-ray sector.
     public static let size = 2048
 }
 
 /// Reads a disc through a drive's own MMC commands (READ CAPACITY, READ (10)).
 public struct MMCSectorSource<Transport: MMCTransport>: KroutonSectorSource {
+    /// The drive connection the commands go through.
     public let transport: Transport
 
     public init(transport: Transport) {

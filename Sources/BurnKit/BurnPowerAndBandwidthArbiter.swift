@@ -1,13 +1,18 @@
 import Foundation
 import OpticalCore
 
-// MARK: - Telemetry Sample & Pure Bus Arbitration State Machine
+// MARK: - Buffer Samples and the Arbitration State
 
-/// One buffer-health and write-speed reading from an active burner. NaN/Infinity values are sanitized.
+/// One buffer and write-speed reading from a burner. Fills are clamped to 0…1, and values that
+/// aren't finite are dropped.
 public struct DriveBufferSample: Sendable, Equatable {
+    /// The drive the reading is from.
     public let drive: DriveID
+    /// The drive's buffer fill, 0…1, when known.
     public let driveBufferFill: Double?
+    /// The host-side write buffer's fill, 0…1, when known.
     public let hostFIFOFill: Double?
+    /// The write speed, as a multiple of 1x.
     public let effectiveSpeedX: Double
 
     public init(drive: DriveID, driveBufferFill: Double?, hostFIFOFill: Double?, effectiveSpeedX: Double) {
@@ -21,23 +26,41 @@ public struct DriveBufferSample: Sendable, Equatable {
     }
 }
 
+/// Decides which drive may spin up and start writing next, so drives on one bus or power supply
+/// don't all start at once. A drive asks with `request`, gets the token from `grant`, and gives it
+/// back with `reachedSteadyWriting`. While any drive's buffer is starving, new spin-ups wait. Pure
+/// state: time is passed in, so it is tested without a clock.
 public struct BusArbitrationState: Sendable, Equatable {
+    /// The timings and thresholds.
     public struct Policy: Sendable, Equatable {
+        /// The least time between two spin-ups.
         public var spinUpSpacing: Duration = .seconds(10)
+        /// How long a drive may hold the token before it is taken back.
         public var spinUpTimeout: Duration = .seconds(45)
+        /// The longest a starving drive holds back new spin-ups.
         public var maxStarvationHold: Duration = .seconds(90)
+        /// Below this drive buffer fill (with a full host buffer), a sample counts as starved.
         public var lowDriveBuffer: Double = 0.35
+        /// At or above this host buffer fill, a low drive buffer means the bus is the bottleneck.
         public var fullHostFIFO: Double = 0.80
+        /// Without buffer readings, a speed below this fraction of the drive's peak counts as
+        /// starved.
         public var speedSagRatio: Double = 0.60
+        /// Starved samples in a row before a drive counts as starving.
         public var samplesToTrip: Int = 3
+        /// Healthy samples in a row before it no longer does.
         public var samplesToClear: Int = 5
 
         public init() {}
     }
 
+    /// The timings and thresholds in use.
     public let policy: Policy
+    /// Drives waiting to spin up, in order.
     public private(set) var queue: [DriveID] = []
+    /// The drive spinning up now, if any.
     public private(set) var holder: DriveID?
+    /// Drives whose buffers are starving.
     public private(set) var starving: Set<DriveID> = []
     private var holderSince: Duration = .zero
     private var lastGrant: Duration?
@@ -50,6 +73,7 @@ public struct BusArbitrationState: Sendable, Equatable {
         self.policy = policy
     }
 
+    /// Puts a drive in line to spin up.
     public mutating func request(_ drive: DriveID) {
         guard holder != drive, !queue.contains(drive) else { return }
         queue.append(drive)
@@ -71,10 +95,12 @@ public struct BusArbitrationState: Sendable, Equatable {
         return next
     }
 
+    /// Takes the token back from a drive that is writing steadily.
     public mutating func reachedSteadyWriting(_ drive: DriveID) {
         if holder == drive { holder = nil }
     }
 
+    /// Removes a drive entirely: from the line, the token and the starvation counts.
     public mutating func withdraw(_ drive: DriveID) {
         queue.removeAll { $0 == drive }
         if holder == drive { holder = nil }
@@ -85,6 +111,7 @@ public struct BusArbitrationState: Sendable, Equatable {
         if starving.isEmpty { starvingSince = nil }
     }
 
+    /// Counts a buffer reading towards the drive's starving or healthy streak.
     public mutating func record(_ sample: DriveBufferSample, at now: Duration) {
         let peak = max(peakSpeed[sample.drive] ?? 0.0, sample.effectiveSpeedX)
         peakSpeed[sample.drive] = peak
@@ -114,8 +141,11 @@ public struct BusArbitrationState: Sendable, Equatable {
     }
 }
 
-// MARK: - BurnPowerAndBandwidthArbiter Actor
+// MARK: - Arbiter
 
+/// `BusArbitrationState` behind an actor with a real clock, for `BurnSetScheduler`: a drive awaits
+/// `acquireSpinUp` before it writes. Nothing calls `record` yet, so starvation never holds a
+/// spin-up back (see PENDING_INTEGRATION.md).
 public actor BurnPowerAndBandwidthArbiter {
     private var state: BusArbitrationState
     private var waiters: [DriveID: CheckedContinuation<Void, Never>] = [:]
@@ -128,6 +158,7 @@ public actor BurnPowerAndBandwidthArbiter {
 
     private var now: Duration { ContinuousClock.now - origin }
 
+    /// Waits until this drive may spin up. Returns at once when the task is cancelled.
     public func acquireSpinUp(for drive: DriveID) async {
         await withTaskCancellationHandler {
             await withCheckedContinuation { (resume: CheckedContinuation<Void, Never>) in
@@ -141,17 +172,20 @@ public actor BurnPowerAndBandwidthArbiter {
         }
     }
 
+    /// Gives the token back once the drive writes steadily.
     public func reachedSteadyWriting(_ drive: DriveID) {
         state.reachedSteadyWriting(drive)
         grantDue()
     }
 
+    /// Removes a drive, waking it if it was waiting.
     public func withdraw(_ drive: DriveID) {
         state.withdraw(drive)
         waiters.removeValue(forKey: drive)?.resume()
         grantDue()
     }
 
+    /// Records a buffer reading.
     public func record(_ sample: DriveBufferSample) {
         state.record(sample, at: now)
         grantDue()

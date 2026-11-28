@@ -2,7 +2,7 @@ import DriveKit
 import Foundation
 import SwiftUI
 
-// MARK: - Live Graphical Spotlight & Coach-Mark Overlay View
+// MARK: - Guided Tour Overlay
 
 struct KroutonGuidedTutorialOverlayView: View {
     var store: KroutonStateStore

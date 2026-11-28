@@ -147,7 +147,7 @@ extension KroutonDataAndArchivalWorkspaceView {
                         }
                     }
 
-                    // 2. Narrow Stacked Fallback (Zero Vertical Word-Towers & Zero Clipping!)
+                    // 2. Narrow: stacked, so no label wraps one word per line or is cut off.
                 }
         }
     }

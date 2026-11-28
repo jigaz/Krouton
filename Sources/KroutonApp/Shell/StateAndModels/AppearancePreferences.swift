@@ -2,8 +2,11 @@ import Foundation
 import Observation
 import SwiftUI
 
-// MARK: - Typed Preference Keys & Access Layer
+// MARK: - Preference Keys
 
+/// Every key Krouton stores in `UserDefaults`. Code reads and writes them only through
+/// `KroutonPreferences`, never with a string of its own, so iCloud sync and Reset Settings
+/// see every one. The raw values are stored on disk: don't change them.
 enum KroutonPreferenceKey: String, CaseIterable, Sendable {
     case selectedAccentIndex = "krouton.pref.selectedAccentIndex"
     case harmonyEnabled = "krouton.pref.harmonyEnabled"
@@ -31,6 +34,8 @@ enum KroutonPreferenceKey: String, CaseIterable, Sendable {
     case appleLanguages = "AppleLanguages"
 }
 
+/// Typed access to the saved preferences. `set` also hands the change to
+/// `KroutonCloudSettings`, which sends it to iCloud when settings sync is on.
 enum KroutonPreferences {
     static func string(for key: KroutonPreferenceKey) -> String? {
         UserDefaults.standard.string(forKey: key.rawValue)
@@ -66,10 +71,11 @@ enum KroutonPreferences {
     }
 }
 
-/// Feature model owning appearance, accent palette, localization, unit, and accessibility preferences.
-/// Consolidates the four previously duplicated colour-scheme resolution blocks into one place.
 // MARK: - AppearancePreferences
 
+/// The sub-store for Settings › General and Accessibility & Language: appearance, accent
+/// colour, icon style, language, units, VoiceOver and contrast, and whether the last session
+/// reopens at launch. Loaded from and saved to `KroutonPreferences`.
 @Observable
 @MainActor
 final class AppearancePreferences {

@@ -110,6 +110,8 @@ struct KroutonDiscMediaPopover: View {
     }
 }
 
+/// The report shown after a destination card runs: the drive, the disc, what was written,
+/// the speed and the time taken.
 struct KroutonMasteringReportSheet: View {
     let report: KroutonBurnSessionReport
     let accent: Color
@@ -121,7 +123,7 @@ struct KroutonMasteringReportSheet: View {
             ("Media Format & Volume", "\(report.mediaFormattedName) • \(report.volumeName)"),
             ("Sectors & Data Written", "\(report.sectorsWrittenLBA) LBA (\(ByteCountFormatter.string(fromByteCount: report.bytesWritten, countStyle: .file)))"),
             ("Transfer Rate (Avg / Peak)", "\(report.averageSpeedText) • Peak \(report.peakSpeedText)"),
-            ("Elapsed Mastering Time", report.elapsedDurationText),
+            ("Time Taken", report.elapsedDurationText),
             ("Archival Quality Grade", KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(driveModel: report.driveModel, mediaType: report.mediaFormattedName, sectorsWrittenLBA: report.sectorsWrittenLBA).summaryLine)
         ]
         VStack(alignment: .leading, spacing: 16) {

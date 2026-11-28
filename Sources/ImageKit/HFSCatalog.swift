@@ -92,9 +92,41 @@ enum KroutonHFSBTree {
         14 + records.reduce(0) { $0 + $1.count } + next.count + 2 * (records.count + 2) <= nodeSize
     }
 
+    /// How many nodes the tree of `sorted` takes, the header node included: the least
+    /// `nodeCount` that `build` accepts for these records.
+    static func nodesNeeded(records sorted: [Record]) -> Int {
+        1 + pack(sorted).nodes.count
+    }
+
     /// The whole tree as `nodeCount` nodes (the file's size / 512). Leaves come first after the
     /// header (nodes 1...), then each index level up to the root.
     static func build(records sorted: [Record], maxKeyLength: UInt16, nodeCount: Int) throws -> [UInt8] {
+        let (nodes, leafCount, rootNode, height) = pack(sorted)
+        let leafBase = 1
+        let used = 1 + nodes.count
+        guard used <= nodeCount, nodeCount <= 2048 else { throw KroutonHFSError.catalogTooLarge }
+        let root = sorted.isEmpty ? 0 : UInt32(rootNode)
+        let depth: UInt16 = sorted.isEmpty ? 0 : UInt16(height)
+
+        // Header node: header record, 128-byte user record, node map.
+        var header = [UInt8]()
+        header += KroutonBytes.be16(depth) + KroutonBytes.be32(root) + KroutonBytes.be32(UInt32(sorted.count))
+        header += KroutonBytes.be32(sorted.isEmpty ? 0 : UInt32(leafBase)) + KroutonBytes.be32(sorted.isEmpty ? 0 : UInt32(leafBase + leafCount - 1))
+        header += KroutonBytes.be16(UInt16(nodeSize)) + KroutonBytes.be16(maxKeyLength) + KroutonBytes.be32(UInt32(nodeCount)) + KroutonBytes.be32(UInt32(nodeCount - used))
+        header += [UInt8](repeating: 0, count: 76)
+        var map = [UInt8](repeating: 0, count: nodeSize - 14 - 106 - 128 - 8)
+        for i in 0..<used { map[i / 8] |= 0x80 >> UInt8(i % 8) }
+        let headerNode = node(forward: 0, backward: 0, kind: 1, height: 0,
+                              records: [header, [UInt8](repeating: 0, count: 128), map])
+        var file = headerNode
+        for n in nodes { file += n }
+        file += [UInt8](repeating: 0, count: (nodeCount - used) * nodeSize)
+        return file
+    }
+
+    /// The leaf and index nodes after the header, the leaf count, the root's node number and
+    /// the tree's height.
+    static func pack(_ sorted: [Record]) -> (nodes: [[UInt8]], leafCount: Int, root: Int, height: UInt8) {
         // Leaves.
         var leaves: [[[UInt8]]] = []
         var firstKeys: [Record] = []
@@ -137,25 +169,7 @@ enum KroutonHFSBTree {
             }
             level = next
         }
-        let used = 1 + nodes.count
-        guard used <= nodeCount, nodeCount <= 2048 else { throw KroutonHFSError.catalogTooLarge }
-        let root = sorted.isEmpty ? 0 : UInt32(level.first?.node ?? 0)
-        let depth: UInt16 = sorted.isEmpty ? 0 : UInt16(height)
-
-        // Header node: header record, 128-byte user record, node map.
-        var header = [UInt8]()
-        header += KroutonBytes.be16(depth) + KroutonBytes.be32(root) + KroutonBytes.be32(UInt32(sorted.count))
-        header += KroutonBytes.be32(sorted.isEmpty ? 0 : UInt32(leafBase)) + KroutonBytes.be32(sorted.isEmpty ? 0 : UInt32(leafBase + leaves.count - 1))
-        header += KroutonBytes.be16(UInt16(nodeSize)) + KroutonBytes.be16(maxKeyLength) + KroutonBytes.be32(UInt32(nodeCount)) + KroutonBytes.be32(UInt32(nodeCount - used))
-        header += [UInt8](repeating: 0, count: 76)
-        var map = [UInt8](repeating: 0, count: nodeSize - 14 - 106 - 128 - 8)
-        for i in 0..<used { map[i / 8] |= 0x80 >> UInt8(i % 8) }
-        let headerNode = node(forward: 0, backward: 0, kind: 1, height: 0,
-                              records: [header, [UInt8](repeating: 0, count: 128), map])
-        var file = headerNode
-        for n in nodes { file += n }
-        file += [UInt8](repeating: 0, count: (nodeCount - used) * nodeSize)
-        return file
+        return (nodes, leaves.count, level.first?.node ?? 0, height)
     }
 }
 

@@ -2,6 +2,12 @@ import AudioKit
 import OpticalCore
 import SwiftUI
 
+// MARK: - Audio CD Project
+
+/// The Audio CD editor's model: the `AudioProject` (tracks, pauses, crossfades, CD-Text),
+/// each track's analysis, and the transition being dragged. Edits are previewed live while a
+/// gesture runs and committed once at its end, with undo; every commit is saved for crash
+/// recovery. `KroutonStateStore.audioController` holds the one instance.
 @MainActor
 @Observable
 final class AudioProjectController {

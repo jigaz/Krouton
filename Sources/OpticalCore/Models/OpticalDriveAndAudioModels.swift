@@ -5,15 +5,27 @@ import Foundation
 import SwiftUI
 import VideoToolbox
 
+// MARK: - Drives and Mounted Volumes
+
+/// A file system macOS mounted from the disc in a drive.
 public struct KroutonMountedDiscVolume: Identifiable, Hashable, Sendable {
+    /// A stable identifier for the volume.
     public let id: String
+    /// The volume's name, as Finder shows it.
     public let volumeName: String
+    /// The file system macOS reports, such as "cd9660" or "udf".
     public let filesystemFormat: String
+    /// Where the volume is mounted.
     public let mountPath: String
+    /// How many items are at the volume's root.
     public let itemCount: Int
+    /// True for an audio CD, which macOS mounts as AIFF files.
     public let isAudioCD: Bool
+    /// Bytes in use on the volume.
     public let usedBytes: Int64
+    /// The volume's size in bytes.
     public let totalBytes: Int64
+    /// The volume's creation date, formatted for display.
     public let creationDateText: String
 
     public init(
@@ -39,28 +51,56 @@ public struct KroutonMountedDiscVolume: Identifiable, Hashable, Sendable {
     }
 }
 
+/// One drive and the disc in it, as the drive bank last saw them.
+///
+/// Several descriptive fields (`mediaManufacturer`, `bookStandard`, `dyeChemistry`,
+/// `laserWavelengthNA`, `sectorBlockSize`, `copyProtectionStatus`) are filled in by
+/// `KroutonOpticalDriveBank` from the media type when the drive doesn't report them; treat them as
+/// descriptions, not measurements.
 public struct KroutonOpticalDriveInfo: Identifiable, Hashable, Sendable {
+    /// A stable identifier for the drive (see `KroutonOpticalDriveBank`).
     public let id: String
+    /// The drive maker, as the drive reports it.
     public let vendor: String
+    /// The drive model, as the drive reports it.
     public let product: String
+    /// The firmware revision.
     public let firmware: String
+    /// How the drive is connected, such as "USB" or "ATAPI".
     public let interconnect: String
+    /// The drive's BSD device node.
     public let bsdDeviceNode: String
+    /// The media the drive can write, for display.
     public let capabilitiesSummary: String
+    /// True for a drive on a Krouton Server.
     public let isNetworkNode: Bool
+    /// The computer the drive is attached to.
     public let hostName: String
+    /// One line about the disc, for display ("Blank DVD+R Ready").
     public let mediaState: String
+    /// The media type, such as "CD-R" or "DVD+R DL".
     public let mediaType: String
+    /// True when a disc is in the drive.
     public let isMediaPresent: Bool
+    /// True for a blank disc.
     public let isMediaBlank: Bool
+    /// True for rewritable media.
     public let isMediaErasable: Bool
+    /// True when the disc can be overwritten in place.
     public let isMediaOverwritable: Bool
+    /// True when another session can be added.
     public let isMediaAppendable: Bool
+    /// Sessions on the disc.
     public let sessionCount: Int
+    /// Tracks on the disc.
     public let trackCount: Int
+    /// Free 2,048-byte blocks.
     public let freeSectorsLBA: Int64
+    /// Free bytes.
     public let freeBytes: Int64
+    /// Used 2,048-byte blocks.
     public let usedSectorsLBA: Int64
+    /// Used bytes.
     public let usedBytes: Int64
     public let mediaManufacturer: String
     public let bookStandard: String
@@ -68,7 +108,9 @@ public struct KroutonOpticalDriveInfo: Identifiable, Hashable, Sendable {
     public let laserWavelengthNA: String
     public let sectorBlockSize: String
     public let copyProtectionStatus: String
+    /// The file systems macOS mounted from the disc.
     public let mountedVolumes: [KroutonMountedDiscVolume]
+    /// The write speeds to offer, as labels ("8x (11080 KB/s)"), with "Max Safe (Auto)" first.
     public let availableWriteSpeeds: [String]
 
     public init(
@@ -135,10 +177,12 @@ public struct KroutonOpticalDriveInfo: Identifiable, Hashable, Sendable {
         self.availableWriteSpeeds = availableWriteSpeeds
     }
 
+    /// Vendor and model, plus the host for a network drive.
     public var displayName: String {
         isNetworkNode ? "\(vendor) \(product) (\(hostName))" : "\(vendor) \(product)"
     }
 
+    /// A short status for drive lists, such as "Blank DVD-R (4.70 GB)".
     public var statusBadgeText: String {
         if isMediaPresent {
             let totalDisplayBytes = max(freeBytes, usedBytes)
@@ -162,6 +206,7 @@ public struct KroutonOpticalDriveInfo: Identifiable, Hashable, Sendable {
         return mediaState
     }
 
+    /// The disc's total blocks as a CD time (minutes:seconds:frames). Only meaningful for CDs.
     public var redBookTimecodeCapacity: String {
         let totalSectors = max(freeSectorsLBA + usedSectorsLBA, 1)
         let totalSeconds = Int(totalSectors / 75)
@@ -170,10 +215,11 @@ public struct KroutonOpticalDriveInfo: Identifiable, Hashable, Sendable {
         let frames = Int(totalSectors % 75)
         return String(format: "%02d:%02d:%02d (75 fps)", mins, secs, frames)
     }
-
 }
 
-// MARK: - Sprint 3: WaveBurner Red Book Audio CD & Car-Safe MP3 Models
+// MARK: - Audio CD Tracks
+
+/// How a track starts on an audio CD. The raw values are display names and are saved in projects.
 public enum KroutonTrackPregapStyle: String, CaseIterable, Identifiable, Codable, Sendable {
     case standard2s = "2.0s Standard Pre-Gap"
     case gapless0s = "0.0s Gapless (Live)"
@@ -182,20 +228,35 @@ public enum KroutonTrackPregapStyle: String, CaseIterable, Identifiable, Codable
     public var id: String { rawValue }
 }
 
+/// One track of an audio CD as the burn and CUE code see it, flattened from the Audio CD editor's
+/// project.
 public struct KroutonRedBookTrack: Identifiable, Hashable, Sendable, Codable {
     public let id: UUID
+    /// The source audio file.
     public let url: URL
+    /// CD-Text title.
     public var title: String
+    /// CD-Text performer.
     public var performer: String
+    /// CD-Text songwriter.
     public var songWriter: String
-    public var isrcCode: String          // 12-char ISO 3901 (e.g. US-KRO-26-00001)
+    /// ISO 3901 ISRC, 12 characters without hyphens (written US-KRO-26-00001 for display).
+    public var isrcCode: String
+    /// The track's length in seconds.
     public var durationSeconds: Double
-    public var preGapSeconds: Double     // INDEX 00 duration (0.0s gapless .. 4.0s)
-    public var crossfadeSeconds: Double  // Jam-style overlap duration
+    /// The pause before the track (INDEX 00), in seconds.
+    public var preGapSeconds: Double
+    /// How long the track overlaps the one before it, for `.jamCrossfade`.
+    public var crossfadeSeconds: Double
+    /// How the track starts.
     public var transitionStyle: KroutonTrackPregapStyle
+    /// Sets the pre-emphasis flag in the track's subcode.
     public var preEmphasisEnabled: Bool
+    /// Sets the digital copy permitted flag (SCMS).
     public var copyPermittedSCMS: Bool
+    /// The source's sample rate.
     public var sampleRateHz: Int
+    /// The source's bits per sample.
     public var bitDepth: Int
 
     public init(
@@ -230,16 +291,19 @@ public struct KroutonRedBookTrack: Identifiable, Hashable, Sendable, Codable {
         self.bitDepth = bitDepth
     }
 
-    // Red Book 75 frames/sec (2,352 bytes per 1/75s sector)
+    /// Frames the track takes on the disc, including its pause unless it is gapless or crossfaded;
+    /// at least one second.
     public var totalRedBookFrames: Int64 {
         let activeGap = (transitionStyle == .gapless0s || transitionStyle == .jamCrossfade) ? 0.0 : preGapSeconds
         return max(75, Int64(round((durationSeconds + activeGap) * 75.0)))
     }
 
+    /// `totalRedBookFrames` in bytes (2,352 per frame).
     public var redBookByteSize: Int64 {
         totalRedBookFrames * 2352
     }
 
+    /// The length as minutes:seconds:frames.
     public var formattedDurationMMSSFF: String {
         let framesTotal = Int(round(durationSeconds * 75.0))
         let secsTotal = framesTotal / 75
@@ -250,9 +314,14 @@ public struct KroutonRedBookTrack: Identifiable, Hashable, Sendable, Codable {
     }
 }
 
-// Hardware CD-TEXT Sanitizer: Transliterates curly quotes, em-dashes, and diacritics to strict 7-bit ASCII
-// so 1990s-2010s Sony/Pioneer/Alpine car stereos never display garbled subcode characters.
+// MARK: - CD-Text Cleanup
+
+// Many players and car stereos show only ASCII in CD-Text, so Krouton writes plain ASCII.
+
+/// Cleans text for CD-Text and the disc's subcode fields.
 public enum KroutonCDTextSanitizer {
+    /// Plain ASCII, at most 60 characters: curly quotes and dashes become their ASCII forms,
+    /// accents are dropped, and anything else outside ASCII is replaced.
     public static func sanitize(_ input: String) -> String {
         var s = input
             .replacingOccurrences(of: "\u{2018}", with: "'")
@@ -269,16 +338,15 @@ public enum KroutonCDTextSanitizer {
         return String(s.prefix(60))
     }
 
+    /// Letters and digits only, upper case, at most 12 (the ISRC's length without hyphens).
     public static func sanitizeISRC(_ raw: String) -> String {
         let alnum = raw.uppercased().filter { $0.isLetter || $0.isNumber }
         return String(alnum.prefix(12))
     }
 
+    /// Digits only, at most 13 (the UPC/EAN catalog number).
     public static func sanitizeMCN(_ raw: String) -> String {
         let digits = raw.filter { $0.isNumber }
         return String(digits.prefix(13))
     }
 }
-
-// WaveBurner 5-Second Transition Audition Preview Engine
-// Plays the final 2.5s of Track N -> INDEX 00 Pre-Gap (or Jam Crossfade) -> first 2.5s of Track N+1

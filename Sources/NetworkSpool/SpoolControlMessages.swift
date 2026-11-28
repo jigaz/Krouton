@@ -6,32 +6,43 @@ import Foundation
 // frames (kind 7) carry a `SpoolTelemetryPacket`. Field names and values mirror
 // `krouton-server/crates/krsp/src/control.rs` exactly; `Vectors/krsp-control-v1.txt` pins both.
 
+/// Where a job on the server stands.
 public enum SpoolJobState: String, Sendable, Equatable, CaseIterable {
     /// `mastering`: a folder upload is being unpacked and built into a disc image on the server.
     case receiving, mastering, queued, burning, verifying, done, failed, cancelled
 
+    /// True for done, failed and cancelled.
     public var isTerminal: Bool { self == .done || self == .failed || self == .cancelled }
 }
 
+/// The disc in a server drive.
 public enum SpoolMediaState: String, Sendable, Equatable {
     case unknown, noDisc, blank, appendable, complete
 
+    /// Reads a wire value; anything unknown is `.unknown`.
     public init(wire: String) { self = SpoolMediaState(rawValue: wire) ?? .unknown }
 }
 
+/// The error codes the server sends.
 public enum SpoolErrorCode: String, Sendable, Equatable {
     case badRequest, notAuthenticated, unknownDrive, unknownJob, noSpace, tooLarge
     case manifestRejected, driveBusy, pairingClosed, pairingRejected, internalError = "internal"
 
+    /// Reads a wire value; anything unknown is `.internalError`.
     public init(wire: String) { self = SpoolErrorCode(rawValue: wire) ?? .internalError }
 }
 
+/// One drive on the server, as `drives` and `welcome` report it.
 public struct SpoolDriveInfo: Sendable, Equatable, Identifiable {
+    /// The drive's ID on the server.
     public let id: String
+    /// The drive's name, for display.
     public let name: String
+    /// The disc in the tray.
     public let media: SpoolMediaState
     /// Jobs queued or burning on this drive.
     public let queue: Int
+    /// True while it burns or verifies.
     public let busy: Bool
     /// The disc families the drive writes; nil when the server can't tell (or is older than
     /// drive capabilities, 2026-11).
@@ -54,14 +65,21 @@ public struct SpoolDriveInfo: Sendable, Equatable, Identifiable {
     }
 }
 
+/// One job on the server.
 public struct SpoolJobInfo: Sendable, Equatable, Identifiable {
+    /// The job's ID.
     public let job: String
+    /// The drive it runs on.
     public let drive: String
+    /// The disc's label.
     public let label: String
+    /// Where it stands.
     public let state: SpoolJobState
     /// 0…1, or nil while the server cannot tell (indeterminate).
     public let fraction: Double?
+    /// Jobs ahead of it on its drive.
     public let queueAhead: Int
+    /// The server's status line.
     public let message: String
     public var id: String { job }
 
@@ -76,12 +94,15 @@ public struct SpoolJobInfo: Sendable, Equatable, Identifiable {
     }
 }
 
+/// How the server should burn a job.
 public struct SpoolBurnOptions: Sendable, Equatable {
     /// Write speed multiplier; 0 = the drive's maximum.
     public var speed: Int
+    /// Reads the disc back after burning.
     public var verify: Bool
     /// Laser-off test write where the server's burn tool supports it.
     public var simulate: Bool
+    /// Ejects the disc when done.
     public var eject: Bool
 
     public init(speed: Int = 0, verify: Bool = true, simulate: Bool = false, eject: Bool = true) {
@@ -98,47 +119,79 @@ public enum SpoolUploadContent: String, Sendable, Equatable {
     case image, files
 }
 
+/// What the server says after authentication: who it is, its limits and its drives.
 public struct SpoolServerWelcome: Sendable, Equatable {
+    /// The server's name.
     public let serverName: String
+    /// The server's node ID (see `SpoolNodeID`).
     public let nodeID: String
+    /// The server's version.
     public let version: String
+    /// The largest image it accepts.
     public let maxImageBytes: UInt64
+    /// Free staging space on the server.
     public let freeBytes: UInt64
     /// File systems the server builds from folders (`iso9660`, `joliet`, `rockridge`, `udf`);
     /// empty when it only burns finished images. Absent from servers before 0.3.
     public let fileSystems: [String]
+    /// Its drives.
     public let drives: [SpoolDriveInfo]
 
+    /// True when it masters folders itself.
     public var buildsDiscsFromFolders: Bool { !fileSystems.isEmpty }
 }
 
 // MARK: - Messages
 
+/// Every control message of KRSP v1, in both directions. The JSON shape matches the server's
+/// `control.rs`; the test vectors check both.
 public enum SpoolControl: Sendable, Equatable {
+    /// Client: the Ed25519 identity key and the session proof.
     case auth(identityKey: Data, signature: Data)
+    /// Either side: a keep-alive with a number to echo.
     case ping(UInt64)
+    /// The echo of a ping.
     case pong(UInt64)
+    /// Server: a request failed.
     case error(code: SpoolErrorCode, message: String, job: String?)
+    /// Client: the app and this Mac's name.
     case hello(app: String, deviceName: String)
+    /// Client: asks for `drives`.
     case listDrives
+    /// Client: asks for `jobs`.
     case listJobs
+    /// Client: starts a job; the upload follows.
     case submit(job: String, drive: String, label: String, content: SpoolUploadContent, options: SpoolBurnOptions)
+    /// Client: asks for updates on a job.
     case watch(job: String)
+    /// Client: cancels a job.
     case cancel(job: String)
+    /// Client: ejects a drive.
     case eject(drive: String)
+    /// Client: starts pairing.
     case pairStart(deviceName: String)
+    /// Client: its pairing hello (identity key, ephemeral key and nonce, 80 bytes).
     case pairHello(Data)
+    /// Client: whether the user confirmed the code.
     case pairConfirm(accepted: Bool)
+    /// Server: after authentication.
     case welcome(SpoolServerWelcome)
+    /// Server: the drives.
     case drives([SpoolDriveInfo])
+    /// Server: a job was accepted.
     case accepted(job: String)
+    /// Server: one job's state.
     case job(SpoolJobInfo)
+    /// Server: every job.
     case jobs([SpoolJobInfo])
+    /// Server: its commitment, before the reveal.
     case pairCommit(Data)
+    /// Server: how pairing ended.
     case pairResult(accepted: Bool, nodeID: String, serverName: String)
 
     // MARK: - Encode
 
+    /// The message as a JSON object.
     public func jsonObject() -> [String: Any] {
         switch self {
         case .auth(let key, let signature):
@@ -173,6 +226,7 @@ public enum SpoolControl: Sendable, Equatable {
         }
     }
 
+    /// The message as a control frame.
     public func frame() -> SpoolFrame {
         let json = (try? JSONSerialization.data(withJSONObject: jsonObject(), options: [.sortedKeys])) ?? Data("{}".utf8)
         return SpoolFrame(header: SpoolFrameHeader(kind: .control), payload: [UInt8](json))
@@ -196,12 +250,15 @@ public enum SpoolControl: Sendable, Equatable {
 // MARK: - Decode
 
 extension SpoolControl {
+    /// Reads a control frame (at most 256 KiB of JSON); nil for anything else.
     public init?(frame: SpoolFrame) {
         guard frame.header.kind == .control, frame.payload.count <= 256 * 1024,
               let object = try? JSONSerialization.jsonObject(with: Data(frame.payload)) as? [String: Any] else { return nil }
         self.init(jsonObject: object)
     }
 
+    /// Reads a message from a JSON object; nil when the type is unknown or a field is missing or
+    /// wrong.
     public init?(jsonObject o: [String: Any]) {
         guard let type = o["type"] as? String else { return nil }
         let s = { (k: String) in o[k] as? String }
@@ -305,11 +362,14 @@ extension SpoolTelemetryPacket {
 
 // MARK: - Hex
 
+/// Lowercase hex, as the control messages carry keys and signatures.
 public enum SpoolHex {
+    /// Lowercase hex of `data`.
     public static func encode(_ data: Data) -> String {
         data.map { String(format: "%02x", $0) }.joined()
     }
 
+    /// The bytes of `text`; nil for odd length or a non-hex character.
     public static func decode(_ text: String) -> Data? {
         let chars = Array(text.utf8)
         guard chars.count % 2 == 0 else { return nil }

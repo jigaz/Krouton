@@ -8,11 +8,17 @@ import os
 /// One track of an audio CD: raw 16-bit little-endian stereo PCM at 44.1 kHz, a whole number of
 /// 2,352-byte frames, as `KroutonAudioDiscRenderer` (AudioKit) writes it.
 public struct KroutonAudioBurnTrack: Sendable, Equatable {
+    /// The track's PCM file.
     public let pcm: URL
+    /// The track's length in frames, without the pregap.
     public let frames: Int64
+    /// Silence before the track, in frames.
     public let pregapFrames: Int64
+    /// CD-Text title.
     public let title: String
+    /// CD-Text performer.
     public let performer: String
+    /// The ISRC, 12 characters, or empty for none.
     public let isrc: String
 
     public init(pcm: URL, frames: Int64, pregapFrames: Int64, title: String, performer: String, isrc: String) {
@@ -27,11 +33,15 @@ public struct KroutonAudioBurnTrack: Sendable, Equatable {
 
 /// A whole audio CD: its tracks in order, plus the disc-level CD-Text and catalog number.
 public struct KroutonAudioBurnDisc: Sendable, Equatable {
+    /// The tracks, in order.
     public let tracks: [KroutonAudioBurnTrack]
+    /// CD-Text album title.
     public let albumTitle: String
+    /// CD-Text album performer.
     public let albumPerformer: String
     /// 13 digits, or empty for none.
     public let mediaCatalogNumber: String
+    /// Writes CD-Text when true.
     public let writeCDText: Bool
     /// CD-Extra: files and folders for a second, data session after the audio. Empty for a
     /// plain audio CD.
@@ -51,6 +61,7 @@ public struct KroutonAudioBurnDisc: Sendable, Equatable {
         self.dataVolumeName = dataVolumeName
     }
 
+    /// Frames of every track and pregap together.
     public var totalFrames: Int64 { tracks.reduce(0) { $0 + $1.frames + $1.pregapFrames } }
 }
 

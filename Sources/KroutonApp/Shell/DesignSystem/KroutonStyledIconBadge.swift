@@ -3,7 +3,7 @@ import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Functional Icon & Widget Style Renderer (Default / Dark / Clear / Tinted)
+// MARK: - Icon Badge (Default, Dark, Clear and Tinted Styles)
 struct KroutonStyledIconBadge: View {
     let sfSymbol: String
     let tintColor: Color
@@ -35,8 +35,8 @@ struct KroutonStyledIconBadge: View {
         let activeStore = KroutonStateStore.shared
         let isLight = (activeStore?.resolvedColorScheme == .light)
         let useHarmonyBg = (style == .tinted && (activeStore?.enableSecondaryAccentUITints ?? false))
-        // In Light Mode, use the bright neon P3 harmony color for the tile fill so yellows/mints look luminous instead of muddy,
-        // while using the deep Light Mode harmony color for the crisp border ring!
+        // In light mode the tile is filled with the bright (dark-mode) shade, so yellows and
+        // mints don't turn muddy, and outlined with the deeper light-mode shade.
         let presetID = activeStore?.selectedAccentIndex ?? 6
         let effectiveID = presetID >= 0 ? presetID : (activeStore.map { $0.multicolorPresetID(forTaskID: $0.selectedTaskID, category: $0.selectedCategory) } ?? 6)
         let brightHarmony = KroutonStateStore.secondaryHarmonyForPresetID(effectiveID, scheme: .dark)
@@ -105,7 +105,7 @@ struct KroutonStyledIconBadge: View {
             )
         case .tinted:
             if isLight {
-                // Crisp alabaster/ivory workspace tile in Light Mode so bright Harmony washes + deep Primary icons pop!
+                // A near-white tile in light mode, so the tint and the icon both stand out.
                 return LinearGradient(
                     colors: [Color(white: 0.98), Color(white: 0.93)],
                     startPoint: .topLeading,

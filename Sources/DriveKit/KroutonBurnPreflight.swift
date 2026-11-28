@@ -1,11 +1,11 @@
 import Foundation
 
+// MARK: - Burn Preflight
+//
 // Pure decision logic for the physical burn path. Nothing here touches
 // DiscRecording, so it is covered by ordinary unit tests without a drive.
 
 /// Builds drive identifiers that stay unique when two identical drives are attached.
-// MARK: - KroutonBurnPreflight
-
 public enum KroutonDriveIdentity {
     static func baseID(vendor: String, product: String, firmware: String) -> String {
         "\(vendor)-\(product)-\(firmware)"
@@ -48,7 +48,11 @@ public enum KroutonBurnMediaDecision: Equatable, Sendable {
     case refuseNotWritable
 }
 
+/// Decides whether a burn may use the disc in the tray.
 public enum KroutonBurnMediaPolicy {
+    /// Blank discs and open write-once discs proceed; rewritable discs with data proceed only
+    /// when `allowOverwrite`; closed write-once discs are refused.
+    ///
     /// - Parameter allowOverwrite: true only when a person started this burn with
     ///   this disc in the drive. Unattended continuations (auto-load batches) pass false.
     public static func evaluate(
@@ -72,6 +76,7 @@ public enum KroutonBurnMediaPolicy {
     }
 }
 
+/// Why preparing a disc image failed. The message is for the user.
 public enum KroutonDiscImageError: Error, LocalizedError, Sendable, Equatable {
     case staging(String)
 
@@ -90,6 +95,8 @@ public enum KroutonDiscImageArguments {
         return lower.hasSuffix(".iso") || lower.hasSuffix(".cdr")
     }
 
+    /// The `hdiutil` arguments: `makehybrid` (HFS+, ISO 9660, Joliet and UDF) for .iso and .cdr,
+    /// otherwise `create` with an HFS+ .dmg, compressed (UDZO) or read-write (UDRW).
     public static func make(outputPath: String, sourcePath: String, volumeTitle: String, compress: Bool) -> [String] {
         if isOpticalImage(outputPath: outputPath) {
             return ["makehybrid", "-o", outputPath, "-hfs", "-iso", "-joliet", "-udf",
@@ -102,7 +109,9 @@ public enum KroutonDiscImageArguments {
 
 /// One file or folder to copy into the temporary burn stage.
 public struct KroutonBurnStageItem: Sendable, Equatable {
+    /// The file or folder to copy.
     public let source: URL
+    /// Its name in the stage, and so on the disc.
     public let name: String
 
     public init(source: URL, name: String) {
@@ -111,6 +120,7 @@ public struct KroutonBurnStageItem: Sendable, Equatable {
     }
 }
 
+/// Copies the files of a data burn into a temporary folder, so the burn reads a fixed copy.
 public enum KroutonBurnStager {
     /// Copies `items` into a new directory at `stageURL`, off the caller's actor.
     /// Returns nil on success, otherwise a message suitable for the burn report.

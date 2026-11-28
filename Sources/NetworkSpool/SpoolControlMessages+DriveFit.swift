@@ -3,12 +3,12 @@ import OpticalCore
 
 // MARK: - Which Krouton Server Drive Can Burn a Job
 
-/// Before 2026-11-27 the client sent a job to whichever drive was free, and a Blu-ray image to a
-/// CD/DVD burner failed only once it had been uploaded. Now the server says what each drive
-/// writes and holds (`SpoolDriveInfo.writes`, `disc`, `freeBytes`), and the client checks before
-/// it uploads anything. The server checks again before it burns (krouton-server
+/// The server says what each drive writes and holds (`SpoolDriveInfo.writes`, `disc`,
+/// `freeBytes`), and the client checks that a job fits before it uploads anything, so a Blu-ray
+/// image never travels to a CD/DVD burner. The server checks again before it burns (krouton-server
 /// `DriveProbe::refusal`); the two follow the same rule.
 extension SpoolNodeCapabilities {
+    /// CD, DVD and Blu-ray.
     public static let writesAny: SpoolNodeCapabilities = [.writesCD, .writesDVD, .writesBD]
 
     /// The largest image each family holds: a 99-minute CD-R, a dual-layer DVD±R, a quad-layer

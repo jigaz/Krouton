@@ -1,9 +1,8 @@
 import Foundation
 
-// One spanning algorithm for every list-based format.
+// MARK: - Disc Planner
 //
-// Replaces the two greedy loops in `AudioProject.spannedDiscs()` and
-// `KroutonMultiDiscSpanner.planSequentialDiscs()`. The planner knows nothing
+// One spanning algorithm for every list-based format. The planner knows nothing
 // about audio, files or formats; a workspace describes its items through three
 // small closures:
 //
@@ -20,7 +19,9 @@ import Foundation
 //   - Problems come back as data (`issues`), not as clamped numbers or logs.
 //   - The plan is derived, never stored. Persist the flat list; recompute this.
 
+/// How much room an item takes on a disc, in the capacity's units.
 public struct ItemCost: Sendable, Equatable {
+    /// The item's size.
     public var units: Int64
     /// False while the figure comes from a header probe or a bitrate estimate.
     public var isExact: Bool
@@ -30,12 +31,15 @@ public struct ItemCost: Sendable, Equatable {
         self.isExact = isExact
     }
 
+    /// A measured cost.
     public static func exact(_ units: Int64) -> ItemCost { ItemCost(units: units, isExact: true) }
+    /// A cost from an estimate; a plan that uses one is provisional.
     public static func estimated(_ units: Int64) -> ItemCost { ItemCost(units: units, isExact: false) }
 }
 
+/// How much one disc holds.
 public struct DiscCapacity: Sendable, Equatable {
-    /// Red Book frames for audio, bytes for data. The planner does not care which.
+    /// Red Book frames for audio; sectors or bytes for data. The planner does not care which.
     public var units: Int64
     /// 99 for anything with a CD track table; `.max` otherwise.
     public var maxItems: Int
@@ -46,6 +50,7 @@ public struct DiscCapacity: Sendable, Equatable {
     }
 }
 
+/// Why a disc in a plan starts where it does.
 public enum DiscBreakReason: Sendable, Equatable {
     case firstDisc
     case capacity   // the next item did not fit
@@ -53,16 +58,21 @@ public enum DiscBreakReason: Sendable, Equatable {
     case manual     // the user asked for a break here
 }
 
+/// One disc of a plan: its items in order and how full it is.
 public struct PlannedDisc<Item: Identifiable & Sendable>: Identifiable, Sendable {
+    /// The disc's number, from 1.
     public let number: Int
     public let items: [Item]
+    /// Units the items take, counting their effect on each other.
     public let usedUnits: Int64
     public let capacityUnits: Int64
+    /// Why this disc starts here.
     public let startedBecause: DiscBreakReason
 
     public var id: Int { number }
 }
 
+/// A problem that stops a plan from being burned.
 public enum DiscPlanIssue<ID: Hashable & Sendable>: Sendable, Equatable {
     /// These items have no cost yet. The plan holds everything on one
     /// provisional disc until they do, so headers never appear and then move.
@@ -72,16 +82,21 @@ public enum DiscPlanIssue<ID: Hashable & Sendable>: Sendable, Equatable {
     case itemExceedsDisc(id: ID, units: Int64, capacity: Int64)
 }
 
+/// Items split into discs, with any problems. Derived from the list each time; never saved.
 public struct DiscPlan<Item: Identifiable & Sendable>: Sendable where Item.ID: Sendable {
     public let discs: [PlannedDisc<Item>]
     public let issues: [DiscPlanIssue<Item.ID>]
     /// True while any cost is an estimate. Show it; do not burn from it.
     public let isProvisional: Bool
 
+    /// True when there is at least one disc, no issue and no estimated cost.
     public var isBurnable: Bool { !discs.isEmpty && issues.isEmpty && !isProvisional }
 }
 
+/// Splits an ordered list of items into discs, in order, starting a new disc when the next item
+/// doesn't fit, the item limit is reached, or the user put a break there.
 public struct DiscPlanner<Item: Identifiable & Sendable> where Item.ID: Sendable {
+    /// What each disc holds.
     public var capacity: DiscCapacity
     /// Cost of `item` when it follows `previous` on the same disc, or when it is
     /// first on a disc (`previous == nil`). Return nil if it has not been measured.
@@ -89,6 +104,7 @@ public struct DiscPlanner<Item: Identifiable & Sendable> where Item.ID: Sendable
     /// Audio uses `previous`: a 2 s pause adds 150 frames, a crossfade subtracts
     /// the overlap. Data ignores it.
     public var cost: (_ item: Item, _ previous: Item?) -> ItemCost?
+    /// Whether the user put a manual disc break before an item.
     public var startsNewDisc: (Item) -> Bool
 
     public init(
@@ -101,6 +117,8 @@ public struct DiscPlanner<Item: Identifiable & Sendable> where Item.ID: Sendable
         self.cost = cost
     }
 
+    /// Plans `items` in order. While any item has no cost, everything stays on one provisional
+    /// disc.
     public func plan(_ items: [Item]) -> DiscPlan<Item> {
         guard !items.isEmpty else { return DiscPlan(discs: [], issues: [], isProvisional: false) }
 
@@ -169,7 +187,7 @@ public struct DiscPlanner<Item: Identifiable & Sendable> where Item.ID: Sendable
 /// Only valid where cost does not depend on neighbours and order carries no
 /// meaning. Never offer it for audio, video or playlists.
 public enum DiscRepacker {
-
+    /// A new order for the list, and how many discs it plans to.
     public struct Proposal<Item> {
         public let order: [Item]
         public let discCount: Int
@@ -213,6 +231,5 @@ public enum DiscRepacker {
     }
 }
 
-// Checked with a reference port: manual breaks, the item limit, oversize items,
-// neighbour-dependent cost, and 3,000 random cases confirming that planning the
-// repacked order yields exactly the proposed number of discs with none over capacity.
+// krouton-verify Suite 22 checks the planner (manual breaks, the item limit, oversize items)
+// and that a repack proposal is offered only when it saves a disc.

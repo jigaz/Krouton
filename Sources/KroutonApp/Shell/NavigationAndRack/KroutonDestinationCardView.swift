@@ -6,8 +6,12 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Standalone UUID-Safe Destination Rack Card View
+// MARK: - Destination Card
 
+/// One card in the destination queue (the right-hand column): where the deck goes, such as a
+/// burner on this Mac, a Krouton Server, a disc image file, a rip folder or a label export.
+/// The card's settings live in its `KroutonBakeBatchItem`; every change goes through
+/// `store.updateQueueItem`, keyed by the card's `id`.
 struct KroutonDestinationCardView: View {
     var store: KroutonStateStore
     var driveManager: KroutonOpticalDriveBank
@@ -22,14 +26,14 @@ struct KroutonDestinationCardView: View {
     var body: some View {
         let cardID = item.id
 
-        // Drives claimed by OTHER destination cards in the queue
+        // Drives that other cards in the queue have claimed.
         let otherUsedDriveIDs = Set(
             store.destinationQueue
                 .filter { $0.id != cardID && $0.kind == .physicalBurner && !$0.targetDriveID.isEmpty }
                 .map { $0.targetDriveID }
         )
 
-        // Resolve THIS card's drive strictly from unclaimed drives (never steal a drive in otherUsedDriveIDs!)
+        // This card's drive comes only from the unclaimed ones, never from another card.
         let cardDrive: KroutonOpticalDriveInfo? = {
             if let exact = driveManager.availableDrives.first(where: { $0.id == item.targetDriveID && !otherUsedDriveIDs.contains($0.id) }) {
                 return exact
@@ -44,7 +48,7 @@ struct KroutonDestinationCardView: View {
         let isInlineVisible = ((scopeTel?.isActive ?? false) || (scopeTel?.isManuallyPinnedInline ?? false)) && !isFloatingOpen
 
         return VStack(alignment: .leading, spacing: 10) {
-            // Top Row: USB Burner / USB Menu + Scope + Icon-Only Eject + Remove Card
+            // Top row: the kind of card, the Phase Scope button, eject and remove.
             destinationCardTopHeaderBar
 
             if item.kind == .physicalBurner {
@@ -88,7 +92,7 @@ struct KroutonDestinationCardView: View {
                 }
             }
 
-            // Bottom Row: Options on Left + Dedicated Per-Card Action Button on Right
+            // Bottom row: options on the left, this card's own action button on the right.
             HStack(spacing: 10) {
                 if item.kind == .physicalBurner || item.kind == .networkBurner {
                 } else if item.kind == .discImage {
@@ -101,8 +105,7 @@ struct KroutonDestinationCardView: View {
 
                 Spacer(minLength: 4)
 
-                // Only show per-card action button when multiple destinations are queued
-                // (avoids duplicating the primary green action button at the bottom of the column!)
+                // Only with two or more cards: with one, it would repeat the column's main button.
                 if store.destinationQueue.count > 1 {
                     Button {
                         store.executeSingleDestination(item, driveManager: driveManager, primarySelectedDrive: primarySelectedDrive)
@@ -125,11 +128,12 @@ struct KroutonDestinationCardView: View {
                     .buttonStyle(.plain)
                     .fixedSize()
                     .disabled(driveManager.isExecutingQueue)
-                    .help("Execute only this destination card (\(item.kind.title))")
+                    .help("Run only this card (\(item.kind.title))")
                 }
             }
 
-            // Per-Burner Inline Mini Phase Scope (Shown when active OR manually pinned via Scope button, and not popped out)
+            // The small Phase Scope: shown while the drive works or when pinned with the Scope
+            // button, unless it is open in its own window.
             if (item.kind == .physicalBurner || item.kind == .networkBurner),
                let scopeTel = scopeTel,
                isInlineVisible {
@@ -145,22 +149,22 @@ struct KroutonDestinationCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(store.uiSecondaryAccent.opacity(0.35), lineWidth: 1))
         .contextMenu {
-            Button(KroutonL10n.tr("Execute Only This Destination")) {
+            Button(KroutonL10n.tr("Run This Card Only")) {
                 store.executeSingleDestination(item, driveManager: driveManager, primarySelectedDrive: primarySelectedDrive)
             }
             .keyboardShortcut("b", modifiers: .command)
             .disabled(driveManager.isExecutingQueue)
             if item.kind == .physicalBurner || item.kind == .networkBurner {
-                Button(KroutonL10n.tr("Open Floating Phase Scope Telemetry")) {
+                Button(KroutonL10n.tr("Phase Scope Window")) {
                     KroutonWindowManager.shared.openFloatingPhaseScopeWindow(driveID: activeCardDriveID)
                 }.keyboardShortcut("p", modifiers: [.command, .option])
-                Button(KroutonL10n.tr("Run Phase Scope Diagnostic Sweep")) {
+                Button(KroutonL10n.tr("Reset Phase Scope")) {
                     driveManager.runPhaseScopeTestSweep(for: activeCardDriveID, keepPinnedAfterSweep: true)
                 }.keyboardShortcut("p", modifiers: [.command, .shift])
-                Button(KroutonL10n.tr("Eject Optical Disc")) {
+                Button(KroutonL10n.tr("Eject Disc")) {
                     driveManager.ejectDrive(id: activeCardDriveID)
                 }.keyboardShortcut("e", modifiers: .command)
-                Menu(KroutonL10n.tr("Erase RW")) {
+                Menu(KroutonL10n.tr("Erase Rewritable Disc")) {
                     Button(KroutonL10n.tr("Quick Erase")) {
                         driveManager.eraseRewritableDisc(driveID: activeCardDriveID, fullErase: false) { _ in }
                     }
@@ -171,7 +175,7 @@ struct KroutonDestinationCardView: View {
                 .disabled(driveManager.isExecutingQueue)
             }
             Divider()
-            Button(KroutonL10n.tr("Copy Target Hardware / Path")) {
+            Button(KroutonL10n.tr("Copy Drive or Path")) {
                 KroutonOSDesktopBridge.copyTextToClipboard(item.hardwareOrPath)
             }
             if store.destinationQueue.count > 1 {
@@ -187,7 +191,10 @@ struct KroutonDestinationCardView: View {
 
 }
 
-// MARK: - Pure SwiftUI Disc Image Destination Path Row (.fileExporter)
+// MARK: - Disc Image Card's Path Row
+
+/// An empty document for the Save As panel, which only picks a path: the file the panel
+/// creates is deleted at once, and the image is written there when the card runs.
 struct KroutonDiscImagePlaceholderDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.data, .diskImage] }
     init() {}
@@ -267,7 +274,7 @@ extension KroutonDestinationCardView {
         }
         .toggleStyle(.checkbox).controlSize(.small)
         .accessibilityLabel(KroutonL10n.tr("Simulate Burn"))
-        .help("Simulate Burn (Test laser write without committing to media)")
+        .help("Go through the burn without writing to the disc, to test the drive and settings")
     }
 
     @ViewBuilder
@@ -276,7 +283,7 @@ extension KroutonDestinationCardView {
             Text(KroutonL10n.tr("Verify")).font(.system(size: 10.5, weight: .medium)).lineLimit(1)
         }
         .toggleStyle(.checkbox).controlSize(.small)
-        .help("Verify written sectors against source image/files after burn")
+        .help("After the burn, read the disc back and compare it with the source")
     }
 
     @ViewBuilder

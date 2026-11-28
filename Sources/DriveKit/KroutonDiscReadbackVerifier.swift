@@ -3,9 +3,12 @@ import Foundation
 import OpticalCore
 import os
 
+// MARK: - Readback Verifier
+
 /// Compares what a drive reads back with the image that was burned.
 /// Uses only file handles, so it is unit-tested with ordinary files.
 public enum KroutonDiscReadbackVerifier {
+    /// The sector size reads are aligned to.
     public static let sectorSize = 2048
     static let sectorsPerRead = 512 // 1 MiB
 

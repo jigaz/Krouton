@@ -1,7 +1,9 @@
 import Foundation
 
-// MARK: - Strongly-Typed Optical Format & Task Identifiers (Phase 2 Type-Safety Gate)
+// MARK: - Format and Task Identifiers
 
+/// Every disc format Krouton lists, by its saved identifier. The raw values are stored in projects
+/// and must not change.
 public enum KroutonFormatID: String, CaseIterable, Codable, Sendable {
     case cdDA = "cd-da"
     case mp3CD = "mp3-cd"
@@ -36,6 +38,8 @@ public enum KroutonFormatID: String, CaseIterable, Codable, Sendable {
     case photoCD = "photo-cd"
     case vcdSVCD = "vcd-svcd"
 
+    /// True for formats whose disc-image destination saves a raw 2,352-byte .cue/.bin (audio and
+    /// the CD-based consoles).
     public var usesRawCueBinImage: Bool {
         switch self {
         case .cdDA, .cdExtra, .dtsCD, .consolePS1, .consoleSaturn, .console3DO, .consoleDC:
@@ -45,6 +49,7 @@ public enum KroutonFormatID: String, CaseIterable, Codable, Sendable {
         }
     }
 
+    /// True for formats whose disc-image destination saves an Apple disk image (.dmg).
     public var usesAppleDiskImage: Bool {
         switch self {
         case .dataAppleAPFS, .macos9HFS:
@@ -54,6 +59,7 @@ public enum KroutonFormatID: String, CaseIterable, Codable, Sendable {
         }
     }
 
+    /// The short name the sidebar and the task chooser show.
     public var exactShortDisplayName: String {
         switch self {
         case .cdDA: return "Audio CD"
@@ -88,6 +94,7 @@ public enum KroutonFormatID: String, CaseIterable, Codable, Sendable {
     }
 }
 
+/// The tasks in the Copy section that read a disc instead of making one.
 public enum KroutonCopyTaskID: String, CaseIterable, Codable, Sendable {
     case duplicateDisc = "copy-duplicate"
     case ripAudioCD = "copy-rip-audio"
@@ -95,6 +102,7 @@ public enum KroutonCopyTaskID: String, CaseIterable, Codable, Sendable {
     case rescueDisc = "copy-rescue"
 }
 
+/// The workspace a format opens in the app.
 public enum KroutonMasteringWorkspaceKind: String, CaseIterable, Codable, Sendable {
     case discImageInspector
     case redBookAudio
@@ -104,6 +112,7 @@ public enum KroutonMasteringWorkspaceKind: String, CaseIterable, Codable, Sendab
     case dataAndArchival
 }
 
+/// The filters of the format list. The raw values are display names.
 public enum KroutonWorkflowFilterGroup: String, CaseIterable, Identifiable, Sendable {
     case all = "All Formats"
     case enabled = "Enabled Only"
@@ -115,20 +124,36 @@ public enum KroutonWorkflowFilterGroup: String, CaseIterable, Identifiable, Send
     public var id: String { rawValue }
 }
 
+/// One row of the format catalog: what the format is, for the format list and its detail pane, and
+/// which workspace it opens. The descriptive strings are display text, not checked facts.
 public struct KroutonOpticalWorkflowSpec: Identifiable, Hashable, Sendable {
+    /// The format's identifier; a `KroutonFormatID` raw value.
     public let id: String
+    /// True when the format appears in the task chooser, not only in the full list.
     public var showInTaskChooser: Bool
+    /// The format's technical name.
     public var technicalName: String
+    /// A plain description of the format.
     public var colloquialName: String
+    /// The year the format appeared.
     public var launchYear: String
+    /// Capacity, as display text.
     public var capacity: String
+    /// Capacity of the usual medium in GB, for sorting.
     public var capacityGB: Double
+    /// The laser the medium uses, as display text.
     public var laserType: String
+    /// What plays or reads the disc, as display text.
     public var platform: String
+    /// Whether the format is current, legacy or obsolete, as display text.
     public var deprecationStatus: String
+    /// What the format starts from; "Disc Image" routes it to the image workspace.
     public var sourceSupport: String
+    /// The specification or file systems, as display text.
     public var bookOrFileSystem: String
+    /// The SF Symbols name for the format's icon.
     public var sfSymbol: String
+    /// The filter group the format belongs to.
     public var filterGroup: KroutonWorkflowFilterGroup
     var isMediaPlaylist: Bool
     var isDataDisc: Bool
@@ -169,15 +194,17 @@ public struct KroutonOpticalWorkflowSpec: Identifiable, Hashable, Sendable {
         self.isDataDisc = isDataDisc
     }
 
+    /// The typed identifier, or nil for an unknown `id`.
     public var formatID: KroutonFormatID? {
         KroutonFormatID(rawValue: id)
     }
 
+    /// 1 for formats in the task chooser, 0 for the rest.
     public var visibilitySortKey: Int {
         showInTaskChooser ? 1 : 0
     }
 
-    /// Deterministic workspace classification tested by krouton-verify
+    /// The workspace the format opens. krouton-verify Suite 3 checks the routing.
     public var workspaceKind: KroutonMasteringWorkspaceKind {
         if id == KroutonFormatID.imageBurn.rawValue || sourceSupport == "Disc Image" {
             return .discImageInspector
@@ -197,13 +224,16 @@ public struct KroutonOpticalWorkflowSpec: Identifiable, Hashable, Sendable {
         return .dataAndArchival
     }
 
+    /// True for the M-DISC archival format, which writes PAR2 recovery files.
     public var isMDiscParityFormat: Bool {
         id == KroutonFormatID.mdiscVault.rawValue || technicalName.contains("M-DISC")
     }
 }
 
-// MARK: - Strict Per-Format File Type Compatibility & OpenPanel UTType Rules
+// MARK: - Accepted Files
+
 extension KroutonOpticalWorkflowSpec {
+    /// The file extensions the format's open panel and drop target accept.
     public var allowedFileExtensions: [String] {
         switch formatID {
         case .cdDA, .cdExtra, .dtsCD, .dvdAudio:
@@ -238,6 +268,7 @@ extension KroutonOpticalWorkflowSpec {
         }
     }
 
+    /// False for image and console formats, which take one image file.
     public var allowsDirectorySelection: Bool {
         if formatID == .imageBurn || filterGroup == .console {
             return false
@@ -245,6 +276,7 @@ extension KroutonOpticalWorkflowSpec {
         return true
     }
 
+    /// What to drop, for the empty deck.
     public var expectedMediaDescription: String {
         if filterGroup == .audio { return "Audio tracks (.wav, .flac, .aiff, .m4a, .mp3)" }
         if filterGroup == .video { return "Video streams (.mkv, .mp4, .mov, .m2ts, VIDEO_TS, BDMV)" }
@@ -266,7 +298,9 @@ extension KroutonOpticalWorkflowSpec {
     }
 }
 
-// MARK: - Canonical Optical Format Catalog (Testable by KroutonVerify)
+// MARK: - Format Catalog
+
+/// The format catalog the app shows: 28 formats.
 public enum KroutonOpticalWorkflowCatalog {
     public static let defaultFormats: [KroutonOpticalWorkflowSpec] = [
         KroutonOpticalWorkflowSpec(id: "cd-da", showInTaskChooser: true, technicalName: "Audio CD (Red Book)", colloquialName: "Red Book Audio CD w/ CD-TEXT & ISRC", launchYear: "1982", capacity: "700 MB / 80m", capacityGB: 0.7, laserType: "780nm IR", platform: "All CD / DVD / BD Players", deprecationStatus: "Current", sourceSupport: "New & Image", bookOrFileSystem: "IEC 60908 Red Book", sfSymbol: "waveform.circle.fill", filterGroup: .audio, isMediaPlaylist: true, isDataDisc: false),

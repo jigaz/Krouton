@@ -7,10 +7,15 @@ import Foundation
 /// deterministic, so `Vectors/krsp-bundle-v1.tar` is byte-identical between this and the Rust
 /// writer, and the name rules match `Vectors/krsp-bundle-names-v1.txt`.
 public enum SpoolBundleFormat {
+    /// The tar block size.
     public static let block: UInt64 = 512
+    /// The bundle is padded to whole sectors of this size.
     public static let sector: UInt64 = 2048
+    /// The longest path, in UTF-8 bytes.
     public static let maxPathBytes = 1024
+    /// The longest single name, in UTF-8 bytes.
     public static let maxNameBytes = 255
+    /// The deepest folder nesting.
     public static let maxDepth = 64
     static let octalLimit: UInt64 = 0o777_7777_7777
     static let paxName = "././@PaxHeader"
@@ -58,13 +63,16 @@ public enum SpoolBundleFormat {
 
 /// Streams a bundle to `sink` in chunks. Call `directory` for a folder before anything inside it.
 public struct SpoolBundleWriter {
+    /// Bytes written so far.
     public private(set) var written: UInt64 = 0
     private let sink: (Data) throws -> Void
 
+    /// A writer that hands its output to `sink`.
     public init(sink: @escaping (Data) throws -> Void) {
         self.sink = sink
     }
 
+    /// Writes a folder entry.
     public mutating func directory(_ path: String, mtime: UInt64) throws {
         try Self.check(path)
         try header(name: path + "/", kind: UInt8(ascii: "5"), mode: 0o755, size: 0, mtime: mtime)
@@ -153,6 +161,7 @@ public struct SpoolBundleWriter {
     }
 }
 
+/// Why a folder couldn't be bundled. The descriptions are for the user.
 public enum SpoolBundleError: Error, Equatable, LocalizedError {
     case name(path: String, problem: String)
     case duplicate(String)

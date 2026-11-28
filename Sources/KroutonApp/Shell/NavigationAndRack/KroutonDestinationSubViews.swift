@@ -5,7 +5,7 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Standalone Right Destination Rack Column View
+// MARK: - Destination Queue Column
 
 struct KroutonDestinationRackColumnView: View {
     var store: KroutonStateStore
@@ -93,28 +93,7 @@ struct KroutonDestinationRackColumnView: View {
 
             Divider()
 
-            if driveManager.isExecutingQueue || driveManager.activeJobProgress > 0 {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text(driveManager.activeJobPhase)
-                            .font(.system(size: 11, weight: .bold))
-                            .lineLimit(1)
-                        Spacer()
-                        Text(String(format: "%.0f%%", driveManager.activeJobProgress * 100.0))
-                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                    }
-                    ProgressView(value: driveManager.activeJobProgress, total: 1.0)
-                        .tint(store.activeAccent)
-                    if !driveManager.activeJobDetail.isEmpty {
-                        Text(driveManager.activeJobDetail)
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                }
-                .padding(.horizontal, 12)
-                .padding(.top, 10)
-            }
+            KroutonQueueJobProgressView(store: store, driveManager: driveManager)
 
             VStack(spacing: 8) {
                 Button {
@@ -165,6 +144,41 @@ struct KroutonDestinationRackColumnView: View {
         .background(Color.kroutonControlSurface)
         .sheet(isPresented: $showBurnSetSheet) {
             KroutonBurnSetSheetView(store: store)
+        }
+    }
+}
+
+// MARK: - Running Job Progress
+
+/// The running job's phase, percentage and detail under the queue. Its own view, so only it
+/// follows the progress (many updates a second during a burn) and the queue column with its
+/// cards and spanned-disc plan isn't recomputed at each one.
+struct KroutonQueueJobProgressView: View {
+    var store: KroutonStateStore
+    var driveManager: KroutonOpticalDriveBank
+
+    var body: some View {
+        if driveManager.isExecutingQueue || driveManager.activeJobProgress > 0 {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(driveManager.activeJobPhase)
+                        .font(.system(size: 11, weight: .bold))
+                        .lineLimit(1)
+                    Spacer()
+                    Text(String(format: "%.0f%%", driveManager.activeJobProgress * 100.0))
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                }
+                ProgressView(value: driveManager.activeJobProgress, total: 1.0)
+                    .tint(store.activeAccent)
+                if !driveManager.activeJobDetail.isEmpty {
+                    Text(driveManager.activeJobDetail)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 10)
         }
     }
 }

@@ -110,9 +110,16 @@ enum KroutonCloudSettings {
                 KroutonPreferences.setLocally(nil, for: key)
             }
         }
-        // Loading only fills in saved values, so start from the defaults.
-        store.appearance.resetToDefaults()
+        // Loading only fills in saved values, so start from the defaults. The settings that don't
+        // travel and aren't saved (VoiceOver read-outs, contrast, an unsaved language) stay as
+        // they are: another Mac changing its accent mustn't switch them back here.
+        let appearance = store.appearance
+        let kept = (appearance.voiceOverSpokenTelemetry, appearance.a11yIncreaseContrast, appearance.appLanguage)
+        appearance.resetToDefaults()
         store.hydratePreferencesFromUserDefaults()
+        appearance.voiceOverSpokenTelemetry = kept.0
+        appearance.a11yIncreaseContrast = kept.1
+        if !KroutonPreferences.has(.appLanguage) { appearance.appLanguage = kept.2 }
     }
 
     /// Puts the copy in iCloud back to the defaults (Reset Settings, with sync on, resets every Mac).

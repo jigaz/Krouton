@@ -1,13 +1,16 @@
 import Foundation
 
-// MARK: - Multi-Burner Work-Stealing Pool & Waiting Queue State Machine
+// MARK: - Multi-Burner Pool and Waiting Queue
 
+/// What happens when a burner in the pool finishes a disc. The raw values are display names and are
+/// saved.
 public enum KroutonPoolDispatchMode: String, CaseIterable, Identifiable, Codable, Sendable {
     case autoAssign = "Auto-Assign"
     case askOperator = "Ask / Manual"
 
     public var id: String { rawValue }
 
+    /// The SF Symbols name for the mode's icon.
     public var sfSymbol: String {
         switch self {
         case .autoAssign: return "bolt.horizontal.circle.fill"
@@ -15,6 +18,7 @@ public enum KroutonPoolDispatchMode: String, CaseIterable, Identifiable, Codable
         }
     }
 
+    /// One sentence about the mode, for its picker.
     public var summaryText: String {
         switch self {
         case .autoAssign:
@@ -25,15 +29,24 @@ public enum KroutonPoolDispatchMode: String, CaseIterable, Identifiable, Codable
     }
 }
 
+/// One disc to burn in the pool: which disc of a span and which copy.
 public struct KroutonPoolBurnTicket: Identifiable, Hashable, Codable, Sendable {
     public var id: UUID
+    /// Position in the queue, from 0; the waiting list is kept in this order.
     public var sequenceNumber: Int
+    /// Which disc of the span, from 1.
     public var spannedDiscNumber: Int
+    /// How many discs the span has.
     public var totalSpannedDiscs: Int
+    /// Which copy, from 1.
     public var copyNumber: Int
+    /// How many copies of each disc.
     public var totalCopies: Int
+    /// The volume label this disc is burned with.
     public var volumeLabel: String
+    /// Roughly how much the disc holds.
     public var estimatedBytes: Int64
+    /// A drive the ticket should go to, when the user chose one.
     public var preferredDriveID: String?
 
     public init(
@@ -58,6 +71,7 @@ public struct KroutonPoolBurnTicket: Identifiable, Hashable, Codable, Sendable {
         self.preferredDriveID = preferredDriveID
     }
 
+    /// "Disc 2 of 3", "Copy 4 of 20", or both.
     public var badgeTitle: String {
         if totalSpannedDiscs > 1 && totalCopies > 1 {
             return "Disc \(spannedDiscNumber)/\(totalSpannedDiscs) • Copy \(copyNumber)/\(totalCopies)"
@@ -70,6 +84,7 @@ public struct KroutonPoolBurnTicket: Identifiable, Hashable, Codable, Sendable {
         }
     }
 
+    /// A compact form of `badgeTitle` for narrow rows.
     public var shortQueueBadge: String {
         if totalSpannedDiscs > 1 && totalCopies > 1 {
             return "D\(spannedDiscNumber)•C\(copyNumber)"
@@ -81,9 +96,13 @@ public struct KroutonPoolBurnTicket: Identifiable, Hashable, Codable, Sendable {
     }
 }
 
+/// A burner as the pool ranks it.
 public struct KroutonPoolDriveDescriptor: Identifiable, Hashable, Codable, Sendable {
+    /// The drive's ID.
     public let id: String
+    /// The drive's display name.
     public let displayName: String
+    /// The drive's top write speed, at least 1x.
     public let maxWriteSpeedX: Double
 
     public init(id: String, displayName: String, maxWriteSpeedX: Double) {
@@ -93,19 +112,28 @@ public struct KroutonPoolDriveDescriptor: Identifiable, Hashable, Codable, Senda
     }
 }
 
+/// The destination queue's multi-burner pool: which ticket each drive is burning or waiting to
+/// start, and the tickets still waiting.
 public struct KroutonDrivePoolState: Equatable, Codable, Sendable {
+    /// The ticket each drive is burning or about to burn.
     public private(set) var assignedByDriveID: [String: KroutonPoolBurnTicket] = [:]
+    /// In `.askOperator` mode, the ticket offered to each drive until the user approves it.
     public private(set) var pendingApprovalByDriveID: [String: KroutonPoolBurnTicket] = [:]
+    /// How many tickets each drive finished.
     public private(set) var completedCountByDriveID: [String: Int] = [:]
+    /// Tickets not yet given to a drive, in sequence order.
     public private(set) var waitingTasks: [KroutonPoolBurnTicket] = []
+    /// Tickets that finished, in the order they finished.
     public private(set) var completedTickets: [KroutonPoolBurnTicket] = []
 
     public init() {}
 
+    /// Tickets not yet finished.
     public var totalRemainingCount: Int {
         assignedByDriveID.count + pendingApprovalByDriveID.count + waitingTasks.count
     }
 
+    /// True once at least one ticket finished and none is left.
     public var isComplete: Bool {
         assignedByDriveID.isEmpty && pendingApprovalByDriveID.isEmpty && waitingTasks.isEmpty && !completedTickets.isEmpty
     }
@@ -265,13 +293,18 @@ extension KroutonOpticalDriveInfo {
     }
 }
 
-// MARK: - Late-Binding BurnClaimLedger
+// MARK: - Burn Claim Ledger (late binding)
 
+/// What the ledger looks like to the UI: the disc each drive holds, and the discs still waiting or
+/// finished.
 public struct BurnPoolSnapshot: Sendable, Equatable {
+    /// One drive's disc.
     public struct Slot: Sendable, Equatable {
         public let drive: DriveID
         public let discIndex: Int
+        /// True once the drive claimed the disc; false while it is only offered.
         public let isCommitted: Bool
+        /// True while the offer waits for the user.
         public let awaitingOperator: Bool
 
         public init(drive: DriveID, discIndex: Int, isCommitted: Bool, awaitingOperator: Bool) {
@@ -282,8 +315,11 @@ public struct BurnPoolSnapshot: Sendable, Equatable {
         }
     }
 
+    /// One slot per drive holding a disc, fastest drive first.
     public let active: [Slot]
+    /// Discs no drive holds yet.
     public let waiting: [Int]
+    /// Discs that burned.
     public let finished: [Int]
 
     public init(active: [Slot] = [], waiting: [Int] = [], finished: [Int] = []) {
@@ -293,11 +329,19 @@ public struct BurnPoolSnapshot: Sendable, Equatable {
     }
 }
 
+/// Hands out the discs of a set to drives as they become ready. A disc is offered to an idle drive,
+/// and claimed (committed) only when a usable blank is in its tray, so a slow drive never holds a
+/// disc another drive could burn.
 public struct BurnClaimLedger: Sendable, Equatable {
+    /// Discs not yet claimed, in order.
     public private(set) var waiting: [Int]
+    /// The disc shown to each idle drive.
     public private(set) var offered: [DriveID: Int] = [:]
+    /// The disc each drive claimed.
     public private(set) var committed: [DriveID: Int] = [:]
+    /// Drives whose offer waits for the user. Nothing adds to it yet.
     public private(set) var awaitingOperator: Set<DriveID> = []
+    /// Discs that burned, in the order they finished.
     public private(set) var finished: [Int] = []
     private let driveOrder: [DriveID]
 
@@ -326,6 +370,8 @@ public struct BurnClaimLedger: Sendable, Equatable {
         return disc
     }
 
+    /// Ends a drive's claim: the disc goes back to `waiting` when `requeue`, to `finished` when
+    /// `succeeded`, and is otherwise dropped.
     public mutating func release(drive: DriveID, succeeded: Bool, requeue: Bool) {
         offered.removeValue(forKey: drive)
         awaitingOperator.remove(drive)
@@ -338,11 +384,13 @@ public struct BurnClaimLedger: Sendable, Equatable {
         }
     }
 
+    /// Takes back an offer to a drive that is no longer idle. A committed disc stays claimed.
     public mutating func withdraw(drive: DriveID) {
         offered.removeValue(forKey: drive)
         awaitingOperator.remove(drive)
     }
 
+    /// True when no disc is waiting or claimed.
     public var isDrained: Bool {
         waiting.isEmpty && committed.isEmpty
     }

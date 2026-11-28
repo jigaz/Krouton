@@ -3,6 +3,11 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
+// MARK: - Burn Workspace
+
+/// The Burn workspace: a header for the chosen format, the pre-burn checks, and the
+/// format's own deck (data, audio CD, MP3 CD, video, console, disc image), picked by the
+/// format's `workspaceKind`.
 struct KroutonBurnStationWorkspaceView: View {
     var store: KroutonStateStore
     let primarySelectedDrive: KroutonOpticalDriveInfo?
@@ -15,7 +20,8 @@ struct KroutonBurnStationWorkspaceView: View {
     var body: some View {
         let activeSpec = store.discFormats.first(where: { $0.id == store.selectedTaskID }) ?? store.discFormats[0]
         return VStack(alignment: .leading, spacing: 12) {
-            // Format Header Bar with Context-Sensitive Add Action (Responsive & Zero Vertical Word-Towers)
+            // The format's header, with an Add button that fits the format. Narrow windows get a
+            // shorter layout, so no label wraps one word per line.
             HStack(alignment: .center, spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 8) {
@@ -196,7 +202,7 @@ struct KroutonBurnStationWorkspaceView: View {
         }
     }
 
-    // MARK: - Subviews & Helper Methods
+    // MARK: - Subviews
 
     func addButtonTitle(for spec: KroutonOpticalWorkflowSpec) -> String {
         switch spec.workspaceKind {
@@ -223,7 +229,7 @@ struct KroutonBurnStationWorkspaceView: View {
         }
     }
 
-    // MARK: - Retro Console ROM Mastering Deck & Pre-Flight Sanity Engine
+    // MARK: - Game Console Deck and Pre-Burn Checks
 
     func currentPreFlightSanityWarning(for spec: KroutonOpticalWorkflowSpec) -> String? {
         if (spec.filterGroup == .console || spec.id.hasPrefix("console-")), let drive = primarySelectedDrive, drive.isMediaPresent && drive.isMediaErasable {

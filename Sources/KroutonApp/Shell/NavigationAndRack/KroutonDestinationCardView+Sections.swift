@@ -9,14 +9,14 @@ extension KroutonDestinationCardView {
     var destinationCardTopHeaderBar: some View {
         let cardID = item.id
 
-        // Drives claimed by OTHER destination cards in the queue
+        // Drives that other cards in the queue have claimed.
         let otherUsedDriveIDs = Set(
             store.destinationQueue
                 .filter { $0.id != cardID && $0.kind == .physicalBurner && !$0.targetDriveID.isEmpty }
                 .map { $0.targetDriveID }
         )
 
-        // Resolve THIS card's drive strictly from unclaimed drives (never steal a drive in otherUsedDriveIDs!)
+        // This card's drive comes only from the unclaimed ones, never from another card.
         let hasUnclaimedPhysicalBurner = driveManager.availableDrives.contains(where: { !otherUsedDriveIDs.contains($0.id) })
         let cardDrive: KroutonOpticalDriveInfo? = {
             if let exact = driveManager.availableDrives.first(where: { $0.id == item.targetDriveID && !otherUsedDriveIDs.contains($0.id) }) {

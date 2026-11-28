@@ -2,10 +2,10 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Disc Label Curved & Straight Text Inspector + 300-DPI Exporter
+// MARK: - Disc Label Text Tool
 
 extension KroutonDiscLabelWorkspaceView {
-    // MARK: - Tool Inspector B: Curved & Straight Text Tool
+    // MARK: - Text Tool
 
     func textToolInspector() -> some View {
         VStack(alignment: .leading, spacing: 12) {

@@ -2,15 +2,17 @@ import AudioKit
 import Observation
 import SwiftUI
 
-@MainActor
-// MARK: - SpliceDragController
+// MARK: - Track Montage Editor Window State
 
+/// Whether the Track Montage Editor is in its own window, which transition it shows, and its
+/// size and zoom. Shared by the inline editor and the window.
+@MainActor
 @Observable
 final class TrackMontageWindowState {
     static let shared = TrackMontageWindowState()
     var isFloatingWindowOpen: Bool = false
     var activeTrackID: UUID? = nil
-    /// GPU-backed "foosh" warp phase: 0.0 = resting, 1.0 = mid-flight launch/dock impulse
+    /// The pop-out and dock animation's progress: 0 at rest, 1 mid-flight.
     var fooshPhase: Double = 0.0
     /// Vertical height multiplier: 0.50 (50%) ... 2.00 (200%), base height = 174 pt
     var heightScale: Double = 1.0

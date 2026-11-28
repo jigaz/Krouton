@@ -2,15 +2,10 @@ import OpticalCore
 import SwiftUI
 import os
 
-//
-//  KroutonThemeEngine.swift
-//  Krouton — Optical Media Mastering Package (Optical Media Mastering Workspace)
-//
-//  22-Color Display-P3 Perceptual Harmony Engine + Zero-Allocation LUT Cache.
-//  100% Pure SwiftUI & CoreGraphics IEEE-754 Color Math (Zero AppKit Dependency).
-//
+// The second accent colour ("harmony"): worked out from the chosen accent with SwiftUI's
+// `Color.resolve` and plain colour math (no AppKit), and cached, since views ask for it often.
 
-// MARK: - Zero-Allocation Display-P3 Color Harmony LUT Cache (120Hz ProMotion Optimization)
+// MARK: - Second Accent Cache
 fileprivate final class KroutonColorHarmonyLUT: Sendable {
     static let shared = KroutonColorHarmonyLUT()
     private struct CacheState: Sendable {
@@ -38,7 +33,7 @@ fileprivate final class KroutonColorHarmonyLUT: Sendable {
 
 }
 
-// MARK: - Perceptual Split-Complementary + Warm/Cool Polarity Color Engine (CGColor / P3)
+// MARK: - Second Accent From the First
 extension Color {
     var perceptualSplitComplement: Color {
         KroutonColorHarmonyLUT.shared.cachedComplement(for: self) {
@@ -88,7 +83,7 @@ extension Color {
 
 }
 
-// MARK: - KroutonStateStore Secondary Accent Harmony Extension
+// MARK: - KroutonStateStore — Second Accent
 extension KroutonStateStore {
     private static func p3Color(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat) -> Color {
         if let space = CGColorSpace(name: CGColorSpace.displayP3),
@@ -172,7 +167,7 @@ extension KroutonStateStore {
     }
 }
 
-// MARK: - Native SwiftUI Semantic Surface Colors
+// MARK: - Surface Colors
 extension Color {
     private static var isEffectiveDarkAppearance: Bool {
         if let raw = KroutonPreferences.string(for: .appearanceMode),

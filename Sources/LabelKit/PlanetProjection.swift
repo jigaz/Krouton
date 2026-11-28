@@ -9,12 +9,15 @@ import os
 /// A panorama decoded once into 8-bit RGBA, at most `maxWidth` wide (previews use a smaller
 /// copy than prints, so dragging a slider stays quick).
 public final class KroutonPlanetSource: Sendable {
+    /// The decoded width in pixels.
     public let width: Int
+    /// The decoded height in pixels.
     public let height: Int
     let pixels: [UInt8]
     /// Changes with every decode, for render caches.
     public let identity = UUID()
 
+    /// Decodes `cgImage` scaled down to at most `maxWidth`; nil when it can't be drawn.
     public init?(cgImage: CGImage, maxWidth: Int) {
         let scale = min(1.0, Double(maxWidth) / Double(max(1, cgImage.width)))
         let w = max(2, Int((Double(cgImage.width) * scale).rounded()))

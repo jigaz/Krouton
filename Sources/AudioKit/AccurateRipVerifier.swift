@@ -12,11 +12,16 @@ import os
 /// the lead-out; id2 weights each by its track number (sector 0 counts as 1); the third part
 /// is the old freedb/CDDB disc ID. The database is served over plain HTTP only.
 public struct KroutonAccurateRipDiscID: Sendable, Equatable {
+    /// Audio tracks on the disc.
     public let trackCount: Int
+    /// The sum of the track starts and the lead-out.
     public let id1: UInt32
+    /// The track-number-weighted sum (see the notes above).
     public let id2: UInt32
+    /// The freedb/CDDB disc ID.
     public let cddb: UInt32
 
+    /// Works out the identity from the audio tracks' start sectors and the lead-out sector.
     public init(trackStarts: [Int], leadout: Int) {
         trackCount = trackStarts.count
         var a: UInt32 = 0, b: UInt32 = 0
@@ -34,6 +39,7 @@ public struct KroutonAccurateRipDiscID: Sendable, Equatable {
         cddb = UInt32((n % 255) << 24 | seconds << 8 | trackStarts.count)
     }
 
+    /// The disc's entry in the AccurateRip database.
     public var url: URL {
         func hex(_ v: UInt32) -> String { String(v & 0xF, radix: 16) }
         let name = String(format: "dBAR-%03d-%08x-%08x-%08x.bin", trackCount, id1, id2, cddb)
@@ -45,6 +51,7 @@ public struct KroutonAccurateRipDiscID: Sendable, Equatable {
 
 /// How one track compared with the database.
 public struct KroutonAccurateRipTrackResult: Sendable, Equatable {
+    /// The track number.
     public let number: Int
     /// The track's AccurateRip v1 checksum at the drive offset found.
     public let crc: UInt32
@@ -54,10 +61,13 @@ public struct KroutonAccurateRipTrackResult: Sendable, Equatable {
     public let bestConfidence: Int
 }
 
+/// How a whole rip compared with AccurateRip.
 public struct KroutonAccurateRipReport: Sendable, Equatable {
     /// Samples by which this drive's reads are shifted, as found by matching the database.
     public let driveOffset: Int
+    /// Each track's result, in order.
     public let tracks: [KroutonAccurateRipTrackResult]
+    /// True when every track matched at least one submitted rip.
     public var allAccurate: Bool { !tracks.isEmpty && tracks.allSatisfy { $0.confidence > 0 } }
 }
 
@@ -74,6 +84,7 @@ public struct KroutonAccurateRipReport: Sendable, Equatable {
 /// the last five of the last; that sum slides one sample in constant time, so all offsets cost
 /// one pass. Only v1 is compared: v2 sums can't slide, and most database entries carry v1.
 public enum KroutonAccurateRipVerifier {
+    /// The widest drive read offset searched, in samples (five CD frames).
     public static let offsetRange = 2_940
     static let skip = 5 * 588
 
@@ -203,9 +214,13 @@ public enum KroutonAccurateRipVerifier {
 
     // MARK: - Checking a Finished Rip
 
+    /// What checking a rip found.
     public enum Outcome: Sendable, Equatable {
+        /// The rip was compared; see the report.
         case checked(KroutonAccurateRipReport)
+        /// The disc has no AccurateRip entry.
         case notInDatabase
+        /// The check couldn't run; the message says why.
         case failed(String)
     }
 

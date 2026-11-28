@@ -2,8 +2,8 @@ import Foundation
 import OpticalCore
 import os
 
-// Session persistence for Krouton. Replaces the UserDefaults sentinel + atexit
-// design in KroutonSessionPersistence.swift.
+// Session persistence for Krouton. The app wires these up at launch, at quit and
+// around burns in KroutonSessionPersistence.swift.
 //
 // Four pieces, each independent:
 //
@@ -21,15 +21,20 @@ import os
 
 // MARK: - RunLock
 
+/// What a running Krouton writes into `run.lock`, so the next launch can tell how this run ended.
 public struct RunMarker: Codable, Sendable, Equatable {
+    /// How far the run got.
     public enum Phase: String, Codable, Sendable { case restoring, running }
+    /// The process ID of the run.
     public var pid: Int32
     var launchedAt: Date
+    /// `.restoring` until the snapshot is applied, then `.running`.
     public var phase: Phase
     /// Unclean exits in a row before this run started (0 after a clean quit).
     var consecutiveUncleanExits: Int
 }
 
+/// How the previous run ended, as `RunLock.acquire` found it.
 public enum LaunchVerdict: Sendable, Equatable {
     /// Previous run quit normally (or this is the first launch).
     case clean
@@ -40,6 +45,8 @@ public enum LaunchVerdict: Sendable, Equatable {
     case anotherInstanceRunning
 }
 
+/// Detects an unclean exit of the previous run, and a second copy of Krouton, with a `flock`ed
+/// file.
 public final class RunLock: Sendable {
     private let fd: Int32
     private let markerLock: OSAllocatedUnfairLock<RunMarker>
@@ -122,7 +129,10 @@ public final class RunLock: Sendable {
 
 // MARK: - What to do at launch
 
+/// What to do with the saved session at launch.
 public enum RestoreDecision: Sendable, Equatable {
+    /// Don't restore: nothing is saved, the user turned restoring off, or another Krouton is
+    /// running.
     case startFresh
     /// Put things back without asking. This is the normal case, including after
     /// most unclean exits: the user wants their work, not a question.
@@ -130,9 +140,12 @@ public enum RestoreDecision: Sendable, Equatable {
     /// Ask before restoring. Only used to break a crash loop.
     case askFirst(reason: AskReason)
 
+    /// Why to ask instead of restoring silently.
     public enum AskReason: Sendable, Equatable { case diedWhileRestoring, repeatedUncleanExits }
 }
 
+/// Decides whether to restore the saved session, from how the last run ended, whether a snapshot
+/// exists and the user's setting.
 public func restoreDecision(verdict: LaunchVerdict, hasSnapshot: Bool, rememberSession: Bool) -> RestoreDecision {
     guard hasSnapshot, rememberSession else { return .startFresh }
     switch verdict {
@@ -149,17 +162,22 @@ public func restoreDecision(verdict: LaunchVerdict, hasSnapshot: Bool, rememberS
 
 // MARK: - FileReference
 
+/// A staged file saved as a bookmark plus its last known path, so it survives renames and reports
+/// "missing" instead of vanishing.
 public struct FileReference: Codable, Sendable, Equatable {
     var bookmark: Data?
     var lastKnownPath: String
 
+    /// Where a reference points now.
     public enum Resolution: Sendable, Equatable {
+        /// The file is reachable at this URL.
         case found(URL)
         /// Keep this in the staged list as a visible "missing" row. Never drop it
         /// silently: the user needs to know the disc layout changed.
         case missing(lastKnownPath: String)
     }
 
+    /// Records `url`'s path and a bookmark to it.
     public init(url: URL) {
         lastKnownPath = url.path
         // Add `.withSecurityScope` to both calls if the app is sandboxed.
@@ -184,11 +202,12 @@ public struct FileReference: Codable, Sendable, Equatable {
 
 // MARK: - SessionStore
 
-/// `Payload` is your own Codable workspace state. It must include everything that
-/// is expensive for the user to redo: the track list, every transition spec,
-/// titles, ISRCs, the queue. Staged files go in as `FileReference`, not paths.
+/// Reads only the schema version of a saved snapshot.
 private struct SessionVersionProbe: Decodable { var schemaVersion: Int }
 
+/// Saves a snapshot of the app's state (`Payload`) to `session.json`, debounced and atomic, keeping
+/// the previous one as `session.previous.json`. `Payload` must hold everything expensive to redo,
+/// with staged files as `FileReference`s.
 public actor SessionStore<Payload: Codable & Sendable> {
 
     private struct Envelope: Codable {
@@ -197,8 +216,11 @@ public actor SessionStore<Payload: Codable & Sendable> {
         var payload: Payload
     }
 
+    /// What `load()` found.
     public enum LoadResult: Sendable {
+        /// Nothing saved, or nothing readable.
         case none
+        /// A snapshot, when it was saved, and whether it came from the backup.
         case loaded(Payload, savedAt: Date, fromBackup: Bool)
         /// Written by a newer Krouton. Leave the file alone and start fresh.
         case newerSchema(Int)
@@ -216,6 +238,7 @@ public actor SessionStore<Payload: Codable & Sendable> {
     /// version (see `KroutonPersistedJSON`); empty when it read as saved.
     public private(set) var lastLoadRepairs: [String] = []
 
+    /// Saves under `directory`. `migrate` upgrades a snapshot saved with an older `schemaVersion`.
     public init(
         directory: URL,
         schemaVersion: Int,
@@ -262,6 +285,7 @@ public actor SessionStore<Payload: Codable & Sendable> {
         }
     }
 
+    /// Reads the current snapshot, or the backup when the current one can't be read.
     public func load() -> LoadResult {
         lastLoadRepairs = []
         for (url, isBackup) in [(currentURL, false), (backupURL, true)] {
@@ -282,6 +306,7 @@ public actor SessionStore<Payload: Codable & Sendable> {
         return .none
     }
 
+    /// Forgets the pending snapshot and deletes both files.
     public func discard() {
         saveTask?.cancel()
         pending = nil
@@ -320,6 +345,7 @@ public actor SessionStore<Payload: Codable & Sendable> {
 /// Lets exactly one of several racing callers win.
 private final class OnceGate: Sendable {
     private let claimed = OSAllocatedUnfairLock(initialState: false)
+    /// True for the first caller only.
     public func claim() -> Bool {
         claimed.withLock { flag in
             if flag { return false }
@@ -331,7 +357,9 @@ private final class OnceGate: Sendable {
 
 // MARK: - BurnJournal
 
+/// One phase change of one burn, as a line of `burn-journal.jsonl`.
 public struct BurnJournalRecord: Codable, Sendable, Equatable {
+    /// The burn's phase. `succeeded`, `failed` and `cancelled` end a job.
     public enum Phase: String, Codable, Sendable {
         case started, writingLeadIn, writingData, closing, verifying
         case succeeded, failed, cancelled
@@ -339,12 +367,18 @@ public struct BurnJournalRecord: Codable, Sendable, Equatable {
         var isTerminal: Bool { self == .succeeded || self == .failed || self == .cancelled }
     }
     var jobID: UUID
+    /// When the phase started.
     public var at: Date
+    /// The phase.
     public var phase: Phase
-    public var deviceName: String     // e.g. "ASUS SBW-06D5H-U"
-    public var mediaDescription: String // e.g. "CD-R, 97m15s05f"
+    /// The drive, such as "ASUS SBW-06D5H-U".
+    public var deviceName: String
+    /// The disc, such as "CD-R, 97m15s05f".
+    public var mediaDescription: String
+    /// The project being burned.
     public var projectTitle: String
-    public var detail: String?        // sense code text on failure
+    /// On failure, what went wrong (for example the decoded sense code).
+    public var detail: String?
 
     public init(jobID: UUID, at: Date = Date(), phase: Phase, deviceName: String,
                 mediaDescription: String, projectTitle: String, detail: String? = nil) {
@@ -358,9 +392,12 @@ public struct BurnJournalRecord: Codable, Sendable, Equatable {
     }
 }
 
+/// An append-only, fsynced record of burn phases. After an unclean exit it tells which disc was
+/// mid-burn.
 public actor BurnJournal {
     private let url: URL
 
+    /// Keeps the journal in `directory`.
     public init(directory: URL) {
         url = directory.appendingPathComponent("burn-journal.jsonl")
     }
@@ -411,6 +448,8 @@ public actor BurnJournal {
         ((try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? NSNumber)?.int64Value ?? 0
     }
 
+    /// Records each job as failed ("Krouton exited before this burn finished"), so it isn't
+    /// reported again.
     public func acknowledge(_ jobs: [BurnJournalRecord]) throws {
         for job in jobs {
             var closed = job
@@ -421,52 +460,3 @@ public actor BurnJournal {
         }
     }
 }
-
-// MARK: - Launch and quit wiring (sketch)
-//
-//   let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-//       .appendingPathComponent("Krouton/Session", isDirectory: true)
-//
-//   let (runLock, verdict) = try RunLock.acquire(in: dir)
-//   let sessions = SessionStore<WorkspaceState>(directory: dir, schemaVersion: 2)
-//   let journal = BurnJournal(directory: dir)
-//
-//   let loaded = await sessions.load()
-//   var hasPayload = false
-//   if case .loaded = loaded { hasPayload = true }
-//   switch restoreDecision(verdict: verdict, hasSnapshot: hasPayload, rememberSession: pref) {
-//   case .restoreSilently:  apply(loaded)          // resolve FileReferences via sessions.resolve
-//   case .askFirst(let why): showBanner(why)       // "Restore" is the default button
-//   case .startFresh:       break
-//   }
-//   runLock?.markRunning()
-//   Task { try? await Task.sleep(for: .seconds(30)); runLock?.markStable() }
-//
-//   let interrupted = await journal.interruptedJobs()
-//   if !interrupted.isEmpty { showInterruptedBurns(interrupted) }
-//
-// Clean quit, without importing AppKit: the notification is posted on the default
-// center under a plain string name.
-//
-//   NotificationCenter.default.addObserver(
-//   ) { _ in
-//       // Runs synchronously on the main thread before exit. Do the minimum.
-//       let done = DispatchSemaphore(value: 0)
-//       Task.detached { await sessions.flush(); done.signal() }
-//       _ = done.wait(timeout: .now() + 2)
-//       runLock?.markCleanExit()
-//   }
-//
-// While a burn is running, also hold these (both Foundation):
-//
-//   ProcessInfo.processInfo.disableSuddenTermination()   // pair with enableSuddenTermination()
-//   let activity = ProcessInfo.processInfo.beginActivity(
-//       options: [.userInitiated, .idleSystemSleepDisabled],
-//       reason: "Burning disc")                           // no App Nap, no idle sleep
-//   defer { ProcessInfo.processInfo.endActivity(activity) }
-//
-// Alternative worth weighing: make a disc project a document (`DocumentGroup` with
-// a `FileDocument`). SwiftUI then gives you autosave, recovery of unsaved work,
-// window restoration and Versions without any of the snapshot code above, and
-// projects become files people can keep and send. You would still want RunLock for
-// crash-loop protection and BurnJournal for interrupted burns.

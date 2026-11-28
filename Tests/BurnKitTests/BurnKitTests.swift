@@ -36,3 +36,30 @@ final class BurnKitTests: XCTestCase {
         XCTAssertTrue(manifest.contains("data/Audio/Track 100%25.wav"))
     }
 }
+
+// MARK: - Burn Event Journal
+
+final class BurnEventJournalTests: XCTestCase {
+    /// A crash mid-append leaves a last line without its newline. The next event used to be
+    /// written onto that line, so neither decoded and the event (often the `.interrupted`
+    /// failure recorded at the next launch) was lost.
+    func testAnEventAfterATornLineIsKept() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("BurnEventJournal_\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let journal = BurnEventJournal(directory: folder)
+        let set = BurnSetID()
+        try await journal.append(.attemptSucceeded(set: set, disc: 1, attempt: 1, at: Date(timeIntervalSince1970: 0)))
+        let file = folder.appendingPathComponent("burn-set-events.jsonl")
+        let handle = try FileHandle(forWritingTo: file)
+        try handle.seekToEnd()
+        try handle.write(contentsOf: Data("{\"attemptFailed\":{\"set\"".utf8)) // torn, no newline
+        try handle.close()
+
+        let failed = BurnEvent.attemptFailed(set: set, disc: 2, attempt: 1, failure: .interrupted, at: Date(timeIntervalSince1970: 60))
+        try await journal.append(failed)
+        let events = await journal.readAll()
+        XCTAssertEqual(events.count, 2)
+        XCTAssertEqual(events.last, failed)
+    }
+}

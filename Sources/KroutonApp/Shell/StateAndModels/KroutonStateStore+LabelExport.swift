@@ -31,7 +31,8 @@ extension KroutonStateStore {
 
     // MARK: - Export
 
-    enum LabelExportKind { case png, pdf }
+    /// `.pngAndPDF` renders the label once and saves both files.
+    enum LabelExportKind { case png, pdf, pngAndPDF }
 
     /// Renders the label at the print resolution with the print settings (ink, bleed) and saves
     /// it to `folder`, or Downloads. Returns the status line to show.
@@ -80,16 +81,18 @@ extension KroutonStateStore {
             offsetXMM: preset.offsetXMM,
             offsetYMM: preset.offsetYMM,
             discTitle: self.discVolumeTitle,
-            exportPNG: kind == .png,
-            exportPDF: kind == .pdf,
+            exportPNG: kind != .pdf,
+            exportPDF: kind != .png,
             dpi: dpi,
             bleedOuterMM: print.bleedOuterMM,
             bleedInnerMM: print.bleedInnerMM,
             cropMarks: print.cropMarks,
             outputDirectory: folder)
         let folderName = folder?.lastPathComponent ?? "Downloads"
-        if let url = files.pdfURL ?? files.pngURL {
-            return "Saved \(url.lastPathComponent) to \(folderName)"
+        let wanted = kind == .pngAndPDF ? 2 : 1
+        let saved = [files.pngURL, files.pdfURL].compactMap { $0?.lastPathComponent }
+        if saved.count == wanted {
+            return "Saved \(saved.joined(separator: " and ")) to \(folderName)"
         }
         return "Krouton couldn't save the label to \(folderName)."
     }
@@ -116,7 +119,6 @@ extension KroutonStateStore {
     @MainActor
     func executeLabelDestinationExport(_ card: KroutonBakeBatchItem) {
         let folder = card.labelExportFolderURL
-        if card.kind == .discPrinter { _ = exportDiscLabel(.png, to: folder) }
-        self.labelWorkspaceSubStore.transientStatusBanner = exportDiscLabel(.pdf, to: folder)
+        self.labelWorkspaceSubStore.transientStatusBanner = exportDiscLabel(card.kind == .discPrinter ? .pngAndPDF : .pdf, to: folder)
     }
 }

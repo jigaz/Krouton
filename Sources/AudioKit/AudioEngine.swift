@@ -1,14 +1,21 @@
 import Foundation
 import OpticalCore
 
+// MARK: - CD-Text Packs, Timecodes and Cue Sheets
+
+/// One 18-byte CD-Text pack, as `KroutonAudioEngine.buildCDTextPacks` builds it.
 public struct KroutonCDTextPack: Sendable, Equatable {
-    public let packType: UInt8       // 0x80 = Title, 0x81 = Performer, 0x8E = UPC/ISRC
-    public let trackNumber: UInt8    // 0 = Album-level, 1..99 = Track-level
+    /// The pack type: 0x80 title, 0x81 performer, 0x8E UPC/ISRC.
+    public let packType: UInt8
+    /// 0 for the album, 1 to 99 for a track.
+    public let trackNumber: UInt8
     let sequenceNumber: UInt8
     let blockAndCharPos: UInt8
     let payload12Bytes: [UInt8]
-    public let crc16Inverted: UInt16 // Inverted CRC-16 CCITT (poly 0x1021)
+    /// The pack's CRC-16 (CCITT polynomial 0x1021, inverted).
+    public let crc16Inverted: UInt16
 
+    /// The pack as 18 bytes: header, payload, CRC.
     public var raw18Bytes: [UInt8] {
         var bytes: [UInt8] = [packType, trackNumber, sequenceNumber, blockAndCharPos]
         bytes.append(contentsOf: payload12Bytes.prefix(12))
@@ -19,10 +26,12 @@ public struct KroutonCDTextPack: Sendable, Equatable {
     }
 }
 
+/// Audio CD helpers: timecodes, crossfade gains, CD-Text packs and cue sheets.
 public struct KroutonAudioEngine {
+    /// The module version krouton-verify checks.
     public static let version = "0.1.0-alpha.1"
 
-    /// Converts a Red Book frame count (75 frames/sec) into canonical MM:SS:FF timecode
+    /// A CD frame count (75 a second) as MM:SS:FF.
     public static func formatFramesToMMSSFF(_ totalFrames: Int64) -> String {
         let clamped = max(0, totalFrames)
         let ff = clamped % 75
@@ -32,14 +41,15 @@ public struct KroutonAudioEngine {
         return String(format: "%02d:%02d:%02d", mm, ss, ff)
     }
 
-    /// Equal-power crossfade gains: fadeOut^2 + fadeIn^2 == 1.0 across t in [0, 1]
+    /// Equal-power crossfade gains at progress `t` (0…1): fadeOut² + fadeIn² = 1.
     public static func equalPowerCrossfadeGains(progress t: Double) -> (fadeOut: Double, fadeIn: Double) {
         let clamped = max(0.0, min(1.0, t))
         let angle = clamped * (.pi / 2.0)
         return (cos(angle), sin(angle))
     }
 
-    /// Standard Red Book CD-Text CRC-16 CCITT (polynomial 0x1021, initial 0x0000, bitwise inverted per IEC 60908)
+    /// The CD-Text pack CRC over the first 16 bytes: CRC-16 CCITT (polynomial 0x1021, initial 0),
+    /// inverted.
     public static func computeCDTextInvertedCRC16(_ headerAndPayload16Bytes: [UInt8]) -> UInt16 {
         var crc: UInt16 = 0x0000
         for byte in headerAndPayload16Bytes.prefix(16) {
@@ -55,7 +65,9 @@ public struct KroutonAudioEngine {
         return ~crc
     }
 
-    /// Packs a sanitized string into 18-byte Sony/Philips CD-Text packs for the given packType and trackNumber
+    /// Packs one string into 18-byte CD-Text packs, each string padded to a pack boundary and
+    /// the character position always 0. A real block needs `CDTextBlockCompiler`, which packs all
+    /// strings of a type together; only krouton-verify calls this.
     public static func buildCDTextPacks(
         packType: UInt8,
         trackNumber: UInt8,
@@ -93,7 +105,9 @@ public struct KroutonAudioEngine {
         return packs
     }
 
-    /// Compiles a frame-accurate Red Book .cue sheet for a sequence of KroutonRedBookTrack tracks
+    /// A cue sheet for `tracks` in one BINARY file: CATALOG, TITLE and PERFORMER, then per track
+    /// its ISRC, FLAGS (DCP, PRE), INDEX 00 for a pause and INDEX 01. The app uses
+    /// `AudioProject.compileCueSheet()` and falls back to this.
     public static func compileRedBookCueSheet(
         albumTitle: String,
         albumPerformer: String,
@@ -143,8 +157,9 @@ public struct KroutonAudioEngine {
     }
 }
 
-// MARK: - Sprint 1: Pro Crossfade Envelope Curves & Per-Boundary Transition Spec
+// MARK: - Crossfade Curves and Track Transitions
 
+/// The shape of a fade. The raw values are display names and are saved.
 public enum KroutonCrossfadeCurve: String, CaseIterable, Identifiable, Codable, Sendable {
     case equalPower = "Equal-Power (cos/sin)"
     case sCurveHermite = "S-Curve (Smooth Hermite)"
@@ -153,7 +168,7 @@ public enum KroutonCrossfadeCurve: String, CaseIterable, Identifiable, Codable, 
 
     public var id: String { rawValue }
 
-    /// Evaluates normalized single-channel gain in [0, 1] for fade-in at progress t in [0, 1]
+    /// The fade-in gain (0…1) at progress `t` (0…1).
     public func gainIn(at t: Double) -> Double {
         let x = max(0.0, min(1.0, t))
         switch self {
@@ -168,7 +183,7 @@ public enum KroutonCrossfadeCurve: String, CaseIterable, Identifiable, Codable, 
         }
     }
 
-    /// Evaluates normalized single-channel gain in [0, 1] for fade-out at progress t in [0, 1]
+    /// The fade-out gain (0…1) at progress `t` (0…1).
     public func gainOut(at t: Double) -> Double {
         let x = max(0.0, min(1.0, t))
         switch self {
@@ -186,21 +201,37 @@ public enum KroutonCrossfadeCurve: String, CaseIterable, Identifiable, Codable, 
     }
 }
 
+/// How one track hands over to the next on an audio CD: a pause, a gapless cut or a crossfade, with
+/// its curves and gains. Values are clamped to their ranges on creation.
 public struct KroutonTrackTransitionSpec: Identifiable, Hashable, Codable, Sendable {
     public var id: UUID
-    public var overlapSeconds: Double      // 0.0s (Splice) .. 30.0s Crossfade
-    public var preGapSeconds: Double       // 0.0s (Gapless) .. 4.0s INDEX 00 Pause
+    /// How long the two tracks overlap, 0 to 30 s; 0 is a cut or a pause.
+    public var overlapSeconds: Double
+    /// The pause before the next track (INDEX 00), 0 to 4 s.
+    public var preGapSeconds: Double
+    /// The curve the outgoing track fades on.
     public var fadeOutCurve: KroutonCrossfadeCurve
+    /// The curve the incoming track fades on.
     public var fadeInCurve: KroutonCrossfadeCurve
-    public var curveTension: Double        // -1.0 (Concave Dip) .. 0.0 .. +1.0 (Convex Boost)
-    public var spliceIndex01Ratio: Double  // 0.15 .. 0.85 position of Red Book INDEX 01 marker
-    public var outgoingTrimDB: Double      // -12.0 .. +6.0 dB
-    public var incomingTrimDB: Double      // -12.0 .. +6.0 dB
+    /// Bends both curves, -1 (dips) to 1 (bulges); 0 leaves them as they are.
+    public var curveTension: Double
+    /// Where in the overlap the next track's INDEX 01 falls, 0.15 to 0.85.
+    public var spliceIndex01Ratio: Double
+    /// Gain on the outgoing track, -12 to +6 dB.
+    public var outgoingTrimDB: Double
+    /// Gain on the incoming track, -12 to +6 dB.
+    public var incomingTrimDB: Double
+    /// Lets the fade-out start and the fade-in end move apart from the overlap's edges.
     public var asymmetricUnlinked: Bool
-    public var fadeOutStartRatio: Double   // 0.0 .. 0.45
-    public var fadeInEndRatio: Double      // 0.55 .. 1.0
+    /// With `asymmetricUnlinked`, where the fade-out starts, 0 to 0.45 of the overlap.
+    public var fadeOutStartRatio: Double
+    /// With `asymmetricUnlinked`, where the fade-in ends, 0.55 to 1 of the overlap.
+    public var fadeInEndRatio: Double
     var spectralTransientTint: Bool
     var gainMatchLUFS: Bool
+    /// Extra index marks (INDEX 02 and on) placed in the splice editor around this boundary, as
+    /// fractions (0.05 to 0.95) of its view, sorted. The cue sheet maps marks before INDEX 01
+    /// into this track and marks after it into the next.
     public var subIndexRatios: [Double]
     /// 1/4-point (t = 0.25) handle trim on the Fade-Out curve (-0.45 ... +0.45)
     public var fadeOutMidTrim: Double?
@@ -253,6 +284,8 @@ public struct KroutonTrackTransitionSpec: Identifiable, Hashable, Codable, Senda
         self.fadeInMidTrim = fadeInMidTrim.map { max(-0.45, min(0.45, $0)) }
     }
 
+    /// The outgoing track's gain at progress `t` (0…1) through the overlap, with tension, handle
+    /// trims and its dB trim applied.
     public func effectiveGainOut(at t: Double) -> Double {
         let start = asymmetricUnlinked ? fadeOutStartRatio : 0.0
         let normT = t <= start ? 0.0 : min(1.0, (t - start) / max(0.05, 1.0 - start))
@@ -271,6 +304,8 @@ public struct KroutonTrackTransitionSpec: Identifiable, Hashable, Codable, Senda
         return max(0.0, shaped * trimLinear)
     }
 
+    /// The incoming track's gain at progress `t` (0…1) through the overlap, with tension, handle
+    /// trims and its dB trim applied.
     public func effectiveGainIn(at t: Double) -> Double {
         let end = asymmetricUnlinked ? fadeInEndRatio : 1.0
         let normT = t >= end ? 1.0 : max(0.0, t / max(0.05, end))
@@ -289,24 +324,30 @@ public struct KroutonTrackTransitionSpec: Identifiable, Hashable, Codable, Senda
         return max(0.0, shaped * trimLinear)
     }
 
+    /// True for an overlap of at least 0.1 s.
     public var isCrossfading: Bool { overlapSeconds >= 0.1 }
+    /// The overlap in CD frames.
     public var overlapRedBookFrames: Int64 { Int64((overlapSeconds * 75.0).rounded()) }
+    /// The pause in CD frames; 0 while crossfading.
     public var preGapRedBookFrames: Int64 { isCrossfading ? 0 : Int64((preGapSeconds * 75.0).rounded()) }
-
 }
 
-// MARK: - Sprint 1: 3-Tier Acoustic / AI Track & CD-TEXT Auto-Identifier
+// MARK: - Track Title Suggestions
 
+/// A title and performer suggested for a staged file.
 public struct KroutonIdentifiedTrackMetadata: Sendable, Equatable {
     public let title: String
     public let performer: String
+    /// Always empty: an ISRC can't be guessed.
     public let isrcCode: String
     let confidenceSource: String
 }
 
+/// Suggests track metadata for staged files. Not wired into the app yet (see
+/// PENDING_INTEGRATION.md).
 public enum KroutonTrackAutoIdentifier {
-    /// Conservative filename suggestion using FilenameTitleGuess: never invents ISRCs or fake performer names,
-    /// preserves legitimate words ("Final Countdown", "Radio Edit", "Demo Tape"), and labels provenance honestly.
+    /// A title and performer guessed from the file name with `FilenameTitleGuess`, or "Track NN"
+    /// and `fallbackPerformer`. It never makes up an ISRC, and it says where each value came from.
     public static func identifyTrack(
         url: URL,
         trackNumber: Int,
@@ -327,6 +368,7 @@ public enum KroutonTrackAutoIdentifier {
     }
 }
 
+/// The three kinds of transition the splice editor offers.
 public enum SpliceTransitionMode: String, CaseIterable, Identifiable, Sendable {
     case gap = "Gap"
     case gapless = "Gapless"
@@ -335,6 +377,8 @@ public enum SpliceTransitionMode: String, CaseIterable, Identifiable, Sendable {
 }
 
 extension KroutonTrackTransitionSpec {
+    /// This transition changed to `mode`, keeping what still applies: a 2 s pause for a gap, 2.5 s
+    /// of overlap for a new crossfade.
     public func switched(to mode: SpliceTransitionMode) -> KroutonTrackTransitionSpec {
         var updated = self
         switch mode {

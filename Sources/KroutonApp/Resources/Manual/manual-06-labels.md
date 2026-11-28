@@ -1,10 +1,10 @@
 # Disc labels
 
-The Polar Disc Label Studio (⌘4) designs printable disc faces at true size: 120 mm for standard discs, 80 mm for mini discs, with the centre hole shown so nothing important lands on it.
+The Label workspace (⌘4) designs printable disc faces at true size: 120 mm for standard discs, 80 mm for mini discs, with the centre hole shown so nothing important lands on it.
 
 ## Starting from your music or files
 
-Click **Auto Label**. Krouton looks for artwork among the files you staged: a picture file, cover art embedded in a music or video file, or a cover.jpg, folder.jpg or front.jpg next to them. It picks a colour palette from the picture and uses Apple's Vision framework to find the subject, so a face or logo is kept clear of the centre hole. The title and artist come from the disc's details.
+Click **Auto Label** to fill in the label's title and subtitle from the disc's title and artist (for an audio CD, its CD-Text). With Apple Intelligence on, a title that looks like a volume or file name, such as SUMMER_2026_FINAL, is turned into a readable one first. Auto Label doesn't place artwork or choose colours yet; add those with the Background and Shapes tools.
 
 Everything Auto Label places can be changed afterwards.
 

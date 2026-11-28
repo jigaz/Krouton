@@ -3,6 +3,7 @@ import Foundation
 /// Shared protocol for sequential optical items (Audio tracks or Data staged entries)
 /// that support manual disc breaks and automatic capacity-based multi-disc spanning.
 public protocol DiscBreakableItem: Identifiable, Sendable {
+    /// True when the user put a manual disc break before this item.
     var startsNewDisc: Bool { get set }
 }
 

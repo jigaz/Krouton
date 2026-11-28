@@ -1,10 +1,15 @@
 import Foundation
 import os
 
-// MARK: - Scalar-Only Real-Time Crossfade Parameters (Zero ARC Traffic on Audio Thread)
+// MARK: - Crossfade Parameters (plain values, safe to read on the audio thread)
 
+/// A transition reduced to plain numbers for rendering, in sample frames at the render's
+/// sample rate (not CD frames). Built once from a `KroutonTrackTransitionSpec`, so the audio
+/// thread does no allocation or string work.
 public struct CrossfadeRenderParams: Sendable, Equatable {
+    /// Sample frames of overlap; 0 when not crossfading.
     public var overlapFrames: Int
+    /// Sample frames of silence before the next track; 0 while crossfading.
     public var preGapFrames: Int
     public var fadeOutCurve: KroutonCrossfadeCurve
     public var fadeInCurve: KroutonCrossfadeCurve
@@ -18,6 +23,8 @@ public struct CrossfadeRenderParams: Sendable, Equatable {
     public var outgoingTrimLinear: Double
     public var incomingTrimLinear: Double
 
+    /// The parameters for `spec` at `sampleRate`. With `suppressedAtDiscBoundary` (a disc change
+    /// between the two tracks) the crossfade becomes a pause.
     public init(spec: KroutonTrackTransitionSpec, sampleRate: Double, suppressedAtDiscBoundary: Bool) {
         let crossfade = spec.isCrossfading && !suppressedAtDiscBoundary
         overlapFrames = crossfade ? Int((spec.overlapSeconds * sampleRate).rounded()) : 0
@@ -35,7 +42,8 @@ public struct CrossfadeRenderParams: Sendable, Equatable {
         incomingTrimLinear = pow(10.0, spec.incomingTrimDB / 20.0)
     }
 
-    /// Evaluates outgoing and incoming linear gains at normalized crossfade progress `t` in [0, 1].
+    /// The outgoing and incoming linear gains at progress `t` (0…1) through the overlap, the same
+    /// as `KroutonTrackTransitionSpec.effectiveGainOut` and `effectiveGainIn`.
     public func gains(at t: Double) -> (out: Double, in: Double) {
         let outT = t <= fadeOutStart ? 0.0 : min(1.0, (t - fadeOutStart) / max(0.05, 1.0 - fadeOutStart))
         let inT = t >= fadeInEnd ? 1.0 : max(0.0, t / max(0.05, fadeInEnd))
@@ -68,8 +76,10 @@ public struct CrossfadeRenderParams: Sendable, Equatable {
     }
 }
 
-// MARK: - Non-Blocking Single-Writer Mailbox (OSAllocatedUnfairLock.withLockIfAvailable)
+// MARK: - Parameter Mailbox
 
+/// Hands new crossfade parameters from the UI to the audio thread. The UI side takes the lock;
+/// the audio side only tries it (`withLockIfAvailable`), so it never waits.
 public final class CrossfadeParameterMailbox: Sendable {
     private struct Slot: Sendable {
         var params: CrossfadeRenderParams
@@ -79,10 +89,12 @@ public final class CrossfadeParameterMailbox: Sendable {
 
     private let slot: OSAllocatedUnfairLock<Slot>
 
+    /// A mailbox holding `initial`.
     public init(_ initial: CrossfadeRenderParams) {
         slot = OSAllocatedUnfairLock(initialState: Slot(params: initial))
     }
 
+    /// Posts new parameters (UI side).
     public func publish(_ params: CrossfadeRenderParams) {
         slot.withLock {
             $0.params = params
@@ -90,7 +102,8 @@ public final class CrossfadeParameterMailbox: Sendable {
         }
     }
 
-    /// Audio render thread: never blocks. Returns nil on lock contention or when generation is unchanged.
+    /// For the audio thread: records the playhead and returns the parameters if they changed
+    /// since `lastSeen`. Never blocks; returns nil when the lock is busy or nothing changed.
     public func exchange(lastSeen: UInt64, playheadFrame: Int) -> (params: CrossfadeRenderParams, generation: UInt64)? {
         let fresh = slot.withLockIfAvailable { s -> (params: CrossfadeRenderParams, generation: UInt64)? in
             s.playheadFrame = playheadFrame
@@ -99,13 +112,15 @@ public final class CrossfadeParameterMailbox: Sendable {
         return fresh ?? nil
     }
 
+    /// The playhead the audio thread last reported (UI side).
     public var playheadFrame: Int {
         slot.withLock { $0.playheadFrame }
     }
 }
 
-// MARK: - Pure Real-Time Stereo Crossfade Renderer
+// MARK: - Crossfade Renderer
 
+/// Stereo samples as two `Float` arrays of equal length.
 public struct StereoPCM: Sendable {
     public let left: [Float]
     public let right: [Float]
@@ -117,6 +132,7 @@ public struct StereoPCM: Sendable {
     }
 }
 
+/// Where a render is: the next output frame, and the parameters in use with their generation.
 public struct CrossfadeRenderCursor: Sendable {
     public var frame: Int = 0
     public var generation: UInt64 = 0
@@ -127,7 +143,11 @@ public struct CrossfadeRenderCursor: Sendable {
     }
 }
 
+/// Renders the audition of one transition: the end of the outgoing track, the overlap or pause,
+/// then the start of the incoming one.
 public enum CrossfadeRenderer {
+    /// Fills `frameCount` frames of `left` and `right` from `cursor.frame` on and advances the
+    /// cursor. `preRollFrames` of the outgoing track play before the overlap starts.
     public static func render(
         left: UnsafeMutableBufferPointer<Float>,
         right: UnsafeMutableBufferPointer<Float>,

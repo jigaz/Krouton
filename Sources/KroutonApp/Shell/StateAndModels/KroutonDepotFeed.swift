@@ -1,6 +1,7 @@
 import CryptoKit
 import Foundation
 import ImageKit
+import os
 
 // MARK: - Depot Feed (depot.krouton.app/v1/manifest.json)
 
@@ -215,9 +216,12 @@ enum KroutonDepotDownloadError: Error, LocalizedError, Equatable {
     }
 }
 
-/// Reports download progress (0...1) from URLSession's delegate queue.
+/// Reports download progress (0...1) from URLSession's delegate queue, once per half percent:
+/// URLSession calls back for every chunk (tens of thousands for a DVD image), and each report
+/// changes `depotDownloadProgress`, which the app's scenes and the Depot views read.
 final class KroutonDepotDownloadProgress: NSObject, URLSessionDownloadDelegate, Sendable {
     let report: @Sendable (Double) -> Void
+    private let lastReported = OSAllocatedUnfairLock(initialState: -1.0)
 
     init(report: @escaping @Sendable (Double) -> Void) {
         self.report = report
@@ -226,7 +230,13 @@ final class KroutonDepotDownloadProgress: NSObject, URLSessionDownloadDelegate, 
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64,
                     totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
         guard totalBytesExpectedToWrite > 0 else { return }
-        report(Double(totalBytesWritten) / Double(totalBytesExpectedToWrite))
+        let fraction = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
+        let due = lastReported.withLock { last -> Bool in
+            guard fraction - last >= 0.005 || fraction >= 1 else { return false }
+            last = fraction
+            return true
+        }
+        if due { report(fraction) }
     }
 
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {}

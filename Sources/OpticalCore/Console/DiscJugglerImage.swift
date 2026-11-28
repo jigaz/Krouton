@@ -13,14 +13,19 @@ import Foundation
 /// length and sector size code (0: 2,048, 1: 2,336, 2: 2,352).
 /// Track data lies in the file in order from byte 0, each track's pregap first.
 public struct KroutonDiscJugglerImage: Sendable, Equatable {
+    /// The track's mode as the image stores it.
     public enum Mode: UInt32, Sendable { case audio = 0, mode1 = 1, mode2 = 2 }
 
+    /// One track of the image.
     public struct Track: Sendable, Equatable {
+        /// 1 or 2.
         public let session: Int
         public let mode: Mode
         /// Bytes per sector in the file.
         public let sectorSize: Int
+        /// Pregap frames stored in the file before the track.
         public let pregapFrames: Int64
+        /// Frames after the pregap.
         public let frames: Int64
         /// Disc address of the track's first frame after the pregap.
         public let startLBA: Int64
@@ -38,13 +43,20 @@ public struct KroutonDiscJugglerImage: Sendable, Equatable {
         }
     }
 
+    /// The tail's version number for DiscJuggler 2.
     public static let version2: UInt32 = 0x8000_0004
+    /// The tail's version number for DiscJuggler 3.
     public static let version3: UInt32 = 0x8000_0005
+    /// The tail's version number for DiscJuggler 3.5, whose descriptor position counts from the end
+    /// of the file.
     public static let version35: UInt32 = 0x8000_0006
 
+    /// One of `version2`, `version3` or `version35`.
     public let version: UInt32
+    /// Every track, in disc order.
     public let tracks: [Track]
 
+    /// Why an image can't be read or burned. The message is for the user.
     public struct ParseError: Error, LocalizedError, Sendable {
         public let message: String
         public var errorDescription: String? { message }
@@ -137,7 +149,6 @@ public struct KroutonDiscJugglerImage: Sendable, Equatable {
     }
 
     // MARK: - Bytes
-
 
     struct Cursor {
         let bytes: [UInt8]

@@ -7,18 +7,24 @@ import OpticalCore
 /// 44.1 kHz, a whole number of 2,352-byte frames, and the pregap (silence) the drive writes
 /// before it.
 public struct KroutonRenderedAudioTrack: Sendable, Equatable {
+    /// The track number.
     public let number: Int
+    /// The rendered PCM file.
     public let pcm: URL
     /// Length in Red Book frames (1/75 s), without the pregap.
     public let frames: Int64
     /// Silence before the track, in frames: 150 (2 s) before track 1 as Red Book requires,
     /// the chosen pause before a later track, 0 for gapless joins and crossfades.
     public let pregapFrames: Int64
+    /// CD-Text title.
     public let title: String
+    /// CD-Text performer.
     public let performer: String
+    /// The ISRC, or empty.
     public let isrc: String
 }
 
+/// Why rendering stopped. The descriptions are for the user.
 public enum KroutonAudioRenderError: Error, LocalizedError, Sendable, Equatable {
     case blocked(String)
     case decodeFailed(String)
@@ -47,6 +53,9 @@ public enum KroutonAudioDiscRenderer {
     static let samplesPerFrame: Int64 = 588
     static let firstTrackPregap: Int64 = 150
 
+    /// Renders every track of `project` into `directory`, one PCM file each, reporting progress
+    /// from 0 to 1. Throws `.blocked` while a track isn't analysed or the layout has a blocking
+    /// issue.
     public static func render(
         project: AudioProject,
         into directory: URL,

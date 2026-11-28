@@ -4,15 +4,19 @@ import Foundation
 import ImageKit
 import OpticalCore
 
-// MARK: - Append-Only JSONL BurnEventJournal (with readAll() for BurnSetProgress.replay)
+// MARK: - Burn Event Journal
 
+/// The burn-set journal: one `BurnEvent` per line of a JSON Lines file, fsynced on every append.
+/// `BurnSetProgress.replay(readAll())` rebuilds every set's state.
 public actor BurnEventJournal {
     private let url: URL
 
+    /// Keeps the journal in `directory`.
     public init(directory: URL, filename: String = "burn-set-events.jsonl") {
         self.url = directory.appendingPathComponent(filename)
     }
 
+    /// Appends one event and flushes it to disk before returning.
     public func append(_ event: BurnEvent) throws {
         let dir = url.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -23,13 +27,21 @@ public actor BurnEventJournal {
         if !FileManager.default.fileExists(atPath: url.path) {
             FileManager.default.createFile(atPath: url.path, contents: nil)
         }
-        let handle = try FileHandle(forWritingTo: url)
+        let handle = try FileHandle(forUpdating: url)
         defer { try? handle.close() }
-        try handle.seekToEnd()
+        let end = try handle.seekToEnd()
+        // A crash mid-write leaves a last line without its newline; this event must not join it,
+        // or both fail to decode and the event is lost.
+        if end > 0 {
+            try handle.seek(toOffset: end - 1)
+            if try handle.read(upToCount: 1) != Data([0x0A]) { line.insert(0x0A, at: 0) }
+            try handle.seekToEnd()
+        }
         try handle.write(contentsOf: line)
         try handle.synchronize()
     }
 
+    /// Every event that decodes, in order. A torn or unreadable line is skipped.
     public func readAll() -> [BurnEvent] {
         guard let text = try? String(contentsOf: url, encoding: .utf8) else { return [] }
         let decoder = JSONDecoder()
@@ -44,12 +56,16 @@ public actor BurnEventJournal {
     }
 }
 
-// MARK: - Single-Read Streaming Set Stager (Reads Each Source File ONCE to Copy & Hash)
+// MARK: - Set Stager
 
+/// A file to stage, and where it goes on the disc.
 public struct StagedInputFile: Sendable, Equatable {
+    /// The file on this Mac.
     public let sourceURL: URL
+    /// Its path on the disc: "/"-separated, NFC, with "." and ".." removed.
     public let relativePathOnDisc: String
 
+    /// Uses `relativePathOnDisc`, or the file's name, cleaned as described for the property.
     public init(sourceURL: URL, relativePathOnDisc: String? = nil) {
         self.sourceURL = sourceURL
         let raw = (relativePathOnDisc ?? sourceURL.lastPathComponent)
@@ -69,16 +85,23 @@ public struct StagedInputFile: Sendable, Equatable {
     }
 }
 
+/// Freezes a burn set: copies (or clones) every source once while hashing it, writes the set's
+/// manifests to each disc, and builds one hybrid image per disc with `hdiutil makehybrid`.
 public enum BurnSetStager {
+    /// How each disc describes itself (see `SpanManifest`).
     public enum ManifestMode: Sendable {
-        case bagItRFC8493      // Places payload under data/ + bagit.txt, bag-info.txt, manifest-sha256.txt, krouton-set-index.json
-        case rootSHA256Sums    // Places payload at disc root / + SHA256SUMS, krouton-set-index.json
+        /// The payload under `data/`, with `bagit.txt`, `bag-info.txt`, `manifest-sha256.txt`,
+        /// `tagmanifest-sha256.txt` and `krouton-set-index.json` (BagIt, RFC 8493).
+        case bagItRFC8493
+        /// The payload at the disc root, with `SHA256SUMS` and `krouton-set-index.json`.
+        case rootSHA256Sums
     }
 
-    /// Streams `sourceURL` into `destinationURL` in 256 KiB chunks, updating a `SHA256` hasher
-    /// on the exact bytes written so the file is read ONCE and cannot change between hashing and staging.
+    /// How a file was staged.
     public enum StageMethod: Sendable, Equatable {
+        /// An APFS copy-on-write clone (`fclonefileat`).
         case clonedOnAPFS
+        /// A streamed copy, hashed as it was written.
         case streamedCopy
     }
 
@@ -150,6 +173,8 @@ public enum BurnSetStager {
         return (total, hasher.finalize().map { String(format: "%02x", $0) }.joined())
     }
 
+    /// Streams `sourceURL` into `destinationURL` in 256 KiB chunks, hashing the exact bytes
+    /// written, so the file is read once and can't change between hashing and staging.
     static func copyAndHashSinglePass(from sourceURL: URL, to destinationURL: URL) throws -> (byteCount: Int64, sha256Hex: String) {
         let fm = FileManager.default
         try fm.createDirectory(at: destinationURL.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -177,7 +202,7 @@ public enum BurnSetStager {
     }
 
     /// Stages all discs of a spanned set in two phases:
-    /// 1. Copies each source file ONCE into its disc staging directory while hashing its exact bytes.
+    /// 1. Copies each source file once into its disc staging directory while hashing its exact bytes.
     /// 2. Writes the cross-disc `SpanManifest` (`krouton-set-index.json` + `manifest-sha256.txt` or `SHA256SUMS`)
     ///    into every disc directory and masters each disc into a mountable hybrid image with its own SHA-256.
     /// This runs `hdiutil` and blocks until it exits, so call it off the main actor.

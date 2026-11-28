@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-/// Strongly-typed optical media classification replacing ad-hoc `.contains("DVD")` string checks.
+/// The kind of disc in a drive, by capacity class. The raw values are display names.
 public enum OpticalMediaKind: String, Codable, Sendable, CaseIterable {
     case cd = "CD-ROM / CD-R"
     case dvdSingleLayer = "DVD-5 (4.7 GB)"
@@ -10,6 +10,8 @@ public enum OpticalMediaKind: String, Codable, Sendable, CaseIterable {
     case bluRayDualLayer = "BD-50 Dual-Layer (50 GB)"
     case unknown = "Unclassified Optical Media"
 
+    /// Classifies a drive's free-text media description (for example "DVD+R DL") by keyword.
+    /// Anything it does not recognize is `.unknown`.
     public init(mediaDescription: String) {
         let upper = mediaDescription.uppercased()
         if upper.contains("BD-50") || upper.contains("BD-R DL") || upper.contains("DUAL LAYER BD") {
@@ -26,18 +28,20 @@ public enum OpticalMediaKind: String, Codable, Sendable, CaseIterable {
             self = .unknown
         }
     }
-
 }
 
-/// Centralized `os.Logger` diagnostics for hardware, filesystem, and network operations.
+/// Shared `os.Logger` instances.
 public enum KroutonDiagnostics {
+    /// Logs mastering work under the `app.krouton.optical` subsystem.
     public static let masteringLogger = Logger(subsystem: "app.krouton.optical", category: "MasteringEngine")
 }
 
-/// Protocol abstracting physical optical drive state so domain logic and unit tests
-/// can inject a fake/mock drive without coupling to `@Published` UI banner properties.
+/// The drive state domain logic reads, so tests can pass a fake drive instead of the real
+/// drive bank.
 @MainActor
 public protocol OpticalDriveControlling: AnyObject {
+    /// The drives connected now.
     var availableDrives: [KroutonOpticalDriveInfo] { get }
+    /// The kind of disc in the first connected drive.
     var mediaKind: OpticalMediaKind { get }
 }

@@ -6,11 +6,15 @@ import Foundation
 /// files record. 25 and 29.97 frames a second are only allowed as 1080i, so progressive
 /// material at those rates is encoded "fake interlaced" (progressive frames, interlaced flags).
 public struct KroutonBDMVVideoFormat: Sendable, Equatable {
+    /// Frame width in pixels.
     public let width: Int
+    /// Frame height in pixels.
     public let height: Int
+    /// True for interlaced video.
     public let interlaced: Bool
     /// Frames a second, as ffmpeg's `fps` filter takes it.
     public let ffmpegRate: String
+    /// Frames a second.
     public let framesPerSecond: Double
     /// Blu-ray frame-rate code: 1 23.976, 2 24, 3 25, 4 29.97, 6 50, 7 59.94.
     public let rateCode: UInt8
@@ -18,11 +22,17 @@ public struct KroutonBDMVVideoFormat: Sendable, Equatable {
     /// Blu-ray video-format code: 4 1080i, 5 720p, 6 1080p.
     public var formatCode: UInt8 { height == 1080 ? (interlaced ? 4 : 6) : 5 }
 
+    /// 1080p at 23.976.
     public static let film = Self(width: 1920, height: 1080, interlaced: false, ffmpegRate: "24000/1001", framesPerSecond: 23.976, rateCode: 1)
+    /// 1080p at 24.
     public static let cinema = Self(width: 1920, height: 1080, interlaced: false, ffmpegRate: "24", framesPerSecond: 24, rateCode: 2)
+    /// 1080i at 25 frames (50 fields).
     public static let pal = Self(width: 1920, height: 1080, interlaced: true, ffmpegRate: "25", framesPerSecond: 25, rateCode: 3)
+    /// 1080i at 29.97 frames (59.94 fields).
     public static let ntsc = Self(width: 1920, height: 1080, interlaced: true, ffmpegRate: "30000/1001", framesPerSecond: 29.97, rateCode: 4)
+    /// 720p at 50.
     public static let hd50 = Self(width: 1280, height: 720, interlaced: false, ffmpegRate: "50", framesPerSecond: 50, rateCode: 6)
+    /// 720p at 59.94.
     public static let hd60 = Self(width: 1280, height: 720, interlaced: false, ffmpegRate: "60000/1001", framesPerSecond: 59.94, rateCode: 7)
 
     /// The legal format closest to a source's frame rate (30 becomes 29.97, 60 becomes 59.94).
@@ -35,8 +45,11 @@ public struct KroutonBDMVVideoFormat: Sendable, Equatable {
 
 /// One clip on the disc: `STREAM/<name>.m2ts` and `CLIPINF/<name>.clpi`.
 public struct KroutonBDMVClip: Sendable, Equatable {
+    /// The clip's five-digit name, such as "00000".
     public let name: String
+    /// What the stream analyzer found in its `.m2ts`.
     public let analysis: KroutonM2TSAnalysis
+    /// The clip's video format.
     public let format: KroutonBDMVVideoFormat
     /// Highest transport-stream rate, bytes a second.
     public let recordingRate: UInt32
@@ -61,6 +74,7 @@ public enum KroutonBDMVWriter {
 
     // MARK: - index.bdmv
 
+    /// `index.bdmv`: First Playback, Top Menu and title 1, all running movie object 0.
     public static func index(format: KroutonBDMVVideoFormat) -> Data {
         var w = KroutonBEWriter()
         w.ascii("INDX" + version)
@@ -109,6 +123,8 @@ public enum KroutonBDMVWriter {
 
     // MARK: - PLAYLIST/00000.mpls
 
+    /// `PLAYLIST/00000.mpls`: every clip in order, with a chapter at each clip and every
+    /// `seconds` within one.
     public static func playlist(clips: [KroutonBDMVClip], chapterEvery seconds: Double = 300) -> Data {
         var items = KroutonBEWriter()
         for clip in clips {
@@ -219,6 +235,8 @@ public enum KroutonBDMVWriter {
 
     // MARK: - CLIPINF/*.clpi
 
+    /// `CLIPINF/<name>.clpi`: the clip's streams and its entry points (key frame times and
+    /// packets).
     public static func clipInfo(_ clip: KroutonBDMVClip) -> Data {
         let a = clip.analysis
         var info = KroutonBEWriter()

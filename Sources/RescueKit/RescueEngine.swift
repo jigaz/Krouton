@@ -1,17 +1,25 @@
 import Foundation
 
-// MARK: - Part A: Optical Rescue & Adaptive Sector Copy Engine
+// MARK: - Sector Rescue Decisions
+
+/// What `KroutonRescueEngine.evaluateSectorRescue` decides for one sector.
 public enum KroutonSectorRescueAction: String, Codable, Sendable, Equatable {
     case readCleanFullSpeed    = "CLEAN_BURST"
     case downshiftRetry2xCLV   = "DOWNSHIFT_2X_RETRY"
     case substituteZeroSector  = "ZERO_PAD_SUBSTITUTE"
 }
 
+/// One sector's rescue decision: what to do, at what speed, and where to read next.
 public struct KroutonSectorRescueDecision: Sendable, Equatable {
+    /// The sector the decision is for.
     public let lba: Int64
+    /// What to do with it.
     public let action: KroutonSectorRescueAction
+    /// The read speed to use, as a multiple of 1x.
     public let recommendedSpindleSpeedX: Int
+    /// The next sector to read.
     public let nextCursorLBA: Int64
+    /// Bytes of zeros to write in place of the sector; 0 unless it is substituted.
     public let replacementSectorBytes: Int
 
     public init(
@@ -29,8 +37,9 @@ public struct KroutonSectorRescueDecision: Sendable, Equatable {
     }
 }
 
-// MARK: - Part B: Polar-Coordinate Mini Graphics Layout & 300-DPI Disc Label Engine
+// MARK: - Sample Rescue Map and Archival Grade
 
+/// The state of one cell of the sample rescue map.
 public enum KroutonRescueSectorStatus: String, Codable, Sendable, CaseIterable {
     case healthyBurst      = "CLEAN_BURST"
     case retried2xCLV      = "DOWNSHIFT_2X_RETRY"
@@ -38,27 +47,39 @@ public enum KroutonRescueSectorStatus: String, Codable, Sendable, CaseIterable {
     case zeroPaddedDefect  = "ZERO_PAD_SUBSTITUTE"
 }
 
+/// A 64-cell rescue map for display. `buildOpticalRescueMap` fills it with a fixed sample pattern,
+/// not with a disc's read results.
 public struct KroutonOpticalRescueMapSnapshot: Sendable, Equatable {
     let buckets: [KroutonRescueSectorStatus]
+    /// The disc's size in sectors.
     public let totalSectorsLBA: Int64
     let healthyCount: Int
     let retriedCount: Int
     let c2InterpolatedCount: Int
     let zeroPaddedCount: Int
-
 }
 
+/// The result of `evaluateArchivalDiscGrade`: a grade, a one-line summary and the certificate text.
 public struct KroutonArchivalQualityCertificate: Sendable, Equatable {
-    public let gradeBadge: String          // e.g. "A+ ARCHIVAL MASTER"
-    let c1BlockErrorRate: Double    // BLER errors/sec (Red Book limit < 220)
+    /// The grade, such as "A+ ARCHIVAL MASTER", or "NOT MEASURED".
+    public let gradeBadge: String
+    /// C1 block error rate (BLER) per second; the Red Book limit is 220.
+    let c1BlockErrorRate: Double
     let c2UncorrectableCount: Int
-    let servoJitterPercent: Double  // Ideal 4.2% .. 6.5%
+    let servoJitterPercent: Double
     let radialStabilityScore: Double
+    /// One line for lists.
     public let summaryLine: String
+    /// The full text, for saving or copying.
     public let certificateText: String
 }
 
+/// Rescue and quality-grading rules that need no drive. The rescue copy itself is
+/// `KroutonDiscRescuer`, which doesn't use these.
 public enum KroutonRescueEngine {
+    /// Decides what to do with a sector from its C2 error count and the retries so far: read on at
+    /// full speed, retry at 2x, or give up and substitute zeros. Only krouton-verify calls it
+    /// today.
     public static func evaluateSectorRescue(
         lba: Int64,
         c2ErrorCount: Int,
@@ -88,7 +109,7 @@ public enum KroutonRescueEngine {
             )
         }
 
-        // Retries exhausted on radial scratch -> zero-pad sector to maintain exact LBA alignment and skip
+        // Out of retries: substitute zeros so every later sector keeps its offset, and skip ahead.
         let step = max(1, fastSkipStepLBA)
         return KroutonSectorRescueDecision(
             lba: lba,
@@ -99,6 +120,7 @@ public enum KroutonRescueEngine {
         )
     }
 
+    /// A sample map with a fixed pattern for `scratchSeverity` 0, 1 or 2+. No disc is read.
     public static func buildOpticalRescueMap(
         totalSectorsLBA: Int64 = 333_000,
         scratchSeverity: Int = 0
@@ -134,7 +156,13 @@ public enum KroutonRescueEngine {
         )
     }
 
-    /// Computes a deterministic post-burn Archival Quality Grade across radius r=24.0mm..58.0mm
+    /// Grades a burned disc from a C1/C2/jitter scan. Without all three measurements it returns
+    /// "NOT MEASURED".
+    ///
+    /// Status (see dev-notes/open-questions.md #6): no caller passes measurements, because Krouton
+    /// can't run such a scan yet, so the grading branch is never reached. The thresholds and the
+    /// "ISO/IEC 10149 & ECMA-267 Compliant" line in the certificate were never checked against
+    /// those standards; they must not be shown until a real scan exists.
     public static func evaluateArchivalDiscGrade(
         driveModel: String,
         mediaType: String,

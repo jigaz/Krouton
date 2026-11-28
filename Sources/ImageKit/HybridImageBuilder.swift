@@ -2,6 +2,8 @@ import CryptoKit
 import Foundation
 import os
 
+// MARK: - Hybrid Image Builder
+//
 // Real disc images, built by macOS itself.
 //
 // `hdiutil makehybrid` writes one image whose ISO-9660, Joliet and UDF directory
@@ -10,16 +12,20 @@ import os
 // `KroutonHybridImagePlanner` remains useful as a size preview; it does not
 // describe the layout of images built here.
 
-// MARK: - HybridImageBuilder
-
+/// What `hdiutil makehybrid` puts in the image.
 public struct KroutonHybridImageOptions: Sendable, Equatable {
+    /// The volume name; clipped to each file system's limit.
     public var volumeName: String
+    /// Adds an ISO 9660 tree.
     public var includeISO9660: Bool
+    /// Adds a Joliet tree (long Unicode names for Windows).
     public var includeJoliet: Bool
+    /// Adds a UDF tree.
     public var includeUDF: Bool
-    /// Adds an HFS+ tree for classic Mac behaviour (custom icons, resource forks).
+    /// Adds an HFS+ tree, which keeps Mac metadata such as custom icons and resource forks.
     public var includeHFSPlus: Bool
-    /// Optional Finder View blueprint synthesized into `.DS_Store` inside the staged root.
+    /// A Finder layout to write as `.DS_Store` into the source folder before the build (see
+    /// `KroutonFinderLayoutBlueprint.serializeDSStore` for its limits).
     public var finderLayout: KroutonFinderLayoutBlueprint?
 
     public init(
@@ -39,13 +45,17 @@ public struct KroutonHybridImageOptions: Sendable, Equatable {
     }
 }
 
+/// An image `hdiutil` wrote, with its size and digest.
 public struct KroutonBuiltDiscImage: Sendable, Equatable {
+    /// Where the image is.
     public let url: URL
+    /// Its size in bytes.
     public let byteCount: Int64
     /// Lowercase hex, no prefix.
     public let sha256Hex: String
 }
 
+/// Why an image couldn't be built. The descriptions are for the user.
 public enum KroutonHybridImageError: Error, LocalizedError, Sendable, Equatable {
     case sourceDirectoryMissing(String)
     case noFilesystemSelected
@@ -73,12 +83,15 @@ public final class KroutonImageBuildCancellation: Sendable {
     }
     private let state = OSAllocatedUnfairLock(uncheckedState: State())
 
+    /// A token that isn't cancelled.
     public init() {}
 
+    /// True once `cancel()` was called.
     public var isCancelled: Bool {
         state.withLockUnchecked { $0.cancelled }
     }
 
+    /// Stops the running `hdiutil`, or the next one to start.
     public func cancel() {
         let proc: Process? = state.withLockUnchecked { st in
             st.cancelled = true
@@ -100,6 +113,8 @@ public final class KroutonImageBuildCancellation: Sendable {
     }
 }
 
+/// Builds hybrid disc images from a folder with `hdiutil makehybrid` (run as a `Process` with an
+/// argument array).
 public enum KroutonHybridImageBuilder {
     static let hdiutilURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
 

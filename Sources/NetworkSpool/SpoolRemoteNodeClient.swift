@@ -15,22 +15,32 @@ import SystemConfiguration
 @Observable
 @MainActor
 public final class SpoolRemoteNodeClient {
+    /// The client the app uses.
     public static let shared = SpoolRemoteNodeClient()
 
+    /// The servers this Mac has paired with, as `SpoolPairedServerStore` saves them.
     public internal(set) var pairedServers: [SpoolPairedServer] = SpoolPairedServerStore.load()
+    /// Servers seen over Bonjour that aren't paired yet.
     public internal(set) var nearbyUnpaired: [SpoolDiscoveredNode] = []
+    /// The connected server's drives, as it last reported them.
     public internal(set) var remoteDrives: [SpoolDriveInfo] = [] {
         didSet { remoteDrivesRevision &+= 1 }
     }
     /// Goes up with every drives list the server sends, so a burn can wait for a fresh one.
     var remoteDrivesRevision = 0
+    /// The connected server's jobs.
     public internal(set) var jobs: [SpoolJobInfo] = []
+    /// The node ID of the server with an open session.
     public internal(set) var connectedServerID: String?
     /// What the connected server reported when the session opened.
     public internal(set) var serverWelcome: SpoolServerWelcome?
+    /// One status line for the burners pane.
     public var statusBannerText: String = "No burn server connected"
+    /// True while an image uploads.
     public internal(set) var isSpoolingImage = false
+    /// Upload progress, 0 to 1.
     public internal(set) var spoolProgressFraction = 0.0
+    /// The newest 200 log lines, newest first.
     public internal(set) var recentEvents: [String] = []
     /// Non-nil while a pairing code is on screen.
     public internal(set) var pairingPrompt: SpoolPairingPrompt?
@@ -59,6 +69,7 @@ public final class SpoolRemoteNodeClient {
         enum Phase { case awaitingAuth, awaitingWelcome, ready }
     }
 
+    /// Starts Bonjour browsing at once.
     public init() {
         startZeroConfDiscovery()
     }
@@ -73,6 +84,7 @@ public final class SpoolRemoteNodeClient {
         }
     }
 
+    /// The paired server with this node ID (or host and port).
     public func server(withID id: String) -> SpoolPairedServer? {
         pairedServers.first { $0.nodeID == id || $0.hostPort == id }
     }
@@ -87,12 +99,14 @@ public final class SpoolRemoteNodeClient {
         return host.hasSuffix(".local") ? String(host.dropLast(6)) : host
     }
 
+    /// Adds a time-stamped line to `recentEvents`.
     public func appendEventLog(_ line: String) {
         let stamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
         recentEvents.insert("[\(stamp)] \(line)", at: 0)
         if recentEvents.count > 200 { recentEvents.removeLast() }
     }
 
+    /// The log as a text file, oldest line first, for Report a Problem.
     public func exportEventLog() -> SpoolExportedArtifact {
         let header = "Krouton burn server log, \(Date().formatted(date: .abbreviated, time: .standard))\n"
             + "Paired servers: \(pairedServers.map { "\($0.name) (\($0.hostPort))" }.joined(separator: ", "))\n\n"
@@ -102,6 +116,7 @@ public final class SpoolRemoteNodeClient {
 
     // MARK: - Bonjour
 
+    /// (Re)starts browsing for `_krouton-spool._tcp` on the local network.
     public func startZeroConfDiscovery() {
         browser?.cancel()
         let params = NWParameters()

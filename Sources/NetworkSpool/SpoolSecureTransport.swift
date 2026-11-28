@@ -5,18 +5,27 @@ import Security
 
 // MARK: - Bonjour Discovery
 
+/// What a server says it can do, from its Bonjour `caps` hint. Unauthenticated, and not yet checked
+/// before sending a job (open question #9).
 public struct SpoolNodeCapabilities: OptionSet, Sendable, Hashable {
     public let rawValue: UInt32
     public init(rawValue: UInt32) { self.rawValue = rawValue }
 
+    /// Has a drive that writes CDs.
     public static let writesCD = SpoolNodeCapabilities(rawValue: 1 << 0)
+    /// Has a drive that writes DVDs.
     public static let writesDVD = SpoolNodeCapabilities(rawValue: 1 << 1)
+    /// Has a drive that writes Blu-ray discs.
     public static let writesBD = SpoolNodeCapabilities(rawValue: 1 << 2)
+    /// Can read damaged discs for rescue.
     public static let rescueReads = SpoolNodeCapabilities(rawValue: 1 << 3)
+    /// Burns while an upload is still arriving. This client always uploads first.
     public static let rollingSpool = SpoolNodeCapabilities(rawValue: 1 << 4)
 }
 
+/// Reading the TXT record Krouton Server advertises over Bonjour.
 public enum SpoolBonjour {
+    /// The TXT record's keys.
     public enum TXTKey {
         public static let version = "txtvers"
         public static let protocolVersion = "pv"
@@ -32,12 +41,16 @@ public enum SpoolBonjour {
     }
 }
 
-// MARK: - Zero-CA TLS (Pinned Mutual TLS 1.3)
+// MARK: - Pinned Mutual TLS 1.3 (no certificate authority)
 
+/// TLS setup for connections to Krouton Server.
 public enum SpoolTLS {
+    /// The TLS exporter label both sides derive the session secret with.
     public static let exporterLabel = "EXPORTER-krouton-spool-session"
 
-    /// Keychain P-256 SecIdentity Mutual TLS 1.3 with out-of-band X9.63 public-key SHA-256 pin verification.
+    /// TLS 1.3 parameters that present `localIdentity` (a P-256 key and certificate) and require
+    /// one from the server. The server's certificate chain isn't checked: its leaf key's pin
+    /// (SHA-256 of the X9.63 public key) must pass `isPinnedPeerKey`.
     public static func mutualTLSParameters(
         localIdentity: SecIdentity,
         isPinnedPeerKey: @escaping @Sendable (Data) -> Bool,
@@ -65,6 +78,8 @@ public enum SpoolTLS {
         return configuredTCPParameters(tls: tls)
     }
 
+    /// The connection's 32-byte TLS exporter secret, which both session proofs sign; nil before the
+    /// handshake completes.
     public static func exporterSecret(of connection: NWConnection) -> Data? {
         guard let metadata = connection.metadata(definition: NWProtocolTLS.definition) as? NWProtocolTLS.Metadata else {
             return nil
@@ -91,6 +106,8 @@ public enum SpoolTLS {
 // MARK: - Resolved-Address Check (DNS-rebinding defense)
 
 extension SpoolIPAddress {
+    /// The IP address the connection actually reached, for checking against the endpoint policy
+    /// after DNS; nil for a non-IP endpoint.
     public init?(reached endpoint: NWEndpoint?) {
         guard case .hostPort(let host, _)? = endpoint else { return nil }
         switch host {
@@ -103,20 +120,27 @@ extension SpoolIPAddress {
 
 // MARK: - Transport Channel
 
+/// Why a send or receive failed.
 public enum SpoolTransportError: Error, Sendable, Equatable {
     case closed
     case failed(String)
 }
 
+/// A byte stream the connection reads and writes, so tests can replace the network.
 public protocol SpoolTransportChannel: Sendable {
+    /// Sends `bytes`.
     func send(_ bytes: Data) async throws(SpoolTransportError)
+    /// Receives up to `maximumLength` bytes; empty when the peer finished cleanly.
     func receive(maximumLength: Int) async throws(SpoolTransportError) -> Data
+    /// Closes the stream.
     func cancel() async
 }
 
+/// A `SpoolTransportChannel` over an `NWConnection`.
 public actor NWSpoolChannel: SpoolTransportChannel {
     private let connection: NWConnection
 
+    /// Wraps `connection`.
     public init(_ connection: NWConnection) {
         self.connection = connection
     }

@@ -4,6 +4,8 @@ import Foundation
 import OpticalCore
 import os
 
+// MARK: - Disc Image Burner
+//
 // Burns a finished disc image to one drive, then reads the disc back and compares
 // it with the image. Every call takes a drive identifier and keeps its own state,
 // so several drives can run at once: this is what BurnSetScheduler drives through
@@ -16,26 +18,33 @@ import os
 public final class KroutonBurnAbortSwitch: Sendable {
     private let requested = OSAllocatedUnfairLock(initialState: false)
 
+    /// A switch that isn't requested.
     public init() {}
 
     var isRequested: Bool {
         requested.withLock { $0 }
     }
 
+    /// Asks the burn to stop.
     public func request() {
         requested.withLock { $0 = true }
     }
 
+    /// Clears the request, before the next disc.
     public func reset() {
         requested.withLock { $0 = false }
     }
 }
 
+/// A burner of this Mac, by the identifier the burn calls take.
 public struct KroutonConnectedDrive: Sendable, Equatable {
+    /// The drive's identifier (see `KroutonDriveIdentity`).
     public let id: String
+    /// Vendor and model.
     public let displayName: String
 }
 
+/// The blank a drive found.
 public struct KroutonBlankDiscInfo: Sendable, Equatable {
     /// "CD-R", "DVD+R DL", "BD-R", ... as reported for the disc in the tray.
     public let mediaType: String
@@ -43,12 +52,15 @@ public struct KroutonBlankDiscInfo: Sendable, Equatable {
     public let capacityBytes: Int64
 }
 
+/// Burns, verifies and ejects images on drives of this Mac, one call per drive (see the comment at
+/// the top of this file).
 @MainActor
 public enum KroutonDiscImageBurner {
     static let pollSeconds = 0.4
     static let abortGraceSeconds: TimeInterval = 60
     static let remountWaitSeconds = 90
 
+    /// The burners connected now.
     public static func connectedDrives() -> [KroutonConnectedDrive] {
         KroutonOpticalDriveBank.identifiedDevices().map { entry in
             let info = entry.device.info() as? [String: Any] ?? [:]
@@ -195,6 +207,8 @@ public enum KroutonDiscImageBurner {
         }.value
     }
 
+    /// Ejects the disc, or opens the tray when there is none. Does nothing for a drive that is
+    /// gone.
     public static func eject(driveID: String) {
         guard let device = try? device(for: driveID) else { return }
         if !device.ejectMedia() { _ = device.openTray() }

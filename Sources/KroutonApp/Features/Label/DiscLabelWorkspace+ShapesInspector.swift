@@ -3,7 +3,7 @@ import LabelKit
 import OpticalCore
 import SwiftUI
 
-// MARK: - Stage 1 Disc Label Vector Shapes & Optical Badges Inspector + Layer Overview
+// MARK: - Disc Label Shapes Tool
 
 extension KroutonDiscLabelWorkspaceView {
     @ViewBuilder

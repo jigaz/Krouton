@@ -386,6 +386,17 @@ impl JobManager {
         Ok(staged)
     }
 
+    /// Whether `owner`'s job `job_id` already has every extent of `manifest` and has moved on
+    /// (mastering, queued, burning or done), so a resubmission of it needs no upload. The stored
+    /// manifest must match, root and all: the client proves it is sending the same image.
+    #[must_use]
+    pub fn holds_upload(&self, owner: &str, job_id: &str, manifest: &krsp::manifest::TransferManifest) -> bool {
+        let moved_on = self.lock().jobs.get(job_id).is_some_and(|j| {
+            j.owner == owner && !matches!(j.state, JobState::Receiving | JobState::Failed | JobState::Cancelled)
+        });
+        moved_on && crate::store::load_manifest(&self.job_dir(job_id)).is_ok_and(|stored| stored == *manifest)
+    }
+
     /// Reports upload progress (throttled by the caller) to the owner's connections.
     pub fn upload_progress(&self, job_id: &str, committed: usize, total: usize) {
         #[allow(clippy::cast_precision_loss)]
@@ -394,13 +405,23 @@ impl JobManager {
     }
 
     /// Called once the last extent is durable: seals the upload and queues the burn (or, for a
-    /// folder, the mastering step).
+    /// folder, the mastering step). Only a job still receiving moves on: one cancelled while its
+    /// last extent was being written stays cancelled, and one already queued is not queued again.
     pub fn finish_upload(&self, job_id: &str, staged: &mut StagedImage) -> std::io::Result<()> {
         staged.seal()?;
-        let drive = self.lock().jobs.get(job_id).map(|j| j.drive.clone()).unwrap_or_default();
+        let drive = {
+            let state = self.lock();
+            match state.jobs.get(job_id) {
+                Some(j) if j.state == JobState::Receiving => j.drive.clone(),
+                _ => return Ok(()),
+            }
+        };
         self.update(
             job_id,
             |j| {
+                if j.state != JobState::Receiving {
+                    return;
+                }
                 if j.content == Content::Files {
                     j.state = JobState::Mastering;
                     j.fraction = Some(0.0);

@@ -7,19 +7,32 @@ import os
 
 /// What a ripped track is called, written into the file so music apps show it.
 public struct KroutonAudioTags: Sendable, Equatable {
+    /// The track title.
     public var title = ""
+    /// The track artist.
     public var artist = ""
+    /// The album.
     public var album = ""
+    /// The album artist.
     public var albumArtist = ""
+    /// The composer.
     public var composer = ""
+    /// The genre.
     public var genre = ""
+    /// The year, as text.
     public var year = ""
+    /// The track number; 0 leaves it out.
     public var trackNumber = 0
+    /// Tracks on the disc; 0 leaves it out.
     public var trackTotal = 0
+    /// The disc number; 0 leaves it out.
     public var discNumber = 0
+    /// Discs in the set; 0 leaves it out.
     public var discTotal = 0
+    /// Marks the album as a compilation.
     public var isCompilation = false
 
+    /// Empty tags.
     public init() {}
 
     /// Vorbis comment fields, which FLAC uses, in a stable order.
@@ -37,6 +50,7 @@ public struct KroutonAudioTags: Sendable, Equatable {
     }
 }
 
+/// Why tags couldn't be written. The descriptions are for the user.
 public enum KroutonAudioTagError: Error, LocalizedError, Sendable, Equatable {
     case unreadable(String)
     case exportFailed(String)
@@ -60,6 +74,7 @@ public enum KroutonAudioTagError: Error, LocalizedError, Sendable, Equatable {
 /// into a temporary file that then replaces the original, because inserting atoms by hand
 /// would move the sample data the `moov` atom points to.
 public enum KroutonAudioTagWriter {
+    /// Writes `tags` into the file at `url`, by its extension (.flac, .wav, .aif/.aiff, .m4a).
     public static func write(_ tags: KroutonAudioTags, to url: URL) async throws {
         switch url.pathExtension.lowercased() {
         case "flac": try rewrite(url) { try flacWithComments($0, tags: tags) }

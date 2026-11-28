@@ -4,7 +4,7 @@ import Observation
 import SwiftUI
 import os
 
-// MARK: - Real-Time AVAudioSourceNode & CrossfadeParameterMailbox Auditioner
+// MARK: - Crossfade Auditioner
 
 @Observable
 @MainActor
@@ -133,7 +133,7 @@ final class SpliceAudioAuditioner {
         }
     }
 
-    // MARK: - Nonisolated Real-Time Render Block Factory & PCM Window Decoders
+    // MARK: - Render Block and Decoding
 
     /// Declared `nonisolated static` so Swift 6 never infers `@MainActor` isolation on the CoreAudio render callback.
     private nonisolated static func makeSourceNode(
