@@ -25,4 +25,15 @@ final class LabelKitTests: XCTestCase {
         )
         XCTAssertEqual(glyphs.count, 7)
     }
+
+    func testAutoLabelSummaryAndRimClaimOnlyWhatIsApplied() async {
+        let composed = await AutoLabelComposer.compose(
+            albumTitle: "Summer Tapes", albumPerformer: "The Band", formatBadge: "cd-da",
+            items: [AutoLabelInputItem(url: nil, title: "One"), AutoLabelInputItem(url: nil, title: "Two")])
+        XCTAssertFalse(composed.rimBannerText.contains("KROUTON"))
+        XCTAssertTrue(composed.rimBannerText.hasPrefix("SUMMER TAPES"))
+        XCTAssertFalse(composed.summary.contains("Vision"))
+        XCTAssertFalse(composed.summary.contains("artwork"))
+        XCTAssertTrue(composed.summary.contains("title and subtitle"))
+    }
 }

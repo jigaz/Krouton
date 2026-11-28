@@ -80,7 +80,8 @@ public enum AutoLabelComposer {
         }
 
         let yearStr = String(Calendar.current.component(.year, from: Date()))
-        let rim = "\(resolvedTitle.uppercased()) • \(formatBadge.uppercased()) • \(yearStr) • MASTERED WITH KROUTON"
+        // The rim is the person's disc: no Krouton credit is added to it.
+        let rim = "\(resolvedTitle.uppercased()) • \(formatBadge.uppercased()) • \(yearStr)"
 
         let harvestedImage = await harvestBestArtwork(from: items.compactMap(\.url))
         var pngData: Data? = nil
@@ -99,8 +100,11 @@ public enum AutoLabelComposer {
             secHex = palette.secondary
         }
 
-        let artDesc = harvestedImage != nil ? "embedded/folder artwork + Vision center-hole framing" : "procedural studio palette"
-        let summary = "Auto-composed disc label (\(lines.count) items, \(artDesc))"
+        // Says only what the app applies today (AutoLabelStoreAdapter): the title and, when there
+        // is one, the subtitle. The artwork, palette, tracklist and rim are computed but not yet
+        // put on the label (open question 9).
+        let applied = resolvedArtist.isEmpty ? "title" : "title and subtitle"
+        let summary = "Auto-Label set the disc \(applied) from \(lines.count) item\(lines.count == 1 ? "" : "s")"
 
         return AutoLabelComposition(
             titleText: resolvedTitle,
