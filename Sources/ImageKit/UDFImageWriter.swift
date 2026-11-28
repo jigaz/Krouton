@@ -45,17 +45,20 @@ public enum KroutonUDFImageWriter {
         var children: [Int] = []
     }
 
-    /// Writes the image of `folder` to `output`. `now` (Unix seconds) dates the volume.
+    /// Writes the image of `folder` to `output`. `now` (Unix seconds) dates the volume. `leaveOut`
+    /// drops a file or folder by its path from `folder` (as `BDMV/STREAM/.DS_Store`); by default
+    /// everything goes in, which is what Krouton Server's writer does.
     public static func build(
         folder: URL,
         output: URL,
         label: String,
         profile: Profile = .bluRay,
         now: UInt64 = UInt64(max(0, Date().timeIntervalSince1970)),
+        leaveOut: (_ relativePath: String, _ isDirectory: Bool) -> Bool = { _, _ in false },
         progress: (Double) -> Void = { _ in },
         isCancelled: () -> Bool = { false }
     ) throws -> Built {
-        let nodes = try scan(folder)
+        let nodes = try scan(folder, leaveOut: leaveOut)
         let layout = try Layout(nodes: nodes, profile: profile)
         let volume = KroutonUDFVolume(label: volumeName(label), created: KroutonUDFTime(unix: now),
                                       setID: setID(label: label, now: now, count: nodes.count),
@@ -83,13 +86,14 @@ public enum KroutonUDFImageWriter {
 
     // MARK: - Folder
 
-    static func scan(_ root: URL) throws -> [Node] {
+    static func scan(_ root: URL, leaveOut: (String, Bool) -> Bool = { _, _ in false }) throws -> [Node] {
         let keys: [URLResourceKey] = [.isDirectoryKey, .isRegularFileKey, .fileSizeKey, .contentModificationDateKey]
         func mtime(_ values: URLResourceValues) -> UInt64 {
             UInt64(max(0, (values.contentModificationDate ?? Date(timeIntervalSince1970: 0)).timeIntervalSince1970.rounded(.down)))
         }
         let rootValues = try root.resourceValues(forKeys: Set(keys))
         var nodes = [Node(name: "", url: root, parent: 0, mtime: mtime(rootValues), isDir: true, size: 0)]
+        var paths = [""]
         var next = 0
         while next < nodes.count {
             if nodes[next].isDir {
@@ -99,6 +103,8 @@ public enum KroutonUDFImageWriter {
                     let isDir = values.isDirectory == true
                     guard isDir || values.isRegularFile == true else { continue }
                     let name = url.lastPathComponent
+                    let path = paths[next].isEmpty ? name : paths[next] + "/" + name
+                    if leaveOut(path, isDir) { continue }
                     guard KroutonUDF.cs0(name, max: Int.max).count <= 255 else {
                         throw KroutonUDFError.nameTooLong(name)
                     }
@@ -109,6 +115,7 @@ public enum KroutonUDFImageWriter {
                 let first = nodes.count
                 nodes[next].children = Array(first..<first + entries.count)
                 nodes += entries
+                paths += entries.map { paths[next].isEmpty ? $0.name : paths[next] + "/" + $0.name }
             }
             next += 1
         }

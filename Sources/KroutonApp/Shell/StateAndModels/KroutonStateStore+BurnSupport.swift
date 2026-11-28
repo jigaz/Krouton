@@ -143,8 +143,11 @@ extension KroutonStateStore {
             var isDir: ObjCBool = false
             return fm.fileExists(atPath: url.appendingPathComponent("BDMV").path, isDirectory: &isDir) && isDir.boolValue
         }
+        func checked(_ root: URL) -> Result<URL, KroutonBluRayRootError> {
+            KroutonBDMVFolder.problem(root: root).map { .failure(KroutonBluRayRootError(message: $0)) } ?? .success(root)
+        }
         if stagedFiles.count == 1, let only = stagedFiles.first, only.isDirectory, hasBDMV(only.url) {
-            return .success(only.url)
+            return checked(only.url)
         }
         let names = Set(stagedFiles.map { $0.name.uppercased() })
         if names.contains("BDMV"), names.isSubset(of: ["BDMV", "CERTIFICATE"]),
@@ -152,7 +155,7 @@ extension KroutonStateStore {
            stagedFiles.allSatisfy({ $0.url.deletingLastPathComponent() == parent }) {
             let beside = (try? fm.contentsOfDirectory(atPath: parent.path)) ?? []
             if beside.filter({ !$0.hasPrefix(".") }).allSatisfy({ ["BDMV", "CERTIFICATE"].contains($0.uppercased()) }) {
-                return .success(parent)
+                return checked(parent)
             }
         }
         return .failure(KroutonBluRayRootError(message:
@@ -169,7 +172,7 @@ extension KroutonStateStore {
         if output == nil { try Self.ensureScratchSpace(for: Self.folderBytes(root)) }
         let label = discVolumeTitle
         _ = try await Task.detached(priority: .userInitiated) {
-            try KroutonUDFImageWriter.build(folder: root, output: target, label: label)
+            try KroutonUDFImageWriter.build(folder: root, output: target, label: label, leaveOut: KroutonBDMVFolder.leftOut)
         }.value
         return target
     }

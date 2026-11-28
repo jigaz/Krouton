@@ -67,6 +67,11 @@ extension KroutonStateStore {
             if spec.filterGroup == .video && (dirName == "VIDEO_TS" || dirName == "BDMV") {
                 return true
             }
+            // The folder that holds an authored disc, as the manual asks for: MOVIE/BDMV, MOVIE/VIDEO_TS.
+            if spec.filterGroup == .video, let children = try? FileManager.default.contentsOfDirectory(atPath: url.path),
+               children.contains(where: { ["VIDEO_TS", "BDMV"].contains($0.uppercased()) }) {
+                return true
+            }
             if let children = try? FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) {
                 return children.contains { allowed.contains($0.pathExtension.lowercased()) }
             }
