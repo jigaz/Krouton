@@ -29,8 +29,9 @@ struct KroutonCentralWorkspaceCapacityBarView: View {
         }
 
         // 2. Disc Image Depot -> Selected Hero ISO Size vs Recommended Optical Medium
-        if store.selectedCategory == .depot {
-            let hero = store.depotItems.first(where: { $0.id == store.selectedDepotHeroItemID }) ?? store.depotItems[0]
+        // An empty depot list (a feed with no items) falls through instead of indexing past the end.
+        if store.selectedCategory == .depot,
+           let hero = store.depotItems.first(where: { $0.id == store.selectedDepotHeroItemID }) ?? store.depotItems.first {
             let imgBytes = store.parseSizeDisplayToBytes(hero.sizeDisplay)
             let isMiniDVD = hero.sizeDisplay.contains("80mm")
             let isCD = imgBytes <= 734_003_200 && !isMiniDVD
