@@ -101,6 +101,12 @@ extension KroutonSettingsWindowView {
                                     helpText: "Play a Sound",
                                     isOn: Bindable(store).notificationMatrix[idx].soundEnabled
                                 )
+                                KroutonNotificationSoundControlView(
+                                    sound: Bindable(store).notificationMatrix[idx].sound,
+                                    isEnabled: row.soundEnabled,
+                                    accent: store.activeAccent
+                                )
+                                .frame(minWidth: 150, alignment: .trailing)
                             }
                         }
                         if idx < store.notificationMatrix.count - 1 {
@@ -108,6 +114,9 @@ extension KroutonSettingsWindowView {
                         }
                     }
                 }
+                Divider()
+                Toggle(KroutonL10n.tr("Give each drive its own pitch, so you can tell by ear which burner finished or wants a disc"),
+                       isOn: Bindable(store).distinctDriveVoices)
                 Divider()
                 HStack {
                     Text(KroutonNotificationAndCompanionService.shared.lastDispatchedBannerText)

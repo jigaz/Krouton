@@ -35,8 +35,10 @@ final class KroutonNotificationAndCompanionService {
             lastDispatchedBannerText = "[\(stamp)] \(title) — \(subtitle)"
             postSystemNotificationIfBundled(id: eventID, title: title, body: subtitle, playSound: soundOn)
         }
-        if soundOn {
-            KroutonOSDesktopBridge.playAcousticCue()
+        if soundOn, let sound = matchedRow?.sound {
+            // A real drive gets its own pitch; tests and events without a drive don't.
+            let voice = store.distinctDriveVoices && driveName != "Optical Drive" ? driveName : nil
+            KroutonOSDesktopBridge.playAcousticCue(sound.cue(forDrive: voice))
         }
         if store.voiceOverSpokenTelemetry {
             store.announceForVoiceOver("\(title). \(subtitle)")
