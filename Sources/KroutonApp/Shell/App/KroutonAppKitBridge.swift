@@ -1,4 +1,5 @@
 import AppKit
+import BurnKit
 import DriveKit
 import Observation
 import OpticalCore
@@ -36,7 +37,7 @@ enum KroutonAppKitBridge {
 // MARK: - KroutonAppDelegate
 
 /// The app delegate: sets the Dock icon and its burn badge, keeps the Mac awake during a burn
-/// (`KroutonPowerAndBurnAssertion`), and refuses to quit while the queue is running.
+/// (`KroutonPowerAndBurnAssertion`), and refuses to quit while the queue or a multi-disc set is running.
 @MainActor
 final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
     private var appearanceObserver: NSKeyValueObservation?
@@ -153,6 +154,12 @@ final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// True while a multi-disc set is preparing or burning. Both objects are `@Observable`, so
+    /// reading this inside `withObservationTracking` re-arms the power guard when a set starts.
+    private var isMultiDiscSetActive: Bool {
+        KroutonBurnCoordinator.shared.isSetRunning || KroutonBurnSetController.shared.isBusy
+    }
+
     func bindBurnTelemetryAndPowerGuard() {
         let dm = KroutonWindowManager.shared.driveManager
         withObservationTracking {
@@ -160,6 +167,11 @@ final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
                 KroutonPowerAndBurnAssertion.shared.acquire(reason: dm.activeJobPhase.isEmpty ? "Krouton Optical Burn" : dm.activeJobPhase)
                 let pct = Int((min(1.0, max(0.0, dm.activeJobProgress)) * 100.0).rounded())
                 NSApplication.shared.dockTile.badgeLabel = pct > 0 ? "\(pct)%" : "BURN"
+            } else if isMultiDiscSetActive {
+                // A set burns through BurnSetScheduler, not the drive bank, so isExecutingQueue
+                // stays false for it.
+                KroutonPowerAndBurnAssertion.shared.acquire(reason: "Krouton Multi-Disc Set")
+                NSApplication.shared.dockTile.badgeLabel = "BURN"
             } else {
                 KroutonPowerAndBurnAssertion.shared.releaseAssertion()
                 if NSApplication.shared.dockTile.badgeLabel != nil {
@@ -178,6 +190,14 @@ final class KroutonAppDelegate: NSObject, NSApplicationDelegate {
         if dm.isExecutingQueue {
             let store = KroutonWindowManager.shared.store
             store.rejectedDropNotice = KroutonL10n.tr("Krouton is still running the destination queue. Abort it first (Disc › Abort Active Operation), then quit: a burn stopped halfway can ruin the disc.")
+            KroutonOSDesktopBridge.playAcousticCue()
+            KroutonWindowManager.shared.openMainWindow()
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            return .terminateCancel
+        }
+        if isMultiDiscSetActive {
+            let store = KroutonWindowManager.shared.store
+            store.rejectedDropNotice = KroutonL10n.tr("Krouton is still burning a multi-disc set. Stop it first (Stop After Current Discs in the Multi-Disc Set window), then quit: a burn stopped halfway can ruin the disc.")
             KroutonOSDesktopBridge.playAcousticCue()
             KroutonWindowManager.shared.openMainWindow()
             NSApplication.shared.activate(ignoringOtherApps: true)

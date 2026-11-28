@@ -842,6 +842,7 @@
     "Krouton Accent Swatch": {},
     "Krouton copies everything that reads easily first, then goes back to the damaged areas one sector at a time. Sectors that never read are saved as zeros and listed in a map file beside the image (GNU ddrescue's format), so you can try again later, in another drive, or with ddrescue itself.": {},
     "Krouton Didn't Quit Normally": {},
+    "Krouton is still burning a multi-disc set. Stop it first (Stop After Current Discs in the Multi-Disc Set window), then quit: a burn stopped halfway can ruin the disc.": {},
     "Krouton is still running the destination queue. Abort it first (Disc › Abort Active Operation), then quit: a burn stopped halfway can ruin the disc.": {},
     "Krouton isn't burning, copying or downloading anything.": {},
     "Krouton Manual": {},
