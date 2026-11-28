@@ -221,5 +221,20 @@ struct KroutonProjectSheetModifier: ViewModifier {
                     store.openProjectFile(at: url, driveManager: driveManager)
                 }
             }
+            .modifier(KroutonProjectDialogFolder())
+    }
+}
+
+/// Starts Open Project and Save Project in Krouton's iCloud Drive folder when that's turned on
+/// (macOS 15 and later; earlier, the dialogs start where macOS last left them).
+private struct KroutonProjectDialogFolder: ViewModifier {
+    var cloud = KroutonCloudDocuments.shared
+
+    func body(content: Content) -> some View {
+        if #available(macOS 15, *), let folder = cloud.dialogFolder {
+            content.fileDialogDefaultDirectory(folder)
+        } else {
+            content
+        }
     }
 }

@@ -22,6 +22,9 @@ enum KroutonPreferenceKey: String, CaseIterable, Sendable {
     case distinctDriveVoices = "krouton.pref.distinctDriveVoices"
     case menuBarStatus = "krouton.pref.menuBarStatus"
     case labelSuggestions = "krouton.pref.labelSuggestions"
+    case labelPresets = "krouton.pref.labelPresets"
+    /// Open and save projects in Krouton's iCloud Drive folder by default.
+    case projectsInICloudDrive = "krouton.pref.projectsInICloudDrive"
     /// Whether this Mac keeps its settings in iCloud. Never synced itself.
     case syncSettingsWithICloud = "krouton.pref.syncSettingsWithICloud"
     /// macOS's own per-app language list, read when the app opens (`KroutonL10n`).

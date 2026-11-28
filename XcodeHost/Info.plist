@@ -53,6 +53,18 @@
     <string>Krouton accesses optical discs and removable volumes to inspect, master, verify, and burn CD, DVD, Blu-ray, and BDXL media.</string>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Krouton finds Krouton Servers on your local network and sends discs to them to burn.</string>
+    <key>NSUbiquitousContainers</key>
+    <dict>
+        <key>iCloud.app.krouton</key>
+        <dict>
+            <key>NSUbiquitousContainerIsDocumentScopePublic</key>
+            <true/>
+            <key>NSUbiquitousContainerName</key>
+            <string>Krouton</string>
+            <key>NSUbiquitousContainerSupportedFolderLevels</key>
+            <string>Any</string>
+        </dict>
+    </dict>
     <key>NSBonjourServices</key>
     <array>
         <string>_krouton-spool._tcp</string>
