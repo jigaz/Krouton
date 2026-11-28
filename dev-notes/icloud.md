@@ -6,11 +6,12 @@ Written 2026-11-28. **Status:** the code is done. It turns on in builds signed w
 
 | What | How | Where in code |
 | --- | --- | --- |
-| Settings on all your Macs (opt-in) | iCloud key-value store: appearance, units, notifications and their sounds, label template, disc label sizes (`labelPresets`), Auto-Label tidying, menu bar choice | `Shell/Services/KroutonCloudSettings.swift`, Settings › General › iCloud |
+| Settings on all your Macs (opt-in) | iCloud key-value store: appearance, units, notifications and their sounds, disc label sizes (`labelPresets`), Auto-Label tidying, menu bar choice | `Shell/Services/KroutonCloudSettings.swift`, Settings › General › iCloud |
 | Projects in iCloud Drive (opt-in) | Container `iCloud.app.krouton`, shown as **Krouton** in iCloud Drive. Open and Save Project start there (macOS 15+). | `Shell/Services/KroutonCloudDocuments.swift` |
 
 Deliberately left on each Mac:
 - the app's language
+- the label template (it belongs to the project open on each Mac)
 - drives and burner cards
 - the saved session and burn journal
 - caches
@@ -36,10 +37,12 @@ A project in iCloud refers to its source files where they are. On another Mac th
 1. On Mac A, turn on **Keep these settings in iCloud** and change the accent colour. On Mac B, turn it on, choose **Use the Settings in iCloud**, and check the colour matches. Change the colour on B; A should follow within a minute while Krouton is open.
 2. Add a disc label size on A. It should appear on B.
 3. Turn on **Open and save projects in Krouton's iCloud Drive folder**, then save a project. It should be in Finder › iCloud Drive › Krouton, and open from B.
-4. Run **Reset Settings** with sync on. The copy in iCloud is cleared. B keeps its settings until they're changed there.
+4. Run **Reset Settings** with sync on. B should go back to the defaults too: the copy in iCloud mirrors saved settings, and a key missing after a Mac has saved there means the default.
 5. Sign out of iCloud. Both rows should say iCloud isn't available, and nothing should break.
 
 ## Not done (needs a decision)
+
+- Turning sync on in the first moments after launch, before iCloud has downloaded: Krouton may not see the other Mac's copy, so it doesn't ask, and this Mac's settings replace it. Waiting for the first download needs a signed build to test against.
 
 - Syncing paired servers. The pairing secret is per device by design; syncing would mean sharing a client identity across Macs.
 - CloudKit, for iPhone/Watch status: see `live-updates-iphone-watch-mac.md`, route B1.
