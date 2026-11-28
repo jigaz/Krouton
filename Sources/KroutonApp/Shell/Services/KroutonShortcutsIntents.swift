@@ -101,7 +101,7 @@ struct KroutonInspectDiscImageIntent: AppIntent {
         }
         if computeSHA256 {
             let sha = KroutonElToritoBootInspector.computeSHA256Hex(url: url)
-            parts.append("SHA-256: \(sha)")
+            parts.append("SHA-256: \(sha ?? "couldn't read the image")")
         }
         let summary = parts.joined(separator: "\n")
         return .result(value: summary, dialog: IntentDialog(stringLiteral: summary))

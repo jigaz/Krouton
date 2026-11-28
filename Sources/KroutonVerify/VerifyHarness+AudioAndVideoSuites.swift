@@ -26,7 +26,8 @@ extension KroutonTestHarness {
     self.runSuite("8. Container Stream Probing") { h in
 
     let mkvProbe = KroutonMediaPrepEngine.probeFile(URL(fileURLWithPath: "/tmp/concert.mkv"))
-    h.check(mkvProbe.fileExtension == "MKV" && mkvProbe.isHardwareAccelerated, "MKV hardware probe")
+    h.check(mkvProbe.fileExtension == "MKV" && mkvProbe.shortHardwareBadge.hasPrefix("Matroska") && !mkvProbe.isHardwareAccelerated,
+            "MKV probe names the container from the extension and claims no decoder")
 
     let flacProbe = KroutonMediaPrepEngine.probeFile(URL(fileURLWithPath: "/tmp/master.flac"))
     h.check(flacProbe.accelerationTier == .accelerateSIMD, "FLAC Accelerate SIMD tier")

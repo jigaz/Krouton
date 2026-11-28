@@ -102,9 +102,19 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
                             .buttonStyle(.bordered).controlSize(.small)
 
                             Button(KroutonL10n.tr("Verify")) {
-                                let res = DiscImageDepotOperations.verifyDiskImageIntegrity(url: entry.url)
-                                computedImageSHA256 = KroutonElToritoBootInspector.computeSHA256Hex(url: inspectionReport?.resolvedBinURL ?? entry.url)
-                                imageActionStatusBanner = res.isValid ? "Verified OK" : "SHA-256 Computed"
+                                // hdiutil and hashing a multi-GB image take a while: off the main actor.
+                                let imageURL = entry.url
+                                let hashURL = inspectionReport?.resolvedBinURL ?? entry.url
+                                computedImageSHA256 = ""
+                                imageActionStatusBanner = "Verifying \(entry.name)..."
+                                Task {
+                                    let (summary, digest) = await Task.detached(priority: .userInitiated) {
+                                        (DiscImageDepotOperations.verifyDiskImageIntegrity(url: imageURL).summary,
+                                         KroutonElToritoBootInspector.computeSHA256Hex(url: hashURL))
+                                    }.value
+                                    computedImageSHA256 = digest ?? ""
+                                    imageActionStatusBanner = digest == nil ? "\(summary). Couldn't read the image to compute its SHA-256." : summary
+                                }
                             }
                             .buttonStyle(.bordered).controlSize(.small)
 
@@ -175,7 +185,10 @@ struct KroutonDiscImageInspectorWorkspaceView: View {
 
                         ScrollView {
                             let dumpURL = inspectionReport?.resolvedBinURL ?? entry.url
-                            Text(KroutonElToritoBootInspector.readSectorHexDump(url: dumpURL, lba: inspectedImageLBA).map { "\($0.offsetHex)  \($0.hexBytes)  |\($0.asciiText)|" }.joined(separator: "\n"))
+                            let rows = KroutonElToritoBootInspector.readSectorHexDump(url: dumpURL, lba: inspectedImageLBA)
+                            let unavailable = KroutonElToritoBootInspector.sectorDumpUnavailableReason(url: dumpURL, lba: inspectedImageLBA)
+                                ?? "Nothing could be read at LBA \(inspectedImageLBA)."
+                            Text(rows.isEmpty ? unavailable : rows.map { "\($0.offsetHex)  \($0.hexBytes)  |\($0.asciiText)|" }.joined(separator: "\n"))
                                 .font(.system(size: 10.5, design: .monospaced))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(10)

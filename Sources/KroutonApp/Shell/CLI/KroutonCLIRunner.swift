@@ -117,7 +117,13 @@ enum KroutonCLIRunner {
             }
             let rep = DiscImageDepotOperations.inspectImageFile(at: url)
             let c = rep.classification
-            let sha = rest.contains("--sha256") ? KroutonElToritoBootInspector.computeSHA256Hex(url: url) : ""
+            var sha = ""
+            if rest.contains("--sha256") {
+                guard let digest = KroutonElToritoBootInspector.computeSHA256Hex(url: url) else {
+                    return (1, "Error: couldn't read \(url.path) to compute its SHA-256")
+                }
+                sha = digest
+            }
             if wantsJSON {
                 var dict: [String: Any] = [
                     "path": url.path,
