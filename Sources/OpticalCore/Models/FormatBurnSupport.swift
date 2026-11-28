@@ -29,11 +29,13 @@ public enum KroutonBurnSupport: Sendable, Equatable {
     /// Burning the staged files would give the wrong kind of disc; the reason says what to do.
     case notYet(String)
 
+    /// False only for `.notYet`.
     public var isBurnable: Bool {
         if case .notYet = self { return false }
         return true
     }
 
+    /// The message to show instead of burning, for `.notYet`; nil otherwise.
     public var refusal: String? {
         if case .notYet(let reason) = self { return reason }
         return nil
@@ -41,6 +43,8 @@ public enum KroutonBurnSupport: Sendable, Equatable {
 }
 
 extension KroutonFormatID {
+    /// What burning this format does today. The comments on each case record what the burn really
+    /// writes.
     public var burnSupport: KroutonBurnSupport {
         switch self {
         // Data discs. Some promise more than DiscRecording gives them; see each note.

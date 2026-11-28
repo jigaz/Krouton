@@ -6,17 +6,28 @@ import SwiftUI
 
 // MARK: - Staged files
 
+/// A file or folder staged for a data disc, with what the deck shows about it and where it goes.
 public struct KroutonStagedFileEntry: Identifiable, Hashable, Sendable {
     public let id: UUID
+    /// The source on this Mac.
     public let url: URL
+    /// The name it gets on the disc.
     public let name: String
+    /// True for a folder.
     public let isDirectory: Bool
+    /// Size in bytes; for a folder, everything inside it.
     public let byteSize: Int64
+    /// Items inside a folder; 1 for a file.
     public let itemCount: Int
+    /// The permissions as text, such as "rw-r--r--", for display.
     public let posixPermissions: String
+    /// When the source was last modified.
     public let modifiedDate: Date
+    /// Visible in the HFS+ side of a hybrid disc.
     public var showOnMac: Bool
+    /// Visible in the ISO 9660, Joliet and UDF side of a hybrid disc.
     public var showOnPC: Bool
+    /// True when the user put a disc break before this entry.
     public var startsNewDisc: Bool
 
     public init(
@@ -45,22 +56,27 @@ public struct KroutonStagedFileEntry: Identifiable, Hashable, Sendable {
         self.startsNewDisc = startsNewDisc
     }
 
+    /// 2,048-byte sectors the entry needs, at least one. Directory records are not counted.
     public var sectorsLBA: Int64 {
         max(1, (byteSize + 2047) / 2048)
     }
 
+    /// True when the file is too large for one ISO 9660 extent.
     public var exceedsISO9660FourGiBLimit: Bool {
         byteSize >= 4_294_967_295
     }
 
+    /// True when the name is longer than Joliet's 64 characters.
     public var exceedsJoliet64CharLimit: Bool {
         name.count > 64
     }
 
+    /// True when the name is longer than ISO 9660 Level 2's 31 characters.
     public var exceedsISO9660ThirtyOneCharLimit: Bool {
         name.count > 31
     }
 
+    /// True for a .bin, .iso or .cue file, which the deck offers to burn as an image.
     public var isConvertibleBinOrIso: Bool {
         let l = name.lowercased()
         return l.hasSuffix(".bin") || l.hasSuffix(".iso") || l.hasSuffix(".cue")
@@ -69,11 +85,16 @@ public struct KroutonStagedFileEntry: Identifiable, Hashable, Sendable {
 
 // MARK: - Burn telemetry
 
+/// One point of a burn's speed graph.
 public struct KroutonBurnTelemetrySample: Identifiable, Hashable, Sendable {
     public let id: UUID
+    /// How far the burn was, 0 to 1.
     public let progressFraction: Double
+    /// Write speed as a multiple of the medium's 1x.
     public let speedMultiplierX: Double
+    /// Always 0 today: DiscRecording doesn't report spindle speed.
     public let spindleRPM: Double
+    /// Write speed in KB/s, as DiscRecording reports it.
     public let throughputKBs: Double
 
     public init(
@@ -91,16 +112,25 @@ public struct KroutonBurnTelemetrySample: Identifiable, Hashable, Sendable {
     }
 }
 
+/// One drive's progress through a run of copies of the same disc.
 public struct KroutonBatchBurnState: Identifiable, Hashable, Sendable {
-    public let id: String // Drive ID
+    /// The drive's ID.
+    public let id: String
+    /// The drive's display name.
     public var driveName: String
+    /// The copy being burned, from 1.
     public var currentCopyIndex: Int
+    /// How many copies the run makes.
     public var totalCopies: Int
+    /// True while the drive waits for the next blank disc.
     public var isWaitingForBlankDisc: Bool
+    /// True once the burned disc was ejected.
     public var hasDetectedDiscEject: Bool = false
+    /// Seconds until the next copy starts, while counting down.
     public var countdownSecondsRemaining: Int?
+    /// One line of status, for display.
     public var statusMessage: String
-    /// Always false: Krouton sends no book-type (bitsetting) command. Kept so saved states decode.
+    /// Always false: Krouton sends no book-type (bitsetting) command.
     public var bitsetDVDROMActive: Bool
 
     public init(
@@ -124,26 +154,48 @@ public struct KroutonBatchBurnState: Identifiable, Hashable, Sendable {
     }
 }
 
+/// Live state of one drive for the burn graph ("phase scope"): progress, speeds and the graph's
+/// samples.
 public struct KroutonDrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable {
-    public let id: String          // Drive ID
+    /// The drive's ID.
+    public let id: String
+    /// The drive's display name.
     public var driveName: String
-    public var isActive: Bool       // True whenever throughputKBs > 0
+    /// True while a job runs on the drive.
+    public var isActive: Bool
+    /// True when the user pinned the graph into the workspace.
     public var isManuallyPinnedInline: Bool
+    /// True while the graph is open in its own window.
     public var isFloatingWindowOpen: Bool
+    /// What the drive is doing, such as "Writing track 2".
     public var phaseTitle: String
+    /// Progress of the current job, 0 to 1.
     public var progressFraction: Double
+    /// Write speed now, as a multiple of 1x.
     public var currentSpeedX: Double
+    /// Write speed now, in KB/s.
     public var currentSpeedKBs: Double
+    /// The highest speed seen in this job.
     public var peakSpeedX: Double
+    /// The average of the samples so far.
     public var averageSpeedX: Double
+    /// The speed the burn asked for.
     public var targetSpeedX: Double
+    /// Always 0 today: DiscRecording doesn't report spindle speed.
     public var currentSpindleRPM: Int
+    /// The sector being written, when known.
     public var currentSectorLBA: Int64
+    /// Sectors the job writes.
     public var totalSectorsLBA: Int64
+    /// The drive's buffer fill, in percent; 0 while DiscRecording doesn't report it.
     public var bufferFillPercent: Double
+    /// The laser wavelength for the medium, for display (derived from the media type).
     public var laserWavelengthText: String
+    /// The write strategy, for display.
     public var writeStrategyText: String
+    /// Seconds since the job started.
     public var elapsedSeconds: Int
+    /// The graph's points, in order of progress.
     public var samples: [KroutonBurnTelemetrySample]
 
     public init(
@@ -190,10 +242,15 @@ public struct KroutonDrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable 
         self.samples = samples
     }
 
+    /// Roughly where the laser is, in mm from the disc's centre: 24 mm at the start of the data
+    /// area, 58 mm at the end.
     public var radialMillimeters: Double {
         24.0 + (34.0 * min(1.0, max(0.0, progressFraction)))
     }
 
+    /// Adds a graph point without letting progress go backwards: a point within 0.3 % of the
+    /// last one replaces it, a small step back is held at the last progress, and a step back of
+    /// more than 8 % (a new pass, such as verify) starts the graph again.
     public mutating func appendMonotonicSample(
         rawFraction: Double,
         speedX: Double,
@@ -233,8 +290,10 @@ public struct KroutonDrivePhaseScopeTelemetry: Identifiable, Hashable, Sendable 
 
 // MARK: - Burn reports
 
+/// The summary shown after a burn: what was written, how fast, and what to do if it failed.
 public struct KroutonBurnSessionReport: Identifiable, Hashable, Sendable {
     public let id: UUID
+    /// True when the burn finished without error.
     public let isSuccess: Bool
     public let title: String
     public let summary: String
@@ -247,6 +306,7 @@ public struct KroutonBurnSessionReport: Identifiable, Hashable, Sendable {
     public let averageSpeedText: String
     public let peakSpeedText: String
     public let elapsedDurationText: String
+    /// What to try next, for a failed burn.
     public let diagnosticAdvice: String
 
     public init(
@@ -282,7 +342,9 @@ public struct KroutonBurnSessionReport: Identifiable, Hashable, Sendable {
     }
 }
 
+/// Something that holds live drive telemetry keyed by drive ID (the drive bank).
 @MainActor
 public protocol KroutonDriveTelemetryStore: AnyObject, Sendable {
+    /// Telemetry per drive ID.
     var driveTelemetry: [String: KroutonDrivePhaseScopeTelemetry] { get set }
 }

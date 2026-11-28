@@ -6,6 +6,7 @@ import Foundation
 /// one of its fields (saved before the field existed) or holds a value this version can't read,
 /// `KroutonPersistedJSON` takes that field from here instead of failing the whole file.
 public protocol KroutonPersistedDefault: Codable {
+    /// The value a new record of this type starts with.
     static var persistedDefault: Self { get }
     /// Fields nothing may fill in, because a guess would turn the record into something else: a
     /// destination card's kind (a guessed card would be a disc burner). A record with one of these
@@ -15,6 +16,7 @@ public protocol KroutonPersistedDefault: Codable {
 }
 
 extension KroutonPersistedDefault {
+    /// None by default.
     public static var requiredKeys: Set<String> { [] }
 }
 
@@ -32,12 +34,17 @@ extension KroutonPersistedDefault {
 ///
 /// Every such repair is listed in `Result.repairs`, so the app can say what was filled in.
 public enum KroutonPersistedJSON {
+    /// The decoded value and what had to be repaired to read it.
     public struct Result<Value> {
+        /// The decoded value.
         public let value: Value
         /// Coding paths that took a default or were left out; empty when the file read as is.
         public let repairs: [String]
     }
 
+    /// Decodes `type` from `data`, repairing what a strict decode refuses. When the file isn't
+    /// JSON, or even the repairing read fails (a required field at the top level), it throws the
+    /// strict decoder's error.
     public static func decode<T: Decodable>(_ type: T.Type, from data: Data, iso8601Dates: Bool = false) throws -> Result<T> {
         let strict = JSONDecoder()
         if iso8601Dates { strict.dateDecodingStrategy = .iso8601 }

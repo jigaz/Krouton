@@ -15,11 +15,13 @@ import Foundation
 
 // MARK: - BurnSet
 
+/// Identifies a burn set in the journal.
 public struct BurnSetID: Hashable, Codable, Sendable {
     public let raw: UUID
     public init(_ raw: UUID = UUID()) { self.raw = raw }
 }
 
+/// Identifies a drive across launches and reconnections.
 public struct DriveID: Hashable, Codable, Sendable {
     /// Stable hardware identity (vendor + product + serial), not a BSD name.
     public let raw: String
@@ -32,8 +34,11 @@ public struct DriveID: Hashable, Codable, Sendable {
 public struct FrozenDisc: Codable, Sendable, Identifiable, Equatable {
     public let index: Int            // 1-based position in the set
     public let volumeLabel: String
+    /// The staged image to burn.
     public let imageURL: URL
+    /// Lowercase hex SHA-256 of the image, for verifying the burned disc.
     public let imageSHA256: String
+    /// The image's size in bytes.
     public let imageBytes: Int64
     public var id: Int { index }
 
@@ -51,8 +56,10 @@ public struct FrozenDisc: Codable, Sendable, Identifiable, Equatable {
 /// with a Disc 1 that already exists.
 public struct BurnSet: Codable, Sendable, Identifiable, Equatable {
     public let id: BurnSetID
+    /// The set's title, as the user named it.
     public let title: String
     public let createdAt: Date
+    /// The discs, in order.
     public let discs: [FrozenDisc]
 
     public init(id: BurnSetID = BurnSetID(), title: String, createdAt: Date = Date(), discs: [FrozenDisc]) {
@@ -61,9 +68,9 @@ public struct BurnSet: Codable, Sendable, Identifiable, Equatable {
         self.createdAt = createdAt
         self.discs = discs
     }
-
 }
 
+/// Why one attempt at one disc failed.
 public enum BurnFailure: Error, Codable, Sendable, Equatable {
     case mediaRejected(reason: String)            // wrong type, not blank, too small
     case writeError(sense: String)                // decoded sense key / ASC / ASCQ
@@ -73,8 +80,10 @@ public enum BurnFailure: Error, Codable, Sendable, Equatable {
     case cancelledByUser
 }
 
+/// The stage a disc attempt is in.
 public enum BurnPhase: String, Codable, Sendable { case writing, closing, verifying }
 
+/// One line of the burn journal. Every status on screen is derived from these.
 public enum BurnEvent: Codable, Sendable, Equatable {
     case setCreated(BurnSet)
     case attemptStarted(set: BurnSetID, disc: Int, attempt: Int, drive: DriveID, mediaID: String, at: Date)
@@ -91,6 +100,7 @@ public enum BurnEvent: Codable, Sendable, Equatable {
     }
 }
 
+/// Where one disc stands, derived from its events.
 public enum DiscJobState: Sendable, Equatable {
     case pending
     case inProgress(attempt: Int, drive: DriveID, phase: BurnPhase)
@@ -106,15 +116,19 @@ public enum DiscJobState: Sendable, Equatable {
     }
 }
 
+/// An event that doesn't fit the disc's state, such as a success for an attempt that never started.
 public struct BurnTransitionError: Error, Equatable {
     public let disc: Int
     public let from: DiscJobState
     public let event: BurnEvent
 }
 
+/// One disc of a set and its state.
 public struct DiscJob: Sendable, Equatable, Identifiable {
     public let disc: FrozenDisc
+    /// Where the disc stands.
     public private(set) var state: DiscJobState = .pending
+    /// How many attempts have started, from 0.
     public private(set) var attempts = 0
     private var currentMediaID = ""
     public var id: Int { disc.index }
@@ -150,10 +164,13 @@ public struct DiscJob: Sendable, Equatable, Identifiable {
 
 /// Everything the UI needs about one set, rebuilt from the journal on demand.
 public struct BurnSetProgress: Sendable, Equatable, Identifiable {
+    /// The frozen set.
     public let set: BurnSet
+    /// One job per disc, in order.
     public private(set) var jobs: [DiscJob]
     public var id: BurnSetID { self.set.id }
 
+    /// True when every disc burned.
     public var isComplete: Bool { jobs.allSatisfy(\.state.isFinished) }
     /// Discs that still need a successful burn: what "Retry" and "Resume" queue.
     public var remaining: [DiscJob] { jobs.filter(\.state.canStart) }
@@ -167,6 +184,7 @@ public struct BurnSetProgress: Sendable, Equatable, Identifiable {
         self.jobs = set.discs.map(DiscJob.init)
     }
 
+    /// Applies an event to the disc with number `index`.
     public mutating func apply(_ event: BurnEvent, disc index: Int) throws(BurnTransitionError) {
         guard let position = jobs.firstIndex(where: { $0.disc.index == index }) else {
             throw BurnTransitionError(disc: index, from: .pending, event: event)
@@ -200,21 +218,10 @@ public struct BurnSetProgress: Sendable, Equatable, Identifiable {
     }
 }
 
-// Launch sequence with this model:
+// At launch, `KroutonBurnSetController.loadResumableSet` (in the app) replays the journal,
+// records every disc that was mid-burn as `.interrupted` (on write-once media that disc is
+// spoiled), and offers to resume a set that isn't complete; resuming burns `remaining` only.
 //
-//   let (sets, rejected) = BurnSetProgress.replay(try await journal.readAll())
-//   for set in sets {
-//       for job in set.interrupted {
-//           // The app died mid-burn. On write-once media that disc is spoiled.
-//           try await journal.append(.attemptFailed(set: set.id, disc: job.disc.index,
-//               attempt: job.attempts, failure: .interrupted, at: .now))
-//       }
-//   }
-//   // Any set with `!isComplete` appears in the queue with a "Resume" button
-//   // that burns `remaining` only.
-//
-// Tests that need no hardware:
-//   - started -> succeeded leaves the disc done, and a second success throws
-//   - failed -> started(attempt 2) -> succeeded is done with attempts == 2
-//   - a failure on Disc 2 leaves Discs 1 and 3 untouched
-//   - replaying any prefix of a valid log never throws
+// krouton-verify Suites 22 and 30 check replay and retry. Cases worth unit tests here, none of
+// which need a drive: a second success for the same attempt throws; a failure on disc 2 leaves
+// discs 1 and 3 untouched; replaying any prefix of a valid log rejects nothing.
