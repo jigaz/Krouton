@@ -13,7 +13,8 @@ struct KroutonDestinationCardView: View {
     var driveManager: KroutonOpticalDriveBank
     var spoolClient: SpoolRemoteNodeClient = .shared
     let item: KroutonBakeBatchItem
-    let isRightQueueCompact: Bool
+    @Environment(\.kroutonLayout) var windowLayout
+    var isRightQueueCompact: Bool { windowLayout.queue == .narrow }
     let primarySelectedDrive: KroutonOpticalDriveInfo?
 
     @State var activeDiscPopoverCardID: UUID? = nil

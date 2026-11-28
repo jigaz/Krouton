@@ -335,6 +335,8 @@ extension KroutonDestinationRackColumnView {
                         Image(systemName: "arrow.up.to.line.compact")
                         if !isRightQueueCompact {
                             Text("Promote")
+                                .lineLimit(1)
+                                .fixedSize()
                         }
                     }
                     .font(.system(size: 10, weight: .bold)).padding(.horizontal, 8).padding(.vertical, 4)
@@ -366,6 +368,8 @@ extension KroutonDestinationRackColumnView {
                         Image(systemName: "arrow.up.to.line.compact")
                         if !isRightQueueCompact {
                             Text("Assign ↑")
+                                .lineLimit(1)
+                                .fixedSize()
                         }
                     }
                     .font(.system(size: 10, weight: .bold)).padding(.horizontal, 8).padding(.vertical, 4)

@@ -31,7 +31,6 @@ final class KroutonRipCancelToken: Sendable {
 struct KroutonCopyAndRipWorkspaceView: View {
     var store: KroutonStateStore
     let primarySelectedDrive: KroutonOpticalDriveInfo?
-    let isCenterWorkspaceNarrow: Bool
 
     @State var audioRipCodec: KroutonRipCodec = .flac
     @State var audioRipGenerateCueLog: Bool = true

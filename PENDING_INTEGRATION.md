@@ -71,6 +71,8 @@ Format: `- `TypeName` — `Owner` · how`.
 - `KroutonBurnMediaDecision` — `KroutonBurnMediaPolicy` · returned
 - `KroutonCarAudioError` — `KroutonCarAudioDiscPreparer` · thrown
 - `KroutonCDTextPack` — `KroutonAudioEngine` · returned
+- `KroutonColumnBreakpoint` — `KroutonWindowLayout` · its breakpoints
+- `KroutonColumnSize` — `KroutonWindowLayout` · its column sizes
 - `KroutonConnectedDrive` — `KroutonDiscImageBurner` · returned
 - `KroutonDVD9MenuShrinkBlueprint` — `KroutonVideoAuthoringEngine` · returned
 - `KroutonFinderBackgroundKind` — `KroutonFinderLayoutBlueprint` · a property
