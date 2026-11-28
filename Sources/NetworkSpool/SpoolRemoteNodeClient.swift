@@ -19,7 +19,11 @@ public final class SpoolRemoteNodeClient {
 
     public internal(set) var pairedServers: [SpoolPairedServer] = SpoolPairedServerStore.load()
     public internal(set) var nearbyUnpaired: [SpoolDiscoveredNode] = []
-    public internal(set) var remoteDrives: [SpoolDriveInfo] = []
+    public internal(set) var remoteDrives: [SpoolDriveInfo] = [] {
+        didSet { remoteDrivesRevision &+= 1 }
+    }
+    /// Goes up with every drives list the server sends, so a burn can wait for a fresh one.
+    var remoteDrivesRevision = 0
     public internal(set) var jobs: [SpoolJobInfo] = []
     public internal(set) var connectedServerID: String?
     /// What the connected server reported when the session opened.

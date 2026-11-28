@@ -81,12 +81,7 @@ extension KroutonCopyAndRipWorkspaceView {
                         }
                         HStack(spacing: 6) {
                             Text("Codec:").font(.caption.bold()).frame(width: 44, alignment: .leading)
-                            Picker("", selection: $audioRipCodec) {
-                                Text("FLAC (Lossless)").tag("FLAC (Lossless)")
-                                Text("Apple Lossless (ALAC)").tag("Apple Lossless (ALAC)")
-                                Text("WAV (Uncompressed PCM)").tag("WAV (Uncompressed PCM)")
-                                Text("AIFF (1:1 Red Book PCM)").tag("AIFF (1:1 Red Book PCM)")
-                            }.labelsHidden().font(.caption)
+                            KroutonRipCodecPickerView(codec: $audioRipCodec)
                         }
                     }
                     VStack(alignment: .leading, spacing: 6) {

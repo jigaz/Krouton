@@ -196,7 +196,8 @@ extension KroutonSettingsWindowView {
         case .noDisc: "no disc"
         case .unknown: "disc unknown"
         }
-        return drive.queue > 0 ? "\(media) • \(drive.queue) in queue" : media
+        let described = [media, drive.capabilitySummary].compactMap { $0 }.joined(separator: " • ")
+        return drive.queue > 0 ? "\(described) • \(drive.queue) in queue" : described
     }
 
     static func splitHostPort(_ text: String) -> (String, UInt16) {

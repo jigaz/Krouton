@@ -6,7 +6,8 @@ import UniformTypeIdentifiers
 struct KroutonBurnStationWorkspaceView: View {
     var store: KroutonStateStore
     let primarySelectedDrive: KroutonOpticalDriveInfo?
-    let isCenterWorkspaceNarrow: Bool
+    @Environment(\.kroutonLayout) var windowLayout
+    var isCenterWorkspaceNarrow: Bool { windowLayout.workspace == .narrow }
     @Binding var isDropTargeted: Bool
     let onPromptToAddFiles: () -> Void
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
@@ -152,7 +153,6 @@ struct KroutonBurnStationWorkspaceView: View {
                 KroutonRedBookAudioWorkspaceView(
                     store: store,
                     spec: activeSpec,
-                    isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
                     isDropTargeted: $isDropTargeted,
                     onHandleFinderDrop: onHandleFinderDrop
                 )
@@ -160,7 +160,6 @@ struct KroutonBurnStationWorkspaceView: View {
                 KroutonCarSafeAudioWorkspaceView(
                     store: store,
                     spec: activeSpec,
-                    isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
                     isDropTargeted: $isDropTargeted,
                     onHandleFinderDrop: onHandleFinderDrop
                 )
@@ -168,7 +167,6 @@ struct KroutonBurnStationWorkspaceView: View {
                 KroutonVideoAuthoringWorkspaceView(
                     store: store,
                     spec: activeSpec,
-                    isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
                     isDropTargeted: $isDropTargeted,
                     onHandleFinderDrop: onHandleFinderDrop
                 )
@@ -184,7 +182,6 @@ struct KroutonBurnStationWorkspaceView: View {
                 KroutonRetroConsoleWorkspaceView(
                     store: store,
                     spec: activeSpec,
-                    isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
                     isDropTargeted: $isDropTargeted,
                     onHandleFinderDrop: onHandleFinderDrop
                 )

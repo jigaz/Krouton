@@ -62,6 +62,7 @@ extension KroutonStateStore {
                                        verify: target.verifyAfterBurn, simulate: target.simulationMode, eject: true)
         let outcome: SpoolRemoteBurnOutcome = await SpoolRemoteNodeClient.shared.burnImage(
             at: image, label: discVolumeTitle, serverID: target.hardwareOrPath, driveID: target.targetDriveID,
+            needs: networkDiscFamilies,
             options: options, telemetry: driveManager, telemetryKey: telemetryKey
         )
         driveManager.completionReport = networkReport(
@@ -70,6 +71,12 @@ extension KroutonStateStore {
             summary: outcome.message, server: outcome.serverName, drive: outcome.driveName, bytes: bytes, started: started,
             verified: target.verifyAfterBurn
         )
+    }
+
+    /// The disc families the active format takes, so a server drive that can't write them is
+    /// refused before the upload; nil when the format takes any disc.
+    var networkDiscFamilies: SpoolNodeCapabilities? {
+        SpoolNodeCapabilities.families(of: KroutonSpanningDiscMedium.allowedMedia(forFormatID: activeFormatSpec().id))
     }
 
     /// Copies the deck into a temporary folder and sends that folder for the server to master.
@@ -93,6 +100,7 @@ extension KroutonStateStore {
                                        verify: target.verifyAfterBurn, simulate: target.simulationMode, eject: true)
         let outcome = await SpoolRemoteNodeClient.shared.burnFolder(
             at: tree, label: discVolumeTitle, serverID: target.hardwareOrPath, driveID: target.targetDriveID,
+            needs: networkDiscFamilies,
             options: options, telemetry: driveManager, telemetryKey: "network-spool-drive"
         )
         driveManager.completionReport = networkReport(

@@ -9,7 +9,8 @@ import VideoKit
 struct KroutonCarSafeAudioWorkspaceView: View {
     var store: KroutonStateStore
     let spec: KroutonOpticalWorkflowSpec
-    let isCenterWorkspaceNarrow: Bool
+    @Environment(\.kroutonLayout) var windowLayout
+    var isCenterWorkspaceNarrow: Bool { windowLayout.workspace == .narrow }
     @Binding var isDropTargeted: Bool
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 

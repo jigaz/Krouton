@@ -3,6 +3,7 @@
 //! Both ship with macOS. DiscRecording needs a logged-in user session, so the installer sets the
 //! server up as a LaunchAgent of the auto-login user rather than a system daemon.
 
+use super::probe::DriveProbe;
 use super::{Backend, BurnRequest, Drive, Progress, Stage, run_capture, run_tool};
 use crate::config::BackendKind;
 use krsp::control::MediaState;
@@ -62,6 +63,19 @@ impl Backend for MacBackend {
         let mut cmd = Command::new(DRUTIL);
         cmd.args(["status", "-drive", Self::drive_index(drive)]);
         run_capture(cmd).map_or(MediaState::Unknown, |(_, text)| parse_drutil_status(&text))
+    }
+
+    /// `drutil info` says what the drive writes; `drutil status` what is in the tray.
+    fn probe(&self, drive: &Drive) -> DriveProbe {
+        let mut info = Command::new(DRUTIL);
+        info.args(["info", "-drive", Self::drive_index(drive)]);
+        let writes = run_capture(info).ok().and_then(|(_, text)| parse_drutil_writes(&text));
+        let mut status = Command::new(DRUTIL);
+        status.args(["status", "-drive", Self::drive_index(drive)]);
+        let mut probe =
+            run_capture(status).map_or_else(|_| DriveProbe::default(), |(_, text)| parse_drutil_probe(&text));
+        probe.writes = writes;
+        probe
     }
 
     fn burn(&self, request: &BurnRequest<'_>, progress: &mut dyn FnMut(Progress)) -> Result<(), String> {
@@ -204,6 +218,48 @@ pub fn parse_hdiutil_list(text: &str) -> Vec<String> {
     text.lines().map(str::trim).filter(|l| l.starts_with("IOService:")).map(str::to_owned).collect()
 }
 
+/// `CD-Write:`, `DVD-Write:` and `BD-Write:` lines of `drutil info`. A family the drive cannot
+/// write has no line, or one without `-R`/`+R`/`-RE`. `None` when the output has none of them.
+#[must_use]
+pub fn parse_drutil_writes(text: &str) -> Option<u32> {
+    use krsp::identity::caps;
+    let mut seen = false;
+    let mut writes = 0;
+    for (prefix, bit) in
+        [("CD-Write:", caps::WRITES_CD), ("DVD-Write:", caps::WRITES_DVD), ("BD-Write:", caps::WRITES_BD)]
+    {
+        if let Some(line) = text.lines().find(|l| l.trim_start().starts_with(prefix)) {
+            seen = true;
+            let kinds = line.trim_start().trim_start_matches(prefix);
+            if kinds.contains("-R") || kinds.contains("+R") || kinds.contains("RE") {
+                writes |= bit;
+            }
+        }
+    }
+    seen.then_some(writes)
+}
+
+/// The disc type (`Type: DVD+R`) and free space (`Space Free: … blocks: 2295104 / …`, in
+/// 2048-byte blocks) of `drutil status`.
+#[must_use]
+pub fn parse_drutil_probe(text: &str) -> DriveProbe {
+    let media = parse_drutil_status(text);
+    let has_disc = matches!(media, MediaState::Blank | MediaState::Appendable | MediaState::Complete);
+    let disc = text
+        .lines()
+        .find_map(|l| l.trim_start().strip_prefix("Type:"))
+        .and_then(|rest| rest.split_whitespace().next())
+        .map(str::to_owned);
+    let free_bytes = text
+        .lines()
+        .find(|l| l.trim_start().starts_with("Space Free:"))
+        .and_then(|l| l.split("blocks:").nth(1))
+        .and_then(|rest| rest.split_whitespace().next())
+        .and_then(|n| n.parse::<u64>().ok())
+        .and_then(|blocks| blocks.checked_mul(2048));
+    DriveProbe { media, writes: None, disc: disc.filter(|_| has_disc), free_bytes: free_bytes.filter(|_| has_disc) }
+}
+
 #[must_use]
 pub fn parse_drutil_status(text: &str) -> MediaState {
     if text.contains("No Media") || text.contains("No media") {
@@ -225,6 +281,23 @@ pub fn parse_drutil_status(text: &str) -> MediaState {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn drutil_probe() {
+        let info = "   Interconnect: USB\n   Cache:        768k\n\
+                    \x20  CD-Write:     -R, -RW, BUFE, Test, IndexPts, ISRC\n\
+                    \x20  DVD-Write:    -R, -R DL, -RW, +R, +R DL, +RW, BUFE, Test\n";
+        assert_eq!(parse_drutil_writes(info), Some(krsp::identity::caps::WRITES_CD | krsp::identity::caps::WRITES_DVD));
+        assert_eq!(parse_drutil_writes("Vendor Product\n"), None);
+        let status = "           Type: DVD+R                Name: /dev/disk4\n\
+                      \x20    Space Free: 510:01:00         blocks:  2295104 /   4.70GB /   4.38GiB\n\
+                      \x20   Writability: blank\n";
+        let p = parse_drutil_probe(status);
+        assert_eq!(p.media, MediaState::Blank);
+        assert_eq!(p.disc.as_deref(), Some("DVD+R"));
+        assert_eq!(p.free_bytes, Some(2_295_104 * 2048));
+        assert_eq!(parse_drutil_probe("No Media Inserted\n").disc, None);
+    }
 
     #[test]
     fn puppetstrings() {

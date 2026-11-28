@@ -18,13 +18,10 @@ struct KroutonMainWorkspaceView: View {
     @State var leftSidebarDragStartWidth: CGFloat? = nil
     @State var rightSidebarDragStartWidth: CGFloat? = nil
     @State var dropRejectShakePhase: CGFloat = 0
-    @State var isLeftSidebarCompact: Bool = false
-    @State var isLeftSidebarUltraSkinny: Bool = false
-    @State var isRightQueueCompact: Bool = false
     @State var isLeftSidebarCollapsed: Bool = false
     @State var isRightSidebarCollapsed: Bool = false
-    @State var isCenterWorkspaceNarrow: Bool = false
-    @State var isCenterWorkspaceUltraCompact: Bool = false
+    /// The columns' sizes, published to them as `\.kroutonLayout`; nil until the first layout.
+    @State var windowLayout: KroutonWindowLayout? = nil
     @State var isDropTargeted: Bool = false
 
     var primarySelectedDrive: KroutonOpticalDriveInfo? {
@@ -214,19 +211,17 @@ struct KroutonMainWorkspaceView: View {
                     KroutonBurnStationWorkspaceView(
                         store: store,
                         primarySelectedDrive: primarySelectedDrive,
-                        isCenterWorkspaceNarrow: isCenterWorkspaceNarrow,
                         isDropTargeted: $isDropTargeted,
                         onPromptToAddFiles: promptToAddFiles,
                         onHandleFinderDrop: handleFinderDrop(providers:)
                     )
                     .offset(x: sin(dropRejectShakePhase * .pi * 4) * 8)
                 case .depot:
-                    KroutonDepotWorkspaceView(store: store, isCenterWorkspaceNarrow: isCenterWorkspaceNarrow)
+                    KroutonDepotWorkspaceView(store: store)
                 case .copy:
                     KroutonCopyAndRipWorkspaceView(
                         store: store,
-                        primarySelectedDrive: primarySelectedDrive,
-                        isCenterWorkspaceNarrow: isCenterWorkspaceNarrow
+                        primarySelectedDrive: primarySelectedDrive
                     )
                 case .label:
                     KroutonDiscLabelWorkspaceView(store: store)

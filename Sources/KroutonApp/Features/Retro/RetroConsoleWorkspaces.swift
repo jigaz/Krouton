@@ -10,7 +10,6 @@ import UniformTypeIdentifiers
 struct KroutonRetroConsoleWorkspaceView: View {
     var store: KroutonStateStore
     let spec: KroutonOpticalWorkflowSpec
-    let isCenterWorkspaceNarrow: Bool
     @Binding var isDropTargeted: Bool
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 

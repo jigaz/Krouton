@@ -88,7 +88,7 @@ extension KroutonMainWorkspaceView {
 
         HStack(spacing: 0) {
             if !isLeftSidebarCollapsed {
-                KroutonLeftFormatChooserColumnView(store: store, driveManager: driveManager, isLeftSidebarUltraSkinny: isLeftSidebarUltraSkinny)
+                KroutonLeftFormatChooserColumnView(store: store, driveManager: driveManager)
                     .frame(width: clampedLeft)
                     .frame(maxHeight: .infinity)
                     .clipped()
@@ -108,7 +108,6 @@ extension KroutonMainWorkspaceView {
                 KroutonDestinationRackColumnView(
                     store: store,
                     driveManager: driveManager,
-                    isRightQueueCompact: isRightQueueCompact,
                     primarySelectedDrive: primarySelectedDrive
                 )
                 .frame(width: clampedRight)
@@ -118,6 +117,7 @@ extension KroutonMainWorkspaceView {
             }
         }
         .frame(width: totalW, alignment: .leading)
+        .environment(\.kroutonLayout, windowLayout ?? .regular)
         .coordinateSpace(name: "KroutonSplitSpace")
         .overlay {
             KroutonGuidedTutorialOverlayView(
@@ -129,28 +129,17 @@ extension KroutonMainWorkspaceView {
                 totalSize: windowSize
             )
         }
+        // Every width change counts, a window resize as much as a splitter drag. The sizes keep
+        // the gap between their breakpoints (`KroutonWindowLayout`), so labels don't flicker.
         .onAppear {
-            isLeftSidebarCompact = clampedLeft < 265
-            isLeftSidebarUltraSkinny = clampedLeft < 215
-            isRightQueueCompact = clampedRight < 355
-            isCenterWorkspaceUltraCompact = centerLiveW < 500
-            isCenterWorkspaceNarrow = centerLiveW < 520
+            windowLayout = .forWidths(sidebar: clampedLeft, workspace: centerLiveW, queue: clampedRight, previous: nil)
         }
-        .onChange(of: centerLiveW) { _, newCenterW in
+        .onChange(of: [clampedLeft, centerLiveW, clampedRight]) { _, widths in
+            let next = KroutonWindowLayout.forWidths(sidebar: widths[0], workspace: widths[1], queue: widths[2], previous: windowLayout)
+            guard next != windowLayout else { return }
             var tx = Transaction()
             tx.disablesAnimations = true
-            withTransaction(tx) {
-                if !isCenterWorkspaceNarrow && newCenterW < 510 {
-                    isCenterWorkspaceNarrow = true
-                } else if isCenterWorkspaceNarrow && newCenterW > 535 {
-                    isCenterWorkspaceNarrow = false
-                }
-                if !isCenterWorkspaceUltraCompact && newCenterW < 495 {
-                    isCenterWorkspaceUltraCompact = true
-                } else if isCenterWorkspaceUltraCompact && newCenterW > 515 {
-                    isCenterWorkspaceUltraCompact = false
-                }
-            }
+            withTransaction(tx) { windowLayout = next }
         }
     }
 
@@ -172,10 +161,6 @@ extension KroutonMainWorkspaceView {
                     var tx = Transaction(); tx.disablesAnimations = true
                     withTransaction(tx) {
                         leftColumnLiveWidth = newW
-                        if !isLeftSidebarCompact && newW < 258 { isLeftSidebarCompact = true }
-                        else if isLeftSidebarCompact && newW > 272 { isLeftSidebarCompact = false }
-                        if !isLeftSidebarUltraSkinny && newW < 215 { isLeftSidebarUltraSkinny = true }
-                        else if isLeftSidebarUltraSkinny && newW > 228 { isLeftSidebarUltraSkinny = false }
                     }
                 }
                 .onEnded { _ in
@@ -203,8 +188,6 @@ extension KroutonMainWorkspaceView {
                     var tx = Transaction(); tx.disablesAnimations = true
                     withTransaction(tx) {
                         rightColumnLiveWidth = newW
-                        if !isRightQueueCompact && newW < 355 { isRightQueueCompact = true }
-                        else if isRightQueueCompact && newW > 368 { isRightQueueCompact = false }
                     }
                 }
                 .onEnded { _ in

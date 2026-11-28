@@ -206,7 +206,7 @@ fn run(home: &Path) -> Result<(), String> {
         let l = Arc::clone(&listener);
         threads.push(std::thread::spawn(move || l.run(&socket)));
     }
-    let _bonjour = serve::advertise(&name, port, &node_id);
+    let _bonjour = serve::advertise(&name, port, &node_id, listener.ctx.jobs.advertised_writes());
     for t in threads {
         let _ = t.join();
     }

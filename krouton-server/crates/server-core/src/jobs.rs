@@ -11,7 +11,7 @@
 //! * Finished images are deleted right away; failed, cancelled and abandoned ones are kept for
 //!   `keep_incomplete_hours` so the app can retry or resume without uploading again.
 
-use crate::backend::{Backend, BurnRequest, Drive, Progress, Stage};
+use crate::backend::{Backend, BurnRequest, Drive, DriveProbe, Progress, Stage};
 use crate::config::Config;
 use crate::pairing_window::unix_now;
 use crate::store::{IMAGE_FILE, StagedImage};
@@ -63,7 +63,8 @@ pub struct Job {
 struct State {
     jobs: HashMap<String, Job>,
     cancels: HashMap<String, Arc<AtomicBool>>,
-    media: HashMap<String, (MediaState, Instant)>,
+    /// The last probe of each drive, and when it was taken.
+    media: HashMap<String, (DriveProbe, Instant)>,
     subscribers: Vec<(u64, String, Sender<Event>)>,
     shutting_down: bool,
 }
@@ -272,7 +273,14 @@ impl JobManager {
         let request =
             BurnRequest { drive, image: &image, image_bytes: job.image_bytes, options: &job.options, cancel: &cancel };
         crate::log(&format!("burn {} on {}: started ({} bytes)", job.id, drive.id, job.image_bytes));
-        let outcome = self.backend.burn(&request, &mut on_progress);
+        // A fresh look at the drive first: an image that cannot go on it is refused before the
+        // laser starts, with a reason, instead of failing somewhere inside the burn tool.
+        let fresh = self.backend.probe(drive);
+        self.lock().media.insert(drive.id.clone(), (fresh.clone(), Instant::now()));
+        let outcome = match fresh.refusal(job.image_bytes) {
+            Some(reason) => Err(reason),
+            None => self.backend.burn(&request, &mut on_progress),
+        };
         let cancelled = cancel.load(Ordering::SeqCst);
         let (state, fraction, message, phase) = match &outcome {
             Ok(()) => (JobState::Done, Some(1.0), "Done".to_owned(), TelemetryPhase::BurnCompleted),
@@ -477,6 +485,13 @@ impl JobManager {
         self.backend.eject(d)
     }
 
+    /// The disc families the server's drives write together, for the Bonjour hint: a drive whose
+    /// backend cannot tell counts as writing every family.
+    #[must_use]
+    pub fn advertised_writes(&self) -> u32 {
+        self.drive_infos().iter().fold(0, |writes, d| writes | d.writes.unwrap_or(krsp::identity::caps::WRITES_ANY))
+    }
+
     #[must_use]
     pub fn drive_infos(&self) -> Vec<DriveInfo> {
         self.drives
@@ -498,23 +513,38 @@ impl JobManager {
                         .any(|j| j.drive == d.id && matches!(j.state, JobState::Burning | JobState::Verifying));
                     (u32::try_from(queue).unwrap_or(u32::MAX), busy)
                 };
-                DriveInfo { id: d.id.clone(), name: d.name.clone(), media: self.media(d, busy), queue, busy }
+                let probe = self.probe(d, busy);
+                DriveInfo {
+                    id: d.id.clone(),
+                    name: d.name.clone(),
+                    media: probe.media,
+                    queue,
+                    busy,
+                    writes: probe.writes,
+                    disc: probe.disc,
+                    free_bytes: probe.free_bytes,
+                }
             })
             .collect()
     }
 
-    fn media(&self, drive: &Drive, busy: bool) -> MediaState {
+    /// What the drive writes and holds, from a probe at most `MEDIA_CACHE` old. A drive that is
+    /// burning is never queried: it keeps what was last known of it, with its disc as blank.
+    fn probe(&self, drive: &Drive, busy: bool) -> DriveProbe {
+        let cached = self.lock().media.get(&drive.id).cloned();
         if busy {
-            return MediaState::Blank;
+            let mut known = cached.map(|(probe, _)| probe).unwrap_or_default();
+            known.media = MediaState::Blank;
+            return known;
         }
-        if let Some((m, at)) = self.lock().media.get(&drive.id)
+        if let Some((probe, at)) = cached
             && at.elapsed() < MEDIA_CACHE
         {
-            return *m;
+            return probe;
         }
-        let m = self.backend.media(drive);
-        self.lock().media.insert(drive.id.clone(), (m, Instant::now()));
-        m
+        let probe = self.backend.probe(drive);
+        self.lock().media.insert(drive.id.clone(), (probe.clone(), Instant::now()));
+        probe
     }
 
     // MARK: Subscriptions

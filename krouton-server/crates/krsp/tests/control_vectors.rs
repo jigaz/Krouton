@@ -16,6 +16,20 @@ fn canonical() -> Vec<(&'static str, Control)> {
         media: MediaState::Blank,
         queue: 1,
         busy: true,
+        writes: Some(krsp::identity::caps::WRITES_ANY),
+        disc: Some("BD-R".into()),
+        free_bytes: Some(25_025_314_816),
+    };
+    // As a server from before drive capabilities sends it: no writes, disc or freeBytes.
+    let older = DriveInfo {
+        id: "sr1".into(),
+        name: "ASUS DRW-24D5MT".into(),
+        media: MediaState::NoDisc,
+        queue: 0,
+        busy: false,
+        writes: None,
+        disc: None,
+        free_bytes: None,
     };
     let job = JobInfo {
         job: "0C5E1B2A-7F11-4C51-9C5E-2F6C9B1D0E77".into(),
@@ -75,7 +89,7 @@ fn canonical() -> Vec<(&'static str, Control)> {
                 drives: vec![drive.clone()],
             },
         ),
-        ("drives", Control::Drives { drives: vec![drive] }),
+        ("drives", Control::Drives { drives: vec![drive, older] }),
         ("accepted", Control::Accepted { job: "J1".into() }),
         ("job", Control::Job(job.clone())),
         (

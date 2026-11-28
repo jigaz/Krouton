@@ -33,13 +33,24 @@ public struct SpoolDriveInfo: Sendable, Equatable, Identifiable {
     /// Jobs queued or burning on this drive.
     public let queue: Int
     public let busy: Bool
+    /// The disc families the drive writes; nil when the server can't tell (or is older than
+    /// drive capabilities, 2026-11).
+    public let writes: SpoolNodeCapabilities?
+    /// The disc in the tray, such as "DVD+R"; nil when there is none or it isn't known.
+    public let disc: String?
+    /// Free space on that disc; nil when unknown.
+    public let freeBytes: Int64?
 
-    public init(id: String, name: String, media: SpoolMediaState, queue: Int, busy: Bool) {
+    public init(id: String, name: String, media: SpoolMediaState, queue: Int, busy: Bool,
+                writes: SpoolNodeCapabilities? = nil, disc: String? = nil, freeBytes: Int64? = nil) {
         self.id = id
         self.name = name
         self.media = media
         self.queue = queue
         self.busy = busy
+        self.writes = writes
+        self.disc = disc
+        self.freeBytes = freeBytes
     }
 }
 
@@ -168,7 +179,12 @@ public enum SpoolControl: Sendable, Equatable {
     }
 
     static func driveObject(_ d: SpoolDriveInfo) -> [String: Any] {
-        ["id": d.id, "name": d.name, "media": d.media.rawValue, "queue": d.queue, "busy": d.busy]
+        var object: [String: Any] = ["id": d.id, "name": d.name, "media": d.media.rawValue, "queue": d.queue, "busy": d.busy]
+        // Only what is known goes on the wire; a missing key means unknown.
+        if let writes = d.writes { object["writes"] = writes.rawValue }
+        if let disc = d.disc { object["disc"] = disc }
+        if let free = d.freeBytes { object["freeBytes"] = free }
+        return object
     }
 
     static func jobObject(_ j: SpoolJobInfo) -> [String: Any] {
@@ -258,7 +274,11 @@ extension SpoolControl {
         let drives: [SpoolDriveInfo] = list.compactMap { d in
             guard let id = d["id"] as? String, let name = d["name"] as? String, let media = d["media"] as? String,
                   let queue = (d["queue"] as? NSNumber)?.intValue, let busy = d["busy"] as? Bool else { return nil }
-            return SpoolDriveInfo(id: id, name: name, media: SpoolMediaState(wire: media), queue: queue, busy: busy)
+            let writes = (d["writes"] as? NSNumber).map { SpoolNodeCapabilities(rawValue: $0.uint32Value).intersection(.writesAny) }
+            let disc = (d["disc"] as? String).flatMap { $0.count <= 256 ? $0 : nil }
+            let free = (d["freeBytes"] as? NSNumber)?.int64Value
+            return SpoolDriveInfo(id: id, name: name, media: SpoolMediaState(wire: media), queue: queue, busy: busy,
+                                  writes: writes, disc: disc, freeBytes: free)
         }
         return drives.count == list.count ? drives : nil
     }

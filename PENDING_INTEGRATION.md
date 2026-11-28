@@ -64,6 +64,7 @@ Format: `- `TypeName` — `Owner` · how`.
 - `DVDVideoRelinkedCellRange` — `DVDVideoIFORelinker` · returned
 - `KroutonAccurateRipReport` — `KroutonAccurateRipVerifier` · returned
 - `KroutonAccurateRipTrackResult` — `KroutonAccurateRipReport` · its tracks
+- `KroutonAfterBurnStep` — `KroutonBurnCoordinator` · what `stepAfterBurn` returns
 - `KroutonAudioRenderError` — `KroutonAudioDiscRenderer` · thrown
 - `KroutonAudioTagError` — `KroutonAudioTagWriter` · thrown
 - `KroutonBlankDiscInfo` — `KroutonDiscImageBurner` · returned
@@ -71,6 +72,8 @@ Format: `- `TypeName` — `Owner` · how`.
 - `KroutonBurnMediaDecision` — `KroutonBurnMediaPolicy` · returned
 - `KroutonCarAudioError` — `KroutonCarAudioDiscPreparer` · thrown
 - `KroutonCDTextPack` — `KroutonAudioEngine` · returned
+- `KroutonColumnBreakpoint` — `KroutonWindowLayout` · its breakpoints
+- `KroutonColumnSize` — `KroutonWindowLayout` · its column sizes
 - `KroutonConnectedDrive` — `KroutonDiscImageBurner` · returned
 - `KroutonDVD9MenuShrinkBlueprint` — `KroutonVideoAuthoringEngine` · returned
 - `KroutonFinderBackgroundKind` — `KroutonFinderLayoutBlueprint` · a property

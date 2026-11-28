@@ -6,7 +6,6 @@ import UniformTypeIdentifiers
 struct KroutonVideoAuthoringWorkspaceView: View {
     var store: KroutonStateStore
     let spec: KroutonOpticalWorkflowSpec
-    let isCenterWorkspaceNarrow: Bool
     @Binding var isDropTargeted: Bool
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 
