@@ -30,13 +30,20 @@ enum KroutonLabelSuggester {
         return false
     }
 
+    /// Extensions that mark a title as a file name. A list, not a pattern: "Mozart K.525" and
+    /// "Vol.III" are real titles.
+    static let fileExtensions: Set<String> = [
+        "iso", "img", "dmg", "bin", "cue", "toast", "zip", "mp4", "m4v", "mkv", "mov", "avi", "m2ts", "mts",
+        "vob", "wav", "aif", "aiff", "flac", "mp3", "m4a", "jpg", "jpeg", "png", "heic", "pdf", "txt",
+    ]
+
     /// A title that reads as a placeholder or a raw file-system name, which a person would retype.
+    /// All-caps alone isn't one: "ABBA", "U2", "AC/DC" and "1989" are real titles.
     static func needsTidying(_ title: String) -> Bool {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty || ["KROUTON_DISC", "KROUTON_VIDEO", "UNTITLED", "NO NAME"].contains(trimmed.uppercased()) { return true }
-        let looksLikeAVolumeName = trimmed.contains("_") || (trimmed == trimmed.uppercased() && !trimmed.contains(" "))
-        let looksLikeAFileName = trimmed.range(of: #"\.[A-Za-z0-9]{2,4}$"#, options: .regularExpression) != nil
-        return looksLikeAVolumeName || looksLikeAFileName
+        let looksLikeAFileName = trimmed.contains(".") && fileExtensions.contains((trimmed as NSString).pathExtension.lowercased())
+        return trimmed.contains("_") || looksLikeAFileName
     }
 
     /// Asks the model; nil when it isn't available, is turned off, or can't answer.
@@ -77,9 +84,9 @@ enum KroutonLabelSuggester {
 struct LabelSuggestionAnswer {
     @Guide(description: "The disc's title as it should be printed: words, not a file or volume name; no underscores, no file extensions, no track numbers; at most 40 characters")
     var title: String
-    @Guide(description: "The performer, artist, show or a short subtitle such as a season or a date; empty when nothing given names one")
+    @Guide(description: "The performer, artist, show or a short subtitle such as a season or a date, using only words present in the inputs; empty when nothing given names one")
     var subtitle: String
-    @Guide(description: "Words to search for the cover art: album and artist, film and year, or show and season; empty for personal or data discs")
+    @Guide(description: "Words to search for the cover art, using only words present in the inputs: album and artist, film, or show and season; empty for personal or data discs")
     var artworkQuery: String
 }
 #endif
