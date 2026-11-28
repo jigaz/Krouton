@@ -11,7 +11,7 @@ jobs:
     # Xcode 27.2 / Swift 6.4, the toolchain Krouton is developed on (Scripts/ci-select-xcode.sh).
     runs-on: xcode-27
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Xcode 27.2 and Swift 6.4
         run: Scripts/ci-select-xcode.sh 27.2
       - name: Manual on krouton.app matches the app's manual
@@ -36,7 +36,7 @@ jobs:
         run: python3 Scripts/check-hfs-image.py "$RUNNER_TEMP/hfs/classic.cdr"
       - name: Keep the classic HFS image for the Linux mount
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: hfs-image
           path: ${{ runner.temp }}/hfs/classic.cdr
@@ -49,7 +49,7 @@ jobs:
     # compiler looks up a format key the catalog doesn't have.
     runs-on: xcode-27
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Xcode 27.2 and Swift 6.4
         run: Scripts/ci-select-xcode.sh 27.2
       - name: Build the app and write the keys it looks up
@@ -68,7 +68,7 @@ jobs:
     # and chapters and seeks through the EP map, and hdiutil mounts the image.
     runs-on: xcode-27
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Xcode 27.2 and Swift 6.4
         run: Scripts/ci-select-xcode.sh 27.2
       - name: ffmpeg and libbluray
@@ -97,7 +97,7 @@ jobs:
           hdiutil detach "$mnt"
       - name: Keep the DVD-Video image when the vector fails
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: dvd-vector
           path: ${{ runner.temp }}/avchd/out/dvd-vector.iso
@@ -108,17 +108,23 @@ jobs:
     runs-on: xcode-27
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Xcode 27.2 and Swift 6.4
         run: Scripts/ci-select-xcode.sh 27.2
       - name: Install Periphery
         run: brew install periphery && periphery version
       - name: Scan
-        run: periphery scan --format csv --quiet > periphery.csv
+        # Swift 6.4's build puts the index store somewhere Periphery no longer looks, so build
+        # first and point Periphery at the store the build wrote.
+        run: |
+          swift build
+          store=$(find .build -type d -path '*index/store' | head -n 1)
+          echo "Index store: $store"
+          periphery scan --skip-build --index-store-path "$store" --format csv --quiet > periphery.csv
       - name: Summary
         if: always()
         run: python3 Scripts/periphery-summary.py periphery.csv | tee -a "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: periphery-report
@@ -130,7 +136,7 @@ jobs:
     needs: verify-macos
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: hfs-image
       - name: Mount and read it
@@ -153,7 +159,7 @@ jobs:
       matrix:
         scheme: [ NetworkSpool, LabelKit, Persistence ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Xcode 27.2 and Swift 6.4
         run: Scripts/ci-select-xcode.sh 27.2
       - name: Build ${{ matrix.scheme }} for iPadOS
