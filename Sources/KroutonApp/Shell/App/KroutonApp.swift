@@ -15,7 +15,8 @@ struct KroutonApp: App {
         switch wm.store.menuBarStatusMode {
         case .always: shown = true
         case .never: shown = false
-        case .whileWorking: shown = !KroutonLiveStatus.items(store: wm.store, driveManager: wm.driveManager).isEmpty
+        // Only the running flags, so the scene isn't rebuilt at every progress tick.
+        case .whileWorking: shown = KroutonLiveStatus.isAnythingRunning(store: wm.store, driveManager: wm.driveManager)
         }
         return .constant(shown)
     }

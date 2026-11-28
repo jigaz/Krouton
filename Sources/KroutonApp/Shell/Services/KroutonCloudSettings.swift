@@ -4,8 +4,12 @@ import Security
 // MARK: - Settings in iCloud
 
 /// Keeps Krouton's settings the same on each of your Macs through iCloud's key-value store, when
-/// you turn it on in Settings › General. Only appearance, units, notifications and the label
-/// template travel; this Mac's language, session, drives, servers and keys stay here.
+/// you turn it on in Settings › General. Only appearance, units, notifications and the menu bar
+/// choice travel; this Mac's language, session, drives, servers and keys stay here. The label
+/// template stays too: it belongs to the project open on each Mac.
+///
+/// The copy in iCloud mirrors this Mac's saved settings: a setting left at its default isn't
+/// saved, so it is missing from iCloud too, and a Mac that finds it missing goes back to the default.
 ///
 /// iCloud needs Krouton signed with the iCloud key-value entitlement and a Developer ID
 /// provisioning profile (`Scripts/bundle-app.sh` adds both when `Packaging/Krouton.provisionprofile`
@@ -15,7 +19,7 @@ enum KroutonCloudSettings {
     /// The settings that travel.
     nonisolated static let syncedKeys: [KroutonPreferenceKey] = [
         .selectedAccentIndex, .harmonyEnabled, .appearanceMode, .iconWidgetStyle, .folderColorMode,
-        .sidebarIconSize, .useBase10Units, .labelTemplate, .notificationEvents, .distinctDriveVoices, .menuBarStatus, .labelSuggestions,
+        .sidebarIconSize, .useBase10Units, .notificationEvents, .distinctDriveVoices, .menuBarStatus, .labelSuggestions,
     ]
     /// When the values in iCloud were last written, so a Mac turning sync on can tell if any are there.
     nonisolated static let stampKey = "krouton.cloud.savedAt"
@@ -80,29 +84,42 @@ enum KroutonCloudSettings {
         cloud.set(Date().timeIntervalSince1970, forKey: stampKey)
     }
 
+    /// Makes the copy in iCloud match this Mac, defaults included (a default is a missing key).
     static func pushAll() {
+        let cloud = NSUbiquitousKeyValueStore.default
         for key in syncedKeys {
-            NSUbiquitousKeyValueStore.default.set(KroutonPreferences.object(for: key), forKey: key.rawValue)
+            if let value = KroutonPreferences.object(for: key) {
+                cloud.set(value, forKey: key.rawValue)
+            } else {
+                cloud.removeObject(forKey: key.rawValue)
+            }
         }
-        NSUbiquitousKeyValueStore.default.set(Date().timeIntervalSince1970, forKey: stampKey)
+        cloud.set(Date().timeIntervalSince1970, forKey: stampKey)
     }
 
     /// Copies iCloud's values into this Mac's settings and shows them.
     static func pull(into store: KroutonStateStore, keys: [String]? = nil) {
         let cloud = NSUbiquitousKeyValueStore.default
         let wanted = keys.map { Set($0) }
+        // Before any Mac has saved there, a missing key says nothing; after, it means the default.
+        let cloudIsWritten = cloud.double(forKey: stampKey) > 0
         for key in syncedKeys where wanted?.contains(key.rawValue) ?? true {
-            guard let value = cloud.object(forKey: key.rawValue) else { continue }
-            KroutonPreferences.setLocally(value, for: key)
+            if let value = cloud.object(forKey: key.rawValue) {
+                KroutonPreferences.setLocally(value, for: key)
+            } else if cloudIsWritten {
+                KroutonPreferences.setLocally(nil, for: key)
+            }
         }
+        // Loading only fills in saved values, so start from the defaults.
+        store.appearance.resetToDefaults()
         store.hydratePreferencesFromUserDefaults()
     }
 
-    /// Erases the copy in iCloud (Reset Settings, with sync on, resets every Mac).
-    static func eraseCloudCopy() {
+    /// Puts the copy in iCloud back to the defaults (Reset Settings, with sync on, resets every Mac).
+    static func resetCloudCopy() {
         let cloud = NSUbiquitousKeyValueStore.default
         for key in syncedKeys { cloud.removeObject(forKey: key.rawValue) }
-        cloud.removeObject(forKey: stampKey)
+        cloud.set(Date().timeIntervalSince1970, forKey: stampKey)
     }
 
     private static func startObserving(store: KroutonStateStore) {

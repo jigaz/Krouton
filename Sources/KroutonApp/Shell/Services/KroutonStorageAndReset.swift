@@ -31,17 +31,27 @@ enum KroutonStorageAndReset {
         let items = (try? FileManager.default.contentsOfDirectory(at: temp, includingPropertiesForKeys: [.contentModificationDateKey])) ?? []
         let cutoff = Date().addingTimeInterval(-age)
         return items.filter { url in
-            guard url.lastPathComponent.hasPrefix("Krouton") else { return false }
-            let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
-            return modified < cutoff
+            url.lastPathComponent.hasPrefix("Krouton") && newestChange(in: url) < cutoff
         }
+    }
+
+    /// The latest change anywhere inside `url`: a task writing into a subfolder (a DVD shrink's
+    /// VIDEO_TS) leaves the top folder's own date alone.
+    nonisolated static func newestChange(in url: URL) -> Date {
+        let keys: [URLResourceKey] = [.contentModificationDateKey]
+        var newest = (try? url.resourceValues(forKeys: Set(keys)).contentModificationDate) ?? .distantPast
+        let walker = FileManager.default.enumerator(at: url, includingPropertiesForKeys: keys)
+        while let item = walker?.nextObject() as? URL {
+            if let date = try? item.resourceValues(forKeys: Set(keys)).contentModificationDate, date > newest { newest = date }
+        }
+        return newest
     }
 
     /// True while something may be writing into the caches or work folders.
     static func isBusy(_ store: KroutonStateStore) -> Bool {
         let coordinator = KroutonBurnCoordinator.shared
-        return coordinator.isQueueBurning || coordinator.isSetRunning || store.rescue.isRunning || store.avchd.isRunning
-            || !store.depotDownloadProgress.isEmpty
+        return coordinator.isQueueBurning || coordinator.isSetRunning || KroutonBurnSetController.shared.isBusy
+            || store.rescue.isRunning || store.avchd.isRunning || !store.depotDownloadProgress.isEmpty
     }
 
     static func measure() async -> Usage {
@@ -58,13 +68,42 @@ enum KroutonStorageAndReset {
     // MARK: - Actions
 
     /// Deletes the Depot's downloaded images and list, the staging cache, and old work folders.
-    static func emptyCaches() async {
+    /// Kept: images on the deck, and the images of a multi-disc set that can still be resumed.
+    static func emptyCaches(_ store: KroutonStateStore) async {
+        let burnSet = KroutonBurnSetController.shared
+        var keep = Set(store.stagedFiles.map { $0.url.standardizedFileURL.path })
+        if burnSet.resumable != nil || burnSet.hasUnfinishedDiscs {
+            keep.insert(KroutonDomainIdentity.ephemeralBurnCacheDirectory().appendingPathComponent("BurnSets", isDirectory: true).standardizedFileURL.path)
+        }
+        let kept = keep
         await Task.detached(priority: .utility) {
             let fm = FileManager.default
-            for url in cacheFolders + cacheFiles + leftoverWorkFolders() where fm.fileExists(atPath: url.path) {
+            for url in cacheFiles + leftoverWorkFolders() where fm.fileExists(atPath: url.path) {
                 try? fm.removeItem(at: url)
             }
+            for folder in cacheFolders { removeContents(of: folder, keeping: kept) }
         }.value
+        // The Depot list shows which images are still downloaded.
+        for index in store.depotItems.indices where store.depotItems[index].isDownloaded {
+            if let feed = store.depotItems[index].feed, let url = KroutonDepotDownloader.imageURL(for: feed) {
+                store.depotItems[index].isDownloaded = FileManager.default.fileExists(atPath: url.path)
+            }
+        }
+    }
+
+    /// Removes everything under `folder` except the paths in `keep` and the folders that hold them.
+    nonisolated private static func removeContents(of folder: URL, keeping keep: Set<String>) {
+        let fm = FileManager.default
+        guard let children = try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) else { return }
+        for child in children {
+            let path = child.standardizedFileURL.path
+            if keep.contains(path) { continue }
+            if keep.contains(where: { $0.hasPrefix(path + "/") }) {
+                removeContents(of: child, keeping: keep)
+            } else {
+                try? fm.removeItem(at: child)
+            }
+        }
     }
 
     static func forgetSavedSession() async {
@@ -88,7 +127,7 @@ enum KroutonStorageAndReset {
         // iCloud is reset with this Mac's.
         if syncing {
             KroutonPreferences.setLocally(true, for: .syncSettingsWithICloud)
-            KroutonCloudSettings.eraseCloudCopy()
+            KroutonCloudSettings.resetCloudCopy()
         }
         store.appearance.resetToDefaults()
         store.label.selectedLabelTemplate = .synthGrid
@@ -117,14 +156,16 @@ enum KroutonStorageAndReset {
     }
 
     /// Forgets the servers and makes this Mac a new identity, so no server recognises it.
-    static func resetServerIdentity() async {
+    /// - Returns: false if the keychain refused to delete a key.
+    @discardableResult
+    static func resetServerIdentity() async -> Bool {
         await forgetAllServers()
-        SpoolClientIdentity.forget()
+        return SpoolClientIdentity.forget()
     }
 
     /// Everything above. The open workspace stays until you close it.
     static func resetEverything(_ store: KroutonStateStore) async {
-        await emptyCaches()
+        await emptyCaches(store)
         await forgetSavedSession()
         await clearBurnHistory()
         resetSettings(store)

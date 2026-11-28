@@ -7,7 +7,9 @@ set -euo pipefail
 # Xcodes when none matches, rather than quietly building with another toolchain.
 
 WANT="${1:-27.2}"
-CANDIDATES=$(ls -d /Applications/Xcode_"$WANT"*.app 2>/dev/null | grep -v -i beta | sort -V || true)
+# Only the release and its point releases: not 27.20, betas or release candidates.
+WANT_PATTERN="^/Applications/Xcode_${WANT//./\\.}(\\.[0-9]+)*\\.app\$"
+CANDIDATES=$(ls -d /Applications/Xcode_*.app 2>/dev/null | grep -E "$WANT_PATTERN" | sort -V || true)
 CHOSEN=$(echo "$CANDIDATES" | tail -n 1)
 if [ -z "$CHOSEN" ]; then
   echo "No Xcode $WANT on this runner. Installed:" >&2

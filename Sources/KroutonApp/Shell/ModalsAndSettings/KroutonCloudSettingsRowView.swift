@@ -42,7 +42,7 @@ struct KroutonCloudSettingsRowView: View {
     private func explanation(_ availability: KroutonCloudSettings.Availability) -> String {
         switch availability {
         case .available:
-            return KroutonL10n.tr("Appearance, units, notifications and their sounds, the label template and the menu bar choice. Language, drives, servers and keys stay on each Mac.")
+            return KroutonL10n.tr("Appearance, units, notifications and their sounds, and the menu bar choice. Language, the label template, drives, servers and keys stay on each Mac.")
         case .notSigned:
             return KroutonL10n.tr("This copy of Krouton isn't signed for iCloud, so settings stay on this Mac. Release builds are.")
         case .noAccount:
