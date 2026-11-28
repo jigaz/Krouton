@@ -24,9 +24,13 @@ public struct KroutonRescueMap: Sendable, Equatable {
         case finished = "+"
     }
 
+    /// A run of bytes in one state.
     public struct Block: Sendable, Equatable {
+        /// The block's first byte.
         public let position: Int64
+        /// The block's length in bytes.
         public let size: Int64
+        /// The block's state.
         public let status: Status
 
         public init(position: Int64, size: Int64, status: Status) {
@@ -35,20 +39,28 @@ public struct KroutonRescueMap: Sendable, Equatable {
             self.status = status
         }
 
+        /// The byte after the block.
         public var end: Int64 { position + size }
     }
 
+    /// The blocks in disc order, covering the whole disc, with neighbours in the same state merged.
     public private(set) var blocks: [Block]
+    /// Where the rescue is reading now, in bytes.
     public var currentPosition: Int64 = 0
+    /// The rescue's current phase.
     public var phase: Phase = .copying
+    /// The pass number within the phase, from 1.
     public var pass: Int = 1
 
+    /// A map of an untried disc of `totalBytes` bytes.
     public init(totalBytes: Int64) {
         blocks = totalBytes > 0 ? [Block(position: 0, size: totalBytes, status: .nonTried)] : []
     }
 
+    /// The disc's size in bytes.
     public var totalBytes: Int64 { blocks.last?.end ?? 0 }
 
+    /// Bytes in a state.
     public func bytes(_ status: Status) -> Int64 {
         blocks.filter { $0.status == status }.reduce(0) { $0 + $1.size }
     }
