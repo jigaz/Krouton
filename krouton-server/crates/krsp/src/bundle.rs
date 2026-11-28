@@ -399,8 +399,10 @@ impl<R: Read> BundleReader<R> {
                     validate_path(&path).map_err(|error| BundleError::Name { path: path.clone(), error })?;
                     let entry_kind = if kind == b'5' { EntryKind::Directory } else { EntryKind::File };
                     let size = if entry_kind == EntryKind::Directory { 0 } else { size };
+                    // A pax `size` can be any u64: one within a block of u64::MAX would overflow.
+                    let padded = size.checked_next_multiple_of(BLOCK).ok_or_else(|| malformed("a bad size field"))?;
                     self.remaining = size;
-                    self.padding = round_up(size) - size;
+                    self.padding = padded - size;
                     return Ok(Some(Entry { path, kind: entry_kind, size, mtime }));
                 }
                 b'1' | b'2' => return Err(malformed("it contains a link; only files and folders are supported")),
@@ -606,6 +608,17 @@ mod tests {
         let mut r = BundleReader::new(&written[..]);
         let e = r.next_entry().unwrap().unwrap();
         assert_eq!(e.size, OCTAL_SIZE_LIMIT + 1);
+    }
+
+    #[test]
+    fn rejects_a_pax_size_that_cannot_be_padded() {
+        let record = pax_record("size", &u64::MAX.to_string());
+        let mut bytes = ustar_header(PAX_NAME, b'x', 0o644, record.len() as u64, 0).to_vec();
+        bytes.extend_from_slice(record.as_bytes());
+        bytes.resize(1024, 0);
+        bytes.extend_from_slice(&ustar_header("a", b'0', 0o644, 0, 0));
+        bytes.extend([0u8; 1024]);
+        assert!(matches!(entries(&bytes), Err(BundleError::Malformed(m)) if m.contains("size")));
     }
 
     #[test]
