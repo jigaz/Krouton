@@ -91,7 +91,7 @@ cargo clippy --workspace --all-targets
 | `Packaging/` | Homebrew cask and formula, man page. |
 | `Scripts/` | Build, packaging, manual, string catalog and CI helper scripts. |
 | `KroutonPaletteKit/` | The locked colour palette the interface is drawn from. |
-| `dev-notes/` | Open questions, investigations and working logs. |
+| `dev-notes/` | Notes for contributors: open questions, plans, how agents work here; indexed in its README. |
 | `PENDING_INTEGRATION.md` | Public types that have no caller yet, each with an owner and a date. |
 
 ## Contributing

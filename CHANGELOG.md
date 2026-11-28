@@ -61,7 +61,7 @@ The versions below were internal version numbers. Neither was published as a rel
 - Updated macOS app icon suite (`Color`, `Light`, `Dark`, `Transparent`/`Tinted`/`Clear`) in `Resources/Assets.xcassets` and compiled `Assets.car`.
 - Refactored `KroutonAppDelegate.applyDynamicDockIcon` to delegate `"default"` icon appearance directly to macOS `Assets.car` (`NSApplication.shared.applicationIconImage = nil`) for native System Settings switching.
 - Fixed monochrome icon tinting (`tintMonochromeIcon`) to use `.sourceAtop` compositing so alpha transparency is preserved on unplated icons.
-- Added multi-agent handoff tracking (`CLAUDE.md`, `AI_HANDOFF.md`, `ai-sync.sh`, and `.git/hooks/post-commit`).
+- Added `CLAUDE.md` with build commands and the verify rules for contributors and coding agents.
 
 ## [1.0.0] - 2026-11-16
 - Added unified Disc Size header selector (650 MB CD-R to 128 GB BDXL) with live multi-disc spanning.

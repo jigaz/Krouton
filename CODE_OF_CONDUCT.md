@@ -6,6 +6,6 @@ In short: be welcoming and patient, and criticise ideas and code rather than peo
 
 ## Reporting
 
-Report unacceptable behaviour to **[CONTACT ADDRESS: the owner fills this in before publishing]**. Reports are read only by the maintainer and handled in confidence. The maintainer decides on consequences following the Covenant's [enforcement guidelines](https://www.contributor-covenant.org/version/2/1/code_of_conduct/#enforcement-guidelines).
+Report unacceptable behaviour to **jorgen@krouton.app**. Reports are read only by the maintainer and handled in confidence. The maintainer decides on consequences following the Covenant's [enforcement guidelines](https://www.contributor-covenant.org/version/2/1/code_of_conduct/#enforcement-guidelines).
 
 For security problems, see [SECURITY.md](SECURITY.md) instead.
