@@ -1,5 +1,7 @@
-//! Terminal-sticky telemetry conflation (`SpoolTelemetryConflator.swift`): newest sample per
-//! drive between sends; a terminal state is never overwritten by a late progress sample.
+//! Burn progress samples, sent in `Telemetry` (kind 7) frames (see [`crate::control::telemetry_frame`]).
+//!
+//! [`TelemetryConflator`] keeps the newest sample per drive between sends and never lets a late
+//! progress sample overwrite a terminal state. Nothing in the server uses it yet.
 
 use std::collections::HashMap;
 

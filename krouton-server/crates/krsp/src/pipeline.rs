@@ -2,7 +2,7 @@
 
 //! Sans-I/O extent pipeline: the node-side receiver and the workstation-side sender as pure state
 //! machines (bytes in, frames out). Same rules as `SpoolExtentPipeline.swift`; the tests
-//! drives both through a deterministic faulty link.
+//! drive both through a deterministic faulty link.
 
 use crate::frame::{Frame, FrameDecoder, FrameHeader, FrameKind, WireError};
 use crate::manifest::{ExtentBitmap, TransferManifest, leaf_digest};

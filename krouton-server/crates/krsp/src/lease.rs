@@ -1,6 +1,7 @@
 // MARK: - lease.rs
 
-//! Fenced drive leases (`DriveLeaseTable.swift`). The node a drive is plugged into is its only
+//! Fenced drive leases. Nothing in the server uses this module yet (the Swift `DriveLeaseTable`
+//! it mirrored has been removed from the app). The node a drive is plugged into is its only
 //! authority, so no consensus protocol is needed: a compare-and-set table plus fencing tokens.
 //! Time is passed in as a `Duration` on the node's monotonic clock, which keeps this pure.
 

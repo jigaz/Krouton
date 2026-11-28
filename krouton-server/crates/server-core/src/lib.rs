@@ -4,6 +4,29 @@
 //! Zero third-party dependencies. The binary crate supplies the TLS stream and a [`NodeCrypto`]
 //! implementation; everything else (protocol sessions, pairing, staging, queues, burn backends)
 //! is here and tested without network or hardware.
+//!
+//! # How the pieces fit
+//!
+//! A connection's bytes go through a [`Transport`] (TLS in the binary, [`PlainTransport`] in
+//! tests). [`drive_connection`] decodes them into `krsp` frames and feeds them to a [`Session`],
+//! the per-connection state machine. The session authenticates the peer against [`clients`],
+//! runs pairing with the operator through [`pairing_window`], stages uploads with [`store`], and
+//! hands finished jobs to [`jobs`]. The job manager keeps one queue and worker thread per drive,
+//! masters folder jobs (via [`extract`] and the backend), and burns through a [`backend`].
+//!
+//! | Module | Role |
+//! |---|---|
+//! | [`config`] | `server.conf`: parsing, defaults and the starter file |
+//! | [`session`] | one connection's protocol state machine |
+//! | [`clients`] | paired Macs (`clients.list`) |
+//! | [`pairing_window`] | the files `krouton-server pair` and the service use to agree on a pairing |
+//! | [`store`] | durable, resumable staging of one upload |
+//! | [`jobs`] | jobs, per-drive queues, workers and the mastering worker |
+//! | [`extract`] | unpacks an uploaded folder bundle safely |
+//! | [`backend`] | one burn backend per platform, plus `simulate` |
+//! | [`disc`] | the built-in ISO 9660 / Joliet / UDF image writer |
+//! | [`x509`] | reads the P-256 key out of a certificate, for key pins |
+//! | [`fsutil`] | free-space queries |
 
 pub mod backend;
 pub mod clients;
