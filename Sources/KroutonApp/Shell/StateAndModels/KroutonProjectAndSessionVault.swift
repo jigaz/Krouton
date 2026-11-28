@@ -107,8 +107,10 @@ struct KroutonSavedDestinationRecord: Codable, Hashable, Sendable {
         self.copiesToBurn = item.copiesToBurn
     }
 
-    func toBatchItem() -> KroutonBakeBatchItem {
-        let resolvedKind = KroutonBurnDestinationKind(rawValue: kindRawValue) ?? .physicalBurner
+    /// The card, or nil when its kind is one this version doesn't know. Before 2026-11-27 an
+    /// unknown kind came back as a disc burner, so a rip card could return as a burn.
+    func toBatchItem() -> KroutonBakeBatchItem? {
+        guard let resolvedKind = KroutonBurnDestinationKind(storedValue: kindRawValue) else { return nil }
         return KroutonBakeBatchItem(
             kind: resolvedKind,
             targetDriveID: targetDriveID,
@@ -118,7 +120,7 @@ struct KroutonSavedDestinationRecord: Codable, Hashable, Sendable {
             verifyAfterBurn: verifyAfterBurn,
             compressAfterCreation: compressAfterCreation,
             copiesToBurn: copiesToBurn
-        )
+        ).repairingLegacyPresets()
     }
 }
 
@@ -324,11 +326,11 @@ extension KroutonStateStore {
 
         var restoredDomainMap: [String: [KroutonBakeBatchItem]] = [:]
         for (k, records) in manifest.savedQueuesByDomain {
-            restoredDomainMap[k] = records.map { $0.toBatchItem() }
+            restoredDomainMap[k] = records.compactMap { $0.toBatchItem() }
         }
         savedQueuesByDomain = restoredDomainMap
 
-        let restoredQueue = manifest.activeQueue.map { $0.toBatchItem() }
+        let restoredQueue = manifest.activeQueue.compactMap { $0.toBatchItem() }
         if !restoredQueue.isEmpty {
             destinationQueue = restoredQueue
         }

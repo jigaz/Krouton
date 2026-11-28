@@ -33,7 +33,7 @@ struct KroutonCopyAndRipWorkspaceView: View {
     let primarySelectedDrive: KroutonOpticalDriveInfo?
     let isCenterWorkspaceNarrow: Bool
 
-    @State var audioRipCodec: String = "FLAC (Lossless)"
+    @State var audioRipCodec: KroutonRipCodec = .flac
     @State var audioRipGenerateCueLog: Bool = true
     // No error-correction switch: rips read the AIFF files macOS mounts for an audio CD, and
     // the drive's own error correction is all there is on that path.
