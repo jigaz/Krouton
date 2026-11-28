@@ -1,3 +1,4 @@
+import BurnKit
 import OpticalCore
 import SwiftUI
 
@@ -331,4 +332,11 @@ struct KroutonBakeBatchItem: Identifiable, Hashable, Codable, Sendable {
     var assignedPoolTicket: KroutonPoolBurnTicket? = nil
     /// Ticket waiting for operator confirmation on this burner slot when in Ask/Manual mode.
     var pendingApprovalTicket: KroutonPoolBurnTicket? = nil
+}
+
+// MARK: - Burn Pool
+
+/// A physical burner card takes tickets from the destination queue's burn pool.
+extension KroutonBakeBatchItem: KroutonPoolSlotCard {
+    var isPooledBurner: Bool { kind == .physicalBurner }
 }
