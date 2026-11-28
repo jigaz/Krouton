@@ -168,12 +168,20 @@ extension KroutonStateStore {
         let target = output ?? FileManager.default.temporaryDirectory
             .appendingPathComponent("KroutonBluRay_\(UUID().uuidString)", isDirectory: true)
             .appendingPathComponent("disc.iso")
-        try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
-        if output == nil { try Self.ensureScratchSpace(for: Self.folderBytes(root)) }
         let label = discVolumeTitle
-        _ = try await Task.detached(priority: .userInitiated) {
-            try KroutonUDFImageWriter.build(folder: root, output: target, label: label, leaveOut: KroutonBDMVFolder.leftOut)
-        }.value
+        let isTemporary = output == nil
+        do {
+            // Walking a 100 GB BDMV folder and writing the image both stay off the main actor.
+            try await Task.detached(priority: .userInitiated) { () throws -> Void in
+                try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+                if isTemporary { try KroutonStateStore.ensureScratchSpace(for: KroutonStateStore.folderBytes(root)) }
+                _ = try KroutonUDFImageWriter.build(folder: root, output: target, label: label, leaveOut: KroutonBDMVFolder.leftOut)
+            }.value
+        } catch {
+            // The temporary folder is the caller's to remove only once this returns it.
+            if isTemporary { try? FileManager.default.removeItem(at: target.deletingLastPathComponent()) }
+            throw error
+        }
         return target
     }
 
