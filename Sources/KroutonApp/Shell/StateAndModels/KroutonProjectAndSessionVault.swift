@@ -154,11 +154,13 @@ struct KroutonProjectManifest: Codable, Hashable, Sendable {
         return try encoder.encode(self)
     }
 
-    static func decode(from data: Data) throws -> KroutonProjectManifest {
+    /// Reads a project saved by this or another version; what an older or newer file lacks is
+    /// filled in from `persistedDefault` and listed in `repairs` (see `KroutonPersistedJSON`).
+    static func decode(from data: Data) throws -> KroutonPersistedJSON.Result<KroutonProjectManifest> {
         guard data.count <= maxAllowedKrutBytes else {
             throw CocoaError(.fileReadTooLarge)
         }
-        return try JSONDecoder().decode(KroutonProjectManifest.self, from: data)
+        return try KroutonPersistedJSON.decode(KroutonProjectManifest.self, from: data)
     }
 }
 

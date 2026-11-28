@@ -217,11 +217,8 @@ struct KroutonProjectSheetModifier: ViewModifier {
                 allowedContentTypes: [.kroutonProject, .json],
                 allowsMultipleSelection: false
             ) { result in
-                if case .success(let urls) = result,
-                   let url = urls.first,
-                   let data = try? Data(contentsOf: url),
-                   let manifest = try? KroutonProjectManifest.decode(from: data) {
-                    store.applyProjectManifest(manifest, projectURL: url, driveManager: driveManager)
+                if case .success(let urls) = result, let url = urls.first {
+                    store.openProjectFile(at: url, driveManager: driveManager)
                 }
             }
     }

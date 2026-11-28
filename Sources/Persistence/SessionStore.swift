@@ -1,4 +1,5 @@
 import Foundation
+import OpticalCore
 import os
 
 // Session persistence for Krouton. Replaces the UserDefaults sentinel + atexit
@@ -211,6 +212,9 @@ public actor SessionStore<Payload: Codable & Sendable> {
     private var saveTask: Task<Void, Never>?
     /// Upgrade hook: (rawJSON, fromVersion) -> rawJSON at `schemaVersion`.
     private let migrate: (@Sendable (Data, Int) throws -> Data)?
+    /// What the last `load()` had to fill in or leave out to read a session saved by another
+    /// version (see `KroutonPersistedJSON`); empty when it read as saved.
+    public private(set) var lastLoadRepairs: [String] = []
 
     public init(
         directory: URL,
@@ -259,6 +263,7 @@ public actor SessionStore<Payload: Codable & Sendable> {
     }
 
     public func load() -> LoadResult {
+        lastLoadRepairs = []
         for (url, isBackup) in [(currentURL, false), (backupURL, true)] {
             guard var data = try? Data(contentsOf: url) else { continue }
             guard let probe = try? JSONDecoder().decode(SessionVersionProbe.self, from: data) else { continue }
@@ -267,10 +272,11 @@ public actor SessionStore<Payload: Codable & Sendable> {
                 guard let migrate, let upgraded = try? migrate(data, probe.schemaVersion) else { continue }
                 data = upgraded
             }
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            if let envelope = try? decoder.decode(Envelope.self, from: data) {
-                return .loaded(envelope.payload, savedAt: envelope.savedAt, fromBackup: isBackup)
+            // A session saved by another version opens with what it lacks filled in, rather
+            // than being skipped for the older backup or for nothing.
+            if let read = try? KroutonPersistedJSON.decode(Envelope.self, from: data, iso8601Dates: true) {
+                lastLoadRepairs = read.repairs
+                return .loaded(read.value.payload, savedAt: read.value.savedAt, fromBackup: isBackup)
             }
         }
         return .none
