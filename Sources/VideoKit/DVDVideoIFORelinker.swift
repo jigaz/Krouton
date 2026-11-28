@@ -121,27 +121,26 @@ public enum DVDVideoIFORelinker {
                 }
             }
 
-            // Recompute VOBU_SRI (42 x 4B entries starting at 0x04F1: 21 forward + 21 backward)
+            // Recompute VOBU_SRI (42 x 4B entries from 0x04F1): FWDI Video, FWDI 240 ... FWDI 1,
+            // FWDI Next, then BWDI Prev, BWDI 1 ... BWDI 240, BWDI Video.
             let stepOffsets = [240, 120, 60, 20, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-            // Forward Next VOBU with video (0x04F1) & Next VOBU (0x04F5)
+            let sri = base + 0x04F1
             let fwd1 = (idx + 1 < navSectors.count) ? (0x8000_0000 | (navSectors[idx + 1] - startSec)) : 0x3FFF_FFFF
-            writeUInt32BE(fwd1, into: &bytes, at: base + 0x04F1)
-            writeUInt32BE(fwd1, into: &bytes, at: base + 0x04F5)
+            writeUInt32BE(fwd1, into: &bytes, at: sri)
             for (sIdx, step) in stepOffsets.enumerated() {
                 let targetIdx = idx + step
                 let ptr = (targetIdx < navSectors.count) ? (0x8000_0000 | (navSectors[targetIdx] - startSec)) : 0x3FFF_FFFF
-                writeUInt32BE(ptr, into: &bytes, at: base + 0x04F9 + (sIdx * 4))
+                writeUInt32BE(ptr, into: &bytes, at: sri + 4 + (sIdx * 4))
             }
-            // Backward entries starting at 0x0545
-            let bwdBase = base + 0x0545
-            for (sIdx, step) in stepOffsets.enumerated() {
+            writeUInt32BE(fwd1, into: &bytes, at: sri + 80)
+            let prev1 = (idx > 0) ? (0x8000_0000 | (startSec - navSectors[idx - 1])) : 0x3FFF_FFFF
+            writeUInt32BE(prev1, into: &bytes, at: sri + 84)
+            for (sIdx, step) in stepOffsets.reversed().enumerated() {
                 let targetIdx = idx - step
                 let ptr = (targetIdx >= 0) ? (0x8000_0000 | (startSec - navSectors[targetIdx])) : 0x3FFF_FFFF
-                writeUInt32BE(ptr, into: &bytes, at: bwdBase + (sIdx * 4))
+                writeUInt32BE(ptr, into: &bytes, at: sri + 88 + (sIdx * 4))
             }
-            let prev1 = (idx > 0) ? (0x8000_0000 | (startSec - navSectors[idx - 1])) : 0x3FFF_FFFF
-            writeUInt32BE(prev1, into: &bytes, at: bwdBase + 19 * 4)
-            writeUInt32BE(prev1, into: &bytes, at: bwdBase + 20 * 4)
+            writeUInt32BE(prev1, into: &bytes, at: sri + 164)
         }
 
         // Group contiguous VOBUs by (vobID, cellID) into relinked cell ranges
