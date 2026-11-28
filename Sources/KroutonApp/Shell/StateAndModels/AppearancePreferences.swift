@@ -132,7 +132,8 @@ final class AppearancePreferences {
         iconWidgetStyle = fresh.iconWidgetStyle
         folderColorMode = fresh.folderColorMode
         sidebarIconSize = fresh.sidebarIconSize
-        appLanguage = fresh.appLanguage
+        // The saved choice is removed, so from the next launch the app follows the system.
+        appLanguage = .system
         voiceOverSpokenTelemetry = fresh.voiceOverSpokenTelemetry
         a11yIncreaseContrast = fresh.a11yIncreaseContrast
         rememberLastTaskOnLaunch = fresh.rememberLastTaskOnLaunch
