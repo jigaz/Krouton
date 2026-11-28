@@ -19,7 +19,7 @@ This file provides canonical architectural context, build/verification commands,
 ---
 
 ## 2. 11-Target Modular Architecture
-Krouton is a native macOS optical disc mastering, extraction, bad-sector rescue, and distributed burn-pool suite written in **Swift 6** (`swift-tools-version: 6.0`, macOS 14+):
+Krouton is a native macOS optical disc mastering, extraction, bad-sector rescue, and distributed burn-pool suite written in **Swift 6** (`swift-tools-version: 6.0`, macOS 14+), built and checked with **Xcode 27.2 / Swift 6.4** (CI selects it with `Scripts/ci-select-xcode.sh` on the `xcode-27` runner image):
 
 ### 11 Core Architectural Modules (`KroutonDomainIdentity.Module`, 21 SPM Targets in `Package.swift`)
 1. `OpticalCore` — Pure domain models, `KroutonDomainIdentity`, 28 optical format recipes, `BurnClaimLedger`, `SpanManifest`. Zero external dependencies.
