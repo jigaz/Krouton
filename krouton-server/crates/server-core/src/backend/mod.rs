@@ -14,10 +14,12 @@
 pub mod linux;
 pub mod macos;
 pub mod master;
+pub mod probe;
 pub mod simulate;
 pub mod windows;
 
 pub use master::MasterRequest;
+pub use probe::DriveProbe;
 
 use crate::config::{BackendKind, Config};
 use krsp::control::{BurnOptions, MediaState};
@@ -77,6 +79,11 @@ pub trait Backend: Send + Sync + std::fmt::Debug {
     fn kind(&self) -> BackendKind;
     fn discover(&self) -> Vec<Drive>;
     fn media(&self, drive: &Drive) -> MediaState;
+    /// What the drive writes and what is in its tray. Backends whose tools say more than the
+    /// media state override this; the rest report only that.
+    fn probe(&self, drive: &Drive) -> DriveProbe {
+        DriveProbe::media_only(self.media(drive))
+    }
     /// Blocks until the burn (and verification, if requested) ends. `Err` carries a message for
     /// the user. Must return promptly once `cancel` is set.
     fn burn(&self, request: &BurnRequest<'_>, progress: &mut dyn FnMut(Progress)) -> Result<(), String>;

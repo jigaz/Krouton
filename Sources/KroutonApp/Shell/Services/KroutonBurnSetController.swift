@@ -188,6 +188,15 @@ final class KroutonBurnSetController {
         rebuildDiscRows(from: startingProgress)
         isStopping = false
         notice = nil
+        // The set takes every burner; the coordinator refuses while the queue or the drive bank uses one.
+        let coordinator = KroutonBurnCoordinator.shared
+        if let refusal = coordinator.beginSet(title: startingProgress.set.title,
+                                              driveBankIsBusy: KroutonWindowManager.shared.driveManager.isExecutingQueue) {
+            notice = refusal
+            phase = .finished
+            return
+        }
+        defer { coordinator.endSet() }
         phase = .running
 
         let found = await DiscRecordingOpticalDrive.connectedDrives { [weak self] driveID, message in

@@ -17,7 +17,8 @@ struct KroutonRedBookAudioWorkspaceView: View {
     @Environment(\.undoManager) var undoManager
 
     let spec: KroutonOpticalWorkflowSpec
-    let isCenterWorkspaceNarrow: Bool
+    @Environment(\.kroutonLayout) var windowLayout
+    var isCenterWorkspaceNarrow: Bool { windowLayout.workspace == .narrow }
     @Binding var isDropTargeted: Bool
     let onHandleFinderDrop: ([NSItemProvider]) -> Bool
 
@@ -201,8 +202,8 @@ struct KroutonRedBookAudioWorkspaceView: View {
                         Text("Pause").frame(width: 68, alignment: .leading)
                         Text("CD-TEXT Title (≤60 Latin-1)").frame(maxWidth: .infinity, alignment: .leading)
                         if !isCenterWorkspaceNarrow {
-                            Text("CD-TEXT Artist").frame(width: 145, alignment: .leading)
-                            Text("ISRC (ISO 3901)").frame(width: 118, alignment: .leading)
+                            Text("CD-TEXT Artist").lineLimit(1).frame(width: 145, alignment: .leading)
+                            Text("ISRC (ISO 3901)").lineLimit(1).frame(width: 118, alignment: .leading)
                         }
                         Text("Length").frame(width: 68, alignment: .trailing)
                         Text("Montage").frame(width: 118, alignment: .center)

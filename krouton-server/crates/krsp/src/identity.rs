@@ -14,6 +14,44 @@ pub mod caps {
     pub const RESCUE_READS: u32 = 1 << 3;
     pub const ROLLING_SPOOL: u32 = 1 << 4;
     pub const KNOWN: u32 = WRITES_CD | WRITES_DVD | WRITES_BD | RESCUE_READS | ROLLING_SPOOL;
+    pub const WRITES_ANY: u32 = WRITES_CD | WRITES_DVD | WRITES_BD;
+
+    /// The largest image each disc family holds: a 99-minute CD-R, a dual-layer DVD±R, a
+    /// quad-layer BD-R XL.
+    pub const CD_MAX_BYTES: u64 = 912_384_000;
+    pub const DVD_MAX_BYTES: u64 = 8_547_991_552;
+    pub const BD_MAX_BYTES: u64 = 128_001_769_472;
+
+    /// The disc families (`WRITES_*` bits) whose largest disc holds an image of `bytes`.
+    #[must_use]
+    pub const fn families_holding(bytes: u64) -> u32 {
+        let mut families = 0;
+        if bytes <= CD_MAX_BYTES {
+            families |= WRITES_CD;
+        }
+        if bytes <= DVD_MAX_BYTES {
+            families |= WRITES_DVD;
+        }
+        if bytes <= BD_MAX_BYTES {
+            families |= WRITES_BD;
+        }
+        families
+    }
+
+    /// Names a set of `WRITES_*` bits for people: "CD and DVD".
+    #[must_use]
+    pub fn describe(writes: u32) -> String {
+        let names: Vec<&str> = [(WRITES_CD, "CD"), (WRITES_DVD, "DVD"), (WRITES_BD, "Blu-ray")]
+            .into_iter()
+            .filter(|(bit, _)| writes & bit != 0)
+            .map(|(_, name)| name)
+            .collect();
+        match names.as_slice() {
+            [] => "no discs".to_owned(),
+            [one] => (*one).to_owned(),
+            [rest @ .., last] => format!("{} and {last}", rest.join(", ")),
+        }
+    }
 }
 
 const BASE32: &[u8; 32] = b"abcdefghijklmnopqrstuvwxyz234567";

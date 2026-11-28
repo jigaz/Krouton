@@ -8,7 +8,8 @@ import SwiftUI
 struct KroutonLeftFormatChooserColumnView: View {
     var store: KroutonStateStore
     var driveManager: KroutonOpticalDriveBank
-    let isLeftSidebarUltraSkinny: Bool
+    @Environment(\.kroutonLayout) var windowLayout
+    var isLeftSidebarUltraSkinny: Bool { windowLayout.sidebar == .narrow }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {

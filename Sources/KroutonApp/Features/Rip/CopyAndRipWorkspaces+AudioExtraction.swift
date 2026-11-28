@@ -162,10 +162,10 @@ extension KroutonCopyAndRipWorkspaceView {
         KroutonNotificationAndCompanionService.shared.dispatchEvent(
             id: "start",
             title: "Audio CD Extraction Started",
-            subtitle: "Ripping \(selected.count) track(s) from \(cd.albumTitle) to \(chosenCodec)",
+            subtitle: "Ripping \(selected.count) track(s) from \(cd.albumTitle) to \(chosenCodec.title)",
             progress: 0.02,
             driveName: primarySelectedDrive?.displayName ?? "Optical Drive",
-            speedLabel: chosenCodec,
+            speedLabel: chosenCodec.title,
             store: store
         )
 
@@ -173,7 +173,7 @@ extension KroutonCopyAndRipWorkspaceView {
             var logLines = [
                 "KROUTON HARDWARE RED BOOK AUDIO CD EXTRACTION LOG",
                 "Source Mount: \(cd.mountPath) | DiscID: \(cd.musicBrainzDiscID) | Leadout LBA: \(cd.leadoutBlockLBA)",
-                "Album: \(albTitle) | Artist: \(albPerf) | Codec: \(chosenCodec)",
+                "Album: \(albTitle) | Artist: \(albPerf) | Codec: \(chosenCodec.title)",
                 "------------------------------------------------------------------------"
             ]
             var cueLines = ["REM DISCID \(cd.musicBrainzDiscID)", "PERFORMER \"\(albPerf)\"", "TITLE \"\(albTitle)\""]
@@ -200,7 +200,7 @@ extension KroutonCopyAndRipWorkspaceView {
                 }
                 do {
                     let res = try KroutonRealCDExtractor.extractSingleTrack(
-                        track: trk, codecLabel: chosenCodec, outputDirectory: outDir,
+                        track: trk, codec: chosenCodec, outputDirectory: outDir,
                         fileStem: RipSettings.ripFileStem(
                             tokens: namingTokens, number: trk.trackNumber,
                             artist: trk.performer.isEmpty ? albPerf : trk.performer,
@@ -293,7 +293,7 @@ extension KroutonCopyAndRipWorkspaceView {
                     subtitle: copyStatusBanner,
                     progress: okCount > 0 ? 1.0 : 0.0,
                     driveName: primarySelectedDrive?.displayName ?? "Optical Drive",
-                    speedLabel: chosenCodec,
+                    speedLabel: chosenCodec.title,
                     store: store
                 )
                 if okCount > 0 {

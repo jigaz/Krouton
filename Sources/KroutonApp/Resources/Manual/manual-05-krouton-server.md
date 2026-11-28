@@ -31,6 +31,8 @@ Add a destination with **Add Output** and choose **Krouton Server**, then pick t
 
 Krouton Server burns data discs and disc images. Audio CDs burn on a drive connected to this Mac.
 
+Each of the server's drives shows what it writes (CD, DVD, Blu-ray) and, with a disc in the tray, its type and free space. Before uploading, Krouton checks the drive you picked: a job it can't write, such as a Blu-ray image on a DVD burner, or one too big for the disc in the tray, stops with the reason and nothing is uploaded. With no drive picked, the job goes to one that can burn it. The server checks again before it burns. A server from before November 2026 doesn't report its drives' abilities, and its jobs are sent as before.
+
 ## When it doesn't connect
 
 - Both computers need to be on the same network. The server refuses connections from the internet. If you reach it through a VPN or Tailscale, turn on `allow_cgnat` (Tailscale and ZeroTier) or add an `allow_range` line in the server's server.conf.

@@ -238,7 +238,7 @@ final class KroutonCrashRecoveryController {
         store.discPerformer = snap.discPerformer
         store.discMCNBarcode = snap.discMCNBarcode
         if !snap.destinationQueue.isEmpty {
-            store.destinationQueue = snap.destinationQueue
+            store.destinationQueue = snap.destinationQueue.map { $0.repairingLegacyPresets() }
         }
         store.audioController.restore(snap.audioProject)
 
@@ -262,6 +262,8 @@ final class KroutonCrashRecoveryController {
             store.stagedFiles = restoredEntries
         }
         missingStagedFilePaths = missingPaths
+        let repairs = await sessionStore.lastLoadRepairs
+        store.reportPersistedRepairs(repairs, opening: KroutonL10n.tr("Your last session"))
     }
 }
 

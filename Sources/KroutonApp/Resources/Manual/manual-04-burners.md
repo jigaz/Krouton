@@ -12,6 +12,13 @@ A burner card has:
 - **Copies**, from 1 to 99.
 - **Eject**, and for rewritable discs **Quick Erase** or **Full Erase**. A full erase takes as long as a burn but clears every sector.
 
+Cards that don't burn:
+
+- **Audio Rip**, under **Rip Audio CD**, rips the CD in the drive into the folder shown, one folder per album, as FLAC, Apple Lossless, WAV or AIFF; pick the format on the card. **Add Output** adds a card for another format, so one rip can make both FLAC and Apple Lossless files.
+- **Video Extract**, under **Extract Video Disc**, reminds you that titles are chosen and extracted in the workspace.
+- **Label Print Sheet** saves the label as a PNG and a PDF, and **Vector PDF Label** as a PDF only, into the folder shown on the card (Downloads for a new card), named after the disc title.
+- A **Disc Image File** card saves the disc you're burning. To save the disc in the drive as an .iso, use **Duplicate Disc** in Copy.
+
 ## Several burners at once
 
 Each connected burner gets a card under **Active Burners**. When you ask for more copies than there are burners, or burn a set of several discs, the rest wait in the **Waiting Burn Pool** below.

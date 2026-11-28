@@ -62,6 +62,7 @@
     <h2>Burning on the server</h2>
     <p>Add a destination with <strong>Add Output</strong> and choose <strong>Krouton Server</strong>, then pick the server and one of its drives. Speed, Verify and Simulate work as they do for a local burner.</p>
     <p>Krouton Server burns data discs and disc images. Audio CDs burn on a drive connected to this Mac.</p>
+    <p>Each of the server's drives shows what it writes (CD, DVD, Blu-ray) and, with a disc in the tray, its type and free space. Before uploading, Krouton checks the drive you picked: a job it can't write, such as a Blu-ray image on a DVD burner, or one too big for the disc in the tray, stops with the reason and nothing is uploaded. With no drive picked, the job goes to one that can burn it. The server checks again before it burns. A server from before November 2026 doesn't report its drives' abilities, and its jobs are sent as before.</p>
     <h2>When it doesn't connect</h2>
     <ul>
       <li>Both computers need to be on the same network. The server refuses connections from the internet. If you reach it through a VPN or Tailscale, turn on <code>allow_cgnat</code> (Tailscale and ZeroTier) or add an <code>allow_range</code> line in the server's server.conf.</li>

@@ -85,8 +85,9 @@ impl JobState {
 }
 
 /// What the drive reports about the disc in the tray.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum MediaState {
+    #[default]
     Unknown,
     NoDisc,
     Blank,
@@ -123,6 +124,13 @@ pub struct DriveInfo {
     /// Jobs queued or burning on this drive.
     pub queue: u32,
     pub busy: bool,
+    /// The disc families the drive writes, as `identity::caps::WRITES_*` bits; `None` when the
+    /// server cannot tell. Optional on the wire, so older peers neither send nor need it.
+    pub writes: Option<u32>,
+    /// The disc in the tray, such as `DVD+R` or `BD-R`; `None` when there is none or it is unknown.
+    pub disc: Option<String>,
+    /// Free space on that disc; `None` when unknown.
+    pub free_bytes: Option<u64>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -441,13 +449,24 @@ impl Control {
 }
 
 fn drive_value(d: &DriveInfo) -> Value {
-    Value::object([
-        ("id", d.id.as_str().into()),
-        ("name", d.name.as_str().into()),
-        ("media", d.media.wire_name().into()),
-        ("queue", d.queue.into()),
-        ("busy", d.busy.into()),
-    ])
+    let mut fields: Vec<(String, Value)> = vec![
+        ("id".into(), d.id.as_str().into()),
+        ("name".into(), d.name.as_str().into()),
+        ("media".into(), d.media.wire_name().into()),
+        ("queue".into(), d.queue.into()),
+        ("busy".into(), d.busy.into()),
+    ];
+    // Only what the server knows goes on the wire; a missing key means "unknown".
+    if let Some(writes) = d.writes {
+        fields.push(("writes".into(), writes.into()));
+    }
+    if let Some(disc) = &d.disc {
+        fields.push(("disc".into(), disc.as_str().into()));
+    }
+    if let Some(free) = d.free_bytes {
+        fields.push(("freeBytes".into(), free.into()));
+    }
+    Value::Object(fields)
 }
 
 fn job_value(j: &JobInfo) -> Value {
@@ -516,6 +535,13 @@ fn drive_from(v: &Value) -> Result<DriveInfo, ControlError> {
         media: MediaState::from_wire(&text(v, "media")?),
         queue: uint32(v, "queue")?,
         busy: flag(v, "busy")?,
+        writes: v
+            .get("writes")
+            .and_then(Value::as_u64)
+            .and_then(|w| u32::try_from(w).ok())
+            .map(|w| w & crate::identity::caps::WRITES_ANY),
+        disc: v.get("disc").and_then(Value::as_str).filter(|s| s.chars().count() <= MAX_TEXT).map(str::to_owned),
+        free_bytes: v.get("freeBytes").and_then(Value::as_u64),
     })
 }
 
@@ -643,6 +669,9 @@ mod tests {
             media: MediaState::Blank,
             queue: 2,
             busy: true,
+            writes: Some(crate::identity::caps::WRITES_CD | crate::identity::caps::WRITES_DVD),
+            disc: Some("DVD+R".into()),
+            free_bytes: Some(4_700_372_992),
         };
         let job = JobInfo {
             job: "0C5E1B2A-7F11-4C51-9C5E-2F6C9B1D0E77".into(),
