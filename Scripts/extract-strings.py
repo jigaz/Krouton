@@ -182,6 +182,7 @@ def top_level_split(expr, token):
 # Expressions whose type the rules below can't see; each was checked against swiftc.
 TYPE_HINTS = {
     "disc.id": "Int",
+    "disc.number": "Int",
     "preset.id": "Int",
     "heroMeta.badge": "String",
     "item.seconds": "Int",
