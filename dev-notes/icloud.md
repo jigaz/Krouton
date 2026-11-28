@@ -29,7 +29,7 @@ A project in iCloud refers to its source files where they are. On another Mac th
 ## Building signed
 
 - **Release zip** (`Scripts/bundle-app.sh`): with a Developer ID certificate in the keychain and the profile in `Packaging/`, the script embeds the profile and signs with `XcodeHost/Krouton-iCloud.entitlements` (key-value store, iCloud Documents, app group). Without the profile it signs with `Krouton.entitlements`. macOS won't launch an app that claims iCloud without a profile granting it, which is why the two files are separate.
-- **Xcode on Losa** (`XcodeHost/project.yml`): the app target uses `Krouton-Xcode.entitlements` with automatic signing. Choose the team once in Signing & Capabilities. The first signed build registers the capabilities and makes a development profile, so iCloud works in Debug runs on Losa.
+- **Xcode on the owner's Mac** (`XcodeHost/project.yml`): the app target uses `Krouton-Xcode.entitlements` with automatic signing. Choose the team once in Signing & Capabilities. The first signed build registers the capabilities and makes a development profile, so iCloud works in Debug runs on that Mac.
 - **`swift run Krouton` and CI:** no entitlements. Both iCloud rows are disabled and explain why.
 
 ## Checking it

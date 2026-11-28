@@ -20,17 +20,12 @@ Index checked 2026-11-28.
 
 ## Archive
 
-Records from the first AI-assisted sessions, kept for the record. They are not maintained and
-may contradict the code. Each one says so at the top. For history, use `git log` and
-`CHANGELOG.md`.
+Kept for the record. Not maintained, and may contradict the code; it says so at the top. For
+history, use `git log` and `CHANGELOG.md`.
 
 | Note | What it was |
 |---|---|
 | [`original-specification.md`](original-specification.md) | The brief Krouton was first built from. Its "Bakery" names (Toaster, Slice, Krumb) and REST daemon were not adopted. |
-| [`project_history.md`](project_history.md) | A version-by-version summary up to 1.0.1 (2026-11-17). |
-| [`AI_HANDOFF.md`](AI_HANDOFF.md) | An automatic per-commit log from 2026-11-17 to 2026-11-19. |
-| [`ABACUS_CODE_SWARM_HANDOFF.md`](ABACUS_CODE_SWARM_HANDOFF.md) | A one-off brief for an external AI code review, 2026-11-18. |
-| [`ai-sync.sh`](ai-sync.sh) | A script that prints `AI_HANDOFF.md` with the git status. |
 
 ## Writing a note
 
