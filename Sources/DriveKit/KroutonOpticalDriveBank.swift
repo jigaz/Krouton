@@ -92,19 +92,26 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
         return stripped.isEmpty ? "Optical Media" : stripped
     }
 
+    /// What the media type alone says about a disc. DiscRecording reports no book type and no
+    /// recording layer, so those say so, with what is typical for the format; the laser and the
+    /// sector layout follow from the format's standard and are named as such.
     static func deduceMediaPhysics(mediaType: String, isErasable: Bool) -> (book: String, dye: String, laser: String, block: String) {
+        let book = "\(mediaType): book type not read from the disc"
         if mediaType.contains("BD") {
-            let book = isErasable ? "Blu-ray System Description BD-RE Part 1" : "Blu-ray System Description BD-R Part 1"
-            let dye = isErasable ? "GeSbTe Phase-Change Recording Layer" : "HTL Inorganic / M-DISC Rock-Like Layer"
-            return (book, dye, "405 nm Blue-Violet (0.85 NA)", "2,048 Bytes (64 KB ECC Cluster)")
+            let dye = isErasable
+                ? "Not reported (BD-RE is typically phase-change)"
+                : "Not reported (BD-R is typically inorganic, sometimes organic dye)"
+            return (book, dye, "405 nm, 0.85 NA (Blu-ray standard)", "2,048-byte sectors, 64 KB ECC clusters")
         } else if mediaType.contains("DVD") {
-            let book = isErasable ? "DVD Forum Part 2 / RW Physical Spec" : "DVD Forum Part 1 / Recordable Spec"
-            let dye = isErasable ? "AgInSbTe Phase-Change Alloy" : "Azo / Cyanine Organic Recording Dye"
-            return (book, dye, "650 nm Red Laser (0.60 NA)", "2,048 Bytes (32 KB ECC Block)")
+            let dye = isErasable
+                ? "Not reported (rewritable DVD is typically phase-change)"
+                : "Not reported (DVD±R is typically organic dye)"
+            return (book, dye, "650 nm, 0.60 NA (DVD standard)", "2,048-byte sectors, 32 KB ECC blocks")
         } else {
-            let book = isErasable ? "Orange Book Part III (CD-RW High-Speed)" : "Orange Book Part II (CD-R)"
-            let dye = isErasable ? "AgInSbTe Phase-Change (1x–12x / 10x–24x)" : "Phthalocyanine / Cyanine Organic Dye"
-            return (book, dye, "780 nm Infrared (0.45 NA)", "2,048 Bytes Mode 1 (2,352 Raw)")
+            let dye = isErasable
+                ? "Not reported (CD-RW is typically phase-change)"
+                : "Not reported (CD-R is typically organic dye)"
+            return (book, dye, "780 nm, 0.45 NA (CD standard)", "2,048-byte Mode 1 sectors (2,352 raw)")
         }
     }
 
@@ -134,7 +141,7 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
                     capList.append("BD-R/RE")
                 }
                 if (writeCaps[DRDeviceCanWriteCDTextKey] as? Bool) == true { capList.append("CD-TEXT") }
-                let capSummary = capList.isEmpty ? "DVD±R DL • CD-R/RW" : capList.joined(separator: " • ")
+                let capSummary = capList.isEmpty ? "Not reported by the drive" : capList.joined(separator: " • ")
 
                 let rawState = status[DRDeviceMediaStateKey] as? String ?? DRDeviceMediaStateNone
                 let isPresent = (rawState == DRDeviceMediaStateMediaPresent)
@@ -184,15 +191,9 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
                     } else if let totalBlocks = mediaInfo[DRDeviceMediaBlocksOverwritableKey] as? NSNumber, totalBlocks.int64Value > 0 {
                         freeBlocks = totalBlocks.int64Value
                         freeByteCount = freeBlocks * 2048
-                    } else if isBlank || isErasable {
-                        if mType.contains("DVD") {
-                            freeBlocks = 2_295_104
-                            freeByteCount = 4_700_372_992
-                        } else {
-                            freeBlocks = 359_847
-                            freeByteCount = 736_966_656
-                        }
                     }
+                    // Otherwise the free space stays 0, "not reported": callers fall back to the
+                    // format's nominal size and say so, instead of a made-up figure.
 
                     if let uBlocks = mediaInfo[DRDeviceMediaBlocksUsedKey] as? NSNumber, uBlocks.int64Value > 0 {
                         usedBlocks = uBlocks.int64Value
@@ -202,9 +203,7 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
                     if let mfg = mediaInfo["DRDeviceMediaManufacturerKey"] as? String, !mfg.isEmpty {
                         manufacturer = mfg
                     } else {
-                        manufacturer = isErasable
-                            ? "Mitsubishi Chemical / Verbatim (SERL Phase-Change)"
-                            : "Taiyo Yuden / CMC Magnetics (ATIP / ADIP Verified)"
+                        manufacturer = "Not reported by the drive"
                     }
 
                     let physics = Self.deduceMediaPhysics(mediaType: mType, isErasable: isErasable)

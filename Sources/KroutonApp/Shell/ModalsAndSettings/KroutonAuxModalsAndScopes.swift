@@ -85,7 +85,11 @@ struct KroutonDiscMediaPopover: View {
                 HStack {
                     Text("Used: \(usedStr) (\(drive.usedSectorsLBA) LBA)").font(.system(size: 10, weight: .semibold, design: .monospaced))
                     Spacer()
-                    Text("Free: \(freeStr) (\(drive.freeSectorsLBA) LBA) • \(drive.redBookTimecodeCapacity)").font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary)
+                    if drive.freeSectorsLBA > 0 {
+                        Text("Free: \(freeStr) (\(drive.freeSectorsLBA) LBA) • \(drive.redBookTimecodeCapacity)").font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary)
+                    } else {
+                        Text("Free space not reported by the drive").font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary)
+                    }
                 }.padding(9).background(Color.kroutonControlSurface).clipShape(RoundedRectangle(cornerRadius: 8))
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {

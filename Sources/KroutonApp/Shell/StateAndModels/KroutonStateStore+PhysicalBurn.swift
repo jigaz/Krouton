@@ -137,14 +137,13 @@ extension KroutonStateStore {
 
     /// Says so before a write that can't fit on the blank in the drive, as reported by the drive.
     /// A disc image needs its own size; files need a little more for the file systems.
-    /// Nothing is said when the drive hasn't reported its free space (the bank's 4.7 GB and
-    /// 737 MB fallbacks are guesses, not measurements).
+    /// Nothing is said when the drive hasn't reported its free space (`freeBytes` is then 0).
     /// CD-Extra: the audio, the second session's overhead and the data against the blank's
     /// room (80 minutes when the drive doesn't say).
     private func cdExtraTooBigMessage(_ disc: KroutonAudioBurnDisc, driveID: String,
                                       driveManager: KroutonOpticalDriveBank) -> String? {
         let drive = driveManager.availableDrives.first { $0.id == driveID } ?? driveManager.selectedDrive
-        let known = drive.map { $0.isMediaBlank && $0.freeBytes > 0 && $0.freeBytes != 736_966_656 } ?? false
+        let known = drive.map { $0.isMediaBlank && $0.freeBytes > 0 } ?? false
         let capacityFrames = known ? (drive?.freeBytes ?? 0) / 2_048 : 360_000
         return KroutonCDExtraLayout.overflowMessage(
             audioFrames: disc.totalFrames, dataBytes: cdExtraDataFiles.reduce(0) { $0 + $1.byteSize },
@@ -154,8 +153,7 @@ extension KroutonStateStore {
     private func discTooSmallMessage(_ files: [KroutonStagedFileEntry], driveID: String,
                                      driveManager: KroutonOpticalDriveBank) -> String? {
         let drive = driveManager.availableDrives.first { $0.id == driveID } ?? driveManager.selectedDrive
-        guard let drive, drive.isMediaPresent, drive.isMediaBlank, drive.freeBytes > 0,
-              ![4_700_372_992, 736_966_656].contains(drive.freeBytes) else { return nil }
+        guard let drive, drive.isMediaPresent, drive.isMediaBlank, drive.freeBytes > 0 else { return nil }
         let content = files.reduce(Int64(0)) { $0 + $1.byteSize }
         let isImage = KroutonOpticalDriveBank.soleDiscImage(in: files) != nil
         let needed = isImage ? content : content + content / 50 + 4_194_304
