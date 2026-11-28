@@ -103,6 +103,7 @@ extension KroutonSettingsWindowView {
                                 )
                                 KroutonNotificationSoundControlView(
                                     sound: Bindable(store).notificationMatrix[idx].sound,
+                                    eventTitle: KroutonL10n.tr(row.eventTitle),
                                     isEnabled: row.soundEnabled,
                                     accent: store.activeAccent
                                 )
