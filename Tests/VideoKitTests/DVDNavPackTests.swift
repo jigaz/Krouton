@@ -41,4 +41,29 @@ final class DVDNavPackTests: XCTestCase {
         XCTAssertEqual(entry(5, 92), 0x8000_0005)
         XCTAssertEqual(entry(5, 80), none)
     }
+
+    /// A relinked cell is seamless on one clock (seamless_play 0x08 set, STC discontinuity 0x02
+    /// clear) and its last-VOBU address is the start of its last VOBU, not its first.
+    func testRelinkedCellPlaybackFlagsAndLastVOBU() {
+        var ifo = [UInt8](repeating: 0, count: 3 * 2048)
+        DVDVideoIFORelinker.writeUInt32BE(1, into: &ifo, at: 0x00CC)    // VTS_PGCITI at sector 1
+        DVDVideoIFORelinker.writeUInt32BE(2, into: &ifo, at: 0x00E0)    // VTS_C_ADT at sector 2
+        let table = 2048, pgc = table + 16
+        DVDVideoIFORelinker.writeUInt16BE(1, into: &ifo, at: table)
+        DVDVideoIFORelinker.writeUInt32BE(16, into: &ifo, at: table + 8 + 4)
+        ifo[pgc + 3] = 1
+        DVDVideoIFORelinker.writeUInt16BE(0xEC, into: &ifo, at: pgc + 0xE8)
+        DVDVideoIFORelinker.writeUInt16BE(0xEC + 24, into: &ifo, at: pgc + 0xEA)
+        ifo[pgc + 0xEC] = 0x02                                         // not seamless, STC discontinuity
+        DVDVideoIFORelinker.writeUInt16BE(1, into: &ifo, at: pgc + 0xEC + 24)
+        ifo[pgc + 0xEC + 24 + 3] = 1
+        let cell = DVDVideoRelinkedCellRange(vobID: 1, cellID: 1, startSector: 0, endSector: 6)
+        let out = [UInt8](DVDVideoIFORelinker.relinkVTSIFO(ifoData: Data(ifo), menuVobSectors: 0, titleVobSectors: 7,
+                                                            vobuStartSectors: [0, 2, 5], cells: [cell]))
+        let playback = pgc + 0xEC
+        XCTAssertEqual(out[playback], 0x08)
+        XCTAssertEqual(DVDVideoIFORelinker.readUInt32BE(out, at: playback + 0x08), 0)
+        XCTAssertEqual(DVDVideoIFORelinker.readUInt32BE(out, at: playback + 0x10), 5)
+        XCTAssertEqual(DVDVideoIFORelinker.readUInt32BE(out, at: playback + 0x14), 6)
+    }
 }

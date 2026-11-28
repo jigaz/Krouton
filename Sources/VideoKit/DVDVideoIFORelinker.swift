@@ -260,8 +260,9 @@ public enum DVDVideoIFORelinker {
                     let pos = cellPosOff + (cIdx * 4)
                     guard pb + 24 <= bytes.count else { break }
 
-                    // Clear Dual-Layer STC_discontinuity / pause bit (0x08) and set seamless playback (0x02)
-                    bytes[pb] = (bytes[pb] & ~0x08) | 0x02
+                    // Set seamless playback (0x08) and clear the STC discontinuity (0x02): the
+                    // re-encoded title runs on one continuous clock.
+                    bytes[pb] = (bytes[pb] | 0x08) & ~0x02
 
                     let targetVobID: UInt16
                     let targetCellID: UInt8
@@ -279,7 +280,8 @@ public enum DVDVideoIFORelinker {
                         ?? (cIdx < cells.count ? cells[cIdx] : nil) {
                         writeUInt32BE(matched.startSector, into: &bytes, at: pb + 0x08) // firstVOBUStart
                         writeUInt32BE(matched.endSector, into: &bytes, at: pb + 0x0C)   // firstILVUEnd
-                        writeUInt32BE(matched.startSector, into: &bytes, at: pb + 0x10) // lastVOBUStart
+                        let lastVOBUStart = vobuStartSectors.last { $0 >= matched.startSector && $0 <= matched.endSector }
+                        writeUInt32BE(lastVOBUStart ?? matched.startSector, into: &bytes, at: pb + 0x10) // lastVOBUStart
                         writeUInt32BE(matched.endSector, into: &bytes, at: pb + 0x14)   // lastVOBUEnd
                     }
                 }
