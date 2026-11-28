@@ -191,15 +191,12 @@ extension KroutonDestinationCardView {
                         }
                         HStack(spacing: 8) {
                             if batchSt.countdownSecondsRemaining == nil {
+                                // For a blank put in without the tray reporting an eject. The
+                                // Auto-Load monitor still checks it's blank and starts the copy.
                                 Button {
-                                    driveManager.triggerImmediateBatchCountdownForTesting(
-                                        driveID: activeCardDriveID,
-                                        countdownSeconds: store.autoLoadCountdownSeconds
-                                    ) {
-                                        store.executeSingleDestination(item, driveManager: driveManager, primarySelectedDrive: primarySelectedDrive)
-                                    }
+                                    driveManager.acceptDiscAlreadyInDrive(for: activeCardDriveID)
                                 } label: {
-                                    Text("Simulate Blank Disc Insert (\(store.autoLoadCountdownSeconds)s)")
+                                    Text("Use the Disc in the Drive")
                                         .font(.system(size: 9, weight: .bold))
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 3)

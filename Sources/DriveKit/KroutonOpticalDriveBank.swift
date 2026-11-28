@@ -395,7 +395,7 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
                         self.batchCountdownTimers[key]?.invalidate()
                         self.batchCountdownTimers.removeValue(forKey: key)
                         // The wait is over: a state left here kept the card's banner, and its
-                        // Simulate Blank Disc Insert button, up through the burn and after the last copy.
+                        // Use the Disc in the Drive button, up through the burn and after the last copy.
                         self.batchStates.removeValue(forKey: key)
                         onFireNextCopy()
                     } else {
@@ -418,53 +418,16 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
         }
     }
 
-    public func triggerImmediateBatchCountdownForTesting(
-        driveID: String,
-        countdownSeconds: Int = 5,
-        onFireNextCopy: @escaping @MainActor () -> Void
-    ) {
-        let resolved = driveForID(driveID)
-        let key = resolved?.id ?? driveID
-        guard !key.isEmpty else { return }
-        let name = resolved?.displayName ?? "Optical Burner"
-        let currentSt = batchStates[key] ?? KroutonBatchBurnState(id: key, driveName: name, currentCopyIndex: 2, totalCopies: 2)
-        let nextCopy = currentSt.currentCopyIndex
-        let total = max(2, currentSt.totalCopies)
-        let startSec = max(1, countdownSeconds)
-
-        batchStates[key] = KroutonBatchBurnState(
-            id: key,
-            driveName: name,
-            currentCopyIndex: nextCopy,
-            totalCopies: total,
-            isWaitingForBlankDisc: false,
-            countdownSecondsRemaining: startSec,
-            statusMessage: "Blank Disc Locked — Auto-Starting Copy #\(nextCopy)/\(total) in \(startSec)s...",
-            bitsetDVDROMActive: currentSt.bitsetDVDROMActive
-        )
-
-        batchCountdownTimers[key]?.invalidate()
-        batchCountdownTimers[key] = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self = self, var st = self.batchStates[key] else {
-                    self?.batchCountdownTimers[key]?.invalidate()
-                    self?.batchCountdownTimers.removeValue(forKey: key)
-                    return
-                }
-                if let rem = st.countdownSecondsRemaining {
-                    if rem <= 1 {
-                        self.batchCountdownTimers[key]?.invalidate()
-                        self.batchCountdownTimers.removeValue(forKey: key)
-                        self.batchStates.removeValue(forKey: key)
-                        onFireNextCopy()
-                    } else {
-                        st.countdownSecondsRemaining = rem - 1
-                        st.statusMessage = "Blank Disc Locked — Auto-Starting Copy #\(nextCopy)/\(total) in \(rem - 1)s..."
-                        self.batchStates[key] = st
-                    }
-                }
-            }
-        }
+    /// The card's "Use the Disc in the Drive" button: the operator has already put the next blank
+    /// in, so don't wait for the tray to report an eject first. Nothing else is skipped: the
+    /// Auto-Load monitor still checks that the disc is blank, counts down, and starts the copy
+    /// through the same path, which never overwrites a written disc.
+    public func acceptDiscAlreadyInDrive(for driveID: String) {
+        let key = driveForID(driveID)?.id ?? driveID
+        guard var state = batchStates[key], state.countdownSecondsRemaining == nil else { return }
+        state.hasDetectedDiscEject = true
+        state.statusMessage = "Checking the Disc in \(state.driveName)..."
+        batchStates[key] = state
     }
 
     public func cancelBatchDuplication(for driveID: String) {
