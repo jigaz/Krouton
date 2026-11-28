@@ -23,9 +23,16 @@ public actor BurnEventJournal {
         if !FileManager.default.fileExists(atPath: url.path) {
             FileManager.default.createFile(atPath: url.path, contents: nil)
         }
-        let handle = try FileHandle(forWritingTo: url)
+        let handle = try FileHandle(forUpdating: url)
         defer { try? handle.close() }
-        try handle.seekToEnd()
+        let end = try handle.seekToEnd()
+        // A crash mid-write leaves a last line without its newline; this event must not join it,
+        // or both fail to decode and the event is lost.
+        if end > 0 {
+            try handle.seek(toOffset: end - 1)
+            if try handle.read(upToCount: 1) != Data([0x0A]) { line.insert(0x0A, at: 0) }
+            try handle.seekToEnd()
+        }
         try handle.write(contentsOf: line)
         try handle.synchronize()
     }
