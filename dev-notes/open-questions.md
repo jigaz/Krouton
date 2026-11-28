@@ -156,3 +156,35 @@ Related: `pure-swiftui-shell.md` (the one AppKit file), `removed-formats.md`, `P
 - **To do:** sign and notarize the Xcode build in `bundle-app.sh` (`xcodebuild archive`, then `-exportArchive` with Developer ID), confirm the app-group container works for a Developer ID build on macOS 26/27, then document the widget and Shortcuts in the manual.
 - **Owner decides:** convert the generated project to Xcode 27.2's JSON format (`.xcproj`) in Xcode and commit it, retiring XcodeGen, or keep generating it.
 - **Also:** Swift 6.4's default build system still doesn't write `-emit-localized-strings-path` output or an index store Periphery finds, so those CI jobs use `--build-system native` (see 12).
+
+---
+
+## Found by the 2026-11-28 reviews
+
+### 18. DVD-9 → DVD-5 shrink: chapters, memory, and no fit check
+*Found 2026-11-28.*
+- **Known:**
+  - `VideoKit/VideoAuthoringEngine+Shrink.swift` `executeDVD9ToDVD5ShrinkOnDisk` requantizes each title set with ffmpeg, then reads the whole result into memory (`Data(contentsOf: combinedOut)`, about line 172) and patches copies of it, so a full DVD-5's worth of video is held several times over: roughly 12 GB of memory for one disc.
+  - `DVDVideoIFORelinker.swift` rebuilds `VTS_C_ADT`, `VTS_VOBU_ADMAP` and the cell offsets from the new VOBUs, and when ffmpeg's output has no NV_PCKs it makes one cell for the whole title (about line 97). The chapter (PTT) table and the program map then point at cells that no longer exist, so chapters are lost.
+  - The target bitrate comes from an estimated duration, and nothing checks that the output fits a DVD-5 (4,700,372,992 bytes) before it is offered for burning.
+- **Proposal:** mark the shrink **experimental** in the interface and the manual now. Then: stream the patching through `FileHandle` in VOBU-sized pieces; keep the source's cell and PTT structure (remap cell ranges instead of making one); and refuse to burn an output larger than a DVD-5, saying by how much.
+- **Answer by:** shrink a DVD-9 with chapters, check memory in Instruments, and check chapter skipping in VLC and a hardware player.
+- **Owner decides** whether to ship it as experimental or hide it until fixed.
+
+### 19. Pairing doesn't prove the identity key or bind the TLS session
+*Found 2026-11-28.*
+- **Known:** `krouton-server/crates/krsp/src/pairing.rs` `transcript_salt` hashes the two hellos (identity public key, ephemeral key, nonce), and Swift's `SpoolPairing.complete` derives the code from the same transcript. Nothing signs the transcript with the identity private key, and the TLS exporter isn't part of it. So during an open pairing window, a client can present another Mac's identity public key; once the operator confirms the code, `ClientStore::upsert` (`server-core/src/clients.rs`) replaces the real Mac's record, which unpairs it (jobs are keyed by identity, so it also takes over that Mac's job ownership, though it can't sign later sessions as that Mac). A relay between two TLS sessions is likewise not ruled out by the transcript itself.
+- **Proposal (protocol v1.1):** add the TLS exporter to the transcript salt on both sides, and have each side sign the transcript hash with its identity key in the confirm step; the server rejects a pairing whose signature doesn't verify. Keep v1 accepted for one release, behind a version check. Regenerate `Vectors/krsp-control-v1.txt` (or a `-v1.1` file) and add a Swift/Rust vector for the new transcript.
+- **Owner decides** the version bump and how long v1 pairing stays accepted.
+
+### 20. Paired-server pins live in UserDefaults
+*Found 2026-11-28.*
+- **Known:** `NetworkSpool/SpoolServerDirectory.swift` (about line 42) saves the paired servers, including the TLS pin and identity each burn trusts, as JSON in `UserDefaults` (`app.krouton.pairedBurnServers`). Any process running as the user can rewrite that plist and point Krouton at a server of its choosing. The client's own private keys are a separate question (`SpoolClientIdentity`).
+- **Proposal:** keep the list in the keychain (one generic-password item, or one per server, with `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`), migrate the UserDefaults copy on first launch and delete it. This keeps working on iOS, so the portable-core rule holds.
+- **Answer by:** check where `SpoolClientIdentity` keeps its keys, and do both together.
+
+### 21. Queue burns write no crash journal, and nothing shows interrupted burns
+*Found 2026-11-28.*
+- **Known:** `KroutonCrashRecoveryController.burnJournal` (`Persistence`'s `BurnJournal`) is read at launch (`interruptedJobs()`, `KroutonSessionPersistence.swift` about line 149) into `interruptedBurns`, and Settings › Storage & Reset offers to clear it, but no burn from the destination queue ever writes to it, and no view shows `interruptedBurns`. Only multi-disc sets journal their discs (`BurnEventJournal`, through `KroutonBurnSetController`). So the Storage & Reset text "Lets Krouton tell you about a burn a crash interrupted" describes nothing that happens today.
+- **Proposal:** record a start and an end around `KroutonBurnCoordinator.burnOnThisMac` (drive, volume, disc type, time), and after launch show interrupted ones once, with what they mean for the disc (a write-once disc is likely spoiled; a rewritable one needs erasing). Until then, change the Storage & Reset text.
+- **Owner decides** whether this waits for the single burn path (open question 11).
