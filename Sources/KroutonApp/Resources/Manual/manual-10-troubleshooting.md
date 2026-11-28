@@ -22,6 +22,10 @@ Open Settings with ⌘,. The search field at the top finds a setting by any word
 - Audio rips: ~/Music/Krouton Rips.
 - Keys for Krouton Servers: in your login keychain.
 
+## A project or session from another version
+
+A project saved by an older or newer Krouton opens even when it lacks settings this version has, or holds choices it doesn't know. Those settings take the values a new project starts with, and the banner says how many. A destination, track or source file that can't be read at all is left out, and the banner counts those too; the rest of the project opens. The same applies to the session Krouton restores at launch. If a file isn't a Krouton project, or is damaged, the banner says it couldn't be opened.
+
 ## The drive doesn't show up
 
 - Choose **Disc › Rescan Optical Drives** (⌘R).

@@ -262,6 +262,8 @@ final class KroutonCrashRecoveryController {
             store.stagedFiles = restoredEntries
         }
         missingStagedFilePaths = missingPaths
+        let repairs = await sessionStore.lastLoadRepairs
+        store.reportPersistedRepairs(repairs, opening: KroutonL10n.tr("Your last session"))
     }
 }
 
