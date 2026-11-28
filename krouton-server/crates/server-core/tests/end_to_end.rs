@@ -519,6 +519,52 @@ fn resubmitting_a_failed_job_reuses_the_staged_image() {
     assert!(matches!(done, Control::Job(_)));
 }
 
+/// The connection drops after the server committed the last extent but before the app saw its ack:
+/// the app resumes by submitting the same job again. It must be accepted (the burn goes ahead
+/// once, and the app follows it), not refused as "already submitted".
+#[test]
+fn resubmitting_after_the_last_ack_was_lost_follows_the_same_job() {
+    let h = start_server();
+    let mac = [0x81; 32];
+    let pin = [0x82; 32];
+    assert!(matches!(pair(&h, mac, pin, true), Control::PairResult { accepted: true, .. }));
+    let image = test_image();
+    let manifest = TransferManifest::from_image(&image, 2048, 16).unwrap();
+    let submit = Control::Submit {
+        job: "lost-ack".into(),
+        drive: "sim-1".into(),
+        label: "Lost ack".into(),
+        content: Content::Image,
+        options: BurnOptions { speed: 0, verify: false, simulate: false, eject: false },
+    };
+    let mut first = authenticate(&h, mac, pin, [5; 32]);
+    first.expect_control("welcome", |m| matches!(m, Control::Welcome { .. }));
+    first.send(&[submit.to_frame(), ManifestOffer::encode(&manifest).unwrap()]);
+    first.expect_control("accepted", |m| matches!(m, Control::Accepted { .. }));
+    upload(&mut first, &image, &manifest, None);
+    drop(first);
+
+    let mut again = authenticate(&h, mac, pin, [6; 32]);
+    again.expect_control("welcome", |m| matches!(m, Control::Welcome { .. }));
+    again.send(&[submit.to_frame(), ManifestOffer::encode(&manifest).unwrap()]);
+    again.expect_control("accepted again", |m| matches!(m, Control::Accepted { .. }));
+    let sender = upload(&mut again, &image, &manifest, None);
+    assert!(sender.acknowledged().is_complete());
+    again.expect_control("done", |m| matches!(m, Control::Job(j) if j.job == "lost-ack" && j.state == JobState::Done));
+    let jobs = h.ctx.jobs.jobs_of(&krsp::hex(&mac));
+    assert_eq!(jobs.iter().filter(|j| j.job == "lost-ack").count(), 1);
+
+    // A different image under the same job id is still refused.
+    let mut other = image.clone();
+    other[0] ^= 1;
+    let other = TransferManifest::from_image(&other, 2048, 16).unwrap();
+    again.send(&[submit.to_frame(), ManifestOffer::encode(&other).unwrap()]);
+    assert!(matches!(
+        again.expect_control("refused", |m| matches!(m, Control::Error { .. })),
+        Control::Error { code: ErrorCode::BadRequest, .. }
+    ));
+}
+
 /// A folder (`files` job): uploaded as a bundle, unpacked and mastered on the server, then burned.
 /// A bundle whose names collide fails in the mastering step with a message naming the file.
 #[test]

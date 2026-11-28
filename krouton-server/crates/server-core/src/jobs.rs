@@ -386,6 +386,17 @@ impl JobManager {
         Ok(staged)
     }
 
+    /// Whether `owner`'s job `job_id` already has every extent of `manifest` and has moved on
+    /// (mastering, queued, burning or done), so a resubmission of it needs no upload. The stored
+    /// manifest must match, root and all: the client proves it is sending the same image.
+    #[must_use]
+    pub fn holds_upload(&self, owner: &str, job_id: &str, manifest: &krsp::manifest::TransferManifest) -> bool {
+        let moved_on = self.lock().jobs.get(job_id).is_some_and(|j| {
+            j.owner == owner && !matches!(j.state, JobState::Receiving | JobState::Failed | JobState::Cancelled)
+        });
+        moved_on && crate::store::load_manifest(&self.job_dir(job_id)).is_ok_and(|stored| stored == *manifest)
+    }
+
     /// Reports upload progress (throttled by the caller) to the owner's connections.
     pub fn upload_progress(&self, job_id: &str, committed: usize, total: usize) {
         #[allow(clippy::cast_precision_loss)]

@@ -13,7 +13,7 @@ use crate::store::StagedImage;
 use krsp::control::{BurnOptions, Content, Control, ErrorCode, telemetry_frame};
 use krsp::frame::{Frame, FrameKind};
 use krsp::identity::{ROLE_NODE, ROLE_WORKSTATION, session_proof_message};
-use krsp::manifest::ManifestOffer;
+use krsp::manifest::{ExtentBitmap, ManifestOffer, TransferManifest};
 use krsp::pairing::{PairingHello, commitment, ct_eq, derive, transcript_salt};
 use krsp::pipeline::StagingReceiver;
 use std::sync::mpsc::Receiver;
@@ -89,9 +89,6 @@ struct Upload {
     staged: StagedImage,
     receiver: StagingReceiver,
     last_progress: Instant,
-    /// Every extent was already on the server (a resubmission after the upload had finished):
-    /// the bitmap query is still answered, so the app's sender completes, but nothing is queued twice.
-    already_complete: bool,
 }
 
 #[derive(Debug)]
@@ -110,6 +107,10 @@ pub struct Session {
     phase: Phase,
     pending: Option<PendingSubmit>,
     upload: Option<Upload>,
+    /// A submission whose image the server already holds in full (a retry of a failed job, or a
+    /// resubmission after the last ack was lost): only the bitmap query is answered, all present,
+    /// so the app's sender completes, and nothing is written or queued twice.
+    settled: Option<StagingReceiver>,
     events: Option<(u64, Receiver<Event>)>,
     holds_pairing_lock: bool,
 }
@@ -143,7 +144,16 @@ impl Session {
                 _ => "not paired, refused".into(),
             }
         ));
-        let session = Self { ctx, peer, phase, pending: None, upload: None, events: None, holds_pairing_lock: false };
+        let session = Self {
+            ctx,
+            peer,
+            phase,
+            pending: None,
+            upload: None,
+            settled: None,
+            events: None,
+            holds_pairing_lock: false,
+        };
         (session, out)
     }
 
@@ -267,7 +277,7 @@ impl Session {
                 Err(e) => vec![error(ErrorCode::DriveBusy, &e, None)],
             },
             Control::Submit { job, drive, label, content, options } => {
-                if self.upload.is_some() || self.pending.is_some() {
+                if self.upload.is_some() || self.settled.is_some() || self.pending.is_some() {
                     return vec![error(ErrorCode::BadRequest, "Finish the current upload first", Some(job))];
                 }
                 self.pending = Some(PendingSubmit { job, drive, label, content, options });
@@ -300,24 +310,30 @@ impl Session {
         match self.ctx.jobs.begin_upload(&submission, &manifest) {
             Ok(mut staged) => {
                 let mut out = vec![Control::Accepted { job: submit.job.clone() }.to_frame()];
-                let already_complete = staged.is_complete();
-                if already_complete {
-                    // A retry of a failed job whose image is still staged, or a resubmission after the
-                    // last extent landed: no upload needed, the burn is queued right away.
+                if staged.is_complete() {
+                    // A retry of a failed job whose image is still staged: no upload needed, the
+                    // burn is queued right away.
                     if let Err(e) = self.ctx.jobs.finish_upload(&submit.job, &mut staged) {
                         out.push(error(ErrorCode::Internal, &e.to_string(), Some(submit.job)));
                         return out;
                     }
+                    crate::log(&format!("{}: upload {} already complete", self.peer.address, submit.job));
+                    self.settled = Some(settled_receiver(manifest));
+                    return out;
                 }
                 let receiver = StagingReceiver::new(manifest, staged.committed().clone(), UPLOAD_WINDOW);
-                crate::log(&format!(
-                    "{}: upload {} {}",
-                    self.peer.address,
-                    submit.job,
-                    if already_complete { "already complete" } else { "started" }
-                ));
-                self.upload =
-                    Some(Upload { job: submit.job, staged, receiver, last_progress: Instant::now(), already_complete });
+                crate::log(&format!("{}: upload {} started", self.peer.address, submit.job));
+                self.upload = Some(Upload { job: submit.job, staged, receiver, last_progress: Instant::now() });
+                out
+            }
+            Err(SubmitError::AlreadySubmitted) if self.ctx.jobs.holds_upload(&owner, &submit.job, &manifest) => {
+                // The upload finished but the app never saw the last ack (the connection dropped in
+                // between) and is resuming: the same image is already queued, burning or burned.
+                // Accept it again without touching the job, and say where it stands.
+                crate::log(&format!("{}: upload {} resumed after it had finished", self.peer.address, submit.job));
+                let mut out = vec![Control::Accepted { job: submit.job.clone() }.to_frame()];
+                out.extend(self.ctx.jobs.job_info(&owner, &submit.job).map(|info| Control::Job(info).to_frame()));
+                self.settled = Some(settled_receiver(manifest));
                 out
             }
             Err(e) => {
@@ -353,17 +369,17 @@ impl Session {
 
     fn on_upload_frame(&mut self, frame: &Frame) -> Vec<Frame> {
         let owner = self.owner();
-        let Some(upload) = self.upload.as_mut() else {
-            return vec![error(ErrorCode::BadRequest, "No upload in progress", None)];
-        };
-        if upload.already_complete {
+        if let Some(receiver) = self.settled.as_mut() {
             // Answer the bitmap query (all present); there is nothing to persist.
-            let replies = upload.receiver.handle_frame(frame, |_, _| false);
+            let replies = receiver.handle_frame(frame, |_, _| false);
             if frame.header.kind == FrameKind::BitmapQuery {
-                self.upload = None;
+                self.settled = None;
             }
             return replies;
         }
+        let Some(upload) = self.upload.as_mut() else {
+            return vec![error(ErrorCode::BadRequest, "No upload in progress", None)];
+        };
         let still_wanted =
             self.ctx.jobs.job_info(&owner, &upload.job).is_some_and(|j| j.state == krsp::control::JobState::Receiving);
         if !still_wanted {
@@ -539,6 +555,15 @@ impl Drop for Session {
             self.ctx.jobs.unsubscribe(id);
         }
     }
+}
+
+/// A receiver for an image the server already holds in full: every extent reads as committed.
+fn settled_receiver(manifest: TransferManifest) -> StagingReceiver {
+    let mut all = ExtentBitmap::new(manifest.extent_count());
+    for index in 0..manifest.extent_count() {
+        all.insert(index);
+    }
+    StagingReceiver::new(manifest, all, UPLOAD_WINDOW)
 }
 
 fn error(code: ErrorCode, message: &str, job: Option<String>) -> Frame {
