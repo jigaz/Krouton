@@ -6,6 +6,7 @@
 //! PowerShell host, so writing shows as indeterminate; read-back verification reports a real
 //! percentage afterwards.
 
+use super::probe::{self, DriveProbe};
 use super::{Backend, BurnRequest, Drive, Progress, Stage, master, run_capture, run_tool, verify_readback};
 use crate::config::BackendKind;
 use krsp::control::MediaState;
@@ -15,7 +16,8 @@ use std::sync::atomic::Ordering;
 
 const SCRIPT_NAME: &str = "krouton-imapi2.ps1";
 
-/// The IMAPI2 helper. `MEDIA:`, `DRIVE:`, `MESSAGE:` and `ERROR:` prefixes are parsed by the server.
+/// The IMAPI2 helper. `MEDIA:`, `DRIVE:`, `PROFILES:`, `CURRENT:`, `FREE:`, `MESSAGE:` and `ERROR:`
+/// prefixes are parsed by the server.
 pub const IMAPI2_SCRIPT: &str = r#"param(
   [Parameter(Mandatory = $true)][ValidateSet('list', 'status', 'burn', 'eject', 'master')][string]$Action,
   [string]$Drive = '',
@@ -47,9 +49,12 @@ try {
     }
     'status' {
       $r = Find-Recorder $Drive
+      try { Write-Output ('PROFILES:{0}' -f (($r.SupportedProfiles | ForEach-Object { '{0:x}' -f [int]$_ }) -join ',')) } catch {}
       $f = New-Object -ComObject IMAPI2.MsftDiscFormat2Data
       if (-not $f.IsCurrentMediaSupported($r)) { Write-Output 'MEDIA:noDisc'; break }
       $f.Recorder = $r
+      try { $c = $r.CurrentProfiles | Select-Object -First 1; if ($c) { Write-Output ('CURRENT:{0:x}' -f [int]$c) } } catch {}
+      try { Write-Output ('FREE:{0}' -f ([int64]$f.FreeSectorsOnMedia * 2048)) } catch {}
       $s = [int]$f.CurrentMediaStatus
       if ($s -band 0x2) { Write-Output 'MEDIA:blank' }
       elseif ($s -band 0x4) { Write-Output 'MEDIA:appendable' }
@@ -207,6 +212,28 @@ pub fn parse_media_line(text: &str) -> MediaState {
     text.lines().find_map(|l| l.trim().strip_prefix("MEDIA:")).map_or(MediaState::Unknown, MediaState::from_wire)
 }
 
+/// The helper's `status` output: `MEDIA:`, `PROFILES:` (the drive's MMC profiles in hex,
+/// comma-separated), `CURRENT:` (the disc's profile) and `FREE:` (bytes).
+#[must_use]
+pub fn parse_status_probe(text: &str) -> DriveProbe {
+    let field = |prefix: &str| text.lines().find_map(|l| l.trim().strip_prefix(prefix).map(str::to_owned));
+    let media = parse_media_line(text);
+    let has_disc = matches!(media, MediaState::Blank | MediaState::Appendable | MediaState::Complete);
+    let profiles: Vec<u16> = field("PROFILES:")
+        .map(|list| list.split(',').filter_map(|p| u16::from_str_radix(p.trim(), 16).ok()).collect())
+        .unwrap_or_default();
+    DriveProbe {
+        media,
+        writes: (!profiles.is_empty()).then(|| probe::writes_from_profiles(&profiles)),
+        disc: field("CURRENT:")
+            .and_then(|c| u16::from_str_radix(c.trim(), 16).ok())
+            .and_then(probe::profile_name)
+            .filter(|_| has_disc)
+            .map(str::to_owned),
+        free_bytes: field("FREE:").and_then(|f| f.trim().parse().ok()).filter(|_| has_disc),
+    }
+}
+
 impl Backend for WindowsBackend {
     fn kind(&self) -> BackendKind {
         BackendKind::Windows
@@ -230,6 +257,13 @@ impl Backend for WindowsBackend {
             .ok()
             .and_then(|cmd| run_capture(cmd).ok())
             .map_or(MediaState::Unknown, |(_, text)| parse_media_line(&text))
+    }
+
+    fn probe(&self, drive: &Drive) -> DriveProbe {
+        self.command("status", Some(&drive.device), None)
+            .ok()
+            .and_then(|cmd| run_capture(cmd).ok())
+            .map_or_else(DriveProbe::default, |(_, text)| parse_status_probe(&text))
     }
 
     fn burn(&self, request: &BurnRequest<'_>, progress: &mut dyn FnMut(Progress)) -> Result<(), String> {
@@ -344,6 +378,19 @@ mod tests {
         assert_eq!(parse_media_line("ERROR:x"), MediaState::Unknown);
         assert!(is_drive_letter("Z:"));
         assert!(!is_drive_letter("ZZ:") && !is_drive_letter("C:\\") && !is_drive_letter("1:"));
+    }
+
+    #[test]
+    fn parses_the_status_probe() {
+        let text = "PROFILES:8,9,a,10,11,1b,2b\r\nCURRENT:1b\r\nFREE:4700372992\r\nMEDIA:blank\r\n";
+        let p = parse_status_probe(text);
+        assert_eq!(p.media, MediaState::Blank);
+        assert_eq!(p.writes, Some(krsp::identity::caps::WRITES_CD | krsp::identity::caps::WRITES_DVD));
+        assert_eq!(p.disc.as_deref(), Some("DVD+R"));
+        assert_eq!(p.free_bytes, Some(4_700_372_992));
+        let empty = parse_status_probe("PROFILES:9,a\r\nMEDIA:noDisc\r\n");
+        assert_eq!((empty.media, empty.disc, empty.free_bytes), (MediaState::NoDisc, None, None));
+        assert_eq!(empty.writes, Some(krsp::identity::caps::WRITES_CD));
     }
 
     #[test]

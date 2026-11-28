@@ -39,6 +39,14 @@ impl Backend for SimulatedBackend {
         MediaState::Blank
     }
 
+    /// A simulated drive writes every family and holds any image.
+    fn probe(&self, drive: &Drive) -> super::DriveProbe {
+        super::DriveProbe {
+            writes: Some(krsp::identity::caps::WRITES_ANY),
+            ..super::DriveProbe::media_only(self.media(drive))
+        }
+    }
+
     fn burn(&self, request: &BurnRequest<'_>, progress: &mut dyn FnMut(Progress)) -> Result<(), String> {
         // The image must really be there and complete, exactly as a real burn would need.
         let len = std::fs::metadata(request.image).map_err(|e| format!("Image missing: {e}"))?.len();

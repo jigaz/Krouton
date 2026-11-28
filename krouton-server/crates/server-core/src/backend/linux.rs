@@ -2,6 +2,7 @@
 //! build): `xorriso -as cdrecord` writes CD, DVD and Blu-ray from one tool that every distro
 //! packages (`apt install xorriso`). Drives are discovered from sysfs, so nothing else is needed.
 
+use super::probe::{self, DriveProbe};
 use super::{Backend, BurnRequest, Drive, Progress, Stage, first_percent, run_capture, run_tool, verify_readback};
 use crate::config::BackendKind;
 use krsp::control::MediaState;
@@ -67,6 +68,13 @@ impl Backend for LinuxBackend {
         let mut cmd = Command::new(&self.xorriso);
         cmd.args(["-outdev", &drive.device]);
         run_capture(cmd).map_or(MediaState::Unknown, |(_, text)| parse_media_status(&text))
+    }
+
+    /// One xorriso call: the media status and summary, then the drive's MMC profiles.
+    fn probe(&self, drive: &Drive) -> DriveProbe {
+        let mut cmd = Command::new(&self.xorriso);
+        cmd.args(["-outdev", &drive.device, "-list_profiles", "out"]);
+        run_capture(cmd).map_or_else(|_| DriveProbe::default(), |(_, text)| parse_xorriso_probe(&text))
     }
 
     fn burn(&self, request: &BurnRequest<'_>, progress: &mut dyn FnMut(Progress)) -> Result<(), String> {
@@ -180,6 +188,51 @@ fn sanitize_id(s: &str) -> String {
     if id.is_empty() { "drive".into() } else { id }
 }
 
+/// Reads what `xorriso -outdev DEV -list_profiles out` prints: `Media status :`, the free space
+/// at the end of `Media summary:` (`4466m free`, in binary units), and the `Profile :` lines,
+/// the disc's own marked `(current)`.
+#[must_use]
+pub fn parse_xorriso_probe(text: &str) -> DriveProbe {
+    let mut profiles = Vec::new();
+    let mut current = None;
+    for line in text.lines() {
+        let Some(rest) = line.trim_start().strip_prefix("Profile") else { continue };
+        let Some(hex) = rest.split_whitespace().find_map(|word| word.strip_prefix("0x")) else { continue };
+        let Ok(code) = u16::from_str_radix(hex, 16) else { continue };
+        profiles.push(code);
+        if line.contains("(current)") {
+            current = Some(code);
+        }
+    }
+    let media = parse_media_status(text);
+    let free_bytes = text
+        .lines()
+        .find(|l| l.trim_start().starts_with("Media summary"))
+        .and_then(|l| l.split(',').find(|part| part.trim_end().ends_with("free")))
+        .and_then(|part| xorriso_size(part.trim().trim_end_matches("free").trim()));
+    let has_disc = matches!(media, MediaState::Blank | MediaState::Appendable | MediaState::Complete);
+    DriveProbe {
+        media,
+        writes: (!profiles.is_empty()).then(|| probe::writes_from_profiles(&profiles)),
+        disc: current.filter(|_| has_disc).and_then(probe::profile_name).map(str::to_owned),
+        free_bytes: free_bytes.filter(|_| has_disc),
+    }
+}
+
+/// `4466m` → bytes. xorriso counts in binary units: `k` KiB, `m` MiB, `g` GiB.
+fn xorriso_size(text: &str) -> Option<u64> {
+    let (number, unit) = text.split_at(text.find(|c: char| !c.is_ascii_digit())?);
+    let value: u64 = number.parse().ok()?;
+    let scale: u64 = match unit {
+        "k" => 1 << 10,
+        "m" => 1 << 20,
+        "g" => 1 << 30,
+        "" | "b" => 1,
+        _ => return None,
+    };
+    value.checked_mul(scale)
+}
+
 /// Reads xorriso's `Media status :` line.
 #[must_use]
 pub fn parse_media_status(text: &str) -> MediaState {
@@ -249,6 +302,39 @@ pub fn parse_progress_line(line: &str) -> Option<Progress> {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn probes_a_dvd_burner_with_a_blank_dvd() {
+        let text = "Drive current: -outdev '/dev/sr0'\n\
+                    Media current: DVD+R\n\
+                    Media status : is blank\n\
+                    Media summary: 0 sessions, 0 data blocks, 0 data, 4489m free\n\
+                    Profile      : 0x0008 (CD-ROM)\n\
+                    Profile      : 0x0009 (CD-R)\n\
+                    Profile      : 0x000A (CD-RW)\n\
+                    Profile      : 0x0010 (DVD-ROM)\n\
+                    Profile      : 0x0011 (DVD-R sequential recording)\n\
+                    Profile      : 0x001B (DVD+R) (current)\n\
+                    Profile      : 0x002B (DVD+R/DL)\n";
+        let p = parse_xorriso_probe(text);
+        assert_eq!(p.media, MediaState::Blank);
+        assert_eq!(p.writes, Some(krsp::identity::caps::WRITES_CD | krsp::identity::caps::WRITES_DVD));
+        assert_eq!(p.disc.as_deref(), Some("DVD+R"));
+        assert_eq!(p.free_bytes, Some(4489 << 20));
+    }
+
+    #[test]
+    fn probes_an_empty_tray() {
+        let text = "Drive current: -outdev '/dev/sr0'\n\
+                    Media current: is not present\n\
+                    Profile      : 0x0009 (CD-R)\n\
+                    Profile      : 0x0041 (BD-R sequential recording)\n";
+        let p = parse_xorriso_probe(text);
+        assert_eq!(p.media, MediaState::NoDisc);
+        assert_eq!(p.writes, Some(krsp::identity::caps::WRITES_CD | krsp::identity::caps::WRITES_BD));
+        assert_eq!(p.disc, None);
+        assert_eq!(p.free_bytes, None);
+    }
 
     #[test]
     fn media_status_lines() {

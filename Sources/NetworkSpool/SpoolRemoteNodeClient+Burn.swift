@@ -15,19 +15,24 @@ public struct SpoolRemoteBurnOutcome: Sendable, Equatable {
 @MainActor
 extension SpoolRemoteNodeClient {
     /// Uploads `image` (an ISO/UDF data image) to a paired server and burns it on `driveID` (or the
-    /// first ready drive), streaming progress into `store[telemetryKey]`. Uploads resume across
+    /// first drive that can), streaming progress into `store[telemetryKey]`. Uploads resume across
     /// dropped connections; the burn itself runs on the server and is followed until it ends.
+    ///
+    /// - Parameter needs: the disc families the format takes (a Blu-ray Video project needs a
+    ///   Blu-ray disc whatever its size); nil for any. A drive that can't write the job, or whose
+    ///   disc can't hold it, is refused before anything is uploaded.
     public func burnImage(
         at image: URL,
         label: String,
         serverID: String,
         driveID: String?,
+        needs: SpoolNodeCapabilities? = nil,
         options: SpoolBurnOptions,
         telemetry store: any KroutonDriveTelemetryStore,
         telemetryKey: String
     ) async -> SpoolRemoteBurnOutcome {
         await burnUpload(of: image, content: .image, label: label, serverID: serverID, driveID: driveID,
-                         options: options, telemetry: store, telemetryKey: telemetryKey)
+                         needs: needs, options: options, telemetry: store, telemetryKey: telemetryKey)
     }
 
     /// Sends the contents of `folder` to a server that builds the disc itself
@@ -40,6 +45,7 @@ extension SpoolRemoteNodeClient {
         label: String,
         serverID: String,
         driveID: String?,
+        needs: SpoolNodeCapabilities? = nil,
         options: SpoolBurnOptions,
         telemetry store: any KroutonDriveTelemetryStore,
         telemetryKey: String
@@ -62,7 +68,7 @@ extension SpoolRemoteNodeClient {
                                           serverName: "", driveName: "", job: nil)
         }
         return await burnUpload(of: bundle, content: .files, label: label, serverID: serverID, driveID: driveID,
-                                options: options, telemetry: store, telemetryKey: telemetryKey)
+                                needs: needs, options: options, telemetry: store, telemetryKey: telemetryKey)
     }
 
     private static var notPaired: SpoolRemoteBurnOutcome {
@@ -76,6 +82,7 @@ extension SpoolRemoteNodeClient {
         label: String,
         serverID: String,
         driveID: String?,
+        needs: SpoolNodeCapabilities?,
         options: SpoolBurnOptions,
         telemetry store: any KroutonDriveTelemetryStore,
         telemetryKey: String
@@ -100,6 +107,7 @@ extension SpoolRemoteNodeClient {
         guard let offer = manifest.encodeManifestOffer() else {
             return outcome(false, "The image is too large to describe in one manifest", server, "", job)
         }
+        let imageBytes = (try? FileManager.default.attributesOfItem(atPath: image.path)[.size] as? Int64) ?? 0
 
         var drive = ""
         var attempt = 0
@@ -107,7 +115,9 @@ extension SpoolRemoteNodeClient {
             attempt += 1
             do {
                 let connection = try await ensureSession(for: server)
-                drive = try chooseDrive(driveID)
+                // What is in the trays now, not when the session opened, then the check.
+                await awaitFreshDrives(on: connection)
+                drive = try SpoolDriveInfo.choose(from: remoteDrives, requested: driveID, imageBytes: imageBytes, needs: needs).get().id
                 let submit = SpoolControl.submit(job: job, drive: drive, label: label, content: content, options: options)
                 try await withCheckedThrowingContinuation { (waiter: CheckedContinuation<Void, Error>) in
                     acceptWaiters[job] = waiter
@@ -158,13 +168,13 @@ extension SpoolRemoteNodeClient {
         return outcome(final.state == .done, Self.describe(final), server, driveName, job)
     }
 
-    private func chooseDrive(_ requested: String?) throws -> String {
-        if let requested, !requested.isEmpty, remoteDrives.contains(where: { $0.id == requested }) {
-            return requested
+    /// Asks for the drives again and waits up to five seconds for the answer.
+    private func awaitFreshDrives(on connection: SpoolServerConnection) async {
+        let before = remoteDrivesRevision
+        try? await connection.send([.listDrives])
+        for _ in 0..<25 where remoteDrivesRevision == before {
+            try? await Task.sleep(for: .milliseconds(200))
         }
-        let ready = remoteDrives.first { $0.media == .blank && !$0.busy } ?? remoteDrives.first { !$0.busy } ?? remoteDrives.first
-        guard let ready else { throw SpoolRemoteError(code: .unknownDrive, message: "The server has no optical drives") }
-        return ready.id
     }
 
     /// Follows a job until it finishes, reconnecting and re-watching if the connection drops
