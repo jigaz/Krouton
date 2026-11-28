@@ -407,7 +407,8 @@ public actor BurnJournal {
 
     /// The journal's size on disk.
     public func bytesOnDisk() -> Int64 {
-        Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+        // Not `url.resourceValues`: a URL caches those, so a size read before `clear()` would stay.
+        ((try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? NSNumber)?.int64Value ?? 0
     }
 
     public func acknowledge(_ jobs: [BurnJournalRecord]) throws {
