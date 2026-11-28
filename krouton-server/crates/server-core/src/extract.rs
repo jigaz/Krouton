@@ -117,14 +117,17 @@ pub fn extract_bundle(
     Ok(summary)
 }
 
+/// A bundle's mtime as a file time. The value comes from the client (a pax `mtime` record can be
+/// any `u64`), and `SystemTime + Duration` panics past the platform's range, which would take the
+/// whole server down (release builds abort on panic): out-of-range times become the epoch.
 fn time_from(seconds: u64) -> SystemTime {
-    SystemTime::UNIX_EPOCH + Duration::from_secs(seconds)
+    SystemTime::UNIX_EPOCH.checked_add(Duration::from_secs(seconds)).unwrap_or(SystemTime::UNIX_EPOCH)
 }
 
 // MARK: - Tests
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
 mod tests {
     use super::*;
     use crate::testutil::TempDir;
@@ -175,6 +178,41 @@ mod tests {
         let a = archive(tmp.path(), |w| w.file("a", 1, 0, &mut &b"a"[..]).unwrap());
         let err = extract_bundle(&a, &tree, &AtomicBool::new(true), &mut |_, _| {}).unwrap_err();
         assert_eq!(err, "Cancelled");
+    }
+
+    #[test]
+    fn an_out_of_range_pax_mtime_does_not_panic() {
+        // A pax header (`x`) whose `mtime` is u64::MAX, then a one-byte file. The writer never emits
+        // this, so the bytes are put together by hand, as a hostile client would.
+        let tmp = TempDir::new("extract-mtime");
+        let record = krsp::bundle::pax_record("mtime", &u64::MAX.to_string());
+        let mut tar = header("././@PaxHeader", b'x', record.len() as u64);
+        tar.extend_from_slice(record.as_bytes());
+        tar.resize(1024, 0);
+        tar.extend_from_slice(&header("a.txt", b'0', 1));
+        tar.push(b'a');
+        tar.resize(tar.len() + 511 + 1024, 0);
+        let path = tmp.path().join("bundle.tar");
+        fs::write(&path, &tar).unwrap();
+        let tree = tmp.path().join("tree");
+        let got = extract_bundle(&path, &tree, &AtomicBool::new(false), &mut |_, _| {}).unwrap();
+        assert_eq!(got.files, 1);
+        assert_eq!(fs::read(tree.join("a.txt")).unwrap(), b"a");
+    }
+
+    /// A minimal ustar header with a valid checksum.
+    fn header(name: &str, kind: u8, size: u64) -> Vec<u8> {
+        let mut h = vec![0u8; 512];
+        h[..name.len()].copy_from_slice(name.as_bytes());
+        h[100..108].copy_from_slice(b"0000644\0");
+        h[124..136].copy_from_slice(format!("{size:011o}\0").as_bytes());
+        h[136..148].copy_from_slice(b"00000000000\0");
+        h[156] = kind;
+        h[257..265].copy_from_slice(b"ustar\x0000");
+        h[148..156].copy_from_slice(b"        ");
+        let sum: u32 = h.iter().map(|b| u32::from(*b)).sum();
+        h[148..156].copy_from_slice(format!("{sum:06o}\0 ").as_bytes());
+        h
     }
 
     #[test]
