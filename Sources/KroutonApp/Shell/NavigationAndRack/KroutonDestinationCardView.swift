@@ -1,3 +1,4 @@
+import AudioKit
 import DriveKit
 import Foundation
 import NetworkSpool
@@ -73,9 +74,17 @@ struct KroutonDestinationCardView: View {
                     )
                 )
             } else {
-                Text(item.hardwareOrPath)
+                Text(verbatim: item.hardwareOrPath)
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .foregroundStyle(.primary)
+                if item.kind == .audioRip {
+                    KroutonRipCodecPickerView(codec: Binding(
+                        get: { item.ripCodec },
+                        set: { codec in store.updateQueueItem(cardID) { $0.setRipCodec(codec) } }
+                    ))
+                    .fixedSize()
+                    .help("The format this card rips to. Each album gets its own folder inside the one shown.")
+                }
             }
 
             // Bottom Row: Options on Left + Dedicated Per-Card Action Button on Right

@@ -330,7 +330,7 @@ public enum KroutonRealCDExtractor {
 
     public static func extractSingleTrack(
         track: KroutonMountedCDTrackDescriptor,
-        codecLabel: String,
+        codec: KroutonRipCodec,
         outputDirectory: URL,
         fileStem: String? = nil,
         shouldCancel: (@Sendable () -> Bool)? = nil,
@@ -343,17 +343,14 @@ public enum KroutonRealCDExtractor {
         try fm.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
         let safeTitle = track.title.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-").trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let ext: String
+        let ext = codec.fileExtension
         let formatID: AudioFormatID
         let fileTypeID: AudioFileTypeID
-        if codecLabel.contains("FLAC") {
-            ext = "flac"; formatID = kAudioFormatFLAC; fileTypeID = kAudioFileFLACType
-        } else if codecLabel.contains("ALAC") || codecLabel.contains("Apple Lossless") {
-            ext = "m4a"; formatID = kAudioFormatAppleLossless; fileTypeID = kAudioFileM4AType
-        } else if codecLabel.contains("WAV") {
-            ext = "wav"; formatID = kAudioFormatLinearPCM; fileTypeID = kAudioFileWAVEType
-        } else {
-            ext = "aiff"; formatID = kAudioFormatLinearPCM; fileTypeID = kAudioFileAIFFType
+        switch codec {
+        case .flac: formatID = kAudioFormatFLAC; fileTypeID = kAudioFileFLACType
+        case .alac: formatID = kAudioFormatAppleLossless; fileTypeID = kAudioFileM4AType
+        case .wav: formatID = kAudioFormatLinearPCM; fileTypeID = kAudioFileWAVEType
+        case .aiff: formatID = kAudioFormatLinearPCM; fileTypeID = kAudioFileAIFFType
         }
 
         // `fileStem` is the naming pattern's result; a "/" in it makes folders.

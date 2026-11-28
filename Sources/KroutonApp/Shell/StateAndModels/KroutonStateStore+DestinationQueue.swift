@@ -18,14 +18,9 @@ extension KroutonStateStore {
             ? (selectedFormatID == .dvdVideo ? "DVD_VIDEO" : "KROUTON_DISC")
             : discVolumeTitle.replacingOccurrences(of: " ", with: "_")
         if selectedCategory == .copy {
-            switch selectedCopyTaskID {
-            case .ripAudioCD:
-                return ("~/Music/Krouton Rips/\(cleanTitle).cue", "Red Book .BIN + .CUE Archival Image")
-            case .extractVideoDisc:
-                return ("~/Movies/Krouton Extracts/\(cleanTitle).iso", "Decrypted Video .ISO Image")
-            default:
-                return ("~/Desktop/Disc_Backup.iso", "1:1 Archival Sector .ISO Image")
-            }
+            // A queue card doesn't read the disc; Duplicate Disc in the workspace does (see
+            // `runTargetDestination`).
+            return ("~/Desktop/\(cleanTitle).iso", "Disc image (.iso)")
         }
         let fmt = activeFormatSpec().formatID
         if fmt?.usesRawCueBinImage == true {
@@ -35,7 +30,8 @@ extension KroutonStateStore {
         }
         return ("~/Desktop/\(cleanTitle).iso", "Sector-Exact .ISO Optical Image")
     }
-    /// Strict task-aware allowed destination types (never offer Video Transcode on Audio CD or Burners on Rip tasks!)
+    /// The destination kinds each task offers. Ripping and video extraction offer no disc-image
+    /// card: Krouton can't yet save an audio CD as .bin/.cue, and a queue card can't read a disc.
     var allowedDestinationsForCurrentCategory: [KroutonBurnDestinationKind] {
         switch selectedCategory {
         case .depot:
@@ -48,9 +44,9 @@ extension KroutonStateStore {
         case .copy:
             switch selectedCopyTaskID {
             case .ripAudioCD:
-                return [.audioRip, .discImage]
+                return [.audioRip]
             case .extractVideoDisc:
-                return [.videoExtract, .discImage]
+                return [.videoExtract]
             default:
                 return [.physicalBurner, .networkBurner, .discImage]
             }
@@ -67,21 +63,12 @@ extension KroutonStateStore {
                 destinationQueue[idx].kind = fallbackKind
                 switch fallbackKind {
                 case .audioRip:
+                    destinationQueue[idx].becomeAudioRip()
+                case .videoExtract, .discPrinter, .pdfVector:
+                    let preset = fallbackKind == .videoExtract ? KroutonBakeBatchItem.videoExtract() : KroutonBakeBatchItem.label(fallbackKind)
                     destinationQueue[idx].targetDriveID = ""
-                    destinationQueue[idx].hardwareOrPath = "~/Music/Krouton Rips/FLAC Lossless"
-                    destinationQueue[idx].speedOrCodec = "FLAC (Lossless) + AccurateRip"
-                case .videoExtract:
-                    destinationQueue[idx].targetDriveID = ""
-                    destinationQueue[idx].hardwareOrPath = "~/Movies/Krouton Extracts"
-                    destinationQueue[idx].speedOrCodec = "Lossless MKV Remux"
-                case .discPrinter:
-                    destinationQueue[idx].targetDriveID = ""
-                    destinationQueue[idx].hardwareOrPath = ""
-                    destinationQueue[idx].speedOrCodec = ""
-                case .pdfVector:
-                    destinationQueue[idx].targetDriveID = ""
-                    destinationQueue[idx].hardwareOrPath = "~/Desktop/\(discVolumeTitle)_Label.pdf"
-                    destinationQueue[idx].speedOrCodec = "300 DPI Vector PDF Proof"
+                    destinationQueue[idx].hardwareOrPath = preset.hardwareOrPath
+                    destinationQueue[idx].speedOrCodec = preset.speedOrCodec
                 case .discImage:
                     let imgTarget = defaultDiscImageTarget
                     destinationQueue[idx].targetDriveID = ""
@@ -89,8 +76,8 @@ extension KroutonStateStore {
                     destinationQueue[idx].speedOrCodec = imgTarget.description
                 case .networkBurner:
                     destinationQueue[idx].targetDriveID = ""
-                    destinationQueue[idx].hardwareOrPath = "localhost:7420"
-                    destinationQueue[idx].speedOrCodec = "Max Safe (Auto)"
+                    destinationQueue[idx].hardwareOrPath = ""
+                    destinationQueue[idx].speedOrCodec = KroutonBakeBatchItem.burnSpeedAuto
                 case .physicalBurner:
                     break
                 }
@@ -120,8 +107,8 @@ extension KroutonStateStore {
                 } else {
                     destinationQueue[idx].kind = .networkBurner
                     destinationQueue[idx].targetDriveID = ""
-                    destinationQueue[idx].hardwareOrPath = "localhost:7420"
-                    destinationQueue[idx].speedOrCodec = "Max Safe (Auto)"
+                    destinationQueue[idx].hardwareOrPath = ""
+                    destinationQueue[idx].speedOrCodec = KroutonBakeBatchItem.burnSpeedAuto
                 }
             }
         }
@@ -245,7 +232,7 @@ extension KroutonStateStore {
             return []
         }()
         if !candidateQueue.isEmpty {
-            var restored = candidateQueue.filter { allowed.contains($0.kind) }
+            var restored = candidateQueue.filter { allowed.contains($0.kind) }.map { $0.repairingLegacyPresets() }
             // Update any .discImage card's file extension (.cue vs .iso vs .dmg) to match the new format!
             let imgTarget = defaultDiscImageTarget
             for i in restored.indices where restored[i].kind == .discImage {
@@ -277,22 +264,16 @@ extension KroutonStateStore {
             ]
         case .copy:
             if KroutonCopyTaskID(rawValue: taskID) == .ripAudioCD {
-                destinationQueue = [
-                    KroutonBakeBatchItem(kind: .audioRip, targetDriveID: "", hardwareOrPath: "~/Music/Krouton Rips/FLAC Lossless", speedOrCodec: "FLAC (Lossless) + AccurateRip", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
-                ]
+                destinationQueue = [.audioRip(.flac)]
             } else if KroutonCopyTaskID(rawValue: taskID) == .extractVideoDisc {
-                destinationQueue = [
-                    KroutonBakeBatchItem(kind: .videoExtract, targetDriveID: "", hardwareOrPath: "~/Movies/Krouton Extracts", speedOrCodec: "Lossless MKV Remux", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
-                ]
+                destinationQueue = [.videoExtract()]
             } else {
                 destinationQueue = [
                     KroutonBakeBatchItem(kind: .physicalBurner, targetDriveID: currentDriveID, hardwareOrPath: currentDriveName, speedOrCodec: "Max Safe (Auto)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
                 ]
             }
         case .label:
-            destinationQueue = [
-                KroutonBakeBatchItem(kind: .discPrinter, targetDriveID: "", hardwareOrPath: "~/Desktop/\(discVolumeTitle)_Label Sheet.pdf", speedOrCodec: "1:1 PDF + 300-DPI PNG • 120mm / 18mm", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
-            ]
+            destinationQueue = [.label(.discPrinter)]
         }
         savedQueuesByDomain[targetDomain] = destinationQueue
     }
@@ -306,7 +287,7 @@ extension KroutonStateStore {
                 )
             } else {
                 destinationQueue.append(
-                    KroutonBakeBatchItem(kind: .networkBurner, targetDriveID: "", hardwareOrPath: "localhost:7420", speedOrCodec: "Max Safe (Auto)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
+                    .networkBurner()
                 )
             }
         case .burn:
@@ -317,7 +298,7 @@ extension KroutonStateStore {
                 )
             } else if selectedFormatID == .imageBurn {
                 destinationQueue.append(
-                    KroutonBakeBatchItem(kind: .networkBurner, targetDriveID: "", hardwareOrPath: "localhost:7420", speedOrCodec: "Max Safe (Auto)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
+                    .networkBurner()
                 )
             } else {
                 let imgTarget = defaultDiscImageTarget
@@ -327,28 +308,15 @@ extension KroutonStateStore {
             }
         case .copy:
             if selectedCopyTaskID == .ripAudioCD {
-                let hasCueBackup = destinationQueue.contains(where: { $0.kind == .discImage })
-                if !hasCueBackup {
-                    let imgTarget = defaultDiscImageTarget
-                    destinationQueue.append(
-                        KroutonBakeBatchItem(kind: .discImage, targetDriveID: "", hardwareOrPath: imgTarget.path, speedOrCodec: imgTarget.description, simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
-                    )
-                } else {
-                    destinationQueue.append(
-                        KroutonBakeBatchItem(kind: .audioRip, targetDriveID: "", hardwareOrPath: "~/Music/Krouton Rips/MP3 320kbps", speedOrCodec: "MP3 (320 kbps CBR)", simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
-                    )
+                // Another rip card in the next format not yet queued, such as Apple Lossless beside FLAC.
+                let used = Set(destinationQueue.filter { $0.kind == .audioRip }.map(\.ripCodec))
+                if let codec = KroutonRipCodec.allCases.first(where: { !used.contains($0) }) {
+                    destinationQueue.append(.audioRip(codec))
                 }
             } else if selectedCopyTaskID == .extractVideoDisc {
-                let hasIsoBackup = destinationQueue.contains(where: { $0.kind == .discImage })
-                if !hasIsoBackup {
-                    let imgTarget = defaultDiscImageTarget
-                    destinationQueue.append(
-                        KroutonBakeBatchItem(kind: .discImage, targetDriveID: "", hardwareOrPath: imgTarget.path, speedOrCodec: imgTarget.description, simulationMode: false, verifyAfterBurn: true, compressAfterCreation: false)
-                    )
-                } else {
-                    destinationQueue.append(
-                        KroutonBakeBatchItem(kind: .videoExtract, targetDriveID: "", hardwareOrPath: "~/Movies/Krouton Extracts/HEVC_10Bit", speedOrCodec: "Apple HEVC 10-Bit (.mp4)", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
-                    )
+                // The titles are chosen and extracted in the workspace, so one card is enough.
+                if !destinationQueue.contains(where: { $0.kind == .videoExtract }) {
+                    destinationQueue.append(.videoExtract())
                 }
             } else {
                 let imgTarget = defaultDiscImageTarget
@@ -357,9 +325,7 @@ extension KroutonStateStore {
                 )
             }
         case .label:
-            destinationQueue.append(
-                KroutonBakeBatchItem(kind: .pdfVector, targetDriveID: "", hardwareOrPath: "~/Desktop/Epson_ET8550_Label_120mm.pdf", speedOrCodec: "300 DPI Vector PDF Proof", simulationMode: false, verifyAfterBurn: false, compressAfterCreation: false)
-            )
+            destinationQueue.append(.label(.pdfVector))
         }
     }
 }
