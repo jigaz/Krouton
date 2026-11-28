@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Dual-Swatch Primary / Secondary Harmony Toggle Switch
+// MARK: - Second Accent Switch
 struct KroutonDualHarmonySwitch: View {
     @Binding var isOn: Bool
     let primaryColor: Color
@@ -98,7 +98,7 @@ struct KroutonDualHarmonySwitch: View {
     }
 }
 
-// MARK: - Pure SwiftUI FileDocument for Non-Blocking Krumb Artifact Exports
+// MARK: - Plain Text Document for Saving Logs
 struct SpoolPlainTextFileDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.plainText, .log] }
     var text: String

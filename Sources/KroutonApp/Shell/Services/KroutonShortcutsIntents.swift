@@ -5,7 +5,7 @@ import ImageKit
 import OpticalCore
 import VideoKit
 
-// MARK: - AppEnum for Target Optical Media Size in Apple Shortcuts
+// MARK: - Disc Sizes for Shortcuts
 
 enum KroutonShortcutDiscMedium: String, AppEnum, CaseIterable, Sendable {
     case cd650MB   = "CD-R 74 min / 650 MB"
@@ -39,7 +39,7 @@ enum KroutonShortcutDiscMedium: String, AppEnum, CaseIterable, Sendable {
     }
 }
 
-// MARK: - 1. List Connected Optical Drives Intent
+// MARK: - List Drives
 
 struct KroutonListOpticalDrivesIntent: AppIntent {
     static let title: LocalizedStringResource = "List Optical Drives & Media Status"
@@ -66,7 +66,7 @@ struct KroutonListOpticalDrivesIntent: AppIntent {
     }
 }
 
-// MARK: - 2. Inspect Disc Image & SHA-256 Intent
+// MARK: - Inspect a Disc Image
 
 struct KroutonInspectDiscImageIntent: AppIntent {
     static let title: LocalizedStringResource = "Inspect Optical Disc Image"
@@ -108,7 +108,7 @@ struct KroutonInspectDiscImageIntent: AppIntent {
     }
 }
 
-// MARK: - 3. Plan Multi-Disc Spanning Intent
+// MARK: - Plan a Multi-Disc Set
 
 struct KroutonPlanMultiDiscSpanIntent: AppIntent {
     static let title: LocalizedStringResource = "Calculate Multi-Disc Spanning Plan"
@@ -141,7 +141,7 @@ struct KroutonPlanMultiDiscSpanIntent: AppIntent {
     }
 }
 
-// MARK: - 4. Build Hybrid UDF / ISO-9660 Image Intent
+// MARK: - Make a Hybrid Disc Image
 
 struct KroutonBuildHybridISOIntent: AppIntent {
     static let title: LocalizedStringResource = "Master Hybrid UDF/ISO-9660 Disc Image"
@@ -173,7 +173,7 @@ struct KroutonBuildHybridISOIntent: AppIntent {
     }
 }
 
-// MARK: - 5. Open Krouton Mastering Format Intent
+// MARK: - Open a Workspace
 
 struct KroutonOpenWorkspaceIntent: AppIntent {
     static let title: LocalizedStringResource = "Open Krouton Mastering Format"
@@ -197,7 +197,7 @@ struct KroutonOpenWorkspaceIntent: AppIntent {
     }
 }
 
-// MARK: - Apple Shortcuts Provider
+// MARK: - App Shortcuts
 
 struct KroutonShortcutsProvider: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {

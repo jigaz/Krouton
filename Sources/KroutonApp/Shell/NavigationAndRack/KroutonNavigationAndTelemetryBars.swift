@@ -3,8 +3,11 @@ import Foundation
 import OpticalCore
 import SwiftUI
 
-// MARK: - Standalone Left Format Chooser Sidebar, Central Capacity Bar & Burn Station Views
+// MARK: - Format Chooser Sidebar
 
+/// The left-hand column: every task Krouton offers, grouped as Burn, Disc Image Depot, Copy
+/// and Label. Choosing a row sets the store's `selectedCategory` and `selectedTaskID`, which
+/// pick the workspace in the middle and the default destination cards on the right.
 struct KroutonLeftFormatChooserColumnView: View {
     var store: KroutonStateStore
     var driveManager: KroutonOpticalDriveBank
@@ -26,7 +29,7 @@ struct KroutonLeftFormatChooserColumnView: View {
                         .font(.system(size: 11))
                 }
                 .buttonStyle(.plain)
-                .help("Configure visible formats in Settings -> Format Chooser")
+                .help("Choose which formats are listed (Settings › Format Chooser)")
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -115,7 +118,7 @@ struct KroutonLeftFormatChooserColumnView: View {
                             category: .copy,
                             title: "Duplicate Disc",
                             shortTitle: "Duplicate",
-                            colloquial: "Fit-to-Disc DVD-9 / BD Shrink",
+                            colloquial: "1:1 copy, or a DVD-9 shrunk to fit a DVD-5",
                             badge: "1:1 / Fit",
                             sfSymbol: "doc.on.doc.fill"
                         )
@@ -124,7 +127,7 @@ struct KroutonLeftFormatChooserColumnView: View {
                             category: .copy,
                             title: "Rip Audio CD",
                             shortTitle: "Rip Audio",
-                            colloquial: "ALAC, AAC, FLAC + AccurateRip",
+                            colloquial: "FLAC, ALAC, WAV or AIFF, checked with AccurateRip",
                             badge: "Extract",
                             sfSymbol: "waveform.badge.plus"
                         )
@@ -159,7 +162,7 @@ struct KroutonLeftFormatChooserColumnView: View {
                             category: .label,
                             title: "Automatic Disc Label",
                             shortTitle: "Auto Label",
-                            colloquial: "Artwork Lookup + Hole Avoidance",
+                            colloquial: "Title and artist filled in for you",
                             badge: "120mm",
                             sfSymbol: "wand.and.stars"
                         )
@@ -168,7 +171,7 @@ struct KroutonLeftFormatChooserColumnView: View {
                             category: .label,
                             title: "Manual Disc Label",
                             shortTitle: "Manual Label",
-                            colloquial: "120mm / 18mm Canvas Workspace",
+                            colloquial: "Design the label yourself",
                             badge: "Custom",
                             sfSymbol: "printer.dotmatrix.fill"
                         )
@@ -181,7 +184,7 @@ struct KroutonLeftFormatChooserColumnView: View {
         .background(Color.kroutonControlSurface)
     }
 
-    // MARK: - Subviews & Helper Methods
+    // MARK: - Task Rows
 
     func taskRowButton(id: String, category: KroutonMasteringStation, title: String,
         shortTitle: String? = nil, colloquial: String, badge: String = "", sfSymbol: String) -> some View {
@@ -246,7 +249,7 @@ struct KroutonLeftFormatChooserColumnView: View {
                 store.selectedTaskID = id
                 store.syncDefaultDestinationForCategory(category, taskID: id, driveManager: driveManager)
             }
-            Button(KroutonL10n.tr("Add Destination Output Card")) {
+            Button(KroutonL10n.tr("Add Destination Card")) {
                 store.appendContextAwareDestination(driveManager: driveManager)
             }.keyboardShortcut("d", modifiers: [.command, .shift])
             Button(KroutonL10n.tr("Copy Format Specification")) {

@@ -2,8 +2,11 @@ import BurnKit
 import OpticalCore
 import SwiftUI
 
-// MARK: - KroutonStateDomainModels
+// MARK: - Appearance Models
 
+/// One accent colour in Settings › General, with its shades for dark and light mode and the
+/// text colour that reads on it. `id` is what the preference stores; -1 is Multicolor, which
+/// follows the system accent.
 struct KroutonAccentColorPreset: Identifiable, Hashable, Sendable {
     let id: Int
     let swatchColor: Color
@@ -36,17 +39,18 @@ struct KroutonAccentColorPreset: Identifiable, Hashable, Sendable {
         KroutonAccentColorPreset(id: 4, swatchColor: Color(red: 0.08, green: 0.82, blue: 0.68), darkAccent: Color(red: 0.08, green: 0.82, blue: 0.68), lightAccent: Color(red: 0.05, green: 0.68, blue: 0.55), darkOnAccentText: Color.black.opacity(0.88), lightOnAccentText: .white, isMonochrome: false),
         // 5: 405nm Laser Blue
         KroutonAccentColorPreset(id: 5, swatchColor: Color.blue, darkAccent: Color.blue, lightAccent: Color(red: 0.0, green: 0.40, blue: 0.88), darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
-        // 6: Workspace Slate Blue (Default)
+        // 6: Slate Blue
         KroutonAccentColorPreset(id: 6, swatchColor: Color(red: 0.35, green: 0.52, blue: 0.78), darkAccent: Color(red: 0.38, green: 0.56, blue: 0.84), lightAccent: Color(red: 0.24, green: 0.42, blue: 0.68), darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
         // 7: Indigo / Violet
         KroutonAccentColorPreset(id: 7, swatchColor: Color.indigo, darkAccent: Color(red: 0.46, green: 0.42, blue: 0.92), lightAccent: Color.indigo, darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
-        // 8: Toasted Krouton Brown (Replaces Mauve/Pink!)
+        // 8: Krouton Brown (the default)
         KroutonAccentColorPreset(id: 8, swatchColor: Color(red: 0.64, green: 0.42, blue: 0.24), darkAccent: Color(red: 0.72, green: 0.49, blue: 0.30), lightAccent: Color(red: 0.52, green: 0.32, blue: 0.16), darkOnAccentText: .white, lightOnAccentText: .white, isMonochrome: false),
         // 9: High-Contrast Black & White Monochrome (Silver-White w/ Black text in Dark mode; Graphite-Black w/ White text in Light mode)
         KroutonAccentColorPreset(id: 9, swatchColor: Color.primary, darkAccent: Color(white: 0.86), lightAccent: Color(white: 0.18), darkOnAccentText: Color.black.opacity(0.92), lightOnAccentText: .white, isMonochrome: true)
     ]
 }
 
+/// Light, dark, or following the system. The raw values are saved, and shown as the labels.
 enum KroutonRoastAppearanceMode: String, CaseIterable, Identifiable, Sendable {
     case auto = "Auto"
     case dark = "Dark"
@@ -70,6 +74,8 @@ enum KroutonRoastAppearanceMode: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// How icons are drawn (Settings › General › Icon & widget style), matching macOS's icon
+/// styles. Also picks the Dock icon variant. The raw values are saved, and shown as the labels.
 enum KroutonGarnishStyleMode: String, CaseIterable, Identifiable, Sendable {
     case defaultStyle = "Default"
     case dark = "Dark"
@@ -78,6 +84,7 @@ enum KroutonGarnishStyleMode: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 }
 
+/// The Format Chooser's row size (Settings › General › Sidebar icon size).
 enum KroutonTrackIconSizeMode: String, CaseIterable, Identifiable, Sendable {
     case small = "Small"
     case medium = "Medium"
@@ -109,6 +116,7 @@ enum KroutonTrackIconSizeMode: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// The colour of folder icons on the deck (Settings › General › Folder color).
 enum KroutonStageFolderColorMode: String, CaseIterable, Identifiable, Sendable {
     case automatic = "Automatic"
     case classicAqua = "Classic Aqua Blue"
@@ -141,6 +149,7 @@ enum KroutonStageFolderColorMode: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// The disc label's background template. The raw values are saved in preferences and projects.
 enum KroutonCroutonLabelStyle: String, CaseIterable, Identifiable, Sendable {
     case synthGrid     = "Synth Technical Grid"
     case vinylGrooves  = "Concentric Workspace Rings"
@@ -149,6 +158,7 @@ enum KroutonCroutonLabelStyle: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 }
 
+/// The languages offered in Settings. The raw values are saved, and shown in the picker.
 enum KroutonLanguage: String, CaseIterable, Identifiable, Sendable {
     case system = "System Default (Auto)"
     case english = "English (US)"
@@ -180,6 +190,10 @@ enum KroutonLanguage: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+// MARK: - Workspace and Depot Models
+
+/// The four groups in the Format Chooser, each with its own workspace: Burn, Disc Image
+/// Depot, Copy and Label. The raw values are saved as the last category; don't change them.
 enum KroutonMasteringStation: String, CaseIterable, Identifiable, Sendable {
     case burn = "BURN"
     case depot = "DISC IMAGE DEPOT"
@@ -188,6 +202,7 @@ enum KroutonMasteringStation: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 }
 
+/// One disc image card in the Depot: from the depot.krouton.app feed or an Internet Archive search.
 struct KroutonDepotCatalogItem: Identifiable, Hashable, Sendable {
     let id: String
     var title: String
@@ -204,6 +219,7 @@ struct KroutonDepotCatalogItem: Identifiable, Hashable, Sendable {
     var feed: KroutonDepotFeed.Item? = nil
 }
 
+/// A section of the depot feed that can be shown or hidden (Settings › Disc Image Depot).
 struct KroutonDepotFeedSubscription: Identifiable, Hashable, Sendable {
     let id: String
     var name: String
@@ -213,6 +229,7 @@ struct KroutonDepotFeedSubscription: Identifiable, Hashable, Sendable {
     var sfSymbol: String
 }
 
+/// A disc size and tray offset preset for labels (Settings › Labels & Printers).
 struct KroutonDiscLabelGeometry: Identifiable, Hashable, Codable, Sendable {
     var id = UUID()
     var name: String
@@ -222,6 +239,8 @@ struct KroutonDiscLabelGeometry: Identifiable, Hashable, Codable, Sendable {
     var offsetYMM: Double
 }
 
+/// One event in Settings › Notifications (a burn finished, a disc is needed…) with its banner,
+/// sound and voice switches. `id` is the event's identifier, used to post it and to save it.
 struct KroutonKitchenEventRow: Identifiable, Hashable, Sendable {
     let id: String
     var eventTitle: String
@@ -231,15 +250,12 @@ struct KroutonKitchenEventRow: Identifiable, Hashable, Sendable {
     var sound: KroutonNotificationSound
 }
 
-/// Where a destination card sends the deck.
-///
-/// The raw values are persisted in saved queues and sessions, so they never change; what the
-/// card shows is `title`. Two raw values are left from before the 2026-11 audit and overstate
-/// what the card does: `.videoExtract` remuxes to MKV or copies MPEG (no H.265 transcode), and
-/// `.discPrinter` writes the same 1:1 PDF + PNG print sheet as `.pdfVector` (it drives no disc
-/// printer). Never show `rawValue` to a person.
-/// A destination card's kind. The raw values are what saved sessions and projects store;
-/// they're identifiers, never shown (`title` is).
+// MARK: - Destination Cards
+
+/// Where a destination card sends the deck. The raw values are what saved sessions and
+/// projects store; they're identifiers, never shown (`title` is). Two case names are older
+/// than what the cards do now: `.videoExtract` remuxes to MKV or copies MPEG (no transcode),
+/// and `.discPrinter` writes a PDF and PNG print sheet (it drives no printer).
 enum KroutonBurnDestinationKind: String, CaseIterable, Identifiable, Codable, Sendable {
     case physicalBurner = "physical-burner"
     case networkBurner = "krouton-server"
@@ -316,6 +332,10 @@ enum KroutonBurnDestinationKind: String, CaseIterable, Identifiable, Codable, Se
     }
 }
 
+/// One destination card in the queue: its kind, its drive or path, its speed or rip format,
+/// and its copy and pool state. Saved with sessions and projects. `speedOrCodec` and
+/// `hardwareOrPath` are text for older saved queues; use the typed accessors in
+/// `KroutonStateDomainModels+CardPresets.swift`.
 struct KroutonBakeBatchItem: Identifiable, Hashable, Codable, Sendable {
     var id: UUID = UUID()
     var kind: KroutonBurnDestinationKind
@@ -327,11 +347,11 @@ struct KroutonBakeBatchItem: Identifiable, Hashable, Codable, Sendable {
     var compressAfterCreation: Bool
     var copiesToBurn: Int = 1
     var completedCopies: Int = 0
-    /// Non-nil when managed by the multi-disc spanning engine (1 = Disc 1, 2 = Disc 2, etc.)
+    /// Which disc of a spanned set this card burns (1 is Disc 1), or nil when there is one disc.
     var spannedDiscNumber: Int? = nil
-    /// Ticket currently assigned to this burner slot in the upper active queue.
+    /// The pool ticket this burner card is working on.
     var assignedPoolTicket: KroutonPoolBurnTicket? = nil
-    /// Ticket waiting for operator confirmation on this burner slot when in Ask/Manual mode.
+    /// The next ticket, waiting for you to approve it (Ask / Manual mode).
     var pendingApprovalTicket: KroutonPoolBurnTicket? = nil
 }
 

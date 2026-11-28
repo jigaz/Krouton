@@ -2,7 +2,7 @@ import Foundation
 import OpticalCore
 import SwiftUI
 
-// MARK: - Standalone Disc Image Depot & Sub-Library Browser Workspace View
+// MARK: - Disc Image Depot Workspace
 
 struct KroutonDepotWorkspaceView: View {
     var store: KroutonStateStore
@@ -240,7 +240,7 @@ struct KroutonDepotWorkspaceView: View {
         }
     }
 
-    // MARK: - Subviews & Helper Methods
+    // MARK: - Subviews
 
     @ViewBuilder
     private var depotSearchBarPill: some View {

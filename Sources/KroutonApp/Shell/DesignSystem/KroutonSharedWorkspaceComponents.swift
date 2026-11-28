@@ -1,7 +1,9 @@
 import SwiftUI
 
-// MARK: - Phase 4: Reusable Mastering Hardware Deck Card & Drop-Zone Primitives
+// MARK: - Deck Card and Empty Drop Zone
 
+/// The rounded card every Burn workspace puts its deck in, tinted with the accent.
+/// `krouton-verify` checks that each authoring workspace uses it.
 struct KroutonMasteringDeckCard<Content: View>: View {
     var store: KroutonStateStore
     let paddingAmount: CGFloat
@@ -33,6 +35,8 @@ struct KroutonMasteringDeckCard<Content: View>: View {
     }
 }
 
+/// What an empty deck shows: an icon and a line saying what to drop there.
+/// `krouton-verify` checks that each authoring workspace uses it.
 struct KroutonEmptyDropZoneView: View {
     var store: KroutonStateStore
     let isDropTargeted: Bool

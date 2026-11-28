@@ -1,12 +1,12 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Settings Window: General Pane
+// MARK: - Settings › General
 
 extension KroutonSettingsWindowView {
     var generalPane: some View {
         VStack(alignment: .leading, spacing: 18) {
-            settingsCard(title: "Theme, Appearance & Accent Color") {
+            settingsCard(title: "Appearance") {
                 HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(KroutonL10n.tr("Color"))
@@ -63,10 +63,10 @@ extension KroutonSettingsWindowView {
 
                         HStack(alignment: .center, spacing: 12) {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Window & UI Harmony")
+                                Text("Second Accent Color")
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent : Color.primary)
-                                Text("Tint windows & UI accents with secondary harmony color")
+                                Text("Tint windows and controls with a second color that goes with the accent")
                                     .font(.system(size: 11))
                                     .foregroundStyle(.secondary)
                             }
@@ -83,7 +83,7 @@ extension KroutonSettingsWindowView {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(KroutonL10n.tr("Icon & widget style"))
                             .fontWeight(.medium)
-                        Text(KroutonL10n.tr("Controls how format badges, drive icons, and telemetry tiles render"))
+                        Text(KroutonL10n.tr("How the format and drive icons are drawn"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -183,7 +183,7 @@ extension KroutonSettingsWindowView {
     private var generalPaneBottomSection: some View {
         VStack(alignment: .leading, spacing: 14) {
 
-            settingsCard(title: "Windows, Sidebar & Language") {
+            settingsCard(title: "Sidebar & Language") {
                 HStack {
                     Text(KroutonL10n.tr("Sidebar icon size"))
                         .fontWeight(.medium)
@@ -222,9 +222,9 @@ extension KroutonSettingsWindowView {
 
             settingsCard(title: "Startup & Units") {
                 HStack {
-                    Toggle(KroutonL10n.tr("Automatically remember application state, staged files, and active task on launch (offers to start empty if a crash is detected)"), isOn: Bindable(store).rememberLastTaskOnLaunch)
+                    Toggle(KroutonL10n.tr("Reopen the last task and its staged files at launch (after a crash, Krouton asks first)"), isOn: Bindable(store).rememberLastTaskOnLaunch)
                     Spacer()
-                    Button(KroutonL10n.tr("Test Crash Prompt")) {
+                    Button(KroutonL10n.tr("Show the Restore Prompt")) {
                         KroutonCrashRecoveryController.shared.simulateUncleanCrashFlagForTesting(store: store)
                     }
                     .buttonStyle(.bordered)
@@ -232,7 +232,7 @@ extension KroutonSettingsWindowView {
                 }
                 Divider()
                 HStack {
-                    Text(KroutonL10n.tr("Capacity & Addressing Units"))
+                    Text(KroutonL10n.tr("Disc Size Units"))
                     Spacer()
                     HStack(spacing: 8) {
                         pillToggleButton(title: "Base-10 (4.7 GB / 25 GB)", sfSymbol: "opticaldisc", isSelected: store.useBase10Units) {

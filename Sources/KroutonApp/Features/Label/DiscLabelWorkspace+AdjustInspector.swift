@@ -1,7 +1,7 @@
 import OpticalCore
 import SwiftUI
 
-// MARK: - Clean 5-Slider Background Adjustments Inspector (Blur, Brightness, Contrast, Hue & Saturation)
+// MARK: - Adjust Tool (Blur, Brightness, Contrast, Hue and Saturation)
 
 extension KroutonDiscLabelWorkspaceView {
 

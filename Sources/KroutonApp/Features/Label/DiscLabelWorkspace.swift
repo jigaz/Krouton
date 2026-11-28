@@ -3,8 +3,10 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Stage 1 Disc Label Designer: Photoshop-Style Left Tool Rail + Blank Disc + Circular Gradient + Curved Text Tool
+// MARK: - Disc Label Workspace
 
+/// The label workspace's tools, one per button on the tool rail. The raw values are the
+/// tools' names as shown.
 enum KroutonStage1Tool: String, CaseIterable, Identifiable {
     case select     = "Select"
     case text       = "Text Tool"
@@ -43,6 +45,9 @@ enum KroutonStage1Tool: String, CaseIterable, Identifiable {
     }
 }
 
+/// The Label workspace: the tool rail, the disc canvas at true size, and the chosen tool's
+/// inspector. Its document is `store.label` (`LabelDocument`); undo is in
+/// `store.labelWorkspaceSubStore`.
 struct KroutonDiscLabelWorkspaceView: View {
     var store: KroutonStateStore
     @State var activeTool: KroutonStage1Tool = .background
@@ -200,7 +205,7 @@ struct KroutonDiscLabelWorkspaceView: View {
         }
     }
 
-    // MARK: - Subviews & Helper Methods
+    // MARK: - Subviews
 
     func showTransientBanner(_ message: String) {
         store.labelWorkspaceSubStore.transientStatusBanner = message

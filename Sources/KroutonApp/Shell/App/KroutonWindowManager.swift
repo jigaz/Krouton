@@ -3,6 +3,11 @@ import Observation
 import OpticalCore
 import SwiftUI
 
+// MARK: - Window Manager
+
+/// Owns the one `KroutonStateStore` and `KroutonOpticalDriveBank` the whole app uses, and opens
+/// the app's windows by id from anywhere (menus, App Intents, the guided tours). The
+/// `openWindow` action comes from the first scene that appears (`KroutonSceneActionBinder`).
 @Observable
 @MainActor
 final class KroutonWindowManager {
@@ -54,6 +59,10 @@ final class KroutonWindowManager {
     }
 }
 
+// MARK: - Scene Setup
+
+/// Applied to every window: hands the window actions to `KroutonWindowManager`, reads Reduce
+/// Motion, and on first appearance checks whether the last session ended in a crash.
 struct KroutonSceneActionBinder: ViewModifier {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow

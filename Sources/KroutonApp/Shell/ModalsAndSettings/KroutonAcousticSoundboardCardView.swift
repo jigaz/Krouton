@@ -1,7 +1,10 @@
 import SwiftUI
 
-// MARK: - Interactive Acoustic Telemetry Soundboard & DSP Lab
+// MARK: - Sound Lab
 
+/// Settings › Accessibility & Language › Sound Lab: plays Krouton's built-in sounds, and a
+/// macOS system sound with the synth's effects (speed, reverse, bit depth, ring modulation)
+/// applied. Nothing here is saved; each notification's own sound is chosen in Notifications.
 struct KroutonAcousticSoundboardCardView: View {
     let accent: Color
 
@@ -20,7 +23,7 @@ struct KroutonAcousticSoundboardCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(KroutonL10n.tr("Audition zero-file procedural synth cues and real-time AVFoundation DSP augmentations."))
+                Text(KroutonL10n.tr("Play Krouton's sounds, or shape a system sound and hear the result."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -33,7 +36,7 @@ struct KroutonAcousticSoundboardCardView: View {
                     .clipShape(Capsule())
             }
 
-            Text(KroutonL10n.tr("Procedural Studio & Bakery Synth Presets"))
+            Text(KroutonL10n.tr("Krouton's Sounds"))
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.secondary)
 
@@ -46,7 +49,7 @@ struct KroutonAcousticSoundboardCardView: View {
 
             Divider()
 
-            Text(KroutonL10n.tr("Augmented macOS System .AIFF Presets"))
+            Text(KroutonL10n.tr("Shaped System Sounds"))
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.secondary)
 
@@ -61,7 +64,7 @@ struct KroutonAcousticSoundboardCardView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text(KroutonL10n.tr("Custom OS .AIFF DSP Augmenter"))
+                    Text(KroutonL10n.tr("Shape a System Sound"))
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -88,7 +91,7 @@ struct KroutonAcousticSoundboardCardView: View {
                         lastPlayedLabel = "\(selectedOSSound) @ \(String(format: "%.2fx", dspRate))\(dspReversed ? " REV" : "")"
                         KroutonOSDesktopBridge.playAcousticCue(cue)
                     } label: {
-                        Label(KroutonL10n.tr("Play Custom Cue"), systemImage: "play.fill")
+                        Label(KroutonL10n.tr("Play"), systemImage: "play.fill")
                             .font(.system(size: 11, weight: .bold))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 5)

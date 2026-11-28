@@ -1,6 +1,6 @@
 # Live updates: menu bar today, Mac Live Activities next, iPhone and Apple Watch later
 
-Written 2026-11-28. Status: the menu bar item ships (Settings › Notifications › Show progress in the menu bar). Everything else here is a plan, parked until the owner picks it up. Entry 16 in `open-questions.md` points here.
+Written 2026-11-28; updated the same day after PR #17. Status: the menu bar item ships (Settings › Notifications › Show progress in the menu bar). The Xcode project and widget extension that plan A needs exist (`XcodeHost/`), and a first Live Activity is written but not compiled (see plan A). Everything else here is a plan, parked until the owner picks it up. Entry 16 in `open-questions.md` points here.
 
 ## What a person should see
 
@@ -42,10 +42,10 @@ Send updates on phase changes and every 5 percentage points, not on every progre
   - A **Widget extension** target holding the `ActivityConfiguration` (lock-screen-style and compact views).
   - `NSSupportsLiveActivities` in the app's Info.plist.
   - The app calls `Activity<KroutonBurnAttributes>.request(...)`, then `update`/`end`. Everything runs on the same Mac, so no push server is needed.
-- **The blocker:** SwiftPM can't build an app extension. Krouton's app is an SPM executable bundled by `Scripts/bundle-app.sh`. The way in is an Xcode project for the app host (`XcodeHost/`), using **Xcode 27.2's JSON project format (`.xcproj`)**, which is meant to be merge-friendly and editable by agents. The SPM libraries stay as they are; the project only adds the app target and the widget extension.
+- **Where it stands:** SwiftPM can't build an app extension, so PR #17 added an Xcode project for the app host: `XcodeHost/project.yml`, generated with XcodeGen, with the app target and a widget extension (`XcodeHost/Widgets/`). The SPM libraries stay as they are. `XcodeHost/Widgets/KroutonBurnLiveActivity.swift` holds a first `ActivityConfiguration`; it compiles only when `KROUTON_LIVE_ACTIVITIES` is set in the widget target, which needs the macOS 27.3 SDK. Whether to switch the project to Xcode 27.2's JSON format (`.xcproj`) is open question 17. Release zips still come from `Scripts/bundle-app.sh`, which doesn't include the extension.
 - **Gate it:** `if #available(macOS 27.3, *)`. The menu bar item stays for macOS 14–27.2, and as the "Always" option.
 - **Check before starting:** the macOS 27.3 SDK ships in an Xcode 27.3 beta, not 27.2. Confirm that `ActivityKit` imports for macOS in it. Also confirm whether a Developer ID (non-App Store) app may use Live Activities; that's expected but unverified.
-- **Effort:** about 1–2 days once the SDK is out: the project file, the extension, two views, and wiring `KroutonLiveStatus` to `Activity`.
+- **Effort:** first estimated at 1–2 days once the SDK is out. The project and the extension now exist; what's left is turning on the flag, adding `NSSupportsLiveActivities`, and wiring `KroutonLiveStatus` to `Activity`. Shipping it to users also needs open question 17 (release builds from the Xcode project).
 
 ## Plan B: iPhone and Apple Watch
 
@@ -62,7 +62,7 @@ The hard part is getting updates from the Mac to the phone. ActivityKit updates 
 **Recommended order:** B1 first, with the shared model and countdown views. Add B2 only if people want percent-by-percent updates on the phone.
 
 **What it needs:**
-- An iOS app target and its Widget extension, using the same `.xcproj` as plan A. The portable libraries already build for iOS (CI's `ipados-portable-core` job).
+- An iOS app target and its Widget extension, in the same Xcode project as plan A. The portable libraries already build for iOS (CI's `ipados-portable-core` job).
 - The paid developer account (team D3BJL3F92P).
 - TestFlight / App Store for the phone app.
 - A privacy note: the status sent holds only the volume title, drive name and progress.
@@ -73,7 +73,7 @@ The hard part is getting updates from the Mac to the phone. ActivityKit updates 
 
 ## Decisions for the owner
 
-1. Move the app host to an Xcode `.xcproj` (needed for A and B)? It changes `bundle-app.sh` and CI's packaging step.
+1. ~~Move the app host to an Xcode project (needed for A and B)?~~ Done in PR #17 with XcodeGen. Still open: ship releases from it, and whether to switch to `.xcproj` (open question 17).
 2. Plan A as soon as the macOS 27.3 SDK is out?
 3. For plan B, the iCloud route (B1) or a relay (B2)?
 
