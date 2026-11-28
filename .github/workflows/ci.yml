@@ -8,12 +8,12 @@ on:
 
 jobs:
   verify-macos:
-    # Matches the toolchain Krouton is developed on (Xcode 26 / Swift 6.2 SDK annotations).
-    runs-on: macos-26
+    # Xcode 27.2 / Swift 6.4, the toolchain Krouton is developed on (Scripts/ci-select-xcode.sh).
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v4
-      - name: Toolchain
-        run: swift --version && xcodebuild -version
+      - name: Xcode 27.2 and Swift 6.4
+        run: Scripts/ci-select-xcode.sh 27.2
       - name: Manual on krouton.app matches the app's manual
         run: python3 Scripts/build-manual.py --check
       - name: String Catalog has every interface string
@@ -47,9 +47,11 @@ jobs:
     # chosen by each value's type. extract-strings.py guesses the types; swiftc knows them. Build
     # the app with -emit-localized-strings (what Xcode does for its catalogs) and fail if the
     # compiler looks up a format key the catalog doesn't have.
-    runs-on: macos-26
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v4
+      - name: Xcode 27.2 and Swift 6.4
+        run: Scripts/ci-select-xcode.sh 27.2
       - name: Build the app and write the keys it looks up
         run: |
           swift build --product Krouton \
@@ -64,9 +66,11 @@ jobs:
     # krouton-verify Suite 36 converts, authors and images them, then libbluray (what VLC, Kodi
     # and mpv play Blu-rays with) opens the folder and the UDF 2.50 image, reads the title, clips
     # and chapters and seeks through the EP map, and hdiutil mounts the image.
-    runs-on: macos-26
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v4
+      - name: Xcode 27.2 and Swift 6.4
+        run: Scripts/ci-select-xcode.sh 27.2
       - name: ffmpeg and libbluray
         run: brew install ffmpeg libbluray
       - name: Test clips
@@ -101,10 +105,12 @@ jobs:
 
   unused-code:
     # A report, not a gate: Periphery lists declarations nothing uses, from the compiler's index.
-    runs-on: macos-26
+    runs-on: xcode-27
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+      - name: Xcode 27.2 and Swift 6.4
+        run: Scripts/ci-select-xcode.sh 27.2
       - name: Install Periphery
         run: brew install periphery && periphery version
       - name: Scan
@@ -141,13 +147,15 @@ jobs:
   ipados-portable-core:
     # The libraries an iPad app would share (krouton-verify Suite 31) must compile for iPadOS.
     # NetworkSpool pulls in OpticalCore; LabelKit pulls in AudioKit and RescueKit.
-    runs-on: macos-26
+    runs-on: xcode-27
     strategy:
       fail-fast: false
       matrix:
         scheme: [ NetworkSpool, LabelKit, Persistence ]
     steps:
       - uses: actions/checkout@v4
+      - name: Xcode 27.2 and Swift 6.4
+        run: Scripts/ci-select-xcode.sh 27.2
       - name: Build ${{ matrix.scheme }} for iPadOS
         run: |
           xcodebuild -scheme '${{ matrix.scheme }}' -destination 'generic/platform=iOS' \
