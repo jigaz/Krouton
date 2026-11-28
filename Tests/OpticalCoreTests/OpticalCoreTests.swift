@@ -54,3 +54,16 @@ final class WorkflowCatalogClaimsTests: XCTestCase {
         }
     }
 }
+
+final class ISO9660SizeLimitTests: XCTestCase {
+    private func entry(bytes: Int64) -> KroutonStagedFileEntry {
+        KroutonStagedFileEntry(url: URL(fileURLWithPath: "/tmp/big.bin"), name: "big.bin", isDirectory: false,
+                               byteSize: bytes, itemCount: 1, posixPermissions: "rw-r--r--", modifiedDate: Date())
+    }
+
+    func testOneExtentHoldsUpToTwoToTheThirtySecondMinusOneBytes() {
+        XCTAssertFalse(entry(bytes: 4_294_967_294).exceedsISO9660FourGiBLimit)
+        XCTAssertFalse(entry(bytes: 4_294_967_295).exceedsISO9660FourGiBLimit)
+        XCTAssertTrue(entry(bytes: 4_294_967_296).exceedsISO9660FourGiBLimit)
+    }
+}
