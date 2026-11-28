@@ -2,7 +2,7 @@
 
 ## Destination cards
 
-The right-hand column lists where the disc goes. Each destination is a card. **Add Output** (⇧⌘D) adds one; right-click a card for **Remove Destination Card**, **Eject** and **Execute Only This Destination**.
+The right-hand column lists where the disc goes. Each destination is a card. **File › Add Destination Card** (⇧⌘D) adds one; right-click a card for **Run This Card Only**, **Eject Disc** and **Remove Destination Card**.
 
 A burner card has:
 
@@ -50,7 +50,7 @@ A real quality grade needs a C1/C2 error scan of the disc, which few drives can 
 
 ## Watching a burn
 
-**Window › Open Floating Phase Scope Telemetry** (⌥⌘P) shows a live view of the drive: write speed, buffer fill and progress. **Disc › Run Phase Scope Diagnostic Sweep** (⇧⌘P) runs a short test of the drive you have selected.
+**Window › Phase Scope Window** (⌥⌘P) shows a live view of the drive: write speed, buffer fill and progress. **Disc › Reset Phase Scope** (⇧⌘P) clears the first drive's graph and keeps its scope on show; it doesn't test the drive.
 
 ## Stopping
 
