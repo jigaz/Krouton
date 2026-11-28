@@ -26,7 +26,7 @@ final class HFSImageWriterTests: XCTestCase {
 
     func testNodesNeededIsTheLeastNodeCountBuildAccepts() throws {
         let name = [UInt8](repeating: UInt8(ascii: "a"), count: 31)
-        let records = (0..<600).map { KroutonHFSBTree.Record(parent: 2, name: name, data: [UInt8](repeating: 0, count: 102)) }
+        let records = (0..<600).map { _ in KroutonHFSBTree.Record(parent: 2, name: name, data: [UInt8](repeating: 0, count: 102)) }
         let needed = KroutonHFSBTree.nodesNeeded(records: records)
         XCTAssertGreaterThan(needed, 600 / 3 + 16)
         let tree = try KroutonHFSBTree.build(records: records, maxKeyLength: 37, nodeCount: needed)
