@@ -422,8 +422,8 @@ extension KroutonOpticalDriveBank {
 
     /// Asks the drive to stop. The session stays open until the drive confirms (or the
     /// grace period runs out), so the reservation and staged files are not pulled out
-    /// from under a drive that is still writing.
-    public func abortActiveBurn() {
+    /// from under a drive that is still writing. Called by `abortActiveBurn`.
+    func stopActiveOperation() {
         guard let session = activeBurnSession else {
             if let eraseSession = activeEraseSession {
                 // DiscRecording cannot stop an erase. Keep tracking it so the drive is not shown as idle.

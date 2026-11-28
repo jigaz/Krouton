@@ -21,7 +21,10 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
     public var selectedDrive: KroutonOpticalDriveInfo?
     public var hardwareStatusLog: String = "Scanning IOKit / DiscRecording bus..."
 
-        public var isExecutingQueue: Bool = false
+    public var isExecutingQueue: Bool = false
+    /// How many times Abort was chosen (`abortActiveBurn`); see `beginPreparingBurn`.
+    public internal(set) var abortRequestCount = 0
+    var preparingBurnCount = 0
     public var activeJobPhase: String = "Idle"
     public var activeJobProgress: Double = 0.0
     public var activeJobDetail: String = ""
