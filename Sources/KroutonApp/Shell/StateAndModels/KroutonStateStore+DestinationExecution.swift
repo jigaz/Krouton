@@ -5,7 +5,7 @@ import NetworkSpool
 import OpticalCore
 import SwiftUI
 
-// MARK: - Destination Queue Burn & Export Execution Pipeline
+// MARK: - KroutonStateStore — Running Destination Cards
 
 extension KroutonStateStore {
     func executeSingleDestination(

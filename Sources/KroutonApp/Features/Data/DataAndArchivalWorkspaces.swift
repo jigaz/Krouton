@@ -4,13 +4,6 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-//
-//  KroutonMasteringWorkspaces.swift
-//  Krouton — Optical Media Mastering Package (Optical Media Mastering Workspace)
-//
-//  Format-Specific Mastering Workspaces (Data/Archival, Red Book Audio, Video Authoring, Car-Safe Audio, Retro Console ROMs, and Disc Image Inspector).
-//
-
 // MARK: - DataAndArchivalWorkspaces
 
 struct KroutonDataAndArchivalWorkspaceView: View {

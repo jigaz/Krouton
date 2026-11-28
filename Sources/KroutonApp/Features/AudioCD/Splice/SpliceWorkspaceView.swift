@@ -3,6 +3,9 @@ import SwiftUI
 
 // MARK: - SpliceWorkspaceView
 
+/// The Track Montage Editor: the end of one track and the start of the next, with the
+/// crossfade or pause between them, the curve handles, and audition. Used inline under a
+/// track row and in the editor's own window.
 struct SpliceWorkspaceView: View {
     let trackNumber: Int
     var totalTransitions: Int = 1

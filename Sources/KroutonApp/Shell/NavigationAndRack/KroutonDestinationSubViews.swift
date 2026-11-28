@@ -5,7 +5,7 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Standalone Right Destination Rack Column View
+// MARK: - Destination Queue Column
 
 struct KroutonDestinationRackColumnView: View {
     var store: KroutonStateStore

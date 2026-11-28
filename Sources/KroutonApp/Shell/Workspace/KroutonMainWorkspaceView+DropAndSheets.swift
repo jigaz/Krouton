@@ -7,7 +7,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 import os
 
-// MARK: - Main Workspace File Panel, Drag-and-Drop Collector & Project Sheet Modifier
+// MARK: - Main Window: Dropped Files, Open Panel and Project Sheets
 
 extension KroutonMainWorkspaceView {
     func promptToAddFiles() {

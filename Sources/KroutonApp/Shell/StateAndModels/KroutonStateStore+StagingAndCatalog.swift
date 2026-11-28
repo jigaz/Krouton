@@ -7,7 +7,7 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - KroutonStateStore Staging, Depot Catalog & Culinary Module Bridges
+// MARK: - KroutonStateStore — Staging and the Format Catalogue
 
 @MainActor
 extension KroutonStateStore {

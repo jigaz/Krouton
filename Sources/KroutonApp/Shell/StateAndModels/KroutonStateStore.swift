@@ -6,11 +6,23 @@ import OpticalCore
 import SwiftUI
 import VideoKit
 
+// MARK: - KroutonStateStore
+
+/// The app's state: what is on the deck, which task is chosen, the destination queue, and
+/// every setting the interface shows. There is one, owned by `KroutonWindowManager.shared`
+/// and passed to the views.
+///
+/// Most feature state lives in sub-stores held as `let` properties (`appearance`, `label`,
+/// `depot`, `rip`, `rescue`, `avchd`), so a view that reads one of them is only redrawn when
+/// that sub-store changes. `@dynamicMemberLookup` lets callers write `store.appLanguage`
+/// for `store.appearance.appLanguage` (see `KroutonStateStore+SubStoreForwarding.swift`).
+/// The work itself (staging, burning, exports, the queue) is in the `KroutonStateStore+*.swift`
+/// extensions, one per role.
 @Observable
 @MainActor
 @dynamicMemberLookup
 final class KroutonStateStore {
-    // MARK: - Modular Feature Sub-Stores & Domain Models
+    // MARK: - Sub-Stores
     let labelWorkspaceSubStore = KroutonLabelWorkspaceSubStore()
     let burnQueueSubStore = KroutonBurnQueueSubStore()
 
@@ -24,7 +36,7 @@ final class KroutonStateStore {
     static weak var shared: KroutonStateStore?
     var isHydratingPreferences: Bool = false
 
-    // MARK: - Core Navigation, Staging & Burn Queue State
+    // MARK: - Navigation, Deck and Destination Queue
     var savedQueuesByDomain: [String: [KroutonBakeBatchItem]] = [:]
     var selectedSettingsPane: KroutonSettingsCategory = .general
     var selectedCategory: KroutonMasteringStation = .burn {
@@ -102,7 +114,7 @@ final class KroutonStateStore {
 
     var destinationQueue: [KroutonBakeBatchItem] = KroutonStateStore.defaultDestinationQueue
 
-    // MARK: - Single Consolidated Colour-Scheme & Accent Resolution
+    // MARK: - Colour Scheme and Accent
     func refreshOpticalDrives() { KroutonWindowManager.shared.driveManager.refreshDrives() }
     func ejectActiveOpticalDisc() { KroutonWindowManager.shared.driveManager.ejectDrive(id: KroutonWindowManager.shared.driveManager.availableDrives.first?.id) }
 

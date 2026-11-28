@@ -1,7 +1,10 @@
 import Foundation
 import SwiftUI
 
-// MARK: - KroutonStateStore @dynamicMemberLookup Sub-Store Routing
+// MARK: - KroutonStateStore — Sub-Store Forwarding
+
+// `store.someSetting` reads and writes the sub-store that holds it. The setters also run the
+// side effects a change needs, such as saving the label template or re-tinting the windows.
 
 @MainActor
 extension KroutonStateStore {

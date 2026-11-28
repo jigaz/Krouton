@@ -1,7 +1,7 @@
 import AudioKit
 import SwiftUI
 
-// MARK: - SpliceControlsBar (4 Logically Grouped Control Pods & Live Rubber-Band X-Fade Slider)
+// MARK: - SpliceControlsBar
 
 struct SpliceControlsBar: View {
     let snapshot: SpliceCanvasSnapshot
