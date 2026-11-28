@@ -285,7 +285,7 @@ struct KroutonCopyAndRipWorkspaceView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 14) {
                         Toggle(KroutonL10n.tr("Fit Dual-Layer DVD-9 (8.5 GB) onto Single-Layer DVD-5 (4.7 GB)"), isOn: Bindable(store).fitToDiscDVD9Shrink).toggleStyle(.checkbox).font(.caption.bold())
-                        Toggle(KroutonL10n.tr("Preserve Interactive Menus & Subpictures"), isOn: Bindable(store).preserveMenusAndExtras).toggleStyle(.checkbox).font(.caption)
+                        Toggle(KroutonL10n.tr("Keep the DVD menus (off: the disc plays every title in order)"), isOn: Bindable(store).preserveMenusAndExtras).toggleStyle(.checkbox).font(.caption)
                         Spacer()
                     }
                     Text(String(format: "VideoKit Requantizer Ratio: %.1f%% • Output: %.2f GB • Requantize: %@", plan.requantizationRatio * 100.0, Double(plan.estimatedOutputBytes) / 1_000_000_000.0, plan.requiresRequantization ? "ACTIVE" : "PASSTHROUGH"))

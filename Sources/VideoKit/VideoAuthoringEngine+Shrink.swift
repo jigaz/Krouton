@@ -20,12 +20,31 @@ public enum KroutonVideoShrinkError: Error, LocalizedError, Sendable, Equatable 
 }
 
 extension KroutonVideoAuthoringEngine {
+    /// Copies a DVD-Video's `VIDEO_TS` without its menus and rewires it to play every title in
+    /// order, without re-encoding anything (for discs that already fit their blank).
+    @discardableResult
+    public static func copyDVDWithoutMenus(sourceVideoTSDirectory: URL, outputVideoTSDirectory: URL) throws -> DVDVideoPlayAllResult {
+        let fm = FileManager.default
+        try fm.createDirectory(at: outputVideoTSDirectory, withIntermediateDirectories: true)
+        for url in try fm.contentsOfDirectory(at: sourceVideoTSDirectory, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) {
+            let name = url.lastPathComponent.uppercased()
+            guard name.hasSuffix(".IFO") || name.hasSuffix(".BUP") || (name.hasSuffix(".VOB") && !name.hasSuffix("_0.VOB") && name != "VIDEO_TS.VOB")
+            else { continue }
+            let destination = outputVideoTSDirectory.appendingPathComponent(url.lastPathComponent)
+            if fm.fileExists(atPath: destination.path) { try fm.removeItem(at: destination) }
+            try fm.copyItem(at: url, to: destination)
+        }
+        return try DVDVideoPlayAllNavigation.convert(videoTSDirectory: outputVideoTSDirectory)
+    }
+
     /// Executes a complete, menu-preserving DVD-9 -> DVD-5 shrink on disk:
     /// 1. When the source `VIDEO_TS` already fits inside DVD-5, copies all files intact.
     /// 2. When the source exceeds DVD-5, preserves all menu VOBs (`VIDEO_TS.VOB`, `VTS_xx_0.VOB`),
     ///    re-encodes title VOBs (`VTS_xx_1..9.VOB`) to the target DVD-5 MPEG-2 bitrate while stream-copying
     ///    audio & subpictures, patches every `NV_PCK` DSI sector offset, and rebuilds `VTS_C_ADT`,
     ///    `VTS_VOBU_ADMAP`, `VTS_PGCI`, and `VIDEO_TS.IFO` / `.BUP` sector tables.
+    /// 3. Without `preserveMenus`, the menus are left out (their space goes to the video) and the
+    ///    disc is rewired to play every title in order (`DVDVideoPlayAllNavigation`).
     @discardableResult
     public static func executeDVD9ToDVD5ShrinkOnDisk(
         sourceVideoTSDirectory: URL,
@@ -41,6 +60,7 @@ extension KroutonVideoAuthoringEngine {
 
         var mainBytes: Int64 = 0
         var menuBytes: Int64 = 0
+        var menuVOBBytes: Int64 = 0
         for url in entries {
             let name = url.lastPathComponent.uppercased()
             let sz = Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
@@ -48,23 +68,30 @@ extension KroutonVideoAuthoringEngine {
                 mainBytes += sz
             } else {
                 menuBytes += sz
+                if name.hasSuffix(".VOB") { menuVOBBytes += sz }
             }
         }
+        let keptMenuBytes = preserveMenus ? menuBytes : menuBytes - menuVOBBytes
+        let isMenuVOB: (URL) -> Bool = { url in
+            let name = url.lastPathComponent.uppercased()
+            return name == "VIDEO_TS.VOB" || (name.hasPrefix("VTS_") && name.hasSuffix("_0.VOB"))
+        }
 
-        // Menus are always kept intact so VMGM/VTSM navigation commands and button highlights remain valid.
+        // Kept menus are copied intact so VMGM/VTSM navigation commands and button highlights stay valid.
         let plan = planDVD9ToDVD5Shrink(
             mainFeatureBytes: mainBytes,
-            menusAndExtrasBytes: menuBytes,
-            preserveMenusAndExtras: true
+            menusAndExtrasBytes: keptMenuBytes,
+            preserveMenusAndExtras: preserveMenus
         )
 
         if !plan.requiresRequantization {
             try fm.createDirectory(at: outputVideoTSDirectory, withIntermediateDirectories: true)
-            for url in entries {
+            for url in entries where preserveMenus || !isMenuVOB(url) {
                 let destURL = outputVideoTSDirectory.appendingPathComponent(url.lastPathComponent)
                 if fm.fileExists(atPath: destURL.path) { try fm.removeItem(at: destURL) }
                 try fm.copyItem(at: url, to: destURL)
             }
+            if !preserveMenus { try DVDVideoPlayAllNavigation.convert(videoTSDirectory: outputVideoTSDirectory) }
             return plan
         }
 
@@ -103,7 +130,7 @@ extension KroutonVideoAuthoringEngine {
 
         // Copy VIDEO_TS.VOB intact if present
         var vmgMenuSectors: UInt32 = 0
-        if let vmgVOB = vmgMenuVOBURL {
+        if preserveMenus, let vmgVOB = vmgMenuVOBURL {
             let dest = outputVideoTSDirectory.appendingPathComponent("VIDEO_TS.VOB")
             if fm.fileExists(atPath: dest.path) { try fm.removeItem(at: dest) }
             try fm.copyItem(at: vmgVOB, to: dest)
@@ -113,7 +140,7 @@ extension KroutonVideoAuthoringEngine {
 
         // Estimate target MPEG-2 bitrate from source size & requantization ratio
         let estimatedDurationSec = max(60.0, Double(mainBytes) / (6_500_000.0 / 8.0))
-        let targetVideoKbps = Int((Double(plan.targetUsableDVD5Bytes - menuBytes) * 8.0 / estimatedDurationSec) / 1000.0) - 448
+        let targetVideoKbps = Int((Double(plan.targetUsableDVD5Bytes - keptMenuBytes) * 8.0 / estimatedDurationSec) / 1000.0) - 448
 
         var vtsLayouts: [DVDVideoVTSLayout] = []
         let tempWorkDir = fm.temporaryDirectory.appendingPathComponent("KroutonVTSWork_\(UUID().uuidString)")
@@ -126,7 +153,7 @@ extension KroutonVideoAuthoringEngine {
 
             // 1. Copy menu VTS_xx_0.VOB intact
             var menuSectors: UInt32 = 0
-            if let menuURL = menuVOBByVTS[vtsNum] {
+            if preserveMenus, let menuURL = menuVOBByVTS[vtsNum] {
                 let destMenu = outputVideoTSDirectory.appendingPathComponent("\(prefix)_0.VOB")
                 if fm.fileExists(atPath: destMenu.path) { try fm.removeItem(at: destMenu) }
                 try fm.copyItem(at: menuURL, to: destMenu)
@@ -190,6 +217,7 @@ extension KroutonVideoAuthoringEngine {
             try relinkedVMG.write(to: outputVideoTSDirectory.appendingPathComponent("VIDEO_TS.IFO"))
             try relinkedVMG.write(to: outputVideoTSDirectory.appendingPathComponent("VIDEO_TS.BUP"))
         }
+        if !preserveMenus { try DVDVideoPlayAllNavigation.convert(videoTSDirectory: outputVideoTSDirectory) }
 
         return plan
     }

@@ -41,9 +41,11 @@ extension KroutonCopyAndRipWorkspaceView {
         // Duplicate Disc from a drive, without shrinking, is a sector copy: the rescue engine
         // (`MMCSectorSource` + `KroutonDiscRescuer`) reads every 2,048-byte sector into an .iso,
         // so boot records, UDF 2.50 and file order survive. Only the DVD-9 shrink, and a folder
-        // chosen with "Folder…", re-master the files with `hdiutil makehybrid`.
+        // chosen with "Folder…", re-master the files with `hdiutil makehybrid`; so does a DVD-Video
+        // copied without its menus, since its navigation files are rewritten.
         let wantsShrink = store.fitToDiscDVD9Shrink && activeDisc.totalBytes > 4_700_000_000 && activeDisc.discKind.contains("VIDEO_TS")
-        if isShrinkTask, !wantsShrink, copySourceOverrideLabel.isEmpty {
+        let stripsMenus = !store.preserveMenusAndExtras && activeDisc.discKind.contains("VIDEO_TS")
+        if isShrinkTask, !wantsShrink, !stripsMenus, copySourceOverrideLabel.isEmpty {
             guard !store.rescue.isRunning else {
                 copyStatusBanner = "A rescue or copy is already reading a disc."
                 return
@@ -69,7 +71,9 @@ extension KroutonCopyAndRipWorkspaceView {
             let preserveMenus = store.preserveMenusAndExtras
             copyStatusBanner = shouldShrink
                 ? "Requantizing DVD-9 -> DVD-5 and building \(isoURL.lastPathComponent)..."
-                : "Building a hybrid UDF/ISO image of the folder's files: \(isoURL.lastPathComponent)..."
+                : preserveMenus
+                    ? "Building a hybrid UDF/ISO image of the folder's files: \(isoURL.lastPathComponent)..."
+                    : "Removing the menus so the disc plays every title, then building \(isoURL.lastPathComponent)..."
 
             Task.detached(priority: .userInitiated) {
                 do {
@@ -86,6 +90,18 @@ extension KroutonCopyAndRipWorkspaceView {
                             preserveMenus: preserveMenus
                         )
                         sourceToImage = tmp
+                    } else if !preserveMenus {
+                        // No re-encode needed: copy the disc without its menus, playing every title in order.
+                        let vtsIn = URL(fileURLWithPath: activeDisc.mountPath).appendingPathComponent("VIDEO_TS")
+                        if FileManager.default.fileExists(atPath: vtsIn.appendingPathComponent("VIDEO_TS.IFO").path) {
+                            let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("KroutonDVDPlayAll_\(UUID().uuidString)")
+                            tempShrinkRoot = tmp
+                            _ = try KroutonVideoAuthoringEngine.copyDVDWithoutMenus(
+                                sourceVideoTSDirectory: vtsIn,
+                                outputVideoTSDirectory: tmp.appendingPathComponent("VIDEO_TS")
+                            )
+                            sourceToImage = tmp
+                        }
                     }
                     defer {
                         if let tmp = tempShrinkRoot { try? FileManager.default.removeItem(at: tmp) }
