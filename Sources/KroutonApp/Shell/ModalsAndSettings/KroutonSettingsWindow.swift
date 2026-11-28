@@ -16,6 +16,7 @@ enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendable {
     case labelsPrinters = "Labels & Printers"
     case notifications = "Notifications"
     case accessibilityLanguage = "Accessibility & Language"
+    case storageAndReset = "Storage & Reset"
 
     var id: String { rawValue }
 
@@ -30,6 +31,7 @@ enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendable {
         case .labelsPrinters: return "printer.dotmatrix"
         case .notifications: return "bell"
         case .accessibilityLanguage: return "accessibility"
+        case .storageAndReset: return "arrow.counterclockwise.circle"
         }
     }
 
@@ -53,6 +55,8 @@ enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendable {
             return "notifications alerts macos banner iphone live activity apple watch smart stack wrist tap audio sound effect telemetry feed test alert"
         case .accessibilityLanguage:
             return "accessibility language voiceover spoken hardware telemetry speech acoustic soundboard dsp lab display increase contrast differentiate without color reduce motion internationalization foreign languages locale english japanese german french spanish chinese korean"
+        case .storageAndReset:
+            return "storage reset defaults clear empty caches cache purge disk space session forget burn history journal servers pairing identity keychain start over factory"
         }
     }
 
@@ -273,6 +277,7 @@ struct KroutonSettingsWindowView: View {
         case .labelsPrinters: labelsPrintersPane
         case .notifications: notificationsPane
         case .accessibilityLanguage: accessibilityLanguagePane
+        case .storageAndReset: KroutonStorageAndResetPaneView(store: store)
         }
     }
 }

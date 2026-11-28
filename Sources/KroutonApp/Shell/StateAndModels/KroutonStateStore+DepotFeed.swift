@@ -8,7 +8,7 @@ import SwiftUI
 @MainActor
 extension KroutonStateStore {
     /// The last feed Krouton fetched, so the Depot opens with a list even when offline.
-    static var depotFeedCacheURL: URL {
+    nonisolated static var depotFeedCacheURL: URL {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
         return support.appendingPathComponent("app.krouton/depot-feed.json")

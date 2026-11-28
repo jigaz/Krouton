@@ -191,6 +191,19 @@ final class KroutonCrashRecoveryController {
         }
     }
 
+    /// Settings › Storage & Reset: deletes the saved session and its backup, leaving the open
+    /// workspace as it is. The next save, if Remember is on, starts a new one.
+    func forgetSavedSession() async {
+        pendingSnapshot = nil
+        showCrashRecoveryPrompt = false
+        await sessionStore.discard()
+    }
+
+    /// The saved session and its backup on disk.
+    var savedSessionBytes: Int64 {
+        KroutonStorageAndReset.bytes(at: sessionDirectory, matching: { $0.hasPrefix("session") })
+    }
+
     func restoreCrashedSession(store: KroutonStateStore) {
         showCrashRecoveryPrompt = false
         let snap = pendingSnapshot

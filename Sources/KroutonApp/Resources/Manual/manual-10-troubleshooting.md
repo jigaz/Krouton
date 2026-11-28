@@ -13,6 +13,7 @@ Open Settings with ⌘,. The search field at the top finds a setting by any word
 - **Labels & Printers**: disc sizes and printer tray offsets.
 - **Notifications**: a banner and a sound when a burn or rip starts, finishes or fails, when Auto-Load wants the next blank, and when a Depot download is checked.
 - **Accessibility & Language**: higher contrast, spoken progress for VoiceOver, and the app's language. Krouton also follows Reduce Motion in System Settings › Accessibility › Display, which turns off its animations. Translation into nine languages has started with a handful of labels; most of the app and this manual are in English for now. A change of language takes effect the next time Krouton opens; you can also set it in System Settings › General › Language & Region › Applications.
+- **Storage & Reset**: shows how much space Krouton's caches, saved session and burn history take, and clears each one. You can also reset Settings to their defaults or the destination queues to one burner card, forget all paired Krouton Servers, give this Mac new server keys (every server then has to be paired again), or do all of these at once with **Reset Krouton**. Each asks first and says what goes and what stays. None of them touches your projects, rips, or images you saved, or what's open now. Caches can't be emptied while a burn, copy or download is running.
 
 ## Where Krouton keeps things
 

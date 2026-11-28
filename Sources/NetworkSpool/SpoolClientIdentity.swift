@@ -53,6 +53,17 @@ public enum SpoolClientIdentity {
         return key
     }
 
+    /// Deletes this device's Ed25519 identity, TLS key and certificate from the keychain. New ones
+    /// are made on next use, so every Krouton Server has to be paired again.
+    public static func forget() {
+        let items: [[String: Any]] = [
+            [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: identityAccount],
+            [kSecClass as String: kSecClassKey, kSecAttrApplicationTag as String: tlsKeyTag],
+            [kSecClass as String: kSecClassCertificate, kSecAttrLabel as String: certificateLabel]
+        ]
+        for query in items { SecItemDelete(query as CFDictionary) }
+    }
+
     // MARK: - TLS identity
 
     /// The TLS `SecIdentity` (P-256 key + self-signed certificate), created on first use.
