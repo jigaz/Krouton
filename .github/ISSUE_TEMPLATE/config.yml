@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/jigaz/Krouton/security/advisories/new
+    about: Please report vulnerabilities privately. See SECURITY.md.
+  - name: Send a drive report
+    url: https://krouton.app/drives/
+    about: How a drive and blank behaved on a real burn. Reports go into the open record at archive.krouton.app.
+  - name: Read the user manual
+    url: https://krouton.app/manual/
+    about: How each feature works, what works today, and troubleshooting.

@@ -1,0 +1,72 @@
+name: Bug report
+description: Something in Krouton or Krouton Server doesn't work as the manual says.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. For a security problem, don't open an issue: see SECURITY.md.
+        If a drive misbehaves but Krouton did the right thing, a drive report at https://krouton.app/drives/ helps more.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, step by step, and what Krouton did.
+      placeholder: |
+        1. Opened a Data workspace and added a 3 GB folder
+        2. Chose a DVD-R in the built-in drive and clicked Burn
+        3. The burn stopped at 40% with "…"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Part of Krouton
+      options:
+        - The app
+        - The krouton command
+        - Krouton Server
+        - The manual or the website
+        - Building from source
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Krouton version or commit
+      description: About Krouton, `krouton --version`, or `git rev-parse --short HEAD` if you built it yourself.
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version and Mac
+      placeholder: macOS 15.2, MacBook Air M2
+    validations:
+      required: true
+  - type: input
+    id: drive
+    attributes:
+      label: Drive and disc
+      description: For anything that touches burning or reading. The drive model and the blank or disc you used.
+      placeholder: ASUS SDRW-08U9M-U, Verbatim DVD-R 16x
+  - type: input
+    id: server
+    attributes:
+      label: Krouton Server platform and backend
+      description: Only for Krouton Server problems. `krouton-server version` and the `backend` in server.conf.
+      placeholder: Raspberry Pi OS 12 (arm64), backend = linux
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Settings › Burners & Network › Save Log in the app, or `krouton-server check` and the server log.
+        Remove anything you don't want to share.
+      render: text

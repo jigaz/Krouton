@@ -2,7 +2,7 @@
 
 //! One connection's protocol state machine, independent of sockets and TLS.
 //!
-//! The transport (TLS in the binary, plain pipes in tests) supplies the peer's certificate pin
+//! The transport (TLS in the binary, plain TCP in tests) supplies the peer's certificate pin
 //! and the TLS exporter secret, feeds decoded frames to [`Session::on_frame`], calls
 //! [`Session::tick`] a few times a second, and writes whatever frames come back.
 

@@ -1,7 +1,7 @@
 // MARK: - frame.rs
 
 //! KRSP v1 framing: a fixed 64-byte big-endian header followed by `payload_length` bytes.
-//! Byte-for-byte identical to `SpoolWireFrame.swift`; `vectors/krsp-golden-v1.txt` pins it.
+//! Byte-for-byte identical to `SpoolWireFrame.swift`; `Vectors/krsp-golden-v1.txt` pins it.
 //!
 //! ```text
 //!  0 magic u32 "KRSP" | 4 version u8 | 5 kind u8 | 6 flags u16 | 8 extent_index u32

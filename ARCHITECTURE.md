@@ -1,8 +1,17 @@
 # Krouton architecture
 
-Krouton is one Swift package (`Package.swift`, Swift 6 language mode, warnings as errors) with ten library modules, the macOS app and a verification harness, plus Krouton Server in Rust. This page says what each part does and which rules hold them together. [CONTRIBUTING.md](CONTRIBUTING.md) says how to check a change against them.
+Krouton is one Swift package (`Package.swift`, tools version 6.0, Swift 6 language mode, warnings as errors, macOS 14 and later), an Xcode project for what SwiftPM can't build, and Krouton Server in Rust. This page says what each part does and which rules hold them together. [CONTRIBUTING.md](CONTRIBUTING.md) says how to check a change against them.
 
-## 1. 11 Core Modules (`KroutonDomainIdentity.Module`)
+The package has 22 targets:
+
+- 10 library modules (1 to 10 below) and the app, `KroutonApp`, also a library: the 11 modules of `KroutonDomainIdentity.Module`.
+- `KroutonMain`, the executable `swift run Krouton` starts. It only starts `KroutonApp`.
+- `KroutonVerify`, the verification harness (`swift run krouton-verify`).
+- 9 test targets: one each for `OpticalCore`, `BurnKit`, `AudioKit`, `ImageKit`, `RescueKit`, `LabelKit`, `VideoKit` and `Persistence`, plus `KroutonVerifyTests`.
+
+CI builds and checks everything with Xcode 27.2 and Swift 6.4 on the `xcode-27` runner image (`Scripts/ci-select-xcode.sh`).
+
+## 1. Modules
 1. **`OpticalCore`** — Domain models, 28 optical format recipes, `BurnClaimLedger`, `SpanManifest` (BagIt files for every disc of a set), `KroutonDomainIdentity` (bundle identifier, folders, URLs), and the MMC command codec (`MMCCommand`, `MMCTransport`, `MMCDriveReport`). Zero external dependencies.
 2. **`DriveKit`** — Optical hardware discovery, DiscRecording / IOKit arbitration, and media preflight; data, image and audio CD burns (`KroutonPCMTrackProducer` feeds rendered PCM to DiscRecording, session-at-once, with CD-Text and ISRCs). Also the read-only direct drive prototype (`KroutonMMCDirectAccess`, `KroutonMMCDeviceSession`): MMC commands sent through IOKit's SCSITaskLib, a possible fallback if DiscRecording is ever withdrawn.
 3. **`BurnKit`** — `BurnSetScheduler` (multi-drive, with `BurnPowerAndBandwidthArbiter` staggering spin-ups), `BurnSetStager` (APFS `fclonefileat` CoW staging), `BusArbitrationState`.
@@ -12,19 +21,23 @@ Krouton is one Swift package (`Package.swift`, Swift 6 language mode, warnings a
 7. **`RescueKit`** — `KroutonDiscRescuer` (ddrescue's copy, trim, scrape and retry passes over any `KroutonSectorSource`), `KroutonRescueMap` (reads and writes GNU ddrescue mapfiles) and archival disc quality grading. The drive side is `MMCSectorSource` in `OpticalCore` (READ CAPACITY, READ(10)) over the `DriveKit` session; a disc without a C1/C2 scan is reported as not measured.
 8. **`LabelKit`** — 300-DPI polar disc label geometry and 1:1 vector PDF print sheet generation.
 9. **`NetworkSpool`** — Client for Krouton Server: `KRSP` 64-byte wire framing, RFC 6962 Merkle manifests, resumable uploads, commit-then-reveal pairing, pinned mutual TLS 1.3 with Ed25519 session proofs, Bonjour discovery, and folder bundles (`SpoolBundleWriter`) for discs the server builds itself.
-10. **`Persistence`** — `SessionStore`, `RunLock` (`flock` crash recovery). Interface text is in `KroutonApp`'s String Catalog (`Resources/Localizable.xcstrings`).
-11. **`KroutonApp`** — Pure-SwiftUI macOS application (`Shell/App/KroutonAppKitBridge.swift` is its one AppKit file). `Shell/` holds the app, windows, menus, settings, state stores and services; `Features/` holds the workspaces (Data, AudioCD, Depot, Label, Retro, Rip, Video). `Resources/Manual/` is the user manual in Markdown, shown by `KroutonUserManualWindowView` and rendered for the web by `Scripts/build-manual.py`.
+10. **`Persistence`** — `SessionStore`, `RunLock` (`flock` crash recovery) and `BurnJournal` (burn history). Interface text is in `KroutonApp`'s String Catalog (`Resources/Localizable.xcstrings`).
+11. **`KroutonApp`** — The pure-SwiftUI macOS app, built as a library so that both `KroutonMain` and the Xcode project's app target (`XcodeHost/App`) can start it (`Shell/App/KroutonAppKitBridge.swift` is its one AppKit file). `Shell/` holds the app, windows, menus, settings, state stores and services; `Features/` holds the workspaces (Data, AudioCD, Depot, Label, Retro, Rip, Video). `Resources/Manual/` is the user manual in Markdown, shown by `KroutonUserManualWindowView` and rendered for the web by `Scripts/build-manual.py`.
 
 ## 2. Dependency rules
 
 - `OpticalCore` depends on nothing. Every other library depends on it; beyond that, `BurnKit` uses `DriveKit` and `ImageKit`, and `LabelKit` uses `AudioKit` and `RescueKit`. Nothing else crosses between libraries.
 - `DriveKit` talks to hardware and never imports UI or networking frameworks.
 - The portable six (`OpticalCore`, `AudioKit`, `LabelKit`, `RescueKit`, `Persistence`, `NetworkSpool`) depend only on each other and compile for iPadOS.
-- Only `KroutonApp` and `KroutonVerify` see every module.
+- Only `KroutonApp` and `KroutonVerify` see every library module; `KroutonMain` sees only `KroutonApp`.
 
-## 3. Verification Gates (`krouton-verify`)
-- **Suite 1 & 2:** 11-module DAG isolation, Pure-SwiftUI Gate (zero `AppKit`/`NSColor`/`NSImage`/`NSView`, and no runtime AppKit lookups, in `Features/` and `Shell/` apart from `KroutonAppKitBridge.swift`), 400-LOC view ceiling, 500-LOC non-view ceiling, 200-LOC function ceiling, canonical `// MARK: -` headers, and `+Role.swift` naming.
-- **Suite 3–27:** Domain math, sector formatting, 500-frame telemetry fuzzing, APFS CoW staging, lock-free audio parameter mailbox, and SplitMix64 distributed spool fault recovery.
+## 3. Verification suites (`krouton-verify`)
+
+`swift run krouton-verify` runs 40 numbered suites over the source tree and the domain code. It needs no drive. The ones that hold the architecture together, and the larger end-to-end checks:
+
+- **Suites 1 and 2:** 11-module dependency isolation, banned symbols (including `@unchecked Sendable` and `nonisolated(unsafe)`), Pure-SwiftUI Gate (zero `AppKit`/`NSColor`/`NSImage`/`NSView`, and no runtime AppKit lookups, in `Features/` and `Shell/` apart from `KroutonAppKitBridge.swift`), 400-LOC view ceiling, 500-LOC non-view ceiling, 200-LOC function ceiling, canonical `// MARK: -` headers, `+Role.swift` naming and sorted, unique imports.
+- **Suites 3–26:** Workflow catalog routing and context menus (3), ISO 9660 / Joliet / UDF limits and the hybrid LBA planner (4–5), `.cue/.bin` parsing and the sector inspector (6–7), container probing (8), Red Book audio, CD-Text, ISRC and CUE sheets (9–11, 19), DVD and Blu-ray bitrate budgets and DVD-9 shrink (12–13), multi-disc spanning (14, 22), domain models (15), rescue and disc grading (16), the burn-set state machine and staging (17, 25), the shell-injection gate and telemetry fuzzing (18), labels (20), persistence and the string catalog (21), the burn claim ledger (23), leaf-granular `@Observable` stores (24) and the crossfade mailbox (26).
+- **Suite 27:** Krouton Server client: framing, resumable upload, pairing, the control channel and folder bundles.
 - **Suite 28:** Integration Reachability Ratchet (`PENDING_INTEGRATION.md`), ensuring unwired public library types can only shrink over time.
 - **Suite 29:** KRSP golden vectors, shared byte for byte with Krouton Server's Rust tests.
 - **Suite 30:** `BurnSetScheduler` with scripted drives (retry only what failed, one disc per drive, staggered spin-up).
@@ -32,12 +45,18 @@ Krouton is one Swift package (`Package.swift`, Swift 6 language mode, warnings a
 - **Suite 32:** Direct drive access. The MMC codec decodes INQUIRY, GET CONFIGURATION, READ DISC INFORMATION and sense data from a scripted drive, including short and malformed replies.
 - **Suite 33:** Published formats. The set index and `.krut` that Krouton writes are encoded and their keys compared with the JSON Schemas in `docs/schema/` (served at krouton.app/schema), so the published schemas can't drift from the code.
 - **Suite 34:** Rescue. A scripted scratched disc (dead runs, a lone dead sector, a sector that reads on the third try) is rescued into memory; the suite checks the image, the bad-byte count, a bound on drive reads, the mapfile round trip (including a real ddrescue mapfile), that a resumed rescue re-reads only the bad sectors, and the READ(10)/READ CAPACITY command blocks.
+- **Suite 35:** Console discs. `KroutonConsoleDiscIdentifier` on synthetic headers for Wii, GameCube, Xbox, Dreamcast, Saturn and PlayStation (2048- and 2352-byte sectors), and the burnable/unburnable verdicts.
 - **Suite 36:** AVCHD on DVD. The M2TS analyzer on a synthetic stream (PIDs, key frames, times, AC-3 channels), `index.bdmv`, `MovieObject.bdmv`, the playlist and clip files read back field by field (the EP map decoded with libbluray's arithmetic), and the Swift UDF 2.50 writer against `Vectors/udf-bd-v1.sha256`, the Rust writer's image of the same folder. In CI (`avchd-real-encode`) it also converts real clips with ffmpeg, and libbluray opens, lists and seeks the result.
 - **Suite 37:** Audio CD rendering. Three tones with a 2-second pause and a 1-second crossfade are rendered from an `AudioProject` by `KroutonAudioDiscRenderer`: the pause must land in track 2's pregap, the crossfade must overlap with no gap, every PCM file must be whole 2,352-byte frames, and the BIN/CUE export must carry the catalog number, the ISRC and INDEX 00/01 at the right times. DiscRecording's audio burn itself (`KroutonOpticalDriveBank+AudioBurn.swift`) needs a drive and a blank CD-R.
 - **Suite 38:** Classic HFS. A folder with a resource fork, Finder types and a System Folder is written by `KroutonHFSImageWriter`; the suite checks the partition map, MDB, blessing and boot blocks, CI reads the image with an independent parser (`Scripts/check-hfs-image.py`, which also checks catalog order) and mounts it with Linux's HFS driver.
-- **Suite 35:** Console discs. `KroutonConsoleDiscIdentifier` on synthetic headers for Wii, GameCube, Xbox, Dreamcast, Saturn and PlayStation (2048- and 2352-byte sectors), and the burnable/unburnable verdicts.
+- **Suite 39:** Window layout. Breakpoints are carried over between layouts, and labels stay on one line.
+- **Suite 40:** Burn coordinator. There is one way to the drives, and the queue pool is tested outside the app.
 
-## 4. Krouton Server (`krouton-server/`)
+## 4. The Xcode project (`XcodeHost/`)
+
+`XcodeHost/project.yml` is an XcodeGen spec; the generated `Krouton.xcodeproj` isn't committed. It builds Krouton.app from the package's `KroutonApp` library, plus what SwiftPM can't build: the desktop widget extension (`XcodeHost/Widgets/`), App Intents metadata for Shortcuts, Siri and Spotlight, and signing with the shared app group and iCloud entitlements. CI's `xcode-app` job generates and builds it unsigned. Release zips from `Scripts/bundle-app.sh` still come from the SwiftPM build (open question 17 in `dev-notes/open-questions.md`).
+
+## 5. Krouton Server (`krouton-server/`)
 A headless Rust server that burns discs for Krouton on another computer (Raspberry Pi, Linux, Proxmox, NAS, Windows 10/11, macOS 12+). Three crates: `krsp` (protocol, no dependencies), `server-core` (sessions, staging, jobs, burn backends, no dependencies) and `krouton-server` (TLS via rustls/ring, CLI). See `krouton-server/README.md`.
 
 Two formats are shared between the app and the server and pinned by vectors in `Vectors/`, which both sides test against:
@@ -45,12 +64,12 @@ Two formats are shared between the app and the server and pinned by vectors in `
 - **KRSP v1** (`krsp-control-v1.txt`): 64-byte frame headers, JSON control messages (hello, welcome, submit, job events), and extents checked against an RFC 6962 Merkle manifest.
 - **Folder bundles v1** (`krsp-bundle-v1.tar`, `krsp-bundle-names-v1.txt`): a strict ustar/pax subset carrying only files and folders, with NFC names, sorted entries and the name rules of the most restrictive target (Windows and ISO 9660 with Joliet). The server turns a bundle into `tree/`, masters it, and burns the result.
 
-## 5. Documentation
+## 6. Documentation
 
 | Audience | Where |
 |---|---|
 | People burning discs | The manual, `Sources/KroutonApp/Resources/Manual/` → in the app (⌘?) and at krouton.app/manual |
 | Server operators | `krouton-server/README.md`, krouton.app/server |
-| Contributors | `README.md`, this file, `CONTRIBUTING.md`, `PENDING_INTEGRATION.md`, `CLAUDE.md` |
+| Contributors | `README.md`, this file, `CONTRIBUTING.md`, `PENDING_INTEGRATION.md`, `dev-notes/open-questions.md`, `CLAUDE.md` |
 | Security researchers | `SECURITY.md`, krouton.app/.well-known/security.txt |
 | History | `CHANGELOG.md`, `dev-notes/` |

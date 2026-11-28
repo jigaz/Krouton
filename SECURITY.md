@@ -2,15 +2,25 @@
 
 ## Reporting a vulnerability
 
-Email **jorgen@krouton.app** with a description, the version or commit, and steps to reproduce. Please don't open a public issue for a security problem. You can also use GitHub's private vulnerability reporting on [jigaz/Krouton](https://github.com/jigaz/Krouton/security/advisories/new).
+Please don't open a public issue, pull request or discussion for a security problem.
 
-You'll get a reply within a week. Fixes go into `main` first and into the next release; the advisory is published once a fix is available, crediting you unless you'd rather not be named. The contact is also published at [krouton.app/.well-known/security.txt](https://krouton.app/.well-known/security.txt).
+- **Preferred:** GitHub's private vulnerability reporting: [report a vulnerability](https://github.com/jigaz/Krouton/security/advisories/new).
+- **Or email** **jorgen@krouton.app**.
+
+Include a description, the version or commit, and steps to reproduce. For Krouton Server, say which platform and backend it ran on.
+
+You'll get a reply within a week. Fixes go into `main` first and into the next release. The advisory is published once a fix is available, crediting you unless you'd rather not be named. The contact is also published at [krouton.app/.well-known/security.txt](https://krouton.app/.well-known/security.txt).
 
 ## Scope
 
-- The Krouton app and its command-line tool.
-- Krouton Server (`krouton-server/`) and its installers.
+The main attack surface is the network path between the app and **Krouton Server**: TLS, pairing, session proofs, uploads and folder bundles. Reports there matter most.
+
+In scope:
+
+- Krouton Server (`krouton-server/`) and its installers and services.
+- The app's client side of that path (`Sources/NetworkSpool/`) and how it stores keys.
 - The KRSP protocol and the folder bundle format, including the shared vectors in `Vectors/`.
+- The Krouton app and its command-line tool, for example unsafe handling of disc images, projects or files from the Depot.
 - The krouton.app and archive.krouton.app websites.
 
 Out of scope: bugs in macOS, drive firmware or third-party tools Krouton runs (`hdiutil`, `xorriso`, `ffmpeg`, IMAPI2), unless Krouton uses them unsafely.
@@ -27,4 +37,4 @@ The design is described in full in [krouton-server/README.md](krouton-server/REA
 
 ## Supported versions
 
-Krouton has no release yet. Until 1.0 ships, only `main` receives fixes.
+Krouton has no published release yet. Until the first release, only `main` receives fixes.
