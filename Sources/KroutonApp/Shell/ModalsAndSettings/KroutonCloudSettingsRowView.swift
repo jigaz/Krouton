@@ -9,6 +9,7 @@ struct KroutonCloudSettingsRowView: View {
     @State private var isOn = KroutonCloudSettings.isOn
     @State private var isChoosing = false
     @State private var cloudDate: Date?
+    var documents = KroutonCloudDocuments.shared
 
     var body: some View {
         let availability = KroutonCloudSettings.availability
@@ -19,6 +20,13 @@ struct KroutonCloudSettingsRowView: View {
             ))
             .disabled(availability != .available && !isOn)
             Text(explanation(availability))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Divider()
+            Toggle(KroutonL10n.tr("Open and save projects in Krouton's iCloud Drive folder"), isOn: Bindable(documents).isOn)
+                .disabled(documents.projectsFolder == nil && !documents.isOn)
+            Text(documentsExplanation)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -42,12 +50,20 @@ struct KroutonCloudSettingsRowView: View {
     private func explanation(_ availability: KroutonCloudSettings.Availability) -> String {
         switch availability {
         case .available:
-            return KroutonL10n.tr("Appearance, units, notifications and their sounds, and the menu bar choice. Language, the label template, drives, servers and keys stay on each Mac.")
+            return KroutonL10n.tr("Appearance, units, notifications and their sounds, disc label sizes and the menu bar choice. Language, the label template, drives, servers and keys stay on each Mac.")
         case .notSigned:
             return KroutonL10n.tr("This copy of Krouton isn't signed for iCloud, so settings stay on this Mac. Release builds are.")
         case .noAccount:
             return KroutonL10n.tr("Sign in to iCloud in System Settings to keep settings there.")
         }
+    }
+
+    private var documentsExplanation: String {
+        if documents.projectsFolder != nil {
+            return KroutonL10n.tr("Open Project and Save Project start in the Krouton folder in iCloud Drive, so your other Macs see the same projects. The files a project burns stay where they are.")
+        }
+        if !documents.hasLookedUp { return KroutonL10n.tr("Looking for iCloud Drive…") }
+        return KroutonL10n.tr("iCloud Drive isn't available to this copy of Krouton: it needs a release build signed for iCloud, and iCloud Drive turned on in System Settings.")
     }
 
     private func turnOn() {

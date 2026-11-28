@@ -140,6 +140,8 @@ enum KroutonStorageAndReset {
         store.distinctDriveVoices = true
         store.menuBarStatusMode = .whileWorking
         store.labelSuggestionsEnabled = true
+        store.label.labelPresets = LabelDocument.defaultLabelPresets
+        store.label.selectedLabelPresetIndex = 0
     }
 
     /// The destination queue back to one disc burner card, and the queues saved per workspace cleared.

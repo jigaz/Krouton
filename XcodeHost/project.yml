@@ -50,7 +50,9 @@ targets:
         PRODUCT_NAME: Krouton
         PRODUCT_BUNDLE_IDENTIFIER: app.krouton
         INFOPLIST_FILE: Info.plist
-        CODE_SIGN_ENTITLEMENTS: Krouton.entitlements
+        # iCloud (settings and the iCloud Drive folder) and the app group: with automatic signing,
+        # Xcode registers both for app.krouton the first time you build signed (dev-notes/icloud.md).
+        CODE_SIGN_ENTITLEMENTS: Krouton-Xcode.entitlements
         CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: NO
   KroutonWidgets:

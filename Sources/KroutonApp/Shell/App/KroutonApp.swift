@@ -7,6 +7,7 @@ struct KroutonApp: App {
     init() {
         KroutonAppKitBridge.becomeRegularApp()
         KroutonWidgetBridge.start()
+        KroutonCloudDocuments.shared.lookUp()
     }
 
     /// The menu bar item is there always, never, or only while something runs.

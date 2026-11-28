@@ -19,7 +19,7 @@ enum KroutonCloudSettings {
     /// The settings that travel.
     nonisolated static let syncedKeys: [KroutonPreferenceKey] = [
         .selectedAccentIndex, .harmonyEnabled, .appearanceMode, .iconWidgetStyle, .folderColorMode,
-        .sidebarIconSize, .useBase10Units, .notificationEvents, .distinctDriveVoices, .menuBarStatus, .labelSuggestions,
+        .sidebarIconSize, .useBase10Units, .notificationEvents, .distinctDriveVoices, .menuBarStatus, .labelSuggestions, .labelPresets,
     ]
     /// When the values in iCloud were last written, so a Mac turning sync on can tell if any are there.
     nonisolated static let stampKey = "krouton.cloud.savedAt"

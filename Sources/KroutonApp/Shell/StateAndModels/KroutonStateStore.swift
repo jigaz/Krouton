@@ -170,6 +170,8 @@ final class KroutonStateStore {
         notificationMatrix = KroutonPreferences.notificationEvents(defaults: Self.defaultNotificationMatrix)
         distinctDriveVoices = KroutonPreferences.bool(for: .distinctDriveVoices, default: true)
         labelSuggestionsEnabled = KroutonPreferences.bool(for: .labelSuggestions, default: true)
+        label.labelPresets = LabelDocument.savedLabelPresets()
+        label.selectedLabelPresetIndex = min(label.selectedLabelPresetIndex, max(0, label.labelPresets.count - 1))
         menuBarStatusMode = KroutonPreferences.string(for: .menuBarStatus).flatMap(KroutonLiveStatus.MenuBarMode.init(rawValue:)) ?? .whileWorking
         if let rawTpl = KroutonPreferences.string(for: .labelTemplate),
            let tpl = KroutonCroutonLabelStyle(rawValue: rawTpl) {

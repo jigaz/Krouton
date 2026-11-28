@@ -44,13 +44,31 @@ final class LabelDocument {
     var labelShowAlignmentGrid: Bool = false
     var labelCanvasZoom: Double = 1.0
 
-    var labelPresets: [KroutonDiscLabelGeometry] = [
+    /// Disc sizes and tray offsets (Settings › Labels & Printers), kept between launches and, with
+    /// settings in iCloud, on your other Macs.
+    var labelPresets: [KroutonDiscLabelGeometry] = LabelDocument.defaultLabelPresets {
+        didSet {
+            guard KroutonStateStore.shared?.isHydratingPreferences != true,
+                  let data = try? JSONEncoder().encode(labelPresets) else { return }
+            KroutonPreferences.set(String(decoding: data, as: UTF8.self), for: .labelPresets)
+        }
+    }
+    static let defaultLabelPresets: [KroutonDiscLabelGeometry] = [
         KroutonDiscLabelGeometry(name: "Epson ET-8550 Full Hub (120mm / 18mm)", outerDiameterMM: 120.0, innerDiameterMM: 18.0, offsetXMM: 0.0, offsetYMM: 0.0),
         KroutonDiscLabelGeometry(name: "Standard Inkjet Disc (118mm / 23mm)", outerDiameterMM: 118.0, innerDiameterMM: 23.0, offsetXMM: 0.0, offsetYMM: 0.0),
         KroutonDiscLabelGeometry(name: "Non-Hub Standard (118mm / 41mm)", outerDiameterMM: 118.0, innerDiameterMM: 41.0, offsetXMM: 0.0, offsetYMM: 0.0),
         KroutonDiscLabelGeometry(name: "80mm Mini-CD / GameCube (80mm / 18mm)", outerDiameterMM: 80.0, innerDiameterMM: 18.0, offsetXMM: 0.0, offsetYMM: 0.0)
     ]
     var selectedLabelPresetIndex: Int = 0
+
+    /// The presets saved by `labelPresets`, or the defaults.
+    static func savedLabelPresets() -> [KroutonDiscLabelGeometry] {
+        guard let text = KroutonPreferences.string(for: .labelPresets), let data = text.data(using: .utf8),
+              let saved = try? JSONDecoder().decode([KroutonDiscLabelGeometry].self, from: data), !saved.isEmpty else {
+            return defaultLabelPresets
+        }
+        return saved
+    }
 
     init() {}
 }

@@ -213,7 +213,7 @@ struct KroutonDepotFeedSubscription: Identifiable, Hashable, Sendable {
     var sfSymbol: String
 }
 
-struct KroutonDiscLabelGeometry: Identifiable, Hashable, Sendable {
+struct KroutonDiscLabelGeometry: Identifiable, Hashable, Codable, Sendable {
     var id = UUID()
     var name: String
     var outerDiameterMM: Double
