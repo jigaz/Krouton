@@ -289,11 +289,10 @@ enum KroutonCLIRunner {
 /// Where the app starts: a headless CLI run, or the windowed app. Called by `Sources/KroutonMain`
 /// (`swift run Krouton`) and by the Xcode project's app target.
 public enum KroutonEntryPoint {
+    @MainActor
     public static func main() {
         if KroutonCLIRunner.shouldRunHeadlessCLI() {
-            let result = MainActor.assumeIsolated {
-                KroutonCLIRunner.evaluate(arguments: CommandLine.arguments)
-            }
+            let result = KroutonCLIRunner.evaluate(arguments: CommandLine.arguments)
             print(result.output)
             Foundation.exit(result.exitCode)
         }

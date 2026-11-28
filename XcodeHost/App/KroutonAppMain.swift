@@ -7,6 +7,7 @@ import KroutonApp
 /// Xcode build provides (the widget extension, App Intents metadata, signing with the app group).
 @main
 enum KroutonAppMain {
+    @MainActor
     static func main() {
         KroutonEntryPoint.main()
     }
