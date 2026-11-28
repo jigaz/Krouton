@@ -127,7 +127,7 @@ enum KroutonStorageAndReset {
         // iCloud is reset with this Mac's.
         if syncing {
             KroutonPreferences.setLocally(true, for: .syncSettingsWithICloud)
-            KroutonCloudSettings.eraseCloudCopy()
+            KroutonCloudSettings.resetCloudCopy()
         }
         store.appearance.resetToDefaults()
         store.label.selectedLabelTemplate = .synthGrid

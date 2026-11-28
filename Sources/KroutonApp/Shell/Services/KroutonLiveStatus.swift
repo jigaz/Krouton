@@ -24,6 +24,11 @@ enum KroutonLiveStatus {
         let symbol: String
     }
 
+    /// Whether anything `items` would list is running, reading only the running flags.
+    static func isAnythingRunning(store: KroutonStateStore, driveManager: KroutonOpticalDriveBank) -> Bool {
+        driveManager.isExecutingQueue || store.rescue.isRunning || store.avchd.isRunning || !store.depotDownloadProgress.isEmpty
+    }
+
     static func items(store: KroutonStateStore, driveManager: KroutonOpticalDriveBank) -> [Item] {
         var items: [Item] = []
         if driveManager.isExecutingQueue {
