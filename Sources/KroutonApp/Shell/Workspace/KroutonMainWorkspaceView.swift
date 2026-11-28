@@ -104,10 +104,16 @@ struct KroutonMainWorkspaceView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(KroutonL10n.tr("KROUTON"))
                         .font(.system(size: 13, weight: .heavy, design: .rounded))
-                    Text("\(driveManager.availableDrives.count) Optical Drive(s) Online • \(driveManager.hardwareStatusLog)")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.90) : Color.secondary)
-                        .lineLimit(1)
+                    Group {
+                        if driveManager.availableDrives.isEmpty {
+                            Text("No optical drive connected • Save disc images or burn on a Krouton Server")
+                        } else {
+                            Text("\(driveManager.availableDrives.count) Optical Drive(s) Online • \(driveManager.hardwareStatusLog)")
+                        }
+                    }
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(store.enableSecondaryAccentUITints ? store.activeSecondaryAccent.opacity(0.90) : Color.secondary)
+                    .lineLimit(1)
                 }
             }
 

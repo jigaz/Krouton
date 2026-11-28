@@ -171,7 +171,9 @@ extension KroutonStateStore {
         case .burn:
             return "Queue Ready • \(stagedFiles.count) Items (\(ByteCountFormatter.string(fromByteCount: totalStagedBytes, countStyle: .file)))"
         case .depot:
-            let item = self.depotItems.first(where: { $0.id == self.selectedDepotHeroItemID }) ?? self.depotItems[0]
+            guard let item = self.depotItems.first(where: { $0.id == self.selectedDepotHeroItemID }) ?? self.depotItems.first else {
+                return "Depot • No disc images listed"
+            }
             return "Depot Ready • \(item.title) (\(item.sizeDisplay))"
         case .copy:
             switch selectedCopyTaskID {
