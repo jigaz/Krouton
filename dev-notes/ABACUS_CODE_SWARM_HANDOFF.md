@@ -1,3 +1,9 @@
+> **Archived 2026-11-28. Not maintained.** A one-off brief, written on 2026-11-18, for an
+> external AI code-review service (Abacus.AI Code Swarm), with the review request and a summary
+> of the changes then under review. The counts in it (21 targets, 28 suites) and the working-tree
+> snapshot in it are from that day. Kept for the record; nothing here is a current
+> instruction. For the current rules, read `CLAUDE.md` and `CONTRIBUTING.md`.
+
 # Abacus.AI Code Swarm — Repository & Recent PR Review Handoff
 
 ## 1. Initial Prompt & Follow-Up Answer for Code Swarm

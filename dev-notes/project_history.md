@@ -1,3 +1,10 @@
+> **Archived 2026-11-28. Not maintained.** An early version-by-version summary, written for
+> 1.0.1 (2026-11-17). Parts are out of date: Krouton targets macOS 14 and later (not only
+> macOS 26), `krouton-verify` has 40 suites, there has been no public release
+> (1.0.0 and 1.0.1 were development milestones), and the product names in the headings
+> (WaveBurner, UltraISO, PowerISO, K3b, ImgBurn, LiquidCD) name the tools a feature was modelled
+> on, not anything Krouton includes. For history, read `CHANGELOG.md`.
+
 # Krouton Project History & Architecture Log
 
 ## Current Version: `v1.0.1` (11-Target Swift 6 Architecture, Native macOS Appearance Icons & Verification Gate)

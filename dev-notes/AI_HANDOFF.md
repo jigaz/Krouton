@@ -1,3 +1,9 @@
+> **Archived 2026-11-28. Not maintained.** An automatic change log from the first AI-assisted
+> sessions (2026-11-17 to 2026-11-19): a local `post-commit` hook, which was never committed,
+> appended each commit's message and file list here. It stopped when the hook did. Many file
+> names in it no longer exist (`krouton-spoold/` became `krouton-server/`). For history, use
+> `git log` and `CHANGELOG.md`; for how Krouton works today, `ARCHITECTURE.md`.
+
 # AI Handoff & Change Log — Krouton
 
 This file tracks proposed and completed changes across AI coding sessions (Claude Code & Gemini).
