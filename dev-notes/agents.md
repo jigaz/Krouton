@@ -17,7 +17,7 @@ without stepping on each other, and how their work comes back.
 5. **Before pushing**, an agent runs the checks it can here: `python3 Scripts/extract-strings.py
    --check`, `python3 Scripts/build-manual.py --check`, and `cargo test --workspace` plus
    `cargo clippy --workspace --all-targets` for changes in `krouton-server/`. There's no Swift
-   toolchain in the cloud sandbox, so Swift is checked by CI (and on Losa).
+   toolchain in the cloud sandbox, so Swift is checked by CI and on the owner's Mac.
 6. **Split work by files.** Give two agents work that touches different files. When that can't be
    helped, merge the first PR, then have the second merge `origin/main` into its branch.
 7. **Reports are short**: what changed, what was checked, and what's left, with file paths.
