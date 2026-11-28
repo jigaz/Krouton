@@ -8,16 +8,20 @@ extension SpoolBundleWriter {
         ".DS_Store", ".Spotlight-V100", ".fseventsd", ".Trashes", ".TemporaryItems", ".DocumentRevisions-V100", "Icon\r",
     ]
 
+    /// What `bundle` wrote.
     public struct FolderSummary: Sendable, Equatable {
+        /// Files written.
         public let files: Int
+        /// Folders written.
         public let folders: Int
+        /// File bytes written.
         public let bytes: UInt64
     }
 
     /// Writes the contents of `folder` (not the folder itself) to `output` as a bundle, folders
     /// before their contents and names (in Unicode NFC, as discs and Windows expect) in UTF-8 byte
-    /// order, so the same folder always gives the same bytes. Refuses links, special files, names a disc cannot hold, and names that differ
-    /// only by case, before anything is uploaded.
+    /// order, so the same folder always gives the same bytes. Refuses links, special files, names
+    /// a disc can't hold, and names that differ only by case, before anything is uploaded.
     public static func bundle(folder: URL, to output: URL, isCancelled: () -> Bool = { false }) throws -> FolderSummary {
         guard FileManager.default.createFile(atPath: output.path, contents: nil) else {
             throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: output.path])

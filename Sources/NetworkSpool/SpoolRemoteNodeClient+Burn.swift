@@ -5,10 +5,15 @@ import OpticalCore
 
 /// How a remote burn ended.
 public struct SpoolRemoteBurnOutcome: Sendable, Equatable {
+    /// True when the disc burned (and verified, if asked).
     public let succeeded: Bool
+    /// What happened, for the user.
     public let message: String
+    /// The server it ran on.
     public let serverName: String
+    /// The drive it ran on.
     public let driveName: String
+    /// The job's ID, once the server accepted it.
     public let job: String?
 }
 

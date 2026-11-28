@@ -6,7 +6,8 @@ import Foundation
 /// private, link-local or unique-local addresses only, with no userinfo or query smuggling.
 /// The address actually reached is checked again after connecting (`SpoolEndpointPolicy`).
 public enum SpoolLANSecurityEngine {
-    /// Validates that an endpoint host belongs strictly to loopback, mDNS (.local), or RFC-1918 / RFC-3927 private LAN ranges.
+    /// True when the host in `rawEndpoint` (with or without a scheme, port or path) passes the
+    /// default `SpoolEndpointPolicy`: an allowed address literal, localhost or a .local name.
     public static func isAllowedLANEndpoint(_ rawEndpoint: String) -> Bool {
         let trimmed = rawEndpoint.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !trimmed.isEmpty else { return false }
@@ -42,7 +43,9 @@ public enum SpoolLANSecurityEngine {
     }
 }
 
-// MARK: - Burn Telemetry (kind-7 frames) & Monotonic Progress Filter
+// MARK: - Burn Telemetry (kind-7 frames) and the Progress Filter
+
+/// A burn's phase in a telemetry frame. The raw values are on the wire.
 public enum SpoolTelemetryPhase: String, Codable, Sendable, Equatable {
     case idle             = "IDLE"
     case preheating       = "PREHEATING"
@@ -53,17 +56,29 @@ public enum SpoolTelemetryPhase: String, Codable, Sendable, Equatable {
     case cancelled        = "CANCELLED"
 }
 
+/// One telemetry frame from the server about a running job. The field names are on the wire.
 public struct SpoolTelemetryPacket: Codable, Sendable, Equatable {
+    /// The job, by the UUID the client gave it in `submit`.
     public let batchId: UUID
+    /// The drive.
     public let driveId: String
+    /// The phase.
     public let state: SpoolTelemetryPhase
+    /// Progress, 0 to 1.
     public let fraction: Double
+    /// The sector being written.
     public let currentLba: Int64
+    /// Sectors to write.
     public let totalLba: Int64
+    /// The write speed, as a multiple of 1x.
     public let effectiveSpeedX: Double
+    /// The server's write buffer fill, 0 to 1.
     public let fifoFill: Double
+    /// The drive's buffer fill, 0 to 1.
     public let driveBufferFill: Double
+    /// Always 0 from Krouton Server today.
     public let c2Errors: Int
+    /// Seconds left, as the server estimates.
     public let etaSeconds: Int
 
     public init(
@@ -93,9 +108,11 @@ public struct SpoolTelemetryPacket: Codable, Sendable, Equatable {
     }
 }
 
+/// Makes telemetry safe to show.
 public enum SpoolTelemetrySanitizer {
-    /// Clamps and filters incoming WebSocket progress frames so out-of-order packets or NaN/Inf values
-    /// never cause progress regressions, negative buffer fill, or division-by-zero in the UI.
+    /// Clamps an incoming telemetry frame against the last state shown, so a late frame or a NaN
+    /// or infinite value never makes progress go backwards, a finished burn look active again,
+    /// or a buffer fill leave 0…1.
     public static func sanitizeProgressTransition(
         previousState: SpoolTelemetryPhase,
         previousFraction: Double,
@@ -111,7 +128,7 @@ public enum SpoolTelemetrySanitizer {
             return (previousState, previousFraction, cleanFifo, cleanDrive)
         }
 
-        // During monotonic active burn (BURNING_PROGRESS -> BURNING_PROGRESS), ignore late stale UDP/WS packets
+        // While burning, a frame that arrives late can't move progress backwards.
         let monotonicFrac: Double
         if previousState == .burningProgress && incomingFrame.state == .burningProgress {
             monotonicFrac = max(previousFraction, rawFrac)
