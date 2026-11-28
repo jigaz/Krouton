@@ -8,8 +8,13 @@
 //! krouton-server clients   list paired Macs        krouton-server unpair <name>
 //! krouton-server check     diagnose the setup      krouton-server version
 //! ```
-//! Every command accepts `--home <dir>` (default: the platform's service directory, or
-//! `$KROUTON_SERVER_HOME`), which holds `server.conf`, the keys, paired clients and the spool.
+//! Every command accepts `--home <dir>` (default: `$KROUTON_SERVER_HOME`, else the platform's
+//! service directory), which holds `server.conf`, the keys, paired clients and the spool.
+//!
+//! This crate is the thin layer around `server-core`: the command line (this file), the
+//! server's keys and the `NodeCrypto` implementation on `ring` (`crypto`), the rustls
+//! configuration with pinned keys (`tls`), and the TCP listener, admission control and Bonjour
+//! advertisement (`serve`). It is the only crate with third-party dependencies.
 
 mod crypto;
 mod serve;
@@ -217,20 +222,24 @@ fn run(home: &Path) -> Result<(), String> {
 
 fn pair(home: &Path, args: &mut Vec<String>) -> Result<(), String> {
     let minutes: u64 = take_option(args, "--minutes")
-        .map_or(Ok(5), |m| m.parse().map_err(|_| "--minutes must be a number".to_string()))?;
+        .map_or(Ok(5), |m| m.parse().map_err(|_| "--minutes must be a number".to_string()))?
+        .clamp(1, 60);
     let config = load_config(home)?;
     if !home.join(crypto::IDENTITY_FILE).exists() {
         return Err(format!("{} has no keys yet. Run `krouton-server init` first.", home.display()));
     }
     let window = PairingWindow::new(home);
     window
-        .open(Duration::from_secs(minutes.clamp(1, 60) * 60))
+        .open(Duration::from_secs(minutes * 60))
         .map_err(|e| format!("Could not open the pairing window (run as the service user?): {e}"))?;
     let host = server_core::config::default_name();
     println!("Pairing is open for {minutes} minute(s).");
-    println!("In Krouton: Settings › Burn Servers › Add Server, then choose \"{}\"", config.name);
     println!(
-        "(or enter {host}.local or this computer's IP address, port {}).\n",
+        "In Krouton: Settings › Burners & Network › Krouton Servers, then click Connect next to \"{}\"",
+        config.name
+    );
+    println!(
+        "(or use Pair by Address with {host}.local or this computer's IP address, port {}).\n",
         config.listen.first().map_or(krsp::identity::DEFAULT_PORT, std::net::SocketAddr::port)
     );
     println!("Waiting for a Mac… (Ctrl-C to cancel)");

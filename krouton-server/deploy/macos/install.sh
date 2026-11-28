@@ -6,7 +6,7 @@
 # Usage: ./install.sh [path/to/krouton-server]
 set -eu
 
-BIN="${1:-$(dirname "$0")/../krouton-server}"
+BIN="${1:-$(dirname "$0")/../../krouton-server}"
 LABEL=app.krouton.server
 DEST=/usr/local/bin/krouton-server
 HOME_DIR="$HOME/Library/Application Support/Krouton Server"

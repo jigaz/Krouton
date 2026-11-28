@@ -1,4 +1,4 @@
-//! Windows 10/11 backend (x86 and x64): IMAPI2, the burn engine built into Windows, driven by a
+//! Windows 10/11 backend (x64, x86 and ARM64): IMAPI2, the burn engine built into Windows, driven by a
 //! small PowerShell script the server writes next to its state. Arguments are passed as separate
 //! `-File` parameters (never spliced into script text), and drive letters are validated first.
 //!
