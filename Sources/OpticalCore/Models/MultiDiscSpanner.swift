@@ -87,7 +87,7 @@ public enum KroutonSpanningDiscMedium: String, CaseIterable, Identifiable, Codab
         case .mdiscVault:
             return [.dvd5Single, .bd25Single, .bd50Dual, .bdxl100Triple, .bdxl128Quad]
         default:
-            // Data discs (Universal Hybrid, UDF 2.60, Apple HFS+/APFS, etc.): full 650 MB - 128 GB range
+            // Data discs (Universal Hybrid, UDF 2.50, Apple HFS+, etc.): full 650 MB - 128 GB range
             return [
                 .cd74Min650MB,
                 .cd80Min700MB,

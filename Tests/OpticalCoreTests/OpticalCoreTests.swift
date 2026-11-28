@@ -41,3 +41,16 @@ final class OpticalCoreTests: XCTestCase {
         XCTAssertTrue(KroutonDomainIdentity.sessionVaultDirectory().path.contains("app.krouton"))
     }
 }
+
+/// Format names describe only what Krouton writes: no Rock Ridge tree, no UDF 2.60 (the writer
+/// does 2.50), and no lifetime promises.
+final class WorkflowCatalogClaimsTests: XCTestCase {
+    func testDisplayTextClaimsNothingTheWritersDontDo() {
+        for spec in KroutonOpticalWorkflowCatalog.defaultFormats {
+            let text = "\(spec.technicalName) \(spec.colloquialName) \(spec.bookOrFileSystem)"
+            XCTAssertFalse(text.contains("Rock Ridge"))
+            XCTAssertFalse(text.contains("UDF 2.60"))
+            XCTAssertFalse(text.contains("1,000-Year"))
+        }
+    }
+}

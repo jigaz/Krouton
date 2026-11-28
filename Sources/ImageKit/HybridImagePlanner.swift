@@ -102,7 +102,7 @@ public struct KroutonHybridImagePlanner {
             let needsUDF = entry.byteSize > iso9660FourGiBLimit
 
             if needsUDF && entry.showOnPC {
-                warnings.append("\(entry.name) (>4 GiB) requires UDF 2.60 multi-extent allocation.")
+                warnings.append("\(entry.name) is over 4 GiB, more than one ISO 9660 extent holds: it needs the UDF tree (or ISO 9660 level 3 multi-extent), so older systems that read only ISO 9660 won't see it.")
             }
             if entry.exceedsJoliet64CharLimit && entry.showOnPC {
                 warnings.append("\(entry.name) truncated to 64 UCS-2 characters in Joliet tree.")
