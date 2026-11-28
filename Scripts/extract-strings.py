@@ -184,6 +184,7 @@ TYPE_HINTS = {
     "disc.id": "Int",
     "preset.id": "Int",
     "heroMeta.badge": "String",
+    "item.seconds": "Int",
 }
 
 
