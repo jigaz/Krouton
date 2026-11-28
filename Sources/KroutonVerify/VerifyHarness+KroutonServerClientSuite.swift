@@ -51,5 +51,37 @@ extension KroutonTestHarness {
         h.check(SpoolSelfSignedCertificate.make(publicKeyX963: Data(repeating: 4, count: 33), commonName: "x",
                                                 serial: Data([1])) { _ in Data([1]) } == nil,
                 "Only uncompressed P-256 keys may be certified")
+        verifyServerDriveFit(&h)
+    }
+
+    /// The client refuses a job a server drive can't burn before uploading it (the server checks
+    /// again before burning, by the same rule).
+    static func verifyServerDriveFit(_ h: inout KroutonTestHarness) {
+        let dvdBurner = SpoolDriveInfo(id: "sr0", name: "ASUS DRW", media: .blank, queue: 0, busy: false,
+                                       writes: [.writesCD, .writesDVD], disc: "DVD+R", freeBytes: 4_700_372_992)
+        let bdBurner = SpoolDriveInfo(id: "sr1", name: "PIONEER BDR", media: .blank, queue: 0, busy: false,
+                                      writes: .writesAny, disc: "BD-R", freeBytes: 25_025_314_816)
+        let older = SpoolDriveInfo(id: "sr2", name: "Old server drive", media: .unknown, queue: 0, busy: false)
+        let bluRayImage: Int64 = 23_000_000_000
+        h.check(dvdBurner.refusal(imageBytes: bluRayImage, needs: nil)?.contains("writes CD and DVD") == true,
+                "A Blu-ray-sized image must be refused on a CD/DVD burner before uploading")
+        h.check(dvdBurner.refusal(imageBytes: 3_000_000_000, needs: .writesBD) != nil,
+                "A Blu-ray Video project must be refused on a CD/DVD burner whatever its size")
+        let cdInTray = SpoolDriveInfo(id: "sr3", name: "LG", media: .blank, queue: 0, busy: false,
+                                      writes: .writesAny, disc: "CD-R", freeBytes: 737_280_000)
+        h.check(cdInTray.refusal(imageBytes: 2_000_000_000, needs: nil)?.contains("insert a DVD or Blu-ray disc") == true,
+                "A DVD-sized image must be refused while a CD-R is in the tray")
+        h.check(dvdBurner.refusal(imageBytes: 4_800_000_000, needs: [.writesDVD]) != nil,
+                "An image larger than the disc's free space must be refused")
+        h.check(dvdBurner.refusal(imageBytes: 4_000_000_000, needs: [.writesDVD]) == nil
+                && older.refusal(imageBytes: bluRayImage, needs: nil) == nil,
+                "A job that fits, or a drive the server says nothing about, must not be refused")
+        let pick = SpoolDriveInfo.choose(from: [dvdBurner, bdBurner], requested: nil, imageBytes: bluRayImage, needs: nil)
+        h.check((try? pick.get().id) == "sr1", "With no drive chosen, a job must go to a drive that can burn it")
+        let asked = SpoolDriveInfo.choose(from: [dvdBurner, bdBurner], requested: "sr0", imageBytes: bluRayImage, needs: nil)
+        h.check((try? asked.get()) == nil, "A job sent to a drive that can't burn it must fail with the reason, not go elsewhere")
+        h.check(SpoolNodeCapabilities.families(of: [.dvd5Single, .bd25Single]) == [.writesDVD, .writesBD]
+                && SpoolNodeCapabilities.families(of: []) == nil,
+                "A format's disc sizes must map to disc families, and none to any family")
     }
 }

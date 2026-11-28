@@ -141,15 +141,13 @@ impl Transport for TlsTransport {
 /// without typing an address. Uses `dns-sd` (macOS) or `avahi-publish` (Linux, from avahi-utils);
 /// on Windows, or if neither tool exists, the app connects by host name or address instead.
 /// The TXT record carries only unauthenticated hints; the TLS pin proves who the server is.
-pub fn advertise(name: &str, port: u16, node_id: &str) -> Option<std::process::Child> {
+/// `writes` is what the drives write together (`JobManager::advertised_writes`).
+pub fn advertise(name: &str, port: u16, node_id: &str, writes: u32) -> Option<std::process::Child> {
     let txt = [
         "txtvers=1".to_string(),
         format!("pv={}", krsp::frame::VERSION),
         format!("id={node_id}"),
-        format!(
-            "caps={:x}",
-            krsp::identity::caps::WRITES_CD | krsp::identity::caps::WRITES_DVD | krsp::identity::caps::WRITES_BD
-        ),
+        format!("caps={writes:x}"),
     ];
     let port = port.to_string();
     let attempts: [(&str, Vec<&str>); 2] = [
