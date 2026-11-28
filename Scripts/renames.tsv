@@ -1,0 +1,397 @@
+# Renames planned in dev-notes/naming-and-structure.md, applied by Scripts/apply-renames.py.
+# Tab-separated. Rows run in order, so a file row that must happen before a type row comes first.
+# allow: hazards checked and accepted for the row (see the script's docstring); "-" for none.
+tier	module	kind	old	new	allow	why
+# ---- Tier 1: names that hide what a thing is (themes, misleading words) ----
+1	KroutonApp	type	KroutonBakeBatchItem	DestinationCard	-	A destination card in the queue; nothing is baked. Pairs with DestinationCardView
+1	KroutonApp	type	KroutonKitchenEventRow	NotificationEventSetting	-	One row of Settings › Notifications: an event and its banner/sound
+1	KroutonApp	type	KroutonRoastAppearanceMode	AppearanceMode	-	Light/Dark/Auto appearance
+1	KroutonApp	type	KroutonGarnishStyleMode	IconStyle	-	The icon style setting (Default/Dark/Clear/Tinted), stored as iconWidgetStyle
+1	KroutonApp	type	KroutonCroutonLabelStyle	LabelTemplate	-	Label template (pref key labelTemplate); "Crouton" was also a misspelling of Krouton
+1	KroutonApp	type	KroutonStage1Tool	LabelTool	-	A tool in the label designer's tool rail; "Stage 1" is a leftover build phase
+1	KroutonApp	type	KroutonMasteringStation	SidebarGroup	-	The sidebar's top-level groups (Burn, Depot, Copy, Label)
+1	KroutonApp	type	TrackMontageWindowState	SpliceWindowState	-	The Splice editor's window state; code calls the editor Splice everywhere else
+1	KroutonApp	type	KroutonFloatingTrackMontageWindowView	SpliceFloatingWindowView	-	The popped-out Splice editor window
+1	KroutonApp	type	KroutonGPUFooshTransitionModifier	SplicePopOutTransition	-	The pop-out/dock animation of the Splice editor
+1	KroutonApp	member	fooshPhase	popOutPhase	-	Progress of the pop-out animation
+1	KroutonApp	member	triggerFooshTransition	animatePopOut	-	Runs the pop-out animation
+1	KroutonApp	type	KroutonAcousticCue	SoundCue	-	A UI sound: a synth preset or system sound plus effects
+1	KroutonApp	type	KroutonAcousticEngine	SoundCuePlayer	-	Plays SoundCues
+1	KroutonApp	type	KroutonAcousticSoundboardCardView	SoundCueBoardView	-	Settings card that previews every sound cue
+1	KroutonApp	case	toasterDing	successChord	persisted	Synth preset played when a burn or rip finishes. ProceduralPreset has implicit raw values, but rawValue is never read or saved; notification voices are saved by their own ids ("toaster-ding"), which stay
+1	KroutonApp	case	burntToastGuard	refusalBuzz	persisted	Synth preset played when a drop or burn is refused. ProceduralPreset has implicit raw values, but rawValue is never read or saved; notification voices are saved by their own ids ("toaster-ding"), which stay
+1	KroutonApp	type	KroutonNotificationAndCompanionService	NotificationPoster	-	Posts banners, sounds and VoiceOver announcements; there is no companion app
+1	KroutonApp	type	KroutonWindowManager	WindowRouter	-	Opens and closes the app's windows
+1	DriveKit	type	KroutonOpticalDriveBank	DriveController	-	The @Observable owner of this Mac's drives and their burns; "Bank" says nothing
+1	DriveKit	member	driveManager	driveController	-	The variable that holds the DriveController (371 uses)
+1	DriveKit	member	neroSamples	speedSamples	-	Write-speed samples; named after a competitor's product
+1	LabelKit	type	KroutonLabelGeometryEngine	LabelGeometry	string	Label geometry and rendering functions; its files are already LabelGeometry+Role.swift. Its name is in krouton-verify messages, rewritten with it
+1	ImageKit	file	Sources/ImageKit/DiscImageDepot.swift	Sources/ImageKit/DiscImageClassifier.swift	-	Holds the cue parser and image classifier, not the Depot
+1	ImageKit	type	KroutonDiscImageDepot	DiscImageClassifier	-	Parses cue sheets and classifies images; unrelated to the Disc Image Depot downloads
+1	ImageKit	type	DiscImageDepotOperations	DiscImageInspector	string	inspectImageFile and archive operations on a local image. Also its NSError domain string; nothing compares the domain
+1	OpticalCore	type	KroutonMediaPrepEngine	MediaProbe	-	probeFile: what a media file is and how it will decode
+1	OpticalCore	type	KroutonStreamProbeResult	MediaProbeResult	-	What MediaProbe found
+1	OpticalCore	type	KroutonHeatTier	DecoderPath	-	Which decoder path a file takes (VideoToolbox, vDSP, passthrough)
+1	OpticalCore	type	KroutonElToritoBootInspector	SectorInspector	-	Hex dumps and SHA-256 of sectors, not just El Torito
+1	OpticalCore	type	KroutonPureColorMath	ColorMath	-	sRGB/HSB/P3 colour maths
+1	OpticalCore	type	KroutonKrutSecurityEngine	KrutSecurity	-	.krut project path safety and payload sealing
+1	NetworkSpool	type	SpoolLANSecurityEngine	SpoolHostCheck	string	Checks a typed host is on the local network before connecting. Its name is in krouton-verify messages, rewritten with it
+1	AudioKit	file	Sources/AudioKit/AudioEngine.swift	Sources/AudioKit/RedBookAudio.swift	-	The file holds Red Book maths, CD-Text packs and the cue compiler
+1	AudioKit	type	KroutonAudioEngine	RedBookAudio	-	Timecode, crossfade gains, CD-Text packs, cue sheet: Red Book helpers, not an engine
+1	VideoKit	file	Sources/VideoKit/VideoAuthoringEngine.swift	Sources/VideoKit/VideoDiscPlanner.swift	-	Bitrate budgets and the DVD-9 shrink plan
+1	VideoKit	file	Sources/VideoKit/VideoAuthoringEngine+Shrink.swift	Sources/VideoKit/VideoDiscPlanner+Shrink.swift	-	Pairs with VideoDiscPlanner.swift
+1	VideoKit	type	KroutonVideoAuthoringEngine	VideoDiscPlanner	-	Plans bitrates and the DVD-9 -> DVD-5 shrink; writes nothing
+1	VideoKit	file	Sources/VideoKit/AVCHDOnDVDAuthoringEngine.swift	Sources/VideoKit/AVCHDAuthoring.swift	-	Follows the type
+1	VideoKit	type	AVCHDOnDVDAuthoringEngine	AVCHDAuthoring	-	Builds AVCHD (BD-on-DVD) folders
+1	RescueKit	file	Sources/RescueKit/RescueEngine.swift	Sources/RescueKit/RescuePolicy.swift	-	Follows the type
+1	RescueKit	type	KroutonRescueEngine	RescuePolicy	-	What to do with each sector, and the archival grade
+1	OpticalCore	type	DiscSpanningEngine	ManualDiscBreaks	string	Toggles manual disc breaks; DiscPlanner does the spanning. Its name is in krouton-verify messages, rewritten with it
+1	AudioKit	type	KroutonRealCDExtractor	MountedAudioCDReader	string	Reads tracks from the audio CD macOS has mounted; "Real" says nothing. Also its NSError domain string; nothing compares the domain
+1	DriveKit	type	KroutonBurnStager	BurnFolderStager	-	Copies files into the burn folder; BurnKit has another stager (BurnSetStager)
+1	VideoKit	type	KroutonBEWriter	BigEndianWriter	-	Big-endian byte and bit writer
+1	BurnKit	file	Sources/BurnKit/BurnQueuePool.swift	Sources/BurnKit/BurnPool.swift	-	BurnQueuePool.swift (BurnKit) and BurnPoolQueue.swift (OpticalCore) were mirror names
+1	BurnKit	type	KroutonBurnQueuePool	BurnPool	-	The destination queue's pool of burner cards and tickets
+1	BurnKit	type	KroutonPoolSlotCard	BurnPoolCard	-	A burner card as the pool sees it
+1	OpticalCore	file	Sources/OpticalCore/Burning/BurnPoolQueue.swift	Sources/OpticalCore/Burning/BurnPoolTickets.swift	-	Tickets, dispatch mode, drive state and the claim ledger
+1	KroutonApp	type	KroutonDepotAppStoreCardView	DepotItemCardView	-	A Depot item's card; "AppStore" reads as Apple's App Store
+1	KroutonApp	type	KroutonPreferenceKey	DefaultsKey	-	A UserDefaults key; the bare name PreferenceKey would shadow SwiftUI's
+1	KroutonApp	type	KroutonPreferences	Defaults	string	Typed UserDefaults access. Its name is in krouton-verify messages, rewritten with it
+1	KroutonApp	type	NetworkSpoolDriveCardSectionView	ServerDriveSectionView	-	The Krouton Server part of a destination card
+1	KroutonApp	type	SpoolPlainTextFileDocument	PlainTextFileDocument	-	An app FileDocument, not part of NetworkSpool
+1	KroutonApp	type	KroutonBurnStationWorkspaceView	BurnWorkspaceView	-	The Burn group's workspace
+1	KroutonApp	type	KroutonCentralWorkspaceCapacityBarView	CapacityBarView	-	The disc capacity bar
+1	KroutonApp	type	KroutonLeftFormatChooserColumnView	FormatChooserColumnView	-	The format chooser column
+1	KroutonVerify	type	KroutonTestHarness	VerifyHarness	-	Matches its files (VerifyHarness+Suite.swift) and CLAUDE.md
+1	LabelKit	file	Sources/LabelKit/AutoLabelEngine.swift	Sources/LabelKit/AutoLabelComposer.swift	-	Holds AutoLabelComposer; the app's adapter was called AutoLabelEngine
+1	KroutonApp	type	AutoLabelEngine	AutoLabelStoreAdapter	-	Matches its file; LabelKit's AutoLabelComposer does the work
+# ---- Tier 2: files named for something else, and suffixes ----
+2	KroutonApp	file	Sources/KroutonApp/Features/AudioCD/Splice/SpliceDragController.swift	Sources/KroutonApp/Features/AudioCD/Splice/SpliceWindowState.swift	-	Holds the window state (split SpliceDragModifier into its own file by hand)
+2	KroutonApp	file	Sources/KroutonApp/Features/AudioCD/Splice/SpliceAuditioner.swift	Sources/KroutonApp/Features/AudioCD/Splice/SpliceAudioAuditioner.swift	-	Matches its type
+2	KroutonApp	file	Sources/KroutonApp/Features/Data/DataDiscSpanningHeaderView.swift	Sources/KroutonApp/Features/Data/DataDiscHeaderBannerView.swift	-	Matches its type
+2	KroutonApp	file	Sources/KroutonApp/Features/Depot/KroutonDepotCatalogViews.swift	Sources/KroutonApp/Features/Depot/DepotItemCardView.swift	-	Matches its type
+2	KroutonApp	file	Sources/KroutonApp/Features/Depot/KroutonDepotHeroStudio.swift	Sources/KroutonApp/Features/Depot/WorkflowBlueprintView.swift	-	Matches its type
+2	KroutonApp	file	Sources/KroutonApp/Shell/ModalsAndSettings/KroutonFloatingPhaseScopeWindow.swift	Sources/KroutonApp/Shell/ModalsAndSettings/FloatingPhaseScopeView.swift	-	Matches its type
+2	KroutonApp	file	Sources/KroutonApp/Shell/NavigationAndRack/KroutonNavigationAndTelemetryBars.swift	Sources/KroutonApp/Shell/NavigationAndRack/FormatChooserColumnView.swift	-	Holds only the format chooser column
+2	KroutonApp	file	Sources/KroutonApp/Shell/NavigationAndRack/KroutonDestinationSubViews.swift	Sources/KroutonApp/Shell/NavigationAndRack/DestinationRackColumnView.swift	-	Named for its main type
+2	KroutonApp	file	Sources/KroutonApp/Shell/NavigationAndRack/KroutonDestinationSubViews+WaitingPool.swift	Sources/KroutonApp/Shell/NavigationAndRack/DestinationRackColumnView+WaitingPool.swift	-	Pairs with DestinationRackColumnView.swift
+2	KroutonApp	file	Sources/KroutonApp/Shell/StateAndModels/KroutonProjectAndSessionVault.swift	Sources/KroutonApp/Shell/StateAndModels/ProjectFile.swift	-	The .krut project file: manifest, records, document
+2	KroutonApp	file	Sources/KroutonApp/Shell/StateAndModels/KroutonProjectAndSessionVault+OpenProject.swift	Sources/KroutonApp/Shell/StateAndModels/ProjectFile+OpenProject.swift	-	Pairs with ProjectFile.swift
+2	KroutonApp	file	Sources/KroutonApp/Shell/StateAndModels/KroutonSessionPersistence.swift	Sources/KroutonApp/Shell/StateAndModels/SessionSnapshot.swift	-	The saved session and crash recovery (move its banner view to ModalsAndSettings by hand)
+2	KroutonApp	file	Sources/KroutonApp/Shell/StateAndModels/KroutonObservableFeatureStores.swift	Sources/KroutonApp/Shell/StateAndModels/FeatureStores.swift	-	The sub-stores
+2	KroutonApp	file	Sources/KroutonApp/Shell/ModalsAndSettings/KroutonAuxModalsAndScopes.swift	Sources/KroutonApp/Shell/ModalsAndSettings/MasteringReportSheet.swift	-	Holds the report sheet, disc artwork and media popover; no scopes
+2	KroutonApp	file	Sources/KroutonApp/Shell/ModalsAndSettings/KroutonSettingsControlsAndDocuments.swift	Sources/KroutonApp/Shell/ModalsAndSettings/SettingsControls.swift	-	Settings' small controls
+2	KroutonApp	file	Sources/KroutonApp/Shell/DesignSystem/KroutonThemeEngine.swift	Sources/KroutonApp/Shell/DesignSystem/ColorHarmony.swift	-	Colour harmony table and Color helpers; no engine
+2	KroutonApp	type	KroutonLabelWorkspaceSubStore	LabelWorkspaceStore	-	Store suffix like the others; "Sub" is implied by being a child
+2	KroutonApp	type	KroutonBurnQueueSubStore	BurnQueueStore	-	As above
+2	KroutonApp	type	KroutonGuidedTutorialController	TutorialController	-	Shorter, same meaning
+2	KroutonApp	type	KroutonGuidedTutorialOverlayView	TutorialOverlayView	-	Pairs with TutorialController
+2	KroutonApp	type	KroutonDualHarmonySwitch	HarmonyToggle	-	A Toggle look; Switch is AppKit's word
+2	OpticalCore	file	Sources/OpticalCore/Models/MultiDiscSpanner.swift	Sources/OpticalCore/Models/SpanningDiscMedium.swift	-	There is no spanner in it: the disc medium and volume metadata
+2	OpticalCore	file	Sources/OpticalCore/InspectorsAndPrep/KroutonMediaPrepAndColorEngine.swift	Sources/OpticalCore/InspectorsAndPrep/MediaProbe.swift	-	Named for its main type (split SectorInspector and ColorMath out by hand)
+2	OpticalCore	type	KroutonBytes	ByteOrder	-	Matches its file; reads ByteOrder.u32be
+2	ImageKit	type	KroutonBDMVFolder	BDMVFolderCheck	-	Matches its file; it checks a folder
+2	ImageKit	type	KroutonParityWriter	ParityRecoveryWriter	-	Matches its file
+2	NetworkSpool	file	Sources/NetworkSpool/SpoolExtentPipeline.swift	Sources/NetworkSpool/SpoolUploadSender.swift	-	Matches its type
+2	AudioKit	file	Sources/AudioKit/HonestTrackData.swift	Sources/AudioKit/TrackMetadata.swift	-	Named for its main type
+# ---- Tier 3: spelling (identifiers in US English, like Apple's APIs) ----
+3	KroutonApp	type	DepotCatalogue	DepotCatalog	string	US spelling, as in DepotCatalogItem. STRING-MATCHED: krouton-verify searches the source for this name; the search string is rewritten with it
+3	AudioKit	member	analyse	analyze	shared-name	US spelling, as in M2TSAnalyzer. The new name is used elsewhere by an unrelated member; no clash in the same scope
+3	AudioKit	case	notAnalysed	notAnalyzed	-	US spelling
+3	Tests	member	testDMGOutputHonoursCompression	testDMGOutputHonorsCompression	-	US spelling
+3	KroutonVerify	member	centre	center	shared-name,keep-strings,catalog,manual	US spelling. The new name is used elsewhere by an unrelated member; no clash in the same scope
+3	VideoKit	member	ifoBup32KECCPaddingSectors	ifoToBackupPaddingSectors	-	"32KECC" read as a word; the doc comment gives the size
+2	KroutonApp	type	KroutonDesign	DesignTokens	-	Radii and type sizes; Design alone is too generic
+2	KroutonApp	type	KroutonLanguage	AppLanguage	-	The interface language setting (pref key appLanguage)
+2	OpticalCore	type	KroutonPrimitive	PersistedPrimitive	-	Pairs with PersistedDecoder; Primitive alone is too generic
+2	OpticalCore	type	KroutonSector	DataSector	-	DataSector.size = 2048; Sector alone is too generic
+2	OpticalCore	type	KroutonDiagnostics	DiagnosticLog	-	Holds the os.Logger
+# ---- Tier 4: drop the Krouton prefix inside modules (mechanical; one module per PR, last) ----
+4	AudioKit	type	KroutonAccurateRipDiscID	AccurateRipDiscID	-	The module already namespaces it
+4	AudioKit	type	KroutonAccurateRipTrackResult	AccurateRipTrackResult	-	The module already namespaces it
+4	AudioKit	type	KroutonAccurateRipReport	AccurateRipReport	-	The module already namespaces it
+4	AudioKit	type	KroutonAccurateRipVerifier	AccurateRipVerifier	-	The module already namespaces it
+4	AudioKit	type	KroutonOutcomeBox	OutcomeBox	-	The module already namespaces it
+4	AudioKit	type	KroutonRenderedAudioTrack	RenderedAudioTrack	-	The module already namespaces it
+4	AudioKit	type	KroutonAudioRenderError	AudioRenderError	-	The module already namespaces it
+4	AudioKit	type	KroutonAudioDiscRenderer	AudioDiscRenderer	-	The module already namespaces it
+4	AudioKit	type	KroutonCDTextPack	CDTextPack	-	The module already namespaces it
+4	AudioKit	type	KroutonCrossfadeCurve	CrossfadeCurve	-	The module already namespaces it
+4	AudioKit	type	KroutonTrackTransitionSpec	TrackTransitionSpec	string	The module already namespaces it. Its name is in krouton-verify messages, rewritten with it
+4	AudioKit	type	KroutonIdentifiedTrackMetadata	IdentifiedTrackMetadata	-	The module already namespaces it
+4	AudioKit	type	KroutonTrackAutoIdentifier	TrackAutoIdentifier	string	The module already namespaces it. Its name is in krouton-verify messages, rewritten with it
+4	AudioKit	type	KroutonMountedCDTrackDescriptor	MountedCDTrackDescriptor	-	The module already namespaces it
+4	AudioKit	type	KroutonMountedAudioCDSnapshot	MountedAudioCDSnapshot	-	The module already namespaces it
+4	AudioKit	type	KroutonRippedTrackResult	RippedTrackResult	-	The module already namespaces it
+4	AudioKit	type	KroutonAudioTags	AudioTags	-	The module already namespaces it
+4	AudioKit	type	KroutonAudioTagError	AudioTagError	-	The module already namespaces it
+4	AudioKit	type	KroutonAudioTagWriter	AudioTagWriter	-	The module already namespaces it
+4	AudioKit	type	KroutonTagResultBox	TagResultBox	-	The module already namespaces it
+4	AudioKit	type	KroutonCRC32	CRC32	-	The module already namespaces it
+4	AudioKit	type	KroutonRipCodec	RipCodec	-	The module already namespaces it
+4	BurnKit	type	KroutonBurnCoordinator	BurnCoordinator	string	The module already namespaces it. Its name is in krouton-verify messages, rewritten with it
+4	BurnKit	type	KroutonLocalBurnRequest	LocalBurnRequest	-	The module already namespaces it
+4	BurnKit	type	KroutonAfterBurnStep	AfterBurnStep	-	The module already namespaces it
+4	DriveKit	type	KroutonBurnJobContext	BurnJobContext	-	The module already namespaces it
+4	DriveKit	type	KroutonActiveBurnSession	ActiveBurnSession	-	The module already namespaces it
+4	DriveKit	type	KroutonDriveIdentity	DriveIdentity	-	The module already namespaces it
+4	DriveKit	type	KroutonBurnMediaDecision	BurnMediaDecision	-	The module already namespaces it
+4	DriveKit	type	KroutonBurnMediaPolicy	BurnMediaPolicy	-	The module already namespaces it
+4	DriveKit	type	KroutonDiscImageError	DiscImageError	-	The module already namespaces it
+4	DriveKit	type	KroutonDiscImageArguments	DiscImageArguments	-	The module already namespaces it
+4	DriveKit	type	KroutonBurnStageItem	BurnStageItem	-	The module already namespaces it
+4	DriveKit	type	KroutonBurnAbortSwitch	BurnAbortSwitch	-	The module already namespaces it
+4	DriveKit	type	KroutonConnectedDrive	ConnectedDrive	-	The module already namespaces it
+4	DriveKit	type	KroutonBlankDiscInfo	BlankDiscInfo	-	The module already namespaces it
+4	DriveKit	type	KroutonDiscImageBurner	DiscImageBurner	string	The module already namespaces it. STRING-MATCHED: krouton-verify searches the source for this name; the search string is rewritten with it
+4	DriveKit	type	KroutonDiscReadbackVerifier	DiscReadbackVerifier	-	The module already namespaces it
+2	DriveKit	type	KroutonDiskArbitration	DiscUnmounter	-	Lets go of a mounted disc; DiskArbitration is the framework it imports
+4	DriveKit	type	KroutonMMCDirectAccess	MMCDirectAccess	-	The module already namespaces it
+4	DriveKit	type	KroutonMMCDeviceSession	MMCDeviceSession	-	The module already namespaces it
+4	DriveKit	type	KroutonAudioBurnTrack	AudioBurnTrack	-	The module already namespaces it
+4	DriveKit	type	KroutonAudioBurnDisc	AudioBurnDisc	-	The module already namespaces it
+4	DriveKit	type	KroutonPCMTrackProducer	PCMTrackProducer	objc	The module already namespaces it. NSObject subclass: its Objective-C class name changes, but nothing archives it or looks it up by name (DiscRecording calls producers by selector)
+4	DriveKit	type	KroutonSectorTrackProducer	SectorTrackProducer	objc	The module already namespaces it. NSObject subclass: its Objective-C class name changes, but nothing archives it or looks it up by name (DiscRecording calls producers by selector)
+4	DriveKit	type	KroutonActiveEraseSession	ActiveEraseSession	-	The module already namespaces it
+4	ImageKit	type	KroutonRawSectorMode	RawSectorMode	-	The module already namespaces it
+4	ImageKit	type	KroutonDiscImageCueTrack	DiscImageCueTrack	-	The module already namespaces it
+4	ImageKit	type	KroutonDiscImageClassification	DiscImageClassification	-	The module already namespaces it
+4	ImageKit	type	KroutonFinderDisplayMode	FinderDisplayMode	-	The module already namespaces it
+4	ImageKit	type	KroutonFinderSortKey	FinderSortKey	-	The module already namespaces it
+4	ImageKit	type	KroutonFinderGroupKey	FinderGroupKey	-	The module already namespaces it
+4	ImageKit	type	KroutonFinderLabelPosition	FinderLabelPosition	-	The module already namespaces it
+4	ImageKit	type	KroutonFinderGalleryThumbSize	FinderGalleryThumbSize	-	The module already namespaces it
+4	ImageKit	type	KroutonFinderBackgroundKind	FinderBackgroundKind	-	The module already namespaces it
+4	ImageKit	type	KroutonFinderTagColor	FinderTagColor	-	The module already namespaces it
+4	ImageKit	type	KroutonFinderItemAnnotation	FinderItemAnnotation	-	The module already namespaces it
+4	ImageKit	type	KroutonFinderLayoutBlueprint	FinderLayoutBlueprint	string	The module already namespaces it. Its name is in krouton-verify messages, rewritten with it
+4	ImageKit	type	KroutonHFSOrder	HFSOrder	-	The module already namespaces it
+4	ImageKit	type	KroutonHFSBTree	HFSBTree	-	The module already namespaces it
+4	ImageKit	type	KroutonHFSError	HFSError	-	The module already namespaces it
+4	ImageKit	type	KroutonHFSImageWriter	HFSImageWriter	-	The module already namespaces it
+4	ImageKit	type	KroutonHybridImageOptions	HybridImageOptions	-	The module already namespaces it
+4	ImageKit	type	KroutonBuiltDiscImage	BuiltDiscImage	-	The module already namespaces it
+4	ImageKit	type	KroutonHybridImageError	HybridImageError	-	The module already namespaces it
+4	ImageKit	type	KroutonImageBuildCancellation	ImageBuildCancellation	-	The module already namespaces it
+4	ImageKit	type	KroutonHybridImageBuilder	HybridImageBuilder	-	The module already namespaces it
+4	ImageKit	type	KroutonHybridExtent	HybridExtent	-	The module already namespaces it
+4	ImageKit	type	KroutonHybridLayoutPlan	HybridLayoutPlan	-	The module already namespaces it
+4	ImageKit	type	KroutonHybridImagePlanner	HybridImagePlanner	-	The module already namespaces it
+4	ImageKit	type	KroutonParityError	ParityError	-	The module already namespaces it
+4	ImageKit	type	KroutonUDFVolume	UDFVolume	-	The module already namespaces it
+4	ImageKit	type	KroutonUDFTime	UDFTime	-	The module already namespaces it
+4	ImageKit	type	KroutonUDFLongAD	UDFLongAD	-	The module already namespaces it
+4	ImageKit	type	KroutonUDF	UDF	-	The module already namespaces it
+4	ImageKit	type	KroutonISO	ISO	-	The module already namespaces it
+4	ImageKit	type	KroutonUDFImageWriter	UDFImageWriter	-	The module already namespaces it
+4	ImageKit	type	KroutonUDFError	UDFError	-	The module already namespaces it
+4	KroutonApp	type	KroutonDigitsOnlyTextField	DigitsOnlyTextField	-	The module already namespaces it
+4	KroutonApp	type	KroutonRedBookAudioWorkspaceView	RedBookAudioWorkspaceView	-	The module already namespaces it
+4	KroutonApp	type	KroutonCarSafeAudioWorkspaceView	CarSafeAudioWorkspaceView	-	The module already namespaces it
+4	KroutonApp	type	KroutonDataAndArchivalWorkspaceView	DataAndArchivalWorkspaceView	-	The module already namespaces it
+4	KroutonApp	type	KroutonDiscImageInspectorWorkspaceView	DiscImageInspectorWorkspaceView	-	The module already namespaces it
+4	KroutonApp	type	KroutonFinderDiscStageView	FinderDiscStageView	-	The module already namespaces it
+4	KroutonApp	type	KroutonFinderViewOptionsPopover	FinderViewOptionsPopover	-	The module already namespaces it
+4	KroutonApp	type	KroutonHybridLBAMapPopoverView	HybridLBAMapPopoverView	-	The module already namespaces it
+4	KroutonApp	type	KroutonAudioCuePopoverView	AudioCuePopoverView	-	The module already namespaces it
+4	KroutonApp	type	KroutonVideoBitratePopoverView	VideoBitratePopoverView	-	The module already namespaces it
+4	KroutonApp	type	KroutonHeroTextOutlineModifier	HeroTextOutlineModifier	-	The module already namespaces it
+4	KroutonApp	type	KroutonDepotHeroBannerView	DepotHeroBannerView	-	The module already namespaces it
+4	KroutonApp	type	KroutonWorkflowBlueprintView	WorkflowBlueprintView	-	The module already namespaces it
+4	KroutonApp	type	KroutonDepotWorkspaceView	DepotWorkspaceView	-	The module already namespaces it
+4	KroutonApp	type	KroutonDiscLabelWorkspaceView	DiscLabelWorkspaceView	-	The module already namespaces it
+4	KroutonApp	type	KroutonDiscLabelArtworkCanvas	DiscLabelArtworkCanvas	-	The module already namespaces it
+4	KroutonApp	type	KroutonRetroConsoleWorkspaceView	RetroConsoleWorkspaceView	-	The module already namespaces it
+4	KroutonApp	type	KroutonRipCancelToken	RipCancelToken	-	The module already namespaces it
+4	KroutonApp	type	KroutonCopyAndRipWorkspaceView	CopyAndRipWorkspaceView	-	The module already namespaces it
+4	KroutonApp	type	KroutonRipTrackOutcome	RipTrackOutcome	-	The module already namespaces it
+4	KroutonApp	type	KroutonAVCHDPanelView	AVCHDPanelView	-	The module already namespaces it
+4	KroutonApp	type	KroutonVideoAuthoringWorkspaceView	VideoAuthoringWorkspaceView	-	The module already namespaces it
+4	KroutonApp	type	KroutonAppKitBridge	AppKitBridge	-	The module already namespaces it
+4	KroutonApp	type	KroutonAppDelegate	AppDelegate	objc	The module already namespaces it. NSObject subclass: its Objective-C class name changes, but nothing archives it or looks it up by name (DiscRecording calls producers by selector)
+4	KroutonApp	type	KroutonMenuBarStatusLabel	MenuBarStatusLabel	-	The module already namespaces it
+4	KroutonApp	type	KroutonMenuBarStatusView	MenuBarStatusView	-	The module already namespaces it
+4	KroutonApp	type	KroutonWorkspaceCommands	WorkspaceCommands	-	The module already namespaces it
+4	KroutonApp	type	KroutonImporterIntent	ImporterIntent	-	The module already namespaces it
+4	KroutonApp	type	KroutonStageImporterBridge	StageImporterBridge	-	The module already namespaces it
+4	KroutonApp	type	KroutonStageImporterModifier	StageImporterModifier	-	The module already namespaces it
+4	KroutonApp	type	KroutonSceneActionBinder	SceneActionBinder	-	The module already namespaces it
+4	KroutonApp	type	KroutonCLIRunner	CLIRunner	-	The module already namespaces it
+4	KroutonApp	type	KroutonBrandLogoView	BrandLogoView	-	The module already namespaces it
+4	KroutonApp	type	KroutonPillMetrics	PillMetrics	-	The module already namespaces it
+4	KroutonApp	type	KroutonPillButtonStyle	PillButtonStyle	-	The module already namespaces it
+4	KroutonApp	type	KroutonPillPicker	PillPicker	-	The module already namespaces it
+4	KroutonApp	type	KroutonTogglePill	TogglePill	-	The module already namespaces it
+4	KroutonApp	type	KroutonReadoutStyle	ReadoutStyle	-	The module already namespaces it
+4	KroutonApp	type	KroutonMasteringDeckCard	MasteringDeckCard	string	The module already namespaces it. STRING-MATCHED: krouton-verify searches the source for this name; the search string is rewritten with it
+4	KroutonApp	type	KroutonEmptyDropZoneView	EmptyDropZoneView	string	The module already namespaces it. STRING-MATCHED: krouton-verify searches the source for this name; the search string is rewritten with it
+4	KroutonApp	type	KroutonStyledIconBadge	StyledIconBadge	-	The module already namespaces it
+4	KroutonApp	type	KroutonColorHarmonyLUT	ColorHarmonyLUT	-	The module already namespaces it
+4	KroutonApp	type	KroutonDiscArtworkView	DiscArtworkView	-	The module already namespaces it
+4	KroutonApp	type	KroutonDiscMediaPopover	DiscMediaPopover	-	The module already namespaces it
+4	KroutonApp	type	KroutonMasteringReportSheet	MasteringReportSheet	-	The module already namespaces it
+4	KroutonApp	type	KroutonCloudSettingsRowView	CloudSettingsRowView	-	The module already namespaces it
+4	KroutonApp	type	KroutonFloatingPhaseScopeView	FloatingPhaseScopeView	-	The module already namespaces it
+4	KroutonApp	type	KroutonTutorialTargetZone	TutorialTargetZone	-	The module already namespaces it
+4	KroutonApp	type	KroutonGuidedTutorialID	GuidedTutorialID	-	The module already namespaces it
+4	KroutonApp	type	KroutonGuidedTutorialStep	GuidedTutorialStep	-	The module already namespaces it
+4	KroutonApp	type	KroutonNotificationSoundControlView	NotificationSoundControlView	-	The module already namespaces it
+4	KroutonApp	type	KroutonMiniPhaseScopeView	MiniPhaseScopeView	-	The module already namespaces it
+4	KroutonApp	type	KroutonPairingCodeSheet	PairingCodeSheet	-	The module already namespaces it
+4	KroutonApp	type	KroutonSettingsCategory	SettingsCategory	-	The module already namespaces it
+4	KroutonApp	type	KroutonSettingsWindowView	SettingsWindowView	-	The module already namespaces it
+4	KroutonApp	type	KroutonStorageAndResetPaneView	StorageAndResetPaneView	-	The module already namespaces it
+4	KroutonApp	type	KroutonManualChapter	ManualChapter	-	The module already namespaces it
+4	KroutonApp	type	KroutonManualDocument	ManualDocument	ci	The module already namespaces it. Scripts/build-manual.py names it in its docstring, rewritten with it
+4	KroutonApp	type	KroutonManualLibrary	ManualLibrary	-	The module already namespaces it
+4	KroutonApp	type	KroutonUserManualWindowView	UserManualWindowView	-	The module already namespaces it
+4	KroutonApp	type	KroutonBurnSetSheetView	BurnSetSheetView	-	The module already namespaces it
+4	KroutonApp	type	KroutonDestinationCardView	DestinationCardView	-	The module already namespaces it
+4	KroutonApp	type	KroutonDiscImagePlaceholderDocument	DiscImagePlaceholderDocument	-	The module already namespaces it
+4	KroutonApp	type	KroutonDiscImageTargetRowView	DiscImageTargetRowView	-	The module already namespaces it
+4	KroutonApp	type	KroutonDestinationRackColumnView	DestinationRackColumnView	-	The module already namespaces it
+4	KroutonApp	type	KroutonRipCodecPickerView	RipCodecPickerView	-	The module already namespaces it
+4	KroutonApp	type	KroutonBurnSetController	BurnSetController	string	The module already namespaces it. STRING-MATCHED: krouton-verify searches the source for this name; the search string is rewritten with it
+4	KroutonApp	type	KroutonCloudDocuments	CloudDocuments	-	The module already namespaces it
+4	KroutonApp	type	KroutonCloudSettings	CloudSettings	-	The module already namespaces it
+4	KroutonApp	type	KroutonLabelSuggester	LabelSuggester	-	The module already namespaces it
+4	KroutonApp	type	KroutonLiveStatus	LiveStatus	-	The module already namespaces it
+4	KroutonApp	type	KroutonMotionPreference	MotionPreference	-	The module already namespaces it
+4	KroutonApp	type	KroutonReduceMotionReader	ReduceMotionReader	-	The module already namespaces it
+4	KroutonApp	type	KroutonNotificationSound	NotificationSound	-	The module already namespaces it
+4	KroutonApp	type	KroutonOSDesktopBridge	OSDesktopBridge	-	The module already namespaces it
+4	KroutonApp	type	KroutonPowerAndBurnAssertion	PowerAndBurnAssertion	-	The module already namespaces it
+4	KroutonApp	type	KroutonStorageAndReset	StorageAndReset	-	The module already namespaces it
+4	KroutonApp	type	KroutonWidgetBridge	WidgetBridge	-	The module already namespaces it
+4	KroutonApp	type	KroutonAVCHDController	AVCHDController	-	The module already namespaces it
+4	KroutonApp	type	KroutonDepotFeed	DepotFeed	-	The module already namespaces it
+4	KroutonApp	type	KroutonDepotDownloadError	DepotDownloadError	-	The module already namespaces it
+4	KroutonApp	type	KroutonDepotDownloadProgress	DepotDownloadProgress	objc	The module already namespaces it. NSObject subclass: its Objective-C class name changes, but nothing archives it or looks it up by name (DiscRecording calls producers by selector)
+4	KroutonApp	type	KroutonDepotDownloader	DepotDownloader	-	The module already namespaces it
+4	KroutonApp	type	KroutonLabelCanvasSnapshot	LabelCanvasSnapshot	-	The module already namespaces it
+4	KroutonApp	type	KroutonProjectSourceRecord	ProjectSourceRecord	-	The module already namespaces it
+4	KroutonApp	type	KroutonSavedDestinationRecord	SavedDestinationRecord	-	The module already namespaces it
+4	KroutonApp	type	KroutonProjectManifest	ProjectManifest	-	The module already namespaces it
+4	KroutonApp	type	KroutonProjectFileDocument	ProjectFileDocument	-	The module already namespaces it
+4	KroutonApp	type	KroutonProjectDialogBridge	ProjectDialogBridge	-	The module already namespaces it
+4	KroutonApp	type	KroutonRescueController	RescueController	-	The module already namespaces it
+4	KroutonApp	type	KroutonMapSaver	MapSaver	-	The module already namespaces it
+4	KroutonApp	type	KroutonPersistedSessionSnapshot	PersistedSessionSnapshot	-	The module already namespaces it
+4	KroutonApp	type	KroutonCrashRecoveryController	CrashRecoveryController	-	The module already namespaces it
+4	KroutonApp	type	KroutonCrashRecoveryBannerView	CrashRecoveryBannerView	-	The module already namespaces it
+4	KroutonApp	type	KroutonAccentColorPreset	AccentColorPreset	-	The module already namespaces it
+4	KroutonApp	type	KroutonTrackIconSizeMode	TrackIconSizeMode	-	The module already namespaces it
+4	KroutonApp	type	KroutonStageFolderColorMode	StageFolderColorMode	-	The module already namespaces it
+4	KroutonApp	type	KroutonDepotCatalogItem	DepotCatalogItem	-	The module already namespaces it
+4	KroutonApp	type	KroutonDepotFeedSubscription	DepotFeedSubscription	-	The module already namespaces it
+4	KroutonApp	type	KroutonDiscLabelGeometry	DiscLabelGeometry	-	The module already namespaces it
+1	KroutonApp	type	KroutonBurnDestinationKind	DestinationKind	string	What a DestinationCard does; pairs with DestinationCard. Its name is in krouton-verify messages, rewritten with it
+4	KroutonApp	type	KroutonBurnInputError	BurnInputError	-	The module already namespaces it
+4	KroutonApp	type	KroutonBluRayRootError	BluRayRootError	-	The module already namespaces it
+4	KroutonApp	type	KroutonStateStore	StateStore	string	The module already namespaces it. STRING-MATCHED: krouton-verify searches the source for this name; the search string is rewritten with it
+4	KroutonApp	type	KroutonProjectSheetModifier	ProjectSheetModifier	-	The module already namespaces it
+4	KroutonApp	type	KroutonProjectDialogFolder	ProjectDialogFolder	-	The module already namespaces it
+4	KroutonApp	type	KroutonMainWorkspaceView	MainWorkspaceView	string	The module already namespaces it. Its name is in krouton-verify messages, rewritten with it
+4	LabelKit	type	KroutonDiscHubGeometry	DiscHubGeometry	-	The module already namespaces it
+4	LabelKit	type	KroutonPolarArcGlyphPlacement	PolarArcGlyphPlacement	-	The module already namespaces it
+4	LabelKit	type	KroutonPlanetSource	PlanetSource	-	The module already namespaces it
+4	LabelKit	type	KroutonPlanetProjection	PlanetProjection	-	The module already namespaces it
+4	OpticalCore	type	KroutonPoolDispatchMode	PoolDispatchMode	-	The module already namespaces it
+4	OpticalCore	type	KroutonPoolBurnTicket	PoolBurnTicket	-	The module already namespaces it
+4	OpticalCore	type	KroutonPoolDriveDescriptor	PoolDriveDescriptor	-	The module already namespaces it
+4	OpticalCore	type	KroutonDrivePoolState	DrivePoolState	-	The module already namespaces it
+4	OpticalCore	type	KroutonPersistedDecoder	PersistedDecoder	-	The module already namespaces it
+4	OpticalCore	type	KroutonPersistedDefault	PersistedDefault	-	The module already namespaces it
+4	OpticalCore	type	KroutonPersistedJSON	PersistedJSON	-	The module already namespaces it
+4	OpticalCore	type	KroutonPersistedDecodingContext	PersistedDecodingContext	-	The module already namespaces it
+4	OpticalCore	type	KroutonPersistedKey	PersistedKey	-	The module already namespaces it
+4	OpticalCore	type	KroutonConsoleDisc	ConsoleDisc	-	The module already namespaces it
+4	OpticalCore	type	KroutonConsoleDiscIdentifier	ConsoleDiscIdentifier	-	The module already namespaces it
+4	OpticalCore	type	KroutonDiscJugglerImage	DiscJugglerImage	-	The module already namespaces it
+4	OpticalCore	type	KroutonSectorSource	SectorSource	-	The module already namespaces it
+4	OpticalCore	type	KroutonSectorReadError	SectorReadError	-	The module already namespaces it
+4	OpticalCore	type	KroutonCDExtraLayout	CDExtraLayout	-	The module already namespaces it
+4	OpticalCore	type	KroutonBurnSupport	BurnSupport	-	The module already namespaces it
+4	OpticalCore	type	KroutonSpanningDiscMedium	SpanningDiscMedium	-	The module already namespaces it
+4	OpticalCore	type	KroutonDiscVolumeMetadata	DiscVolumeMetadata	-	The module already namespaces it
+4	OpticalCore	type	KroutonMountedDiscVolume	MountedDiscVolume	-	The module already namespaces it
+4	OpticalCore	type	KroutonOpticalDriveInfo	OpticalDriveInfo	-	The module already namespaces it
+4	OpticalCore	type	KroutonTrackPregapStyle	TrackPregapStyle	-	The module already namespaces it
+4	OpticalCore	type	KroutonRedBookTrack	RedBookTrack	string	The module already namespaces it. Its name is in krouton-verify messages, rewritten with it
+4	OpticalCore	type	KroutonCDTextSanitizer	CDTextSanitizer	-	The module already namespaces it
+4	OpticalCore	type	KroutonRipTrackItem	RipTrackItem	-	The module already namespaces it
+4	OpticalCore	type	KroutonVideoExtractTitleItem	VideoExtractTitleItem	-	The module already namespaces it
+4	OpticalCore	type	KroutonConsoleMasteringConfig	ConsoleMasteringConfig	string	The module already namespaces it. Its name is in krouton-verify messages, rewritten with it
+4	OpticalCore	type	KroutonWebEndpoints	WebEndpoints	-	The module already namespaces it
+4	OpticalCore	type	KroutonKrutCoreSpec	KrutCoreSpec	string	The module already namespaces it. Its name is in krouton-verify messages, rewritten with it
+4	OpticalCore	type	KroutonRGBAColor	RGBAColor	-	The module already namespaces it
+4	OpticalCore	type	KroutonVectorBackgroundStyle	VectorBackgroundStyle	-	The module already namespaces it
+4	OpticalCore	type	KroutonBackgroundAdjustments	BackgroundAdjustments	-	The module already namespaces it
+4	OpticalCore	type	KroutonKaleidoscopeMirrorRig	KaleidoscopeMirrorRig	-	The module already namespaces it
+4	OpticalCore	type	KroutonGPUSeedPattern	GPUSeedPattern	-	The module already namespaces it
+4	OpticalCore	type	KroutonVectorShapeKind	VectorShapeKind	-	The module already namespaces it
+4	OpticalCore	type	KroutonNormalizedPoint	NormalizedPoint	-	The module already namespaces it
+4	OpticalCore	type	KroutonLabelTextElement	LabelTextElement	-	The module already namespaces it
+4	OpticalCore	type	KroutonVectorShapeLayer	VectorShapeLayer	-	The module already namespaces it
+4	OpticalCore	type	KroutonEmbeddedLabelSpec	EmbeddedLabelSpec	string	The module already namespaces it. Its name is in krouton-verify messages, rewritten with it
+4	OpticalCore	type	KroutonStagedFileEntry	StagedFileEntry	-	The module already namespaces it
+4	OpticalCore	type	KroutonBurnTelemetrySample	BurnTelemetrySample	-	The module already namespaces it
+4	OpticalCore	type	KroutonBatchBurnState	BatchBurnState	-	The module already namespaces it
+4	OpticalCore	type	KroutonDrivePhaseScopeTelemetry	DrivePhaseScopeTelemetry	-	The module already namespaces it
+4	OpticalCore	type	KroutonBurnSessionReport	BurnSessionReport	-	The module already namespaces it
+4	OpticalCore	type	KroutonDriveTelemetryStore	DriveTelemetryStore	-	The module already namespaces it
+4	OpticalCore	type	KroutonFormatID	FormatID	string	The module already namespaces it. STRING-MATCHED: krouton-verify searches the source for this name; the search string is rewritten with it
+4	OpticalCore	type	KroutonCopyTaskID	CopyTaskID	string	The module already namespaces it. Its name is in krouton-verify messages, rewritten with it
+4	OpticalCore	type	KroutonMasteringWorkspaceKind	MasteringWorkspaceKind	-	The module already namespaces it
+4	OpticalCore	type	KroutonWorkflowFilterGroup	WorkflowFilterGroup	-	The module already namespaces it
+4	OpticalCore	type	KroutonOpticalWorkflowSpec	OpticalWorkflowSpec	-	The module already namespaces it
+4	OpticalCore	type	KroutonOpticalWorkflowCatalog	OpticalWorkflowCatalog	-	The module already namespaces it
+4	OpticalCore	type	KroutonPlanetSettings	PlanetSettings	-	The module already namespaces it
+4	OpticalCore	type	KroutonLabelPrintSettings	LabelPrintSettings	-	The module already namespaces it
+4	OpticalCore	type	KroutonWidgetSnapshot	WidgetSnapshot	-	The module already namespaces it
+4	OpticalCore	type	KroutonColumnSize	ColumnSize	-	The module already namespaces it
+4	OpticalCore	type	KroutonColumnBreakpoint	ColumnBreakpoint	-	The module already namespaces it
+4	OpticalCore	type	KroutonWindowLayout	WindowLayout	string	The module already namespaces it. Its name is in krouton-verify messages, rewritten with it
+4	RescueKit	type	KroutonSectorSink	SectorSink	-	The module already namespaces it
+4	RescueKit	type	KroutonImageFileSink	ImageFileSink	-	The module already namespaces it
+4	RescueKit	type	KroutonRescuePlan	RescuePlan	-	The module already namespaces it
+4	RescueKit	type	KroutonDiscRescuer	DiscRescuer	-	The module already namespaces it
+4	RescueKit	type	KroutonSectorRescueAction	SectorRescueAction	-	The module already namespaces it
+4	RescueKit	type	KroutonSectorRescueDecision	SectorRescueDecision	-	The module already namespaces it
+4	RescueKit	type	KroutonRescueSectorStatus	RescueSectorStatus	-	The module already namespaces it
+4	RescueKit	type	KroutonOpticalRescueMapSnapshot	OpticalRescueMapSnapshot	-	The module already namespaces it
+4	RescueKit	type	KroutonArchivalQualityCertificate	ArchivalQualityCertificate	-	The module already namespaces it
+4	RescueKit	type	KroutonRescueMap	RescueMap	-	The module already namespaces it
+4	VideoKit	type	KroutonAVCHDDisc	AVCHDDisc	-	The module already namespaces it
+4	VideoKit	type	KroutonAVCHDError	AVCHDError	-	The module already namespaces it
+4	VideoKit	type	KroutonBDMVVideoFormat	BDMVVideoFormat	-	The module already namespaces it
+4	VideoKit	type	KroutonBDMVClip	BDMVClip	-	The module already namespaces it
+4	VideoKit	type	KroutonBDMVWriter	BDMVWriter	-	The module already namespaces it
+4	VideoKit	type	KroutonCarAudioOptions	CarAudioOptions	-	The module already namespaces it
+4	VideoKit	type	KroutonCarAudioError	CarAudioError	-	The module already namespaces it
+4	VideoKit	type	KroutonCarAudioDiscPreparer	CarAudioDiscPreparer	-	The module already namespaces it
+4	VideoKit	type	KroutonM2TSAnalysis	M2TSAnalysis	-	The module already namespaces it
+4	VideoKit	type	KroutonM2TSError	M2TSError	-	The module already namespaces it
+4	VideoKit	type	KroutonM2TSAnalyzer	M2TSAnalyzer	-	The module already namespaces it
+4	VideoKit	type	KroutonVideoShrinkError	VideoShrinkError	-	The module already namespaces it
+4	VideoKit	type	KroutonVideoTargetMedium	VideoTargetMedium	-	The module already namespaces it
+4	VideoKit	type	KroutonVideoBitrateBudget	VideoBitrateBudget	-	The module already namespaces it
+4	VideoKit	type	KroutonDVD9ShrinkPlan	DVD9ShrinkPlan	-	The module already namespaces it
+4	VideoKit	type	KroutonDVD9CellDescriptor	DVD9CellDescriptor	-	The module already namespaces it
+4	VideoKit	type	KroutonShrunkDVD5CellEntry	ShrunkDVD5CellEntry	-	The module already namespaces it
+4	VideoKit	type	KroutonDVD9MenuShrinkBlueprint	DVD9MenuShrinkBlueprint	-	The module already namespaces it
+# Files whose names keep the prefix but match no type (KroutonMenuCommands*.swift stays: build-manual.py and Suite 3 find it by that prefix)
+4	DriveKit	file	Sources/DriveKit/KroutonBurnPreflight.swift	Sources/DriveKit/BurnPreflight.swift	-	Drops the prefix, like its types
+4	KroutonApp	file	Sources/KroutonApp/Shell/App/KroutonStageImporter.swift	Sources/KroutonApp/Shell/App/StageImporter.swift	-	Drops the prefix, like its types
+4	KroutonApp	file	Sources/KroutonApp/Shell/DesignSystem/KroutonDesignSystem.swift	Sources/KroutonApp/Shell/DesignSystem/DesignTokens.swift	-	Drops the prefix, like its types
+4	KroutonApp	file	Sources/KroutonApp/Shell/DesignSystem/KroutonPillControls.swift	Sources/KroutonApp/Shell/DesignSystem/PillControls.swift	-	Drops the prefix, like its types
+4	KroutonApp	file	Sources/KroutonApp/Shell/DesignSystem/KroutonSharedWorkspaceComponents.swift	Sources/KroutonApp/Shell/DesignSystem/SharedWorkspaceComponents.swift	-	Drops the prefix, like its types
+4	KroutonApp	file	Sources/KroutonApp/Shell/ModalsAndSettings/KroutonPhaseScopeMiniViews.swift	Sources/KroutonApp/Shell/ModalsAndSettings/PhaseScopeMiniViews.swift	-	Drops the prefix, like its types
+4	KroutonApp	file	Sources/KroutonApp/Shell/ModalsAndSettings/KroutonUserManual.swift	Sources/KroutonApp/Shell/ModalsAndSettings/UserManual.swift	-	Drops the prefix, like its types
+4	KroutonApp	file	Sources/KroutonApp/Shell/Services/KroutonMotion.swift	Sources/KroutonApp/Shell/Services/MotionPreference.swift	-	Drops the prefix, like its types
+4	KroutonApp	file	Sources/KroutonApp/Shell/ModalsAndSettings/KroutonSettingsWindow.swift	Sources/KroutonApp/Shell/ModalsAndSettings/SettingsWindow.swift	-	Drops the prefix, like its types
+4	KroutonApp	file	Sources/KroutonApp/Shell/ModalsAndSettings/KroutonSettingsWindow+AuxPanes.swift	Sources/KroutonApp/Shell/ModalsAndSettings/SettingsWindow+AuxPanes.swift	-	Drops the prefix, like its types
+4	KroutonApp	file	Sources/KroutonApp/Shell/ModalsAndSettings/KroutonSettingsWindow+BurnServersCard.swift	Sources/KroutonApp/Shell/ModalsAndSettings/SettingsWindow+BurnServersCard.swift	-	Drops the prefix, like its types
+4	KroutonApp	file	Sources/KroutonApp/Shell/ModalsAndSettings/KroutonSettingsWindow+BurnersNetworkPane.swift	Sources/KroutonApp/Shell/ModalsAndSettings/SettingsWindow+BurnersNetworkPane.swift	-	Drops the prefix, like its types
+4	KroutonApp	file	Sources/KroutonApp/Shell/ModalsAndSettings/KroutonSettingsWindow+FormatChooserPane.swift	Sources/KroutonApp/Shell/ModalsAndSettings/SettingsWindow+FormatChooserPane.swift	-	Drops the prefix, like its types
+4	KroutonApp	file	Sources/KroutonApp/Shell/ModalsAndSettings/KroutonSettingsWindow+GeneralPane.swift	Sources/KroutonApp/Shell/ModalsAndSettings/SettingsWindow+GeneralPane.swift	-	Drops the prefix, like its types
+4	KroutonApp	file	Sources/KroutonApp/Shell/ModalsAndSettings/KroutonSettingsWindow+HardwareAndMediaPanes.swift	Sources/KroutonApp/Shell/ModalsAndSettings/SettingsWindow+HardwareAndMediaPanes.swift	-	Drops the prefix, like its types
