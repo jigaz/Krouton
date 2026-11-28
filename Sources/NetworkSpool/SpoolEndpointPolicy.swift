@@ -3,16 +3,20 @@ import Foundation
 
 // MARK: - IP Addresses
 
+/// An IPv4 or IPv6 address as bytes.
 public enum SpoolIPAddress: Sendable, Equatable {
     case v4([UInt8])
     case v6([UInt8])
 
+    /// The address's 4 or 16 bytes.
     public var bytes: [UInt8] {
         switch self {
         case .v4(let raw), .v6(let raw): raw
         }
     }
 
+    /// Parses a literal: dotted IPv4 (no leading zeros), or IPv6 with optional brackets and zone.
+    /// Nil for anything else.
     public static func parse(_ literal: String) -> SpoolIPAddress? {
         var text = literal
         if text.hasPrefix("["), text.hasSuffix("]") { text = String(text.dropFirst().dropLast()) }
@@ -41,10 +45,14 @@ public enum SpoolIPAddress: Sendable, Equatable {
 
 // MARK: - CIDR Blocks
 
+/// An address block in CIDR notation, such as 192.168.0.0/16.
 public struct SpoolCIDR: Sendable, Equatable {
+    /// The block's address.
     public let network: SpoolIPAddress
+    /// Leading bits that must match.
     public let prefixLength: Int
 
+    /// Parses "address/length"; nil when either part is invalid.
     public init?(_ text: String) {
         let pieces = text.split(separator: "/")
         guard pieces.count == 2,
@@ -55,6 +63,7 @@ public struct SpoolCIDR: Sendable, Equatable {
         self.prefixLength = length
     }
 
+    /// True when `address` is in the block (an IPv4 block never contains an IPv6 address).
     public func contains(_ address: SpoolIPAddress) -> Bool {
         let lhs = network.bytes
         let rhs = address.bytes
@@ -72,44 +81,67 @@ public struct SpoolCIDR: Sendable, Equatable {
 
 // MARK: - Verdicts
 
+/// Why an address is allowed.
 public enum SpoolAddressClass: String, Sendable, Equatable {
+    /// 127.0.0.0/8 or ::1.
     case loopback
+    /// 10/8, 172.16/12 or 192.168/16.
     case privateLAN
+    /// 169.254/16 or fe80::/10.
     case linkLocal
+    /// fc00::/7.
     case uniqueLocalIPv6
+    /// 100.64/10 (Tailscale and similar), when allowed.
     case overlayCGNAT
+    /// A range the user added.
     case trustedStudioRange
 }
 
+/// Why an address or host name is refused.
 public enum SpoolEndpointDenial: Sendable, Equatable {
+    /// A public internet address.
     case publicAddress
+    /// 0.0.0.0/8, multicast, broadcast, :: or ff00::/8.
     case unspecifiedOrMulticast
+    /// NAT64, 6to4 or Teredo, which lead to public IPv4.
     case translatedPublicAddress
+    /// A name other than localhost or a .local name.
     case unsupportedHostName
 }
 
+/// Whether an address may be connected to.
 public enum SpoolAddressVerdict: Sendable, Equatable {
     case allowed(SpoolAddressClass)
     case denied(SpoolEndpointDenial)
 }
 
+/// Whether a host may be connected to, before DNS.
 public enum SpoolHostVerdict: Sendable, Equatable {
+    /// An address literal that is allowed.
     case allowedLiteral(SpoolAddressClass)
+    /// localhost or a .local name: resolve it, then check the address reached.
     case resolveThenEvaluate
+    /// Refused.
     case denied(SpoolEndpointDenial)
 }
 
 // MARK: - Endpoint Policy
 
+/// Which addresses the client may connect to: the local network only, never the public internet, so
+/// a hostile name or a typo can't send an image off the LAN.
 public struct SpoolEndpointPolicy: Sendable, Equatable {
+    /// Also allows 100.64.0.0/10 (Tailscale and similar overlays).
     public var allowsOverlayCGNAT: Bool
+    /// Extra ranges the user trusts; ranges wider than /8 (IPv4) or /32 (IPv6) are dropped.
     public private(set) var trustedRanges: [SpoolCIDR]
 
+    /// A policy; see `isAcceptableTrustedRange` for which ranges are kept.
     public init(allowsOverlayCGNAT: Bool = false, trustedRanges: [SpoolCIDR] = []) {
         self.allowsOverlayCGNAT = allowsOverlayCGNAT
         self.trustedRanges = trustedRanges.filter(Self.isAcceptableTrustedRange)
     }
 
+    /// False for ranges wider than /8 (IPv4) or /32 (IPv6).
     public static func isAcceptableTrustedRange(_ range: SpoolCIDR) -> Bool {
         switch range.network {
         case .v4: range.prefixLength >= 8
@@ -137,6 +169,8 @@ public struct SpoolEndpointPolicy: Sendable, Equatable {
         SpoolCIDR("64:ff9b::/96")!, SpoolCIDR("64:ff9b:1::/48")!, SpoolCIDR("2002::/16")!, SpoolCIDR("2001::/32")!
     ]
 
+    /// Whether `address` may be connected to. An IPv4-mapped IPv6 address is judged as its IPv4
+    /// address.
     public func evaluate(_ address: SpoolIPAddress) -> SpoolAddressVerdict {
         if Self.ipv4Mapped.contains(address) { return evaluate(.v4(Array(address.bytes.suffix(4)))) }
         if Self.neverAllowed.contains(where: { $0.contains(address) }) { return .denied(.unspecifiedOrMulticast) }
@@ -147,6 +181,8 @@ public struct SpoolEndpointPolicy: Sendable, Equatable {
         return .denied(.publicAddress)
     }
 
+    /// Whether `rawHost` may be connected to: an allowed address literal, or localhost or a .local
+    /// name, which must be resolved and checked again.
     public func evaluate(host rawHost: String) -> SpoolHostVerdict {
         let host = rawHost.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if let address = SpoolIPAddress.parse(host) {

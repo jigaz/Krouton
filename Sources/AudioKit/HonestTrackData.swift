@@ -1,31 +1,40 @@
 import AVFoundation
 import Foundation
 
+// MARK: - Honest Track Data
 //
-//   -----------------------------------------------  --------------------------------
-//   ISRC invented from a filename hash               `ISRC` validates, never invents
-//   confidenceSource "ShazamKit Acoustic + AI ..."   `MetadataSource` per field
-//   performer "Krouton Track Artist"                nil, and the CD-TEXT field is omitted
-//   noise-word stripping + forced Title Case         conservative `FilenameTitleGuess`
-//   gainMatchLUFS adds a fixed +1.2 dB               `LoudnessMeter` (ITU-R BS.1770)
-//   gain silently clamped at 1.25                    `predictedOverlapPeak` + a warning
-//   sin/cos "waveform" bars, fake transient tint     `PeakPyramid` from real samples
+// Track metadata, loudness, clipping and waveform data that come from the file or
+// the user, never made up: ISRCs are checked, never invented; every field says
+// where it came from (`MetadataSource`); an unknown performer stays nil, so no
+// CD-Text field is written; file names give only a conservative suggestion
+// (`FilenameTitleGuess`); loudness is measured to ITU-R BS.1770 (`LoudnessMeter`);
+// clipping is reported (`predictedOverlapPeak`), not clamped; waveforms come from
+// real samples (`PeakPyramid`).
 //
-// checked with a reference port: a 997 Hz stereo sine at -23 dBFS reads -23.00 LUFS
-// at both 44.1 kHz and 48 kHz.
+// Not wired up yet: `mergeMetadata`, `predictedOverlapPeak` and `PeakPyramid` have
+// no caller in the app, and the measured loudness isn't used for gain matching.
 
 // MARK: - Provenance
 
+/// Where a metadata value came from.
 public enum MetadataSource: String, Codable, Sendable {
-    case userEntered      // typed in Krouton; always wins
-    case embeddedTag      // ID3 / iTunes / BWF metadata in the file
-    case cueSheet         // imported .cue
-    case discLookup       // MusicBrainz or similar, by disc ID
-    case filenameGuess    // parsed from the file name; show as a suggestion
+    /// Typed in Krouton; always wins.
+    case userEntered
+    /// ID3, iTunes or BWF metadata in the file.
+    case embeddedTag
+    /// An imported .cue sheet.
+    case cueSheet
+    /// MusicBrainz or similar, by disc ID.
+    case discLookup
+    /// Parsed from the file name; show it as a suggestion.
+    case filenameGuess
 }
 
+/// A value and where it came from.
 public struct Sourced<Value: Codable & Sendable & Equatable>: Codable, Sendable, Equatable {
+    /// The value.
     public var value: Value
+    /// Where it came from.
     public var source: MetadataSource
     public init(_ value: Value, _ source: MetadataSource) {
         self.value = value
@@ -36,8 +45,11 @@ public struct Sourced<Value: Codable & Sendable & Equatable>: Codable, Sendable,
 /// Everything optional. An absent field is written nowhere: no CD-TEXT pack,
 /// no cue line, no subcode.
 public struct TrackMetadata: Codable, Sendable, Equatable {
+    /// The title, if known.
     public var title: Sourced<String>?
+    /// The performer, if known.
     public var performer: Sourced<String>?
+    /// The ISRC, if known.
     public var isrc: Sourced<ISRC>?
     public init(title: Sourced<String>? = nil, performer: Sourced<String>? = nil, isrc: Sourced<ISRC>? = nil) {
         self.title = title
@@ -52,24 +64,26 @@ public struct TrackMetadata: Codable, Sendable, Equatable {
 /// + 5 digits (designation). Krouton can check the shape. It cannot issue one:
 /// codes come from the rights holder's registrant allocation.
 public struct ISRC: Codable, Sendable, Equatable, CustomStringConvertible {
-    public let code: String // 12 characters, no hyphens
+    /// 12 characters, no hyphens.
+    public let code: String
 
+    /// Accepts the code with or without spaces and hyphens; nil when its shape is wrong.
     public init?(_ raw: String) {
         let compact = raw.uppercased().filter { !$0.isWhitespace && $0 != "-" }
         guard compact.range(of: #"^[A-Z]{2}[A-Z0-9]{3}[0-9]{7}$"#, options: .regularExpression) != nil else { return nil }
         code = compact
     }
 
+    /// The code with hyphens, as US-KRO-26-00001.
     public var description: String {
         let c = Array(code)
         return "\(String(c[0..<2]))-\(String(c[2..<5]))-\(String(c[5..<7]))-\(String(c[7..<12]))"
     }
 }
 
-// MARK: - Reading what the file already says
-
 // MARK: - Filename guess (a suggestion, labelled as one)
 
+/// Suggests a title and performer from a file name.
 public enum FilenameTitleGuess {
     /// Only tokens that are unambiguous export clutter, and only at the END of the
     /// name. "Final Countdown", "Radio Edit" and "Demo Tape" survive.
@@ -78,6 +92,8 @@ public enum FilenameTitleGuess {
         "1644", "2444", "2448", "2496", "44k", "48k", "96k",
     ]
 
+    /// Strips a leading track number and trailing export words, splits "Artist - Title", and
+    /// fixes the case only of names that are all one case. Never guesses an ISRC.
     public static func guess(from url: URL) -> TrackMetadata {
         var name = url.deletingPathExtension().lastPathComponent
         if !name.contains(" ") { name = name.replacingOccurrences(of: "_", with: " ") }
@@ -120,12 +136,12 @@ func mergeMetadata(_ candidates: TrackMetadata...) -> TrackMetadata {
     }
     return merged
 }
-// Usage: mergeMetadata(userEdits, await EmbeddedMetadataReader.read(from: url), FilenameTitleGuess.guess(from: url))
+// Meant to be called with the user's edits, then the file's tags, then the file name guess.
 
 // MARK: - Loudness (ITU-R BS.1770 integrated, gated)
 
+/// Integrated loudness to ITU-R BS.1770 (K-weighting, 400 ms blocks, absolute and relative gates).
 public enum LoudnessMeter {
-
     private struct Biquad {
         var b0, b1, b2, a1, a2: Double
         var z1 = 0.0, z2 = 0.0
@@ -191,21 +207,17 @@ public enum LoudnessMeter {
         guard !gated.isEmpty else { return nil }
         return lufs(gated.reduce(0, +) / Double(gated.count))
     }
-
 }
 
-// In KroutonTrackTransitionSpec, replace
-//     public var gainMatchLUFS: Bool
-// with
-//     public var gainMatchOffsetDB: Double?   // nil = off or not measurable
-// and in effectiveGainIn use `incomingTrimDB + (gainMatchOffsetDB ?? 0)`.
-// Show the measured figure in the UI ("Gain Match  -2.3 dB") so it is checkable.
+// Proposal for gain matching: replace `KroutonTrackTransitionSpec.gainMatchLUFS` (a
+// flag nothing reads) with a measured `gainMatchOffsetDB: Double?` added to the
+// incoming trim, and show the figure in the UI so it can be checked.
 
 // MARK: - Clipping instead of a silent clamp
 
 /// Worst-case sample peak of the summed overlap, as a linear value (1.0 = full
-/// scale). Replaces `min(1.25, ...)` in effectiveGainOut/In: let the gain be what
-/// the user asked for, then tell them if the result clips.
+/// scale): the gain stays what the user asked for, and this says whether the result
+/// clips.
 ///
 /// `outgoing` and `incoming` are the overlap region of each track, same length,
 /// one channel. Run per channel and take the maximum.
@@ -223,24 +235,27 @@ func predictedOverlapPeak(
     }
     return peak
 }
-// If the peak exceeds about 0.98, show "Overlap clips by +x.x dB" and offer a
-// one-click trim of both sides. Whatever gain is applied, re-dither to 16 bit
+// Proposal: above about 0.98, show "Overlap clips by +x.x dB" and offer a one-click
+// trim of both sides. Whatever gain is applied, re-dither to 16 bit
 // (TPDF) when rendering the final 44.1 kHz stream; undithered gain changes on
 // 16-bit audio add distortion at low levels.
 
-// MARK: - Real waveform data
+// MARK: - Waveform Data
 
 /// Min/max peak pyramid. Level 0 has one bucket per Red Book frame (588 samples at
 /// 44.1 kHz); each higher level halves the resolution. Immutable and Sendable, so
 /// the Canvas can read it from any thread without locks, and a redraw only ever
 /// touches about one bucket per horizontal point.
 public struct PeakPyramid: Sendable {
+    /// One resolution of the pyramid.
     public struct Level: Sendable {
         let framesPerBucket: Int
         let minima: [Float]
+        /// The highest sample in each bucket.
         public let maxima: [Float]
     }
     static let samplesPerRedBookFrame = 588
+    /// Level 0 first (one bucket per CD frame), each next one half as fine.
     public let levels: [Level]
 
     /// `mono` is the channel-averaged signal resampled to 44.1 kHz. Build this once
@@ -293,13 +308,7 @@ public struct PeakPyramid: Sendable {
         return result
     }
 }
-// In drawTaperedDualWaveforms, replace the sin/cos expressions with
-// `pyramid.columns(for:columns:)` and multiply each column by the same
-// effectiveGainOut/In used for the burn. Until transient detection is real, remove
-// the "Spectral" toggle rather than tinting on an amplitude threshold.
-//
-// Audition: render the overlap ONCE into an AVAudioPCMBuffer using the exact
-// function that renders the burn stream, schedule it on a single
-// AVAudioPlayerNode, and drive the green playhead from the node's sample time.
-// Re-render when a drag ends (it takes milliseconds for 15 s of audio). That way
-// what you hear is what gets burned, with no second DSP path to keep in sync.
+// Proposal: draw the splice editor's waveforms from `pyramid.columns(for:columns:)`
+// times the same `effectiveGainOut`/`effectiveGainIn` the burn uses, built when a
+// file is staged (see PENDING_INTEGRATION.md). The audition already renders through
+// `CrossfadeRenderer`, the same gains the burn uses.

@@ -4,8 +4,9 @@ import Foundation
 
 /// What the MP3 CD workspace's switches do to the files before they are burned.
 public struct KroutonCarAudioOptions: Sendable, Equatable, Codable {
+    /// How the files are encoded. The raw values are saved.
     public enum Profile: String, Sendable, Equatable, Codable, CaseIterable {
-        /// 320 kbps constant bit rate: plays in every MP3 head unit.
+        /// 320 kbps constant bit rate: the form MP3 head units play most reliably.
         case cbr320
         /// 192 kbps constant bit rate: about 1.7 times as much music per disc.
         case cbr192
@@ -15,23 +16,28 @@ public struct KroutonCarAudioOptions: Sendable, Equatable, Codable {
         case passthrough
     }
 
+    /// The encoding.
     public var profile: Profile = .cbr320
     /// "001 - Title.mp3", so head units that sort by name play the disc in order.
     public var zeroPadNumbers = true
+    /// Writes `PLAYLIST.M3U` at the root.
     public var generateM3U = true
     /// ID3v2.3 with an ID3v1 tag too; off writes ID3v2.4 (ffmpeg's default).
     public var enforceID3v23 = true
     /// Leaves out embedded cover art, which some head units choke on.
     public var stripArtwork = true
+    /// Encodes in joint stereo.
     public var forceJointStereo = true
     /// LAME's 19 kHz low-pass, which spends the bits where they are heard.
     public var lowPass19kHz = true
 
     public init() {}
 
+    /// True unless the files are copied as they are.
     public var needsFFmpeg: Bool { profile != .passthrough }
 }
 
+/// Why the MP3 disc couldn't be prepared. The descriptions are for the user.
 public enum KroutonCarAudioError: Error, LocalizedError, Sendable, Equatable {
     case ffmpegMissing
     case noAudio

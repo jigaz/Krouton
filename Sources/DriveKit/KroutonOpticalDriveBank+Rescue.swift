@@ -2,7 +2,7 @@
 import Foundation
 import OpticalCore
 
-// MARK: - KroutonOpticalDriveBank Rescue Access
+// MARK: - Rescue Access
 
 @MainActor
 extension KroutonOpticalDriveBank {

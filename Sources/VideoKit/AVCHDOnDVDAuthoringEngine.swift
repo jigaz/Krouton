@@ -4,11 +4,15 @@ import Foundation
 
 /// A finished `BDMV` + `CERTIFICATE` folder, ready to be put on a UDF 2.50 disc.
 public struct KroutonAVCHDDisc: Sendable, Equatable {
+    /// The folder holding `BDMV` and `CERTIFICATE`.
     public let root: URL
+    /// The clips, in play order.
     public let clips: [KroutonBDMVClip]
+    /// The video bitrate the clips were encoded at.
     public let videoKbps: Int
 }
 
+/// Why authoring stopped. The descriptions are for the user.
 public enum KroutonAVCHDError: Error, LocalizedError, Sendable, Equatable {
     case ffmpegMissing
     case noSources
@@ -32,16 +36,16 @@ public enum KroutonAVCHDError: Error, LocalizedError, Sendable, Equatable {
     }
 }
 
-/// Turns ordinary video files into a disc that Blu-ray players (and PlayStation 3, 4 and 5)
-/// play from a DVD: each file is converted to Blu-ray H.264 + AC-3 in a 192-byte-packet
+/// Turns ordinary video files into an AVCHD disc that Blu-ray players with AVCHD support play
+/// from a DVD: each file is converted to Blu-ray H.264 + AC-3 in a 192-byte-packet
 /// `.m2ts`, then analyzed so the playlist and clip files carry its real times and key frames.
 public enum AVCHDOnDVDAuthoringEngine {
-    /// A red-laser DVD reads at about 11 MB/s, but players and the AVCHD format cap the stream
-    /// at 18 Mbit/s on DVD.
+    /// AVCHD on DVD caps the video at 18 Mbit/s.
     public static let maxVideoKbps = 18_000
     static let minVideoKbps = 4_000
     static let audioKbps = 448
 
+    /// Reports progress (0 to 1) and a status line.
     public typealias Progress = @Sendable (_ fraction: Double, _ status: String) -> Void
 
     /// Builds the disc folder in `root` (which must be empty or not exist yet).

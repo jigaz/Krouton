@@ -6,23 +6,30 @@ import OpticalCore
 /// A burner card in the destination queue, as the pool sees it: which drive it is, which
 /// ticket (disc of a set, copy of a run) it is burning or offered, and how many it has done.
 public protocol KroutonPoolSlotCard {
+    /// The card's ID.
     var id: UUID { get }
     /// True for a card that burns on a drive of this Mac; only those take tickets.
     var isPooledBurner: Bool { get }
+    /// The drive the card burns on.
     var targetDriveID: String { get }
+    /// The ticket the card burns next.
     var assignedPoolTicket: KroutonPoolBurnTicket? { get set }
+    /// A ticket offered to the card, waiting for the user.
     var pendingApprovalTicket: KroutonPoolBurnTicket? { get set }
+    /// Which disc of a span the card burns, when the queue spans discs.
     var spannedDiscNumber: Int? { get set }
+    /// How many copies the card finished.
     var completedCopies: Int { get set }
 }
 
 /// The burn pool of the destination queue: each burner card holds the ticket it burns next
-/// (or one waiting for the operator's approval), and the rest wait below the divider.
-///
-/// Until 2026-11-27 this lived in `KroutonStateStore`; it moved here unchanged so it can be
-/// tested, and so `KroutonBurnCoordinator` decides what follows a burn in one place.
+/// (or one waiting for the operator's approval), and the rest wait below the divider. It lives
+/// in BurnKit so it can be tested, and so `KroutonBurnCoordinator` decides what follows a burn
+/// in one place.
 public struct KroutonBurnQueuePool<Card: KroutonPoolSlotCard> {
+    /// The destination queue's cards, in order.
     public var cards: [Card]
+    /// Tickets not given to a card yet, in order.
     public var waiting: [KroutonPoolBurnTicket]
     /// Tickets finished since the pool was last filled.
     public var completedTicketCount: Int

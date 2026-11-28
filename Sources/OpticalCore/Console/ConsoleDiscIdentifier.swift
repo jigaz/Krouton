@@ -4,6 +4,7 @@ import Foundation
 
 /// What a console disc image is, read from its own header, and what burning it will (and won't) do.
 public struct KroutonConsoleDisc: Sendable, Equatable {
+    /// The console an image is for. The raw values are display names.
     public enum Platform: String, Sendable, CaseIterable {
         case gamecube = "GameCube"
         case wii = "Wii"
@@ -15,19 +16,25 @@ public struct KroutonConsoleDisc: Sendable, Equatable {
         case unknown = "Unknown"
     }
 
+    /// The console, or `.unknown` when no header matched.
     public let platform: Platform
     /// The disc's own product code: GALE01, T-8101N, MK-51000 and the like.
     public let gameID: String?
+    /// The game's title from the header, when the header has one.
     public let title: String?
+    /// The sales region, for GameCube and Wii discs.
     public let region: String?
     /// False for formats Krouton can't write as a disc (GD-ROM images).
     public let canBurn: Bool
+    /// The blank disc to burn it to, for the user.
     public let recommendedMedia: String
+    /// What the console needs to play a burned copy, for the user.
     public let advice: String
 }
 
 // MARK: - Identifying an Image
 
+/// Identifies console disc images by their header bytes. Nothing here writes or changes an image.
 public enum KroutonConsoleDiscIdentifier {
     /// How much of an image to read: enough for the PVD of a raw 2,352-byte CD image and an XISO header.
     public static let headerLength = 0x12000
@@ -61,6 +68,8 @@ public enum KroutonConsoleDiscIdentifier {
         return nil
     }
 
+    /// Identifies an image from its first `headerLength` bytes. The file extension decides only for
+    /// `.gdi` (always a GD-ROM) and `.cdi` (the advice text).
     public static func identify(header: [UInt8], fileExtension: String, byteSize: Int64) -> KroutonConsoleDisc {
         let ext = fileExtension.lowercased()
         if ext == "gdi" {
@@ -164,7 +173,7 @@ public enum KroutonConsoleDiscIdentifier {
 
     enum Advice {
         static let gamecube = "A GameCube only reads burned discs with a modchip. Burn to an 8 cm mini DVD-R; a full-size disc won't fit the tray. Without a chip, Swiss from an SD adapter plays backups instead."
-        static let wii = "A Wii only reads burned discs with a modchip, and only on early drive models; later drives can't read DVD-R at all. For any Wii, USB Loader GX from a USB drive is the dependable way to play your own backups. On DVD+R, Krouton stamps the book type as DVD-ROM."
+        static let wii = "A Wii only reads burned discs with a modchip, and only on early drive models; later drives can't read DVD-R at all. For any Wii, USB Loader GX from a USB drive is the dependable way to play your own backups."
         static let playstation2 = "A PlayStation 2 reads burned DVDs with a modchip, or without one through Free McBoot and an ESR-patched disc (Krouton doesn't apply the ESR patch). Most people use Open PS2 Loader from USB instead."
         static let playstation = "A PlayStation reads burned CDs with a modchip, or through Unirom or FreePSXBoot (not on Japanese consoles). Burn the .cue/.bin as it is, at a low speed."
         static let dreamcast = "Dreamcasts made before late 2000 boot burned CD-Rs without a modchip, if the image is a self-booting MIL-CD."

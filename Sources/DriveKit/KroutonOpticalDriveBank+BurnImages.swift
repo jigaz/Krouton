@@ -1,7 +1,7 @@
 import Foundation
 import OpticalCore
 
-// MARK: - KroutonOpticalDriveBank Disc Images
+// MARK: - Disc Images
 
 extension KroutonOpticalDriveBank {
     /// Image types burned sector for sector: by DiscRecording (`DRBurn.layout(forImageFile:)`),

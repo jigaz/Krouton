@@ -5,6 +5,7 @@ import OpticalCore
 
 /// Where rescued sectors go. Writes may arrive out of order; unwritten areas read back as zeros.
 public protocol KroutonSectorSink: Sendable {
+    /// Writes `bytes` at byte `offset` of the destination.
     func write(_ bytes: [UInt8], atByte offset: Int64) throws
     /// Flushes and releases the destination once the rescue ends.
     func close() throws
@@ -47,6 +48,7 @@ public struct KroutonRescuePlan: Sendable, Equatable {
     public var clusterSectors: Int = 32
     /// How far to jump after a failed read in the first pass, at least; doubles while reads keep failing.
     public var minimumSkipSectors: Int = 64
+    /// The longest jump after failed reads in the first pass.
     public var maximumSkipSectors: Int = 16_384
     /// Extra attempts on each bad sector after scraping.
     public var retryPasses: Int = 1
@@ -70,10 +72,14 @@ public struct KroutonRescuePlan: Sendable, Equatable {
 ///
 /// The map is updated after every read, so a rescue can stop at any point and carry on later.
 public struct KroutonDiscRescuer: Sendable {
+    /// Called with the map after each read.
     public typealias Progress = @Sendable (KroutonRescueMap) -> Void
 
+    /// Where sectors are read from.
     public let source: any KroutonSectorSource
+    /// Where rescued sectors are written.
     public let sink: any KroutonSectorSink
+    /// How hard to try.
     public let plan: KroutonRescuePlan
 
     public init(source: any KroutonSectorSource, sink: any KroutonSectorSink, plan: KroutonRescuePlan = KroutonRescuePlan()) {

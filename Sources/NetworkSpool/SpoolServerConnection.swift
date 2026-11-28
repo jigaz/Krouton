@@ -8,20 +8,32 @@ import os
 /// when an image is being sent (extent reads stay off the main actor). Control messages and
 /// telemetry surface through `events`.
 public actor SpoolServerConnection {
+    /// What arrives on the connection.
     public enum Event: Sendable {
+        /// A control message.
         case control(SpoolControl)
+        /// A telemetry frame.
         case telemetry(SpoolTelemetryPacket)
+        /// Upload progress: extents acknowledged of the total, and the sender's phase.
         case upload(acknowledged: Int, total: Int, phase: SpoolUploadSender.Phase)
     }
 
+    /// Why the connection failed or closed.
     public enum Failure: Error, Sendable, Equatable {
+        /// The server couldn't be reached, or the transport failed.
         case unreachable(String)
+        /// The endpoint policy refused the address.
         case refusedAddress(SpoolEndpointDenial)
+        /// The server's key didn't match the pin.
         case untrustedServer
+        /// The connection closed.
         case closed
+        /// The server sent something the protocol doesn't allow.
         case protocolError(String)
     }
 
+    /// Control messages, telemetry and upload progress, in order. Finishes when the connection
+    /// closes.
     public nonisolated let events: AsyncThrowingStream<Event, Error>
     /// TLS 1.3 exporter for this connection: what both session proofs sign.
     public nonisolated let exporter: Data
@@ -164,10 +176,12 @@ public actor SpoolServerConnection {
         }
     }
 
+    /// Sends control messages.
     public func send(_ messages: [SpoolControl]) async throws {
         try await send(frames: messages.map { $0.frame() })
     }
 
+    /// Sends frames in one write.
     public func send(frames: [SpoolFrame]) async throws {
         guard !frames.isEmpty else { return }
         do {
@@ -178,6 +192,7 @@ public actor SpoolServerConnection {
         }
     }
 
+    /// Stops receiving, closes any upload file and the connection, and ends `events`.
     public func close() async {
         pump?.cancel()
         if let upload { try? upload.file.close() }

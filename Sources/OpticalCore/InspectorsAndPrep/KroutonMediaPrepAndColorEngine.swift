@@ -5,8 +5,9 @@ import CryptoKit
 import Foundation
 import SwiftUI
 
-// MARK: - Universal Media Decoder & Hardware Acceleration Engine (Hardware & Software Stream Engine)
+// MARK: - Media File Descriptions
 
+/// The decode path `KroutonMediaPrepEngine` names for a file type. The raw values are display text.
 public enum KroutonHeatTier: String, Sendable {
     case videoToolboxASIC = "Apple Silicon VideoToolbox ASIC (Zero-Copy GPU)"
     case hybridDemuxVT = "Container Stream Demux -> VideoToolbox Hardware"
@@ -15,15 +16,21 @@ public enum KroutonHeatTier: String, Sendable {
     case bitstreamPassthrough = "Direct Optical Bitstream Passthrough (Zero Re-encode)"
 }
 
+/// What `KroutonMediaPrepEngine.probeFile` says about a file type, for the video workspace's
+/// badges.
 public struct KroutonStreamProbeResult: Identifiable, Hashable, Sendable {
     public let id = UUID()
+    /// The file's extension, upper case.
     public let fileExtension: String
     let containerFormat: String
     let videoCodecName: String?
     let audioCodecName: String
     let subtitleSummary: String?
+    /// The decode path named for this file type.
     public let accelerationTier: KroutonHeatTier
+    /// A short badge for the file row.
     public let shortHardwareBadge: String
+    /// True when the named decode path uses hardware.
     public let isHardwareAccelerated: Bool
     let targetMasteringPipeline: String
 
@@ -50,9 +57,10 @@ public struct KroutonStreamProbeResult: Identifiable, Hashable, Sendable {
     }
 }
 
+/// Describes media files by extension for the video workspace.
 public enum KroutonMediaPrepEngine {
-
-    /// Probes any audio/video/container URL and returns its exact decoder pipeline & hardware acceleration badge
+    /// Describes a file from its extension alone; the file isn't opened. The codec, audio and
+    /// subtitle text is what files of that type usually hold, not what this file holds.
     public static func probeFile(_ url: URL) -> KroutonStreamProbeResult {
         let ext = url.pathExtension.lowercased()
         switch ext {
@@ -186,8 +194,10 @@ public enum KroutonMediaPrepEngine {
     }
 }
 
-// MARK: - KroutonStagedFileEntry Bootability & .BIN/.CUE <-> .ISO Conversion UI Helpers
+// MARK: - .bin and .iso Conversion Labels
+
 extension KroutonStagedFileEntry {
+    /// The convert button's title for a staged .bin (to .iso) or .iso (to .bin/.cue).
     public var conversionTargetLabel: String {
         let ext = url.pathExtension.lowercased()
         if ext == "bin" {
@@ -198,17 +208,27 @@ extension KroutonStagedFileEntry {
     }
 }
 
-// MARK: - Live Disc Image Sector Hex/ASCII Reader & CryptoKit SHA-256 Engine
-/// Reads disc images sector by sector: hex dumps for the inspector and SHA-256 digests.
+// MARK: - Sector Hex Dumps and Image Digests
+
+/// Reads disc images for the image inspector: hex dumps of single sectors and SHA-256 digests.
+/// Despite the name, it doesn't parse El Torito boot records.
 public enum KroutonElToritoBootInspector {
+    /// One 16-byte row of a hex dump.
     public struct HexDumpRow: Identifiable, Hashable, Sendable {
+        /// The row's index, 0 to 15.
         public let id: Int
+        /// The row's byte offset in the image, as 8 hex digits.
         public let offsetHex: String
+        /// The 16 bytes in hex, in two groups of 8.
         public let hexBytes: String
+        /// The bytes as printable ASCII, with "." for the rest.
         public let asciiText: String
     }
 
-    /// Reads 256 bytes at the requested LBA sector from the actual file on disk (with synthetic fallback if file is smaller)
+    /// The first 256 bytes of sector `lba`, as 16 rows. When the offset is past the end of the
+    /// file it reads from byte 0 instead, and when nothing could be read, or the bytes are all
+    /// zero, it shows a made-up descriptor signature for that sector number (Apple partition map,
+    /// ISO 9660, El Torito or UDF) instead of the file's bytes.
     public static func readSectorHexDump(url: URL, lba: Int, sectorSize: Int = 2048) -> [HexDumpRow] {
         let byteOffset = UInt64(max(0, lba)) * UInt64(sectorSize)
         var buffer = [UInt8](repeating: 0, count: 256)
@@ -229,8 +249,8 @@ public enum KroutonElToritoBootInspector {
             }
         }
 
-        // If the image is smaller than the requested LBA (e.g. a 1.44MB floppy .img inspected at LBA 16/17),
-        // overlay canonical optical descriptor signatures so the engineer can inspect the sector structure:
+        // Nothing real to show: fill in a sample signature for this sector number. These bytes are
+        // not from the file.
         if !didReadRealBytes || (byteOffset > 0 && buffer.allSatisfy({ $0 == 0 })) {
             let sig: String
             if lba == 0 {
@@ -265,6 +285,8 @@ public enum KroutonElToritoBootInspector {
         return rows
     }
 
+    /// Lowercase hex SHA-256 of the whole file. The file is memory-mapped; when it can't be read,
+    /// this returns the digest of empty input (`e3b0c442…`) instead of failing.
     public static func computeSHA256Hex(url: URL) -> String {
         guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else {
             return "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -274,8 +296,12 @@ public enum KroutonElToritoBootInspector {
     }
 }
 
-// MARK: - Pure IEEE-754 RGB <-> HSB & Display-P3 Perceptual Harmony Engine
+// MARK: - Color Math
+
+/// Color arithmetic for the theme and label code, without AppKit: sRGB components, HSB conversion,
+/// Display P3 colors and the theme's secondary accents.
 public enum KroutonPureColorMath {
+    /// The color's sRGB components and opacity, clamped to 0…1.
     public static func extractSRGB(_ color: Color) -> (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat) {
         let resolved = color.resolve(in: EnvironmentValues())
         return (
@@ -286,6 +312,7 @@ public enum KroutonPureColorMath {
         )
     }
 
+    /// Hue, saturation and brightness (each 0…1) for an sRGB color.
     public static func rgbToHSB(r: CGFloat, g: CGFloat, b: CGFloat) -> (h: CGFloat, s: CGFloat, v: CGFloat) {
         let maxC = max(r, max(g, b))
         let minC = min(r, min(g, b))
@@ -309,6 +336,7 @@ public enum KroutonPureColorMath {
         return (h, s, v)
     }
 
+    /// sRGB components for a hue, saturation and brightness (each 0…1).
     static func hsbToRGB(h: CGFloat, s: CGFloat, v: CGFloat) -> (r: CGFloat, g: CGFloat, b: CGFloat) {
         let clampedS = max(0.0, min(1.0, s))
         let clampedV = max(0.0, min(1.0, v))
@@ -335,6 +363,7 @@ public enum KroutonPureColorMath {
         }
     }
 
+    /// A Display P3 color, or the same components as sRGB when P3 isn't available.
     public static func p3Color(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat) -> Color {
         if let space = CGColorSpace(name: CGColorSpace.displayP3),
            let cg = CGColor(colorSpace: space, components: [r, g, b, 1.0]) {
@@ -343,6 +372,7 @@ public enum KroutonPureColorMath {
         return Color(.sRGB, red: Double(r), green: Double(g), blue: Double(b), opacity: 1.0)
     }
 
+    /// The secondary accent that goes with accent preset `id` (0 to 9) in the given appearance.
     public static func secondaryHarmonyForPresetID(_ id: Int, scheme: ColorScheme = .dark) -> Color {
         if scheme == .light {
             switch id {

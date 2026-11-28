@@ -2,22 +2,27 @@ import Foundation
 
 // MARK: - MMC Command Descriptor Blocks
 
-/// The SCSI Multimedia Commands (MMC; the freely published Mt. Fuji document, SNIA INF-TA-1010, is
-/// the same command set) that Krouton sends straight to a drive, without DiscRecording. These are
+/// The SCSI Multimedia Commands (MMC, from INCITS T10; the freely available Mt. Fuji document
+/// describes the same set) that Krouton sends straight to a drive, without DiscRecording. These are
 /// pure bytes, so they are tested without hardware and reusable by any transport: IOKit on macOS,
 /// a DriverKit extension on iPad, or SG_IO on Linux.
 public enum MMCCommand: Sendable, Equatable {
+    /// TEST UNIT READY: is a disc loaded and the drive ready.
     case testUnitReady
+    /// REQUEST SENSE: why the last command failed.
     case requestSense(allocation: UInt8)
+    /// INQUIRY: vendor, product and firmware revision.
     case inquiry(allocation: UInt16)
     /// GET CONFIGURATION with RT = 0 (all features) from `startingFeature`.
     case getConfiguration(startingFeature: UInt16, allocation: UInt16)
+    /// READ DISC INFORMATION: blank, appendable or finalized, and the session count.
     case readDiscInformation(allocation: UInt16)
     /// READ CAPACITY (10): the last readable sector and the sector size.
     case readCapacity
     /// READ (10): `blocks` user-data sectors (2048 bytes on a CD-ROM, DVD or BD) from `lba`.
     case read10(lba: UInt32, blocks: UInt16)
 
+    /// The command's operation code (the CDB's first byte).
     public var operationCode: UInt8 {
         switch self {
         case .testUnitReady: 0x00
@@ -67,14 +72,19 @@ public enum MMCCommand: Sendable, Equatable {
 
 /// Standard INQUIRY data: who made the drive and what firmware it runs.
 public struct MMCInquiry: Sendable, Equatable {
+    /// The SCSI peripheral device type (the low 5 bits of byte 0).
     public let peripheralDeviceType: UInt8
+    /// The vendor identification, trimmed.
     public let vendor: String
+    /// The product identification, trimmed.
     public let product: String
+    /// The firmware revision, trimmed.
     public let revision: String
 
     /// Type 5 is a CD/DVD/BD (multimedia) device.
     public var isMultimediaDevice: Bool { peripheralDeviceType == 0x05 }
 
+    /// Parses an INQUIRY reply; nil when it is shorter than the 36 standard bytes.
     public init?(_ data: [UInt8]) {
         guard data.count >= 36 else { return nil }
         peripheralDeviceType = data[0] & 0x1F
@@ -91,10 +101,12 @@ public struct MMCInquiry: Sendable, Equatable {
 
 /// A media type a drive knows (an MMC "profile").
 public struct MMCProfile: Sendable, Hashable {
+    /// The profile number from the MMC profile list.
     public let number: UInt16
 
     public init(_ number: UInt16) { self.number = number }
 
+    /// A readable name for the profile.
     public var name: String {
         switch number {
         case 0x0000: "No current profile"
@@ -134,11 +146,14 @@ public struct MMCProfile: Sendable, Hashable {
 /// GET CONFIGURATION: the profile of the disc in the tray, and every profile the drive supports
 /// (from the Profile List feature, 0x0000).
 public struct MMCConfiguration: Sendable, Equatable {
+    /// The profile of the disc in the tray; 0 when there is none.
     public let currentProfile: MMCProfile
+    /// Every profile the drive reports in its Profile List feature.
     public let supportedProfiles: [MMCProfile]
     /// Feature codes the drive reported (current or not).
     public let featureCodes: [UInt16]
 
+    /// Parses a GET CONFIGURATION reply; nil when it is shorter than the 8-byte header.
     public init?(_ data: [UInt8]) {
         guard data.count >= 8 else { return nil }
         let length = Int(MMCBytes.u32(data, 0))
@@ -172,17 +187,25 @@ public struct MMCConfiguration: Sendable, Equatable {
 
 /// READ DISC INFORMATION (standard disc information, data type 000b).
 public struct MMCDiscInformation: Sendable, Equatable {
+    /// The disc status field.
     public enum Status: UInt8, Sendable {
         case blank = 0, incomplete = 1, finalized = 2, other = 3
     }
 
+    /// Blank, incomplete (appendable), finalized or other.
     public let status: Status
+    /// The state of the last session (0 empty, 1 incomplete, 3 complete).
     public let lastSessionState: UInt8
+    /// True for rewritable media.
     public let erasable: Bool
+    /// The number of the first track on the disc.
     public let firstTrack: Int
+    /// How many sessions the disc has.
     public let sessions: Int
+    /// The number of the last track in the last session.
     public let lastTrackInLastSession: Int
 
+    /// Parses a READ DISC INFORMATION reply; nil when it is shorter than 12 bytes.
     public init?(_ data: [UInt8]) {
         guard data.count >= 12 else { return nil }
         erasable = data[2] & 0x10 != 0
@@ -196,10 +219,14 @@ public struct MMCDiscInformation: Sendable, Equatable {
 
 /// Fixed-format sense data: why the last command failed.
 public struct MMCSense: Sendable, Equatable, CustomStringConvertible {
+    /// The sense key (byte 2, low 4 bits).
     public let key: UInt8
+    /// The additional sense code.
     public let asc: UInt8
+    /// The additional sense code qualifier.
     public let ascq: UInt8
 
+    /// Parses fixed-format sense data (response code 0x70 or 0x71); nil for anything else.
     public init?(_ data: [UInt8]) {
         guard data.count >= 14, data[0] & 0x7E == 0x70 else { return nil }
         key = data[2] & 0x0F
@@ -210,6 +237,7 @@ public struct MMCSense: Sendable, Equatable, CustomStringConvertible {
     /// `3/0C/00`, as burn logs and drive reports write it.
     public var description: String { String(format: "%X/%02X/%02X", key, asc, ascq) }
 
+    /// A short description of the common sense codes, for logs and messages.
     public var meaning: String {
         switch (key, asc, ascq) {
         case (0x2, 0x3A, _): "No disc in the drive"
@@ -237,18 +265,25 @@ enum MMCBytes {
 /// Sends one command to a drive and returns the bytes it sent back, or throws with its sense data.
 /// The macOS implementation lives in DriveKit; verify suites use a scripted drive.
 public protocol MMCTransport: Sendable {
+    /// Sends `command` and returns the data the drive returned.
     func execute(_ command: MMCCommand) async throws(MMCTransportError) -> [UInt8]
 }
 
+/// Why a command failed.
 public enum MMCTransportError: Error, Sendable, Equatable {
+    /// The drive returned CHECK CONDITION, with its sense data when it could be read.
     case checkCondition(MMCSense?)
+    /// The drive couldn't be reached or the command couldn't be sent.
     case unavailable(String)
 }
 
 /// What Krouton learns about a drive by asking it directly.
 public struct MMCDriveReport: Sendable, Equatable {
+    /// Who the drive is.
     public let inquiry: MMCInquiry
+    /// What the drive supports, or nil when it didn't answer GET CONFIGURATION.
     public let configuration: MMCConfiguration?
+    /// The loaded disc, or nil when there is none or the drive didn't answer.
     public let disc: MMCDiscInformation?
 
     /// Asks the drive who it is, what it supports, and what disc is loaded. Only reads.

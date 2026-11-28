@@ -10,10 +10,15 @@ import Foundation
 /// lead-out 2,250 (30 s), and the data track starts after a 150-frame pregap. So the data
 /// session costs 13,650 frames (about 30 MB) before its first file.
 public enum KroutonCDExtraLayout {
+    /// Lead-out after the audio session on a multisession disc (90 s).
     public static let firstLeadOutFrames: Int64 = 6_750
+    /// Lead-in of the data session (60 s).
     public static let laterLeadInFrames: Int64 = 4_500
+    /// Lead-out of the data session (30 s).
     public static let laterLeadOutFrames: Int64 = 2_250
+    /// Pregap before the data track (2 s).
     public static let dataPregapFrames: Int64 = 150
+    /// Frames the second session costs before its first file: 13,650.
     public static let sessionOverheadFrames = firstLeadOutFrames + laterLeadInFrames + laterLeadOutFrames + dataPregapFrames
 
     /// Sectors (2,048 bytes of data each) for the files, plus about 2 % and 1 MB for the

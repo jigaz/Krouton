@@ -2,7 +2,7 @@
 import Foundation
 import OpticalCore
 
-// MARK: - KroutonOpticalDriveBank Burn Session Operations
+// MARK: - Burn Sessions
 
 @MainActor
 extension KroutonOpticalDriveBank {

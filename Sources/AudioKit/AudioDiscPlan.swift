@@ -1,50 +1,57 @@
 import Foundation
 import OpticalCore
 
-// Audio CD spanning on top of the shared planner.
+// Audio CD spanning on top of the shared planner (`DiscPlanner`, OpticalCore):
 //
-// Replaces the body of `AudioProject.spannedDiscs()`. Three behaviours change:
-//
-//   1. A track with no length no longer counts as four seconds. Until every
-//      track has at least a probed length, the list shows one provisional disc.
+//   1. A track with no length doesn't count as any length. Until every track
+//      has at least a probed length, the list shows one provisional disc.
 //   2. Disc metadata follows the content. A manual break carries its own title,
 //      performer and UPC, keyed by the track it sits before. Automatic discs keep
-//      the number-keyed memory you already have.
+//      their metadata by disc number.
 //   3. A capacity break that lands inside continuous music is reported, so the
 //      user can move the break to a real pause.
-//
-// Requires two additions to the model:
-//
-//   AudioTrack    var probedFrameCount: Int64?      // header probe, may be approximate
-//   AudioProject  var anchoredDiscMetadata: [UUID: KroutonDiscVolumeMetadata] = [:]
 
-// MARK: - AudioDiscPlan
+// MARK: - Audio Disc Plan
 
+/// One disc of an audio CD plan.
 public struct AudioDisc: Identifiable, Sendable, Equatable {
+    /// The disc's number, from 1.
     public let number: Int
+    /// Its title, performer, UPC and volume label.
     public let metadata: KroutonDiscVolumeMetadata
+    /// Its tracks, in order.
     public let tracks: [AudioTrack]
     /// Nil while lengths are provisional. Never guessed.
     public let layout: [AudioTrackLayout]?
+    /// Frames its tracks take.
     public let usedFrames: Int64
+    /// Frames the disc holds.
     public let capacityFrames: Int64
+    /// Why this disc starts here.
     public let startedBecause: DiscBreakReason
 
     public var id: Int { number }
 }
 
+/// Something worth showing that doesn't block burning.
 public enum AudioDiscWarning: Sendable, Equatable {
     /// The disc ends between two tracks joined by a crossfade or a gapless
     /// transition. The transition is ignored at a disc change, so the music is cut.
     case breakSplitsContinuousRun(discNumber: Int, lastTrackID: UUID, nextTrackID: UUID)
 }
 
+/// An audio CD split into discs, with problems and warnings.
 public struct AudioDiscPlan: Sendable, Equatable {
+    /// The discs, in order.
     public let discs: [AudioDisc]
+    /// What blocks burning.
     public let issues: [DiscPlanIssue<UUID>]
+    /// What the user should know.
     public let warnings: [AudioDiscWarning]
+    /// True while a length is only a header estimate.
     public let isProvisional: Bool
 
+    /// True when there is a disc, no issue and no estimated length.
     public var isBurnable: Bool { !discs.isEmpty && issues.isEmpty && !isProvisional }
 }
 
@@ -58,7 +65,6 @@ extension AudioTrack {
 }
 
 extension AudioProject {
-
     /// The single plan the list, footer, cue compiler and burn queue all read.
     /// Compute it once per project change (in the controller), not per view.
     public func discPlan() -> AudioDiscPlan {
@@ -158,11 +164,11 @@ extension AudioProject {
     }
 }
 
-// Drag and drop over the inline headers, in terms of this model:
+// How drag and drop over the inline disc headers maps onto this model:
 //
 //   Dragging a TRACK      -> `move(_:by:)`; the plan recomputes. The track keeps
-//                            its own `startsNewDisc` flag only if you want breaks
-//                            to travel with tracks; I would clear it on move.
+//                            its own `startsNewDisc` flag only if breaks should
+//                            travel with tracks; clearing it on move is simpler.
 //   Dragging a MANUAL
 //   DIVIDER row           -> clear the flag on the old first track, set it on the
 //                            new one, and re-key `anchoredDiscMetadata` in the
@@ -170,13 +176,15 @@ extension AudioProject {
 //   Automatic headers     -> not draggable. Offer "Break here instead" on any
 //                            earlier track, which sets a manual break.
 //
-// Invariants worth adding to krouton-verify:
+// Invariants worth unit tests (none checks them yet):
 //   - concatenating plan.discs' tracks gives back `tracks` in order
 //   - no disc exceeds capacity unless a matching itemExceedsDisc issue exists
 //   - deleting tracks never changes the metadata shown for a manual disc
 //   - a provisional plan never contains a layout
 
 extension AudioProject {
+    /// The metadata for disc `discNumber`: the album's for disc 1, a manual break's own, the saved
+    /// metadata for that number, or the album title with "(Disc N)".
     public func metadata(forDisc discNumber: Int, firstTrack: AudioTrack? = nil, totalDiscs: Int = 2) -> KroutonDiscVolumeMetadata {
         if discNumber <= 1 {
             return KroutonDiscVolumeMetadata(
@@ -229,6 +237,8 @@ extension AudioProject {
         )
     }
 
+    /// Saves metadata for disc `discNumber`: on the manual break that starts it when there is one,
+    /// otherwise by number.
     public mutating func setMetadata(_ meta: KroutonDiscVolumeMetadata, forDisc discNumber: Int) {
         let plan = discPlan()
         let totalDiscs = max(2, plan.discs.count)
@@ -262,6 +272,7 @@ extension AudioProject {
         }
     }
 
+    /// The cue sheet of one disc of the plan, or nil while the plan can't be burned.
     public func compileCueSheet(forDisc discNumber: Int, masterBinFilename: String? = nil) -> String? {
         let plan = discPlan()
         guard plan.isBurnable,

@@ -1,28 +1,47 @@
 import Foundation
 
-// MARK: - Sender (workstation): resume from the node's bitmap, obey credit, retransmit rejects
+// MARK: - Upload Sender (resume from the server's bitmap, obey credit, resend rejects)
 //
 // The receiving half runs in krouton-server (Rust, `krsp::pipeline::StagingReceiver`); the
 // verify target keeps a Swift reference model of it for loopback fault tests.
 
+/// The client side of an image upload, as a state machine fed with received bytes: it asks the
+/// server which extents it already has, then sends the missing ones as the server grants credit,
+/// and resends rejected ones. It does no I/O itself; `SpoolServerConnection` runs it.
 public struct SpoolUploadSender: Sendable {
+    /// Where the upload stands.
     public enum Phase: Sendable, Equatable {
+        /// Not connected; `connect()` starts or resumes.
         case disconnected
+        /// Waiting for the server's bitmap of committed extents.
         case awaitingBitmap
+        /// Sending extents.
         case streaming
+        /// Every extent is committed.
         case complete
+        /// The server holds a different image under this ID.
         case manifestMismatch
+        /// An extent was rejected `maxRejectsPerExtent` times: the file no longer matches the
+        /// manifest.
         case sourceChanged(extent: Int)
     }
 
+    /// Rejects of one extent before giving up.
     public static let maxRejectsPerExtent = 3
 
+    /// What is being sent.
     public let manifest: SpoolTransferManifest
+    /// The most extents sent but not yet acknowledged.
     public let maxInFlight: Int
+    /// Where the upload stands.
     public private(set) var phase: Phase = .disconnected
+    /// Extents the server has committed.
     public private(set) var acknowledged: ExtentBitmap
+    /// Extents resent after a reject.
     public private(set) var retransmissions = 0
+    /// Extent frames sent, resends included.
     public private(set) var extentsSent = 0
+    /// The most extents in flight at once.
     public private(set) var peakInFlight = 0
     private var pending: [Int] = []
     private var inFlight: Set<Int> = []
@@ -30,27 +49,33 @@ public struct SpoolUploadSender: Sendable {
     private var credits = 0
     private var decoder = SpoolFrameDecoder()
 
+    /// A sender for `manifest`.
     public init(manifest: SpoolTransferManifest, maxInFlight: Int) {
         self.manifest = manifest
         self.maxInFlight = max(1, maxInFlight)
         self.acknowledged = ExtentBitmap(count: manifest.extentCount)
     }
 
+    /// How many extents fit in `bytes` of memory, less one, at least one.
     public static func maxInFlight(forMemoryBudget bytes: Int, manifest: SpoolTransferManifest) -> Int {
         max(1, bytes / max(1, manifest.extentBytes) - 1)
     }
 
+    /// Starts a connection: returns the bitmap query (carrying the manifest root).
     public mutating func connect() -> [SpoolFrame] {
         resetConnectionState()
         phase = .awaitingBitmap
         return [SpoolFrame(header: SpoolFrameHeader(kind: .bitmapQuery), payload: manifest.root)]
     }
 
+    /// Forgets in-flight state after the connection dropped; acknowledged extents are kept.
     public mutating func disconnected() {
         resetConnectionState()
         if phase == .awaitingBitmap || phase == .streaming { phase = .disconnected }
     }
 
+    /// Feeds received bytes, and returns the frames to send next. `extent` reads an extent's bytes
+    /// from the file.
     public mutating func receive(_ bytes: [UInt8], extent: (Int) -> [UInt8]) throws(SpoolWireError) -> [SpoolFrame] {
         for frame in try decoder.push(bytes) {
             let index = Int(frame.header.extentIndex)

@@ -25,11 +25,14 @@ import Foundation
 
 // MARK: - SpanManifest
 
+/// One payload file of a disc in a set, with the SHA-256 computed while its image was written.
 public struct SpanPayloadFile: Codable, Sendable, Equatable {
     /// Path as readers will see it on the mounted disc: UDF or Joliet name,
     /// forward slashes, relative to `data/`.
     public let path: String
+    /// The file's size in bytes.
     public let byteCount: Int64
+    /// Lowercase hex SHA-256 of the file's contents.
     public let sha256: String
 
     public init(path: String, byteCount: Int64, sha256: String) {
@@ -41,10 +44,16 @@ public struct SpanPayloadFile: Codable, Sendable, Equatable {
     }
 }
 
+/// The whole set, written to every disc as `krouton-set-index.json`: every file on every disc, with
+/// its digest.
 public struct SpanSetIndex: Codable, Sendable, Equatable {
+    /// One disc of the set.
     public struct Disc: Codable, Sendable, Equatable {
+        /// The disc's number, from 1.
         public let index: Int
+        /// The volume label burned on the disc.
         public let volumeLabel: String
+        /// The payload files on this disc.
         public let files: [SpanPayloadFile]
 
         public init(index: Int, volumeLabel: String, files: [SpanPayloadFile]) {
@@ -54,9 +63,13 @@ public struct SpanSetIndex: Codable, Sendable, Equatable {
         }
     }
     let formatVersion: Int
+    /// Identifies the set; written as `Bag-Group-Identifier`.
     public let setIdentifier: String
+    /// The set's title, for `External-Description`.
     public let title: String
+    /// When the set was planned; its date becomes `Bagging-Date`.
     public let createdAt: Date
+    /// Every disc of the set.
     public let discs: [Disc]
 
     public init(setIdentifier: String, title: String, createdAt: Date, discs: [Disc]) {
@@ -68,8 +81,9 @@ public struct SpanSetIndex: Codable, Sendable, Equatable {
     }
 }
 
+/// Builds the self-describing files for each disc of a set (see the comment at the top of this
+/// file).
 public enum SpanManifest {
-
     /// Tag files for one disc, keyed by file name, ready to place at the disc root.
     public static func tagFiles(for discIndex: Int, in set: SpanSetIndex) throws -> [String: Data] {
         guard let disc = set.discs.first(where: { $0.index == discIndex }) else {
@@ -141,9 +155,9 @@ public enum SpanManifest {
         return String(stem.prefix(max(1, limit - suffix.count))) + suffix
     }
 
-    /// Root-level manifest alternative (`SHA256SUMS` + `krouton-set-index.json`) for Data discs
-    /// where the user wants their files at the disc root (`/`) instead of inside BagIt's `data/` directory.
-    /// Verifiable on any OS via `shasum -a 256 -c SHA256SUMS`.
+    /// The alternative to the bag for a data disc whose files stay at the root instead of under
+    /// `data/`: `SHA256SUMS` and `krouton-set-index.json`. Check it with
+    /// `shasum -a 256 -c SHA256SUMS`.
     public static func rootChecksumFiles(for discIndex: Int, in set: SpanSetIndex) throws -> [String: Data] {
         guard let disc = set.discs.first(where: { $0.index == discIndex }) else {
             throw CocoaError(.fileNoSuchFile)

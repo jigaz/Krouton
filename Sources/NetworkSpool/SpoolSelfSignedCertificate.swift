@@ -10,6 +10,8 @@ public enum SpoolSelfSignedCertificate {
     static let prime256v1: [UInt8] = [0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07]
     static let commonNameOID: [UInt8] = [0x55, 0x04, 0x03]
 
+    /// A DER certificate for the 65-byte X9.63 key `publicKeyX963`, named `commonName` (cut to 64
+    /// characters), valid from 2025 to 9999; nil when the key or serial is invalid or `sign` fails.
     public static func make(publicKeyX963: Data, commonName: String, serial: Data, sign: (Data) -> Data?) -> Data? {
         guard publicKeyX963.count == 65, publicKeyX963.first == 0x04, !serial.isEmpty else { return nil }
         let algorithm = sequence(tlv(0x06, ecdsaWithSHA256))

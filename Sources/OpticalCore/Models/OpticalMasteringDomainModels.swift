@@ -1,14 +1,16 @@
 import CryptoKit
 import Foundation
 
-// MARK: - Phase 3: Strongly-Typed Mastering & Extraction Domain Models
+// MARK: - Rip, Extract and Console Models
 
+/// One row of the Rip Audio CD track list.
 public struct KroutonRipTrackItem: Identifiable, Hashable, Codable, Sendable {
     public var id: Int { num }
     public var num: Int
     public var title: String
     public var performer: String
     public var duration: String
+    /// The AccurateRip result for the track, as display text.
     public var arStatus: String
 
     public init(num: Int, title: String, performer: String, duration: String, arStatus: String) {
@@ -19,10 +21,13 @@ public struct KroutonRipTrackItem: Identifiable, Hashable, Codable, Sendable {
         self.arStatus = arStatus
     }
 
+    /// Empty: the list starts empty until a disc is read.
     public static let defaultRedBookTOC: [KroutonRipTrackItem] = []
+    /// Empty, like `defaultRedBookTOC`.
     public static let musicBrainzMatchedTOC: [KroutonRipTrackItem] = []
 }
 
+/// One title of a video disc in Extract Video Disc.
 public struct KroutonVideoExtractTitleItem: Identifiable, Hashable, Codable, Sendable {
     public var id: String
     public var name: String
@@ -40,9 +45,12 @@ public struct KroutonVideoExtractTitleItem: Identifiable, Hashable, Codable, Sen
         self.seconds = seconds
     }
 
+    /// Empty: the list starts empty until a disc is read.
     public static let defaultVideoTitles: [KroutonVideoExtractTitleItem] = []
 }
 
+/// Retro-console burn options. Not wired to any burn yet (see PENDING_INTEGRATION.md); Krouton
+/// sends no bitsetting or OPC commands.
 public struct KroutonConsoleMasteringConfig: Equatable, Codable, Sendable {
     public var romWriteModeDAO96SubQ: Bool = true
     public var romBitsetDVDROM: Bool = true
@@ -54,28 +62,37 @@ public struct KroutonConsoleMasteringConfig: Equatable, Codable, Sendable {
     public init() {}
 }
 
+/// Web addresses written into saved projects.
 public enum KroutonWebEndpoints {
     public static let homeURLString = "https://krouton.app"
     public static let krutSchemaURLString = "https://krouton.app/schema/krut/v1.json"
-
 }
 
-// MARK: - Unified Hardware-Agnostic .krut Core Mastering Spec (Shared by Local .krut Sidecars & Krumb LAN Wire Protocol)
+// MARK: - .krut Project Mastering Spec
 
+/// The mastering part of a `.krut` project file: format, volume, image size and digest. The JSON
+/// keys are snake_case and must not change.
 public struct KroutonKrutCoreSpec: Codable, Hashable, Sendable {
     var specVersion: String
+    /// The format, as a `KroutonFormatID` raw value.
     public var formatID: String
+    /// The volume label.
     public var volumeTitle: String
     public var sectorSizeBytes: Int
     public var totalSectorsLBA: Int64
     public var expectedPayloadBytes: Int64
+    /// Lowercase hex SHA-256 of the image, when one was built.
     public var payloadSHA256Hex: String
+    /// The write method, as display text.
     public var writeMethod: String
+    /// The layer break of a dual-layer image, when set.
     public var dualLayerBreakSectorLBA: Int64?
     /// Not acted on: Krouton sends no book-type (bitsetting) command, so this is always written
     /// false. Kept so older project files decode.
     public var forceDVDROMBookType: Bool
+    /// Recorded in the project; Krouton sends no OPC command, so nothing acts on it.
     public var performOPCBeforeWrite: Bool
+    /// Recorded in the project; nothing acts on it yet.
     public var ephemeralAutoPurgeOnComplete: Bool
 
     public init(
@@ -122,10 +139,12 @@ public struct KroutonKrutCoreSpec: Codable, Hashable, Sendable {
     }
 }
 
-// MARK: - Cross-Filesystem Path Sanitizer & ChaCha20-Poly1305 .krut Encryption Engine
+// MARK: - Project Path Checks and Payload Sealing
 
+/// Path checks for files named inside a project, and passphrase sealing of `.krut` payloads.
 public enum KroutonKrutSecurityEngine {
-    /// Rejects relative paths attempting directory traversal ('..') or root escapes across NTFS, exFAT, ext4, Btrfs & APFS
+    /// False for absolute paths, paths starting with `~`, and paths with a `..` component
+    /// (backslashes count as separators). Drive letters such as `C:` are not checked.
     public static func isSafeRelativePath(_ relPath: String) -> Bool {
         let normalized = relPath.replacingOccurrences(of: "\\", with: "/")
         if normalized.hasPrefix("/") || normalized.hasPrefix("~") { return false }
@@ -133,12 +152,15 @@ public enum KroutonKrutSecurityEngine {
         return !parts.contains("..")
     }
 
-    /// Normalizes Windows backslashes and NFD decomposed Unicode to NFC for NTFS / exFAT / ext4 / Btrfs compatibility
+    /// Turns backslashes into slashes and the name into Unicode NFC, so a path saved on another
+    /// system compares equal.
     public static func normalizeCrossFilesystemPath(_ rawPath: String) -> String {
         rawPath.replacingOccurrences(of: "\\", with: "/").precomposedStringWithCanonicalMapping
     }
 
-    /// Encrypts a .krut payload with AEAD ChaCha20-Poly1305 and HKDF-SHA256
+    /// Seals `plainData` with ChaCha20-Poly1305 under a key derived from `passphrase` and `salt`
+    /// with HKDF-SHA256. HKDF doesn't slow down guessing, so this is only as strong as the
+    /// passphrase. Only krouton-verify calls it today.
     public static func sealKrutPayload(_ plainData: Data, passphrase: String, salt: Data) throws -> Data {
         let key = HKDF<SHA256>.deriveKey(
             inputKeyMaterial: SymmetricKey(data: Data(passphrase.precomposedStringWithCanonicalMapping.utf8)),
@@ -149,7 +171,7 @@ public enum KroutonKrutSecurityEngine {
         return try ChaChaPoly.seal(plainData, using: key).combined
     }
 
-    /// Opens and authenticates an AEAD ChaCha20-Poly1305 .krut payload (rejects wrong passphrase or bit-tampering)
+    /// Opens a payload sealed by `sealKrutPayload`; nil for a wrong passphrase or changed bytes.
     public static func openKrutPayload(_ combinedData: Data, passphrase: String, salt: Data) -> Data? {
         let key = HKDF<SHA256>.deriveKey(
             inputKeyMaterial: SymmetricKey(data: Data(passphrase.precomposedStringWithCanonicalMapping.utf8)),
@@ -162,8 +184,9 @@ public enum KroutonKrutSecurityEngine {
     }
 }
 
-// MARK: - Editable Vector Disc Label Scene Graph Models (Stored in Every .krut File)
+// MARK: - Disc Label Models (saved in .krut projects)
 
+/// A color as sRGB components and opacity, each 0…1, as saved in projects.
 public struct KroutonRGBAColor: Codable, Hashable, Sendable {
     public var r: Double
     public var g: Double
@@ -178,6 +201,7 @@ public struct KroutonRGBAColor: Codable, Hashable, Sendable {
     }
 }
 
+/// The label background. The raw values are display names and are saved.
 public enum KroutonVectorBackgroundStyle: String, Codable, CaseIterable, Identifiable, Sendable {
     case templateDefault = "Template Default"
     case solidColor      = "Solid Color"
@@ -189,6 +213,7 @@ public enum KroutonVectorBackgroundStyle: String, Codable, CaseIterable, Identif
     public var id: String { rawValue }
 }
 
+/// Image adjustments for the label background.
 public struct KroutonBackgroundAdjustments: Codable, Hashable, Sendable {
     public var blurRadius: Double = 0.0
     public var brightness: Double = 0.0
@@ -210,6 +235,7 @@ public struct KroutonBackgroundAdjustments: Codable, Hashable, Sendable {
         self.saturation = saturation
     }
 
+    /// True when every adjustment is at its neutral value.
     public var isIdentity: Bool {
         abs(blurRadius) < 0.05 &&
         abs(brightness) < 0.005 &&
@@ -219,6 +245,7 @@ public struct KroutonBackgroundAdjustments: Codable, Hashable, Sendable {
     }
 }
 
+/// The mirror layout of the kaleidoscope background.
 public enum KroutonKaleidoscopeMirrorRig: String, Codable, CaseIterable, Identifiable, Sendable {
     case twoMirrorRosette  = "2-Mirror Mandala"
     case threeMirrorPrism  = "3-Mirror Triangle Lattice"
@@ -226,6 +253,7 @@ public enum KroutonKaleidoscopeMirrorRig: String, Codable, CaseIterable, Identif
     public var id: String { rawValue }
 }
 
+/// The generated pattern the kaleidoscope background starts from.
 public enum KroutonGPUSeedPattern: String, Codable, CaseIterable, Identifiable, Sendable {
     case neonLaserPrism   = "Neon Laser Prism"
     case cyberSunburst    = "Cyber Sunburst Horizon"
@@ -234,6 +262,7 @@ public enum KroutonGPUSeedPattern: String, Codable, CaseIterable, Identifiable, 
     public var id: String { rawValue }
 }
 
+/// The shapes a label's vector layers can be. The raw values are display names and are saved.
 public enum KroutonVectorShapeKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case line           = "Diagonal Line"
     case curveArc       = "Bezier Arc"
@@ -254,6 +283,8 @@ public enum KroutonVectorShapeKind: String, Codable, CaseIterable, Identifiable,
     public var id: String { rawValue }
 }
 
+/// A point on the label in disc radii from the centre: (0, 0) is the centre, -1 and 1 the edges,
+/// and y grows downwards.
 public struct KroutonNormalizedPoint: Codable, Hashable, Sendable {
     public var nx: Double
     public var ny: Double
@@ -264,17 +295,21 @@ public struct KroutonNormalizedPoint: Codable, Hashable, Sendable {
     }
 }
 
+/// A text layer on the label, straight or along an arc.
 public struct KroutonLabelTextElement: Codable, Hashable, Identifiable, Sendable {
     public var id: UUID
     public var text: String
     public var isCurvedArc: Bool
+    /// For curved text, the arc's radius in mm.
     public var radiusMM: Double
     public var angleDegrees: Double
     public var fontSizePoints: Double
     public var letterTracking: Double
+    /// For curved text along the bottom, keeps the letters upright.
     public var isBottomUpright: Bool
     public var isBold: Bool
     public var hasDropShadow: Bool = false
+    /// The font design ("Default", "Serif", "Rounded", "Monospaced").
     public var fontDesignRaw: String
     public var color: KroutonRGBAColor
 
@@ -305,6 +340,7 @@ public struct KroutonLabelTextElement: Codable, Hashable, Identifiable, Sendable
     }
 }
 
+/// A vector shape on the label.
 public struct KroutonVectorShapeLayer: Codable, Hashable, Identifiable, Sendable {
     public var id: UUID
     public var name: String
@@ -313,6 +349,7 @@ public struct KroutonVectorShapeLayer: Codable, Hashable, Identifiable, Sendable
     public var strokeWidthPoints: Double
     public var isClosed: Bool
     public var strokeColor: KroutonRGBAColor
+    /// The fill, or nil for an outline only.
     public var fillColor: KroutonRGBAColor?
 
     public init(
@@ -336,15 +373,20 @@ public struct KroutonVectorShapeLayer: Codable, Hashable, Identifiable, Sendable
     }
 }
 
+/// The disc label saved in a project: text, colors, background, layers and print settings.
 public struct KroutonEmbeddedLabelSpec: Codable, Hashable, Sendable {
     var specVersion: String
     public var primaryArcTitle: String
     public var bottomSubtitle: String
     public var performer: String
+    /// The catalog number printed as a barcode.
     public var mcnCatalogBarcode: String
     public var templateStyleRaw: String
+    /// The printer tray template.
     public var trayPresetName: String
+    /// The printable area's outer diameter in mm.
     public var outerDiameterMM: Double
+    /// The printable area's inner (hub) diameter in mm.
     public var innerDiameterMM: Double
     public var offsetXMM: Double
     public var offsetYMM: Double

@@ -4,12 +4,17 @@ import Foundation
 import ImageIO
 import Vision
 
-// MARK: - Pure Auto-Label Artwork Harvester, Vision Center-Hole Avoidance & Palette Extractor
+// MARK: - Auto-Label
 
+/// One staged item Auto-Label works from: its file (for artwork), title, performer and length.
 public struct AutoLabelInputItem: Sendable {
+    /// The file to look for artwork in, if any.
     public let url: URL?
+    /// The item's title, for the track list.
     public let title: String
+    /// The item's performer.
     public let performer: String
+    /// Its length in seconds; 0 when unknown.
     public let durationSeconds: Double
 
     public init(url: URL?, title: String, performer: String = "", durationSeconds: Double = 0) {
@@ -20,8 +25,12 @@ public struct AutoLabelInputItem: Sendable {
     }
 }
 
+/// A label Auto-Label composed: text, track list, rim banner, artwork and placement, and a
+/// two-color palette. The app applies only the title and subtitle today (open question #9).
 public struct AutoLabelComposition: Sendable {
+    /// The label's title.
     public let titleText: String
+    /// The label's subtitle (the performer).
     public let subtitleText: String
     let rimBannerText: String
     let tracklistLines: [String]
@@ -30,6 +39,8 @@ public struct AutoLabelComposition: Sendable {
     let artworkScale: Double
     let primaryHex: String
     let secondaryHex: String
+    /// One line saying what was composed, for the status bar. It names the artwork and framing even
+    /// though the app doesn't apply them yet.
     public let summary: String
 
     public init(
@@ -57,7 +68,11 @@ public struct AutoLabelComposition: Sendable {
     }
 }
 
+/// Composes a disc label from the staged items.
 public enum AutoLabelComposer {
+    /// Builds the label: the album title (or "KROUTON MASTER DISC"), up to 16 track lines, a rim
+    /// banner, and, when an item has artwork, that artwork framed clear of the hole by Vision with
+    /// a palette taken from it.
     public static func compose(
         albumTitle: String,
         albumPerformer: String,

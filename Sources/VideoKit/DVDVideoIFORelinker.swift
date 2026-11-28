@@ -1,24 +1,31 @@
 import Foundation
 
-// MARK: - DVD-Video Binary NV_PCK (DSI) & .IFO / .BUP Sector Table Relinker
+// MARK: - DVD-Video Navigation Pack and IFO Relinker
 
+/// One cell's new sector range after relinking.
 public struct DVDVideoRelinkedCellRange: Sendable, Equatable {
     let vobID: UInt16
+    /// The cell's number within its VOB.
     public let cellID: UInt8
     let startSector: UInt32
     let endSector: UInt32
 }
 
+/// The sizes of one title set after a shrink, in sectors.
 public struct DVDVideoVTSLayout: Sendable, Equatable {
     let vtsNumber: Int
     let ifoSectors: UInt32
+    /// The menu VOB's size.
     public let menuVobSectors: UInt32
+    /// The title VOBs' size.
     public let titleVobSectors: UInt32
     var totalVTSSectors: UInt32 {
         (ifoSectors * 2) + menuVobSectors + titleVobSectors
     }
 }
 
+/// Rewrites the sector addresses in DVD-Video navigation packs and IFO tables after title VOBs
+/// change size, and re-encodes title VOBs with ffmpeg for the DVD-9 to DVD-5 shrink.
 public enum DVDVideoIFORelinker {
     static let sectorBytes = 2048
     /// Spec limit per VOB file: 1 GiB minus 32 KiB (524,272 sectors)
@@ -31,6 +38,7 @@ public enum DVDVideoIFORelinker {
         return (UInt16(bytes[offset]) << 8) | UInt16(bytes[offset + 1])
     }
 
+    /// The big-endian `UInt32` at `offset`, or 0 when it runs past the end.
     public static func readUInt32BE(_ bytes: [UInt8], at offset: Int) -> UInt32 {
         guard offset >= 0, offset + 4 <= bytes.count else { return 0 }
         return (UInt32(bytes[offset]) << 24)
@@ -39,12 +47,14 @@ public enum DVDVideoIFORelinker {
             | UInt32(bytes[offset + 3])
     }
 
+    /// Writes `value` big-endian at `offset`; does nothing when it would run past the end.
     public static func writeUInt16BE(_ value: UInt16, into bytes: inout [UInt8], at offset: Int) {
         guard offset >= 0, offset + 2 <= bytes.count else { return }
         bytes[offset] = UInt8((value >> 8) & 0xFF)
         bytes[offset + 1] = UInt8(value & 0xFF)
     }
 
+    /// Writes `value` big-endian at `offset`; does nothing when it would run past the end.
     public static func writeUInt32BE(_ value: UInt32, into bytes: inout [UInt8], at offset: Int) {
         guard offset >= 0, offset + 4 <= bytes.count else { return }
         bytes[offset] = UInt8((value >> 24) & 0xFF)
@@ -53,7 +63,7 @@ public enum DVDVideoIFORelinker {
         bytes[offset + 3] = UInt8(value & 0xFF)
     }
 
-    // MARK: - NV_PCK (Navigation Pack) Scanner & In-Place DSI Relinker
+    // MARK: - Navigation Packs (NV_PCK)
 
     /// Returns true if the 2048-byte pack at `packOffset` is a DVD-Video NV_PCK (PCI + DSI).
     static func isNavigationPack(_ bytes: [UInt8], at packOffset: Int) -> Bool {
@@ -169,7 +179,7 @@ public enum DVDVideoIFORelinker {
         return (Data(bytes), navSectors, cells)
     }
 
-    // MARK: - VTS_xx_0.IFO & VIDEO_TS.IFO Binary Sector Table Relinking
+    // MARK: - IFO Sector Tables
 
     /// Rebuilds `VTS_C_ADT`, `VTS_VOBU_ADMAP`, `VTS_PGCI` cell sector offsets, and `VTSI_MAT` pointers
     /// in a `VTS_xx_0.IFO` buffer (which is then written identically to both `.IFO` and `.BUP`).
@@ -330,7 +340,7 @@ public enum DVDVideoIFORelinker {
         return Data(bytes)
     }
 
-    // MARK: - Direct FFmpeg MPEG-2 Requantizer (Zero Shell)
+    // MARK: - ffmpeg Re-encode
 
     static func locateFFmpegExecutable() -> URL? {
         for candidate in ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg"] {

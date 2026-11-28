@@ -19,6 +19,7 @@ import OpticalCore
 @Observable
 @MainActor
 public final class KroutonBurnCoordinator {
+    /// The one coordinator the app uses.
     public static let shared = KroutonBurnCoordinator()
 
     /// Drives of the queue burning right now, by drive key.
@@ -26,9 +27,12 @@ public final class KroutonBurnCoordinator {
     /// The title of the multi-disc set that has the drives, if one does.
     public private(set) var runningSetTitle: String?
 
+    /// Makes a coordinator of its own, for tests.
     public init() {}
 
+    /// True while any queue burn runs.
     public var isQueueBurning: Bool { !queueBurnsInFlight.isEmpty }
+    /// True while a multi-disc set has the drives.
     public var isSetRunning: Bool { runningSetTitle != nil }
 
     // MARK: - Multi-Disc Sets
@@ -49,6 +53,7 @@ public final class KroutonBurnCoordinator {
         return nil
     }
 
+    /// Gives the drives back after a set.
     public func endSet() {
         runningSetTitle = nil
     }
@@ -137,16 +142,25 @@ public final class KroutonBurnCoordinator {
 
 /// One burn from the destination queue on a drive of this Mac.
 public struct KroutonLocalBurnRequest: Sendable {
+    /// The drive to burn on, or nil for the first one.
     public var driveID: String?
+    /// What to burn: the files of a data disc, or one disc image.
     public var stagedFiles: [KroutonStagedFileEntry]
+    /// The volume label.
     public var volumeTitle: String
+    /// The write speed, as a label from the drive's speed list.
     public var speedLabel: String
+    /// Runs the burn with the laser off, to test the settings.
     public var simulationMode: Bool
+    /// Reads the disc back and compares it after writing.
     public var verifyDisc: Bool
     /// True only when a person started this burn; an automatic next copy never erases a disc.
     public var allowOverwriteOfWrittenMedia: Bool
+    /// Leaves the disc appendable for later sessions.
     public var leaveDiscOpen: Bool
+    /// The rendered audio CD, for audio burns; nil otherwise.
     public var audioDisc: KroutonAudioBurnDisc?
+    /// Restricts names to ISO 9660 Level 1 (8.3, upper case).
     public var isoLevel1: Bool
 
     public init(driveID: String?, stagedFiles: [KroutonStagedFileEntry], volumeTitle: String, speedLabel: String,

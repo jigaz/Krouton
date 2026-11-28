@@ -179,6 +179,7 @@ extension SpoolRemoteNodeClient {
         }
     }
 
+    /// Asks the server to eject a drive.
     public func ejectRemoteDrive(_ driveID: String, serverID: String) async {
         guard let server = server(withID: serverID) else { return }
         do {
@@ -189,6 +190,7 @@ extension SpoolRemoteNodeClient {
         }
     }
 
+    /// Asks the connected server to cancel a job. Does nothing without a session.
     public func cancelJob(_ job: String) async {
         guard let connection = session?.connection else { return }
         try? await connection.send([.cancel(job: job)])
@@ -197,6 +199,8 @@ extension SpoolRemoteNodeClient {
 
 /// An error the server reported, with its stable code.
 public struct SpoolRemoteError: Error, Sendable, Equatable {
+    /// The error code.
     public let code: SpoolErrorCode
+    /// The server's message.
     public let message: String
 }

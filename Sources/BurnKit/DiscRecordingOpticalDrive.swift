@@ -2,6 +2,8 @@ import DriveKit
 import Foundation
 import OpticalCore
 
+// MARK: - DiscRecording Drive
+//
 // The real drive behind BurnSetScheduler. It contains no DiscRecording calls of its
 // own: DriveKit's KroutonDiscImageBurner does the hardware work, so DriveKit stays
 // the only module that imports DiscRecording.
@@ -17,8 +19,11 @@ import OpticalCore
 //   run.cancel()                                   // finish the discs being written, take no more
 //   for drive in drives { drive.abortCurrentDisc() } // stop now; discs being written are spoiled
 
+/// A drive of this Mac as an `OpticalDrive`, for burn sets.
 public actor DiscRecordingOpticalDrive: OpticalDrive {
+    /// The drive's identifier, as `KroutonDiscImageBurner` reports it.
     public nonisolated let id: DriveID
+    /// The drive's name.
     public nonisolated let displayName: String
     private nonisolated let abortSwitch = KroutonBurnAbortSwitch()
     private let onStatus: (@MainActor @Sendable (DriveID, String) -> Void)?
@@ -51,6 +56,8 @@ public actor DiscRecordingOpticalDrive: OpticalDrive {
         abortSwitch.request()
     }
 
+    /// Waits for a usable blank, passing status messages to `onStatus`. The blank's `mediaID` is
+    /// the media type DiscRecording reports.
     public func waitForBlank(_ request: BlankRequest) async throws(BurnFailure) -> BlankMedia {
         abortSwitch.reset()
         imageBeingBurned = nil
@@ -75,6 +82,7 @@ public actor DiscRecordingOpticalDrive: OpticalDrive {
         }
     }
 
+    /// Burns the image through `KroutonDiscImageBurner`, and remembers it for `verify`.
     public func write(image: URL, onPhase: @Sendable (BurnPhase) async -> Void) async throws(BurnFailure) {
         imageBeingBurned = image
         do {
@@ -84,6 +92,7 @@ public actor DiscRecordingOpticalDrive: OpticalDrive {
         }
     }
 
+    /// Reads the disc back and compares it with the image last written.
     public func verify(againstSHA256 digest: String, byteCount: Int64) async throws(BurnFailure) {
         guard let image = imageBeingBurned else {
             throw BurnFailure.writeError(sense: "verify was called before write.")
@@ -97,6 +106,7 @@ public actor DiscRecordingOpticalDrive: OpticalDrive {
         }
     }
 
+    /// Ejects the disc.
     public func eject() async {
         await KroutonDiscImageBurner.eject(driveID: id.raw)
     }

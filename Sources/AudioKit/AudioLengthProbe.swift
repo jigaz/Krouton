@@ -2,6 +2,8 @@ import AVFoundation
 import Foundation
 import OpticalCore
 
+// MARK: - Audio Length Probe
+//
 // The fast first pass that stops disc headers jumping around.
 //
 // Opening an audio file and reading its length touches only the header, so 40
@@ -17,8 +19,8 @@ import OpticalCore
 // visible. For MP3 and AAC it can move by a few frames, which is why the plan
 // stays marked provisional until analysis finishes.
 
+/// Reads audio file lengths from their headers only.
 public enum AudioLengthProbe {
-
     /// Length in Red Book frames, and whether the container states it exactly.
     public static func length(of url: URL) throws -> ItemCost {
         let file = try AVAudioFile(forReading: url)

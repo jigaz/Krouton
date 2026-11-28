@@ -1,11 +1,12 @@
 import Foundation
 
-// MARK: - Spool Wire Protocol v1
+// MARK: - KRSP v1 Frames
 //
-// Every message on a spool connection is one frame: a fixed 64-byte big-endian header followed by
-// `payloadLength` bytes. An extent's sectors travel as ONE frame payload (never re-chunked), so a
+// Every message on a connection to Krouton Server is one frame: a fixed 64-byte big-endian header
+// followed by `payloadLength` bytes. An extent's sectors travel as ONE frame payload (never re-chunked), so a
 // receiver can hand the payload to the staging writer whole.
 
+/// What a frame carries. The values are on the wire and must match Krouton Server.
 public enum SpoolFrameKind: UInt8, Sendable, CaseIterable {
     case bitmapQuery = 1
     case bitmapReply = 2
@@ -19,6 +20,7 @@ public enum SpoolFrameKind: UInt8, Sendable, CaseIterable {
     case manifestOffer = 10
 }
 
+/// Why a frame couldn't be decoded.
 public enum SpoolWireError: Error, Sendable, Equatable {
     case badMagic
     case unsupportedVersion(UInt8)
@@ -29,20 +31,34 @@ public enum SpoolWireError: Error, Sendable, Equatable {
 
 // MARK: - Frame Header
 
+/// A frame's 64-byte header, big-endian: magic "KRSP" (0-3), version (4), kind (5), flags (6-7),
+/// extent index (8-11), first LBA (12-19), sector size (20-21), 2 reserved bytes, payload length
+/// (24-27), 4 reserved bytes, and a 32-byte digest (32-63).
 public struct SpoolFrameHeader: Sendable, Equatable {
+    /// The header's size.
     public static let byteCount = 64
+    /// "KRSP" in ASCII.
     public static let magic: UInt32 = 0x4B52_5350
+    /// The protocol version this client speaks.
     public static let currentVersion: UInt8 = 1
     /// Upper bound on any single frame, so a hostile length field can never make a receiver allocate more.
     public static let maxPayloadBytes: UInt32 = 8 * 1_048_576
+    /// The sector sizes an extent frame may carry.
     public static let supportedSectorSizes: Set<UInt16> = [2048, 2336, 2352, 2448]
 
+    /// What the frame carries.
     public var kind: SpoolFrameKind
+    /// Kind-specific flags.
     public var flags: UInt16
+    /// The extent the frame is about.
     public var extentIndex: UInt32
+    /// The extent's first sector.
     public var firstLBA: UInt64
+    /// Bytes per sector in an extent frame; 0 otherwise.
     public var sectorSize: UInt16
+    /// Bytes after the header.
     public var payloadLength: UInt32
+    /// 32 bytes: an extent's SHA-256, or zeros.
     public var digest: [UInt8]
 
     public init(
@@ -63,6 +79,7 @@ public struct SpoolFrameHeader: Sendable, Equatable {
         self.digest = digest
     }
 
+    /// The 64 header bytes.
     public func encoded() -> [UInt8] {
         var out: [UInt8] = []
         out.reserveCapacity(Self.byteCount)
@@ -109,8 +126,11 @@ public struct SpoolFrameHeader: Sendable, Equatable {
 
 // MARK: - Frame
 
+/// A header and its payload.
 public struct SpoolFrame: Sendable, Equatable {
+    /// The header; its `payloadLength` matches `payload`.
     public var header: SpoolFrameHeader
+    /// The bytes after the header.
     public var payload: [UInt8]
 
     public init(header: SpoolFrameHeader, payload: [UInt8] = []) {
@@ -120,10 +140,12 @@ public struct SpoolFrame: Sendable, Equatable {
         self.payload = payload
     }
 
+    /// The frame as bytes.
     public func encoded() -> [UInt8] {
         header.encoded() + payload
     }
 
+    /// A frame with no payload, such as a bitmap query.
     public static func signal(_ kind: SpoolFrameKind, extentIndex: Int = 0) -> SpoolFrame {
         SpoolFrame(header: SpoolFrameHeader(kind: kind, extentIndex: UInt32(clamping: extentIndex)))
     }
@@ -131,13 +153,17 @@ public struct SpoolFrame: Sendable, Equatable {
 
 // MARK: - Incremental Decoder
 
+/// Splits a byte stream into frames, keeping any partial frame for the next push.
 public struct SpoolFrameDecoder: Sendable {
     private var buffer: [UInt8] = []
 
     public init() {}
 
+    /// Bytes held for a frame not yet complete.
     public var bufferedByteCount: Int { buffer.count }
 
+    /// Adds received bytes and returns every frame now complete. Throws on a malformed header; the
+    /// stream can't be trusted after that.
     public mutating func push(_ bytes: [UInt8]) throws(SpoolWireError) -> [SpoolFrame] {
         buffer.append(contentsOf: bytes)
         var frames: [SpoolFrame] = []
@@ -154,6 +180,7 @@ public struct SpoolFrameDecoder: Sendable {
         return frames
     }
 
+    /// Drops anything buffered.
     public mutating func reset() {
         buffer.removeAll(keepingCapacity: true)
     }

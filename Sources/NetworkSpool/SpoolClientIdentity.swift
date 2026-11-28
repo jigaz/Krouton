@@ -10,12 +10,17 @@ import Security
 //     client authentication, so key and certificate live in the keychain; servers trust the key
 //     by pin (SHA-256 of its X9.63 bytes), never by the certificate's names or dates.
 
+/// Why this Mac's identity couldn't be read or made.
 public enum SpoolClientIdentityError: Error, Sendable, Equatable {
+    /// A keychain call failed with this status.
     case keychain(OSStatus)
+    /// The TLS key couldn't be made.
     case keyGeneration(String)
+    /// The self-signed certificate couldn't be made or stored.
     case certificate
 }
 
+/// This Mac's two keys for Krouton Server (see the comment above).
 public enum SpoolClientIdentity {
     static let service = "app.krouton.spool"
     static let identityAccount = "identity.ed25519"

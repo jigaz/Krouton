@@ -5,6 +5,7 @@ import Foundation
 /// How a panorama is wrapped into the disc: each pixel of the disc is traced back to a point of
 /// the photo by its angle (across the photo) and its distance from the centre (down the photo).
 public struct KroutonPlanetSettings: Codable, Hashable, Sendable {
+    /// How distance from the disc's centre maps to height in the photo.
     public enum Projection: String, Codable, CaseIterable, Identifiable, Sendable {
         /// Distance from the centre is linear in the photo's height (Photoshop's Polar Coordinates).
         case polar = "Polar Coordinates"
@@ -14,12 +15,14 @@ public struct KroutonPlanetSettings: Codable, Hashable, Sendable {
         public var id: String { rawValue }
     }
 
+    /// Which edge of the photo ends up in the middle of the disc.
     public enum Orientation: String, Codable, CaseIterable, Identifiable, Sendable {
         case planet = "Planet (ground in the middle)"
         case tunnel = "Tunnel (sky in the middle)"
         public var id: String { rawValue }
     }
 
+    /// How the photo's left and right ends meet.
     public enum Seam: String, Codable, CaseIterable, Identifiable, Sendable {
         /// The photo's ends meet: right for full 360° panoramas.
         case wrap = "Wrap (360° panorama)"
@@ -30,8 +33,11 @@ public struct KroutonPlanetSettings: Codable, Hashable, Sendable {
         public var id: String { rawValue }
     }
 
+    /// The projection; a little planet by default.
     public var projection: Projection = .stereographic
+    /// Ground in the middle, or sky.
     public var orientation: Orientation = .planet
+    /// How the ends of the photo meet.
     public var seam: Seam = .wrap
     /// Fraction of the photo's width crossfaded at the seam (`.blend`).
     public var seamBlend: Double = 0.08
@@ -45,18 +51,23 @@ public struct KroutonPlanetSettings: Codable, Hashable, Sendable {
     public var groundCurve: Double = 1.0
     /// Fractions of the photo cut from the top (sky) and bottom (ground) before wrapping.
     public var cropTop: Double = 0
+    /// See `cropTop`.
     public var cropBottom: Double = 0
     /// Degrees of swirl added between the centre and the rim.
     public var twistDegrees: Double = 0
     /// Starts the photo at the hub's edge so the stretched centre falls in the hole.
     public var startAtHub: Bool = true
+    /// Mirrors the photo left to right before wrapping.
     public var flipHorizontal: Bool = false
     /// Fractions of the radius that fade to `fadeColor` at the rim and at the centre.
     public var rimFade: Double = 0
+    /// See `rimFade`.
     public var centerFade: Double = 0
+    /// The color the rim and centre fade to.
     public var fadeColor = KroutonRGBAColor(r: 1, g: 1, b: 1)
     /// Moves the planet's centre, as a fraction of the disc radius.
     public var centerOffsetX: Double = 0
+    /// See `centerOffsetX`.
     public var centerOffsetY: Double = 0
     /// Samples per pixel along each axis (1–3); 2 removes the jagged edges at the centre.
     public var antialias: Int = 2
@@ -68,6 +79,7 @@ public struct KroutonPlanetSettings: Codable, Hashable, Sendable {
 
 /// How the label is printed: straight onto a printable disc in an inkjet tray, or onto a sheet.
 public struct KroutonLabelPrintSettings: Codable, Hashable, Sendable {
+    /// Where the label is printed.
     public enum Target: String, Codable, CaseIterable, Identifiable, Sendable {
         /// A PNG at 1:1 for the printer's own disc software (Epson Print CD, Canon IJ), plus
         /// the PDF tray sheet.
@@ -77,11 +89,14 @@ public struct KroutonLabelPrintSettings: Codable, Hashable, Sendable {
         public var id: String { rawValue }
     }
 
+    /// Where the label is printed.
     public var target: Target = .discTray
+    /// Resolution of the PNG export.
     public var dotsPerInch: Int = 300
     /// Ink carried past the rim and into the hub, so a slightly off-centre print leaves no white
     /// edge. Printable discs usually take about 1 mm outside and 0.5 mm inside.
     public var bleedOuterMM: Double = 1.0
+    /// See `bleedOuterMM`.
     public var bleedInnerMM: Double = 0.5
     /// 1 prints the colours as they are; lower lightens every colour towards the white disc,
     /// for glossy surfaces that pool ink.
