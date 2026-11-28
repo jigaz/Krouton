@@ -29,9 +29,15 @@ extension KroutonDestinationCardView {
 
         VStack(alignment: .leading, spacing: 10) {
                 if driveManager.availableDrives.isEmpty {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                        Text(KroutonL10n.tr("No USB Optical Drive Connected")).font(.system(size: 11, weight: .semibold))
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                            Text(KroutonL10n.tr("No Optical Drive Connected")).font(.system(size: 11, weight: .semibold))
+                        }
+                        Text("Switch this card to a Disc Image File or a Krouton Server.")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 } else {
                     Menu {
