@@ -1,0 +1,47 @@
+name: Disc format request
+description: Ask Krouton to make, read or copy a kind of disc it doesn't handle yet.
+title: "Format: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Krouton refuses to burn a format it can't write correctly, rather than write the wrong disc. The manual's
+        Getting started chapter (https://krouton.app/manual/getting-started/) lists what works today, and
+        `dev-notes/removed-formats.md` lists formats that were taken out and what bringing one back would take.
+  - type: input
+    id: format
+    attributes:
+      label: Format
+      placeholder: Video CD 2.0, CD+G, M-DISC BDXL…
+    validations:
+      required: true
+  - type: dropdown
+    id: direction
+    attributes:
+      label: What Krouton should do with it
+      multiple: true
+      options:
+        - Burn it from files
+        - Burn it from an image
+        - Copy or rip it
+        - Identify it and explain what it needs
+    validations:
+      required: true
+  - type: textarea
+    id: use
+    attributes:
+      label: What you'd use it for
+      description: The player, console, computer or archive that needs this disc.
+    validations:
+      required: true
+  - type: textarea
+    id: spec
+    attributes:
+      label: Specification and references
+      description: The standard (for example a Rainbow Book or ECMA number), open-source tools that write it, or sample images you can share legally.
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Hardware you can test with
+      description: Drives, blanks and players you could use to check a burned disc. Formats are only finished once a real disc plays.
