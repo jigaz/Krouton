@@ -222,14 +222,15 @@ fn run(home: &Path) -> Result<(), String> {
 
 fn pair(home: &Path, args: &mut Vec<String>) -> Result<(), String> {
     let minutes: u64 = take_option(args, "--minutes")
-        .map_or(Ok(5), |m| m.parse().map_err(|_| "--minutes must be a number".to_string()))?;
+        .map_or(Ok(5), |m| m.parse().map_err(|_| "--minutes must be a number".to_string()))?
+        .clamp(1, 60);
     let config = load_config(home)?;
     if !home.join(crypto::IDENTITY_FILE).exists() {
         return Err(format!("{} has no keys yet. Run `krouton-server init` first.", home.display()));
     }
     let window = PairingWindow::new(home);
     window
-        .open(Duration::from_secs(minutes.clamp(1, 60) * 60))
+        .open(Duration::from_secs(minutes * 60))
         .map_err(|e| format!("Could not open the pairing window (run as the service user?): {e}"))?;
     let host = server_core::config::default_name();
     println!("Pairing is open for {minutes} minute(s).");
