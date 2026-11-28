@@ -37,7 +37,8 @@ Related: `pure-swiftui-shell.md` (the one AppKit file), `removed-formats.md`, `P
 ## Correctness and honesty
 
 ### 6. The archival quality grade can never be shown
-- **Known:** `RescueKit/RescueEngine.swift` `evaluateArchivalDiscGrade` grades C1/C2/jitter and prints an "ISO/IEC 10149 & ECMA-267 Compliant" certificate. But every caller (`KroutonAuxModalsAndScopes.swift`, `KroutonMenuCommands.swift`, via a pass-through in LabelKit) passes no measurements, so the result is always "NOT MEASURED". The grading branch is unreachable, and the standards claim was never checked.
+- **Known:** `RescueKit/RescueEngine.swift` `evaluateArchivalDiscGrade` grades C1/C2/jitter. Every caller (`KroutonAuxModalsAndScopes.swift`, `KroutonMenuCommands.swift`, via a pass-through in LabelKit) passes no measurements, so the result is always "NOT MEASURED" and the grading branch is unreachable. The grade thresholds and the stability score are Krouton's own, not taken from a standard.
+- **Done 2026-11-28 (`agent/followup-fixes`):** the certificate no longer claims "ISO/IEC 10149 & ECMA-267 Compliant" (nothing checked it; a test keeps it out). **Disc › Copy Archival Quality Certificate** (⌥⌘C) and the burn report's Copy Archival Certificate button are disabled while the grade is NOT MEASURED, i.e. always for now; the manual says so. The burn report still shows the "NOT MEASURED" line.
 - **Answer by:** Find out whether any drive Krouton supports can report C1/C2 errors (vendor commands, as used by QPxTool or Opti Drive Control).
 - **Owner decides:** Either implement real scanning for the drives that support it, or remove the grade, its menu item and the certificate text.
 - **Also:** Why does LabelKit wrap a RescueKit function? It's the only reason LabelKit depends on RescueKit.

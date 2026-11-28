@@ -60,7 +60,7 @@ These are still being built. Their screens are there so you can see where Krouto
 - Authoring DVD or Blu-ray menus from plain video files.
 - Shrinking a dual-layer DVD onto a single-layer disc while keeping its menus. It hasn't been checked on many players yet.
 - AVCHD discs on players: the format follows the Blu-ray specification and libbluray reads it, but it hasn't been checked on many players yet.
-- Quality grading of a burned disc. Without a C1/C2 error scan the certificate says the disc was not measured.
+- Quality grading of a burned disc. Krouton can't run a C1/C2 error scan yet, so the burn report says the disc was not measured and the certificate can't be copied.
 - Burning .gdi images (Dreamcast GD-ROM) and compressed images (.wbfs, .rvz, .chd). Krouton names these and explains how to convert them, but can't burn them.
 
 ## Getting help

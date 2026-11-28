@@ -152,10 +152,11 @@ struct KroutonMasteringReportSheet: View {
             Label(report.diagnosticAdvice, systemImage: "info.circle.fill").font(.callout).foregroundStyle(.secondary)
             Spacer()
             HStack {
+                let cert = KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(driveModel: report.driveModel, mediaType: report.mediaFormattedName, sectorsWrittenLBA: report.sectorsWrittenLBA)
                 Button(KroutonL10n.tr("Copy Archival Certificate")) {
-                    let cert = KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(driveModel: report.driveModel, mediaType: report.mediaFormattedName, sectorsWrittenLBA: report.sectorsWrittenLBA)
                     KroutonOSDesktopBridge.copyTextToClipboard(cert.certificateText)
                 }
+                .disabled(cert.gradeBadge == "NOT MEASURED") // no error scan yet (open question 6)
                 Button(KroutonL10n.tr("Copy Telemetry Log")) {
                     KroutonOSDesktopBridge.copyTextToClipboard("\(report.title)\n\(report.summary)\nSectors: \(report.sectorsWrittenLBA) LBA")
                 }

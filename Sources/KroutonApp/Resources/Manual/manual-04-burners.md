@@ -44,9 +44,9 @@ Some old DVD players and early game consoles only accept discs that say they are
 
 ## After the burn
 
-When a burn ends, the burn report shows the drive, the disc, the speed it reached, how long it took and whether verification passed. **Disc › Copy Archival Quality Certificate** (⌥⌘C) copies a summary you can keep with the disc.
+When a burn ends, the burn report shows the drive, the disc, the speed it reached, how long it took and whether verification passed.
 
-A real quality grade needs a C1/C2 error scan of the disc, which few drives can do. Without one, the certificate says the disc was **not measured**, rather than guessing.
+A quality grade needs a C1/C2 error scan of the disc, which few drives can do and Krouton can't run yet. So the burn report says the disc was **not measured**, rather than guessing, and **Disc › Copy Archival Quality Certificate** (⌥⌘C) stays unavailable.
 
 ## Watching a burn
 

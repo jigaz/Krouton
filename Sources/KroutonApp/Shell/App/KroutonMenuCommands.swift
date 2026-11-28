@@ -28,6 +28,18 @@ struct KroutonWorkspaceCommands: Commands {
         self.wm = wm
     }
 
+    /// The certificate for the disc in the first drive. Krouton passes no error-scan figures yet,
+    /// so this is always "NOT MEASURED" and the menu item stays off.
+    var archivalCertificate: KroutonArchivalQualityCertificate {
+        let drv = wm.driveManager.availableDrives.first
+        let lba = max(150, Int64((drv?.usedBytes ?? wm.store.totalStagedBytes) / 2048))
+        return KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(
+            driveModel: drv?.displayName ?? "Optical Drive",
+            mediaType: drv?.mediaType ?? "Optical Media",
+            sectorsWrittenLBA: lba
+        )
+    }
+
     var body: some Commands {
         appSettingsCommands
         fileMenuCommands
@@ -224,16 +236,11 @@ struct KroutonWorkspaceCommands: Commands {
             Toggle(KroutonL10n.tr("Leave Disc Open for More Sessions"), isOn: Bindable(wm.store).leaveDiscOpenForMoreSessions)
 
             Button(KroutonL10n.tr("Copy Archival Quality Certificate")) {
-                let drv = wm.driveManager.availableDrives.first
-                let lba = max(150, Int64((drv?.usedBytes ?? wm.store.totalStagedBytes) / 2048))
-                let cert = KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(
-                    driveModel: drv?.displayName ?? "Optical Drive",
-                    mediaType: drv?.mediaType ?? "Optical Media",
-                    sectorsWrittenLBA: lba
-                )
-                KroutonOSDesktopBridge.copyTextToClipboard(cert.certificateText)
+                KroutonOSDesktopBridge.copyTextToClipboard(archivalCertificate.certificateText)
             }
             .keyboardShortcut("c", modifiers: [.command, .option])
+            // No C1/C2/jitter scan exists yet, so there is no grade to copy (open question 6).
+            .disabled(archivalCertificate.gradeBadge == "NOT MEASURED")
 
             Divider()
 

@@ -179,7 +179,7 @@ public enum KroutonRescueEngine {
         Grade: \(grade)
         Drive: \(driveModel) | Media: \(mediaType) | Verified LBA: \(sectorsWrittenLBA)
         Radial Scan (24.0 mm -> 58.0 mm): C1/PIE Avg \(String(format: "%.1f", c1Rate))/s | C2/POE: \(c2Count) | PLL Jitter: \(String(format: "%.2f%%", clampedJitter))
-        Archival Stability Score: \(String(format: "%.1f%%", stability)) (ISO/IEC 10149 & ECMA-267 Compliant)
+        Archival Stability Score: \(String(format: "%.1f%%", stability)) (Krouton's own score from the figures above)
         """
         return KroutonArchivalQualityCertificate(
             gradeBadge: grade,
