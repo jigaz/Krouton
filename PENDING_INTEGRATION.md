@@ -64,6 +64,7 @@ Format: `- `TypeName` — `Owner` · how`.
 - `DVDVideoRelinkedCellRange` — `DVDVideoIFORelinker` · returned
 - `KroutonAccurateRipReport` — `KroutonAccurateRipVerifier` · returned
 - `KroutonAccurateRipTrackResult` — `KroutonAccurateRipReport` · its tracks
+- `KroutonAfterBurnStep` — `KroutonBurnCoordinator` · what `stepAfterBurn` returns
 - `KroutonAudioRenderError` — `KroutonAudioDiscRenderer` · thrown
 - `KroutonAudioTagError` — `KroutonAudioTagWriter` · thrown
 - `KroutonBlankDiscInfo` — `KroutonDiscImageBurner` · returned

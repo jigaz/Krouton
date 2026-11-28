@@ -41,6 +41,7 @@ final class KroutonVerifyTests: XCTestCase {
     func testConsoleDiscSuite() { runSuites { $0.runVerifyConsoleDiscSuite() } }
     func testAVCHDSuite() { runSuites { $0.runVerifyAVCHDSuite() } }
     func testLabelAndPersistenceSuites() { runSuites { $0.runVerifyLabelAndPersistenceSuites() } }
+    func testBurnCoordinatorSuite() { runSuites { $0.runVerifyBurnCoordinatorSuite() } }
 
     // MARK: - The function-length scanner itself
 

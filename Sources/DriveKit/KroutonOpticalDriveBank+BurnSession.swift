@@ -14,11 +14,11 @@ extension KroutonOpticalDriveBank {
     /// as an image; anything else becomes a data disc. `onCompletion` is always called exactly once,
     /// including when the burn is refused before it starts or is aborted.
     ///
-    /// NOTE(status, 2026-11): this is the only local burn path, and it doesn't know the selected
-    /// format. Data discs are DiscRecording's ISO 9660 + Joliet (+ UDF 1.02 on DVD/BD) + HFS+;
-    /// audio CDs come in as rendered PCM tracks (`KroutonAudioBurnDisc`); there is no Mode 2 Form 2, HFS-standard or UDF 2.x data writer here. The app
-    /// decides beforehand what may reach it (`KroutonFormatID.burnSupport`,
-    /// `KroutonStateStore.burnRefusal(for:)`), and Blu-ray video arrives as a UDF 2.50 image.
+    /// Called only through `KroutonBurnCoordinator.burnOnThisMac` (BurnKit), which keeps it and the
+    /// multi-disc set scheduler off each other's drives. It doesn't know the selected format: data
+    /// discs are DiscRecording's ISO 9660 + Joliet (+ UDF 1.02 on DVD/BD) + HFS+, audio CDs arrive as rendered PCM tracks,
+    /// and classic HFS, UDF 2.50 and Blu-ray video arrive as images. The app decides beforehand
+    /// what may reach it (`KroutonFormatID.burnSupport`, `KroutonStateStore.burnRefusal(for:)`).
     ///
     /// - Parameter allowOverwriteOfWrittenMedia: pass true only when a person started
     ///   this burn. With false, rewritable media that already holds data is refused

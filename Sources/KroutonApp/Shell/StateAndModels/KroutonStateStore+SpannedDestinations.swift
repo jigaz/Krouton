@@ -1,4 +1,5 @@
 import AudioKit
+import BurnKit
 import DriveKit
 import Foundation
 import OpticalCore
@@ -193,23 +194,7 @@ extension KroutonStateStore {
             totalCopies: effectiveCopies
         )
 
-        let updatedBurnerIndices = destinationQueue.indices.filter { destinationQueue[$0].kind == .physicalBurner }
-        completedPoolTicketCount = 0
-
-        // If there is only 1 ticket total and 1 burner, clear waiting pool and assign the single ticket
-        var remainingTickets = allTickets
-        for bIdx in updatedBurnerIndices {
-            destinationQueue[bIdx].pendingApprovalTicket = nil
-            if !remainingTickets.isEmpty {
-                let assigned = remainingTickets.removeFirst()
-                destinationQueue[bIdx].assignedPoolTicket = assigned
-                destinationQueue[bIdx].spannedDiscNumber = assigned.totalSpannedDiscs > 1 ? assigned.spannedDiscNumber : nil
-            } else {
-                destinationQueue[bIdx].assignedPoolTicket = nil
-                destinationQueue[bIdx].spannedDiscNumber = nil
-            }
-        }
-        waitingBurnPool = remainingTickets
+        withBurnPool { $0.fill(with: allTickets) }
     }
 
     /// Updates the total copy count for the pool and immediately rebuilds the upper assigned slots & lower waiting tasks.
@@ -245,103 +230,43 @@ extension KroutonStateStore {
         syncBurnPoolTickets(driveManager: driveManager)
     }
 
-    /// Moves a specific waiting burn task from the lower secondary-colored waiting pool across the divider
-    /// into the target upper active burner slot (or the fastest available burner slot if `targetCardID` is nil).
+    /// Moves a waiting ticket onto a burner card (or the first idle one when `targetCardID` is
+    /// nil); whatever that card held goes back to the waiting tickets.
     func promoteWaitingTicket(_ ticketID: UUID, toCardID targetCardID: UUID? = nil, driveManager: KroutonOpticalDriveBank) {
-        guard let waitIdx = waitingBurnPool.firstIndex(where: { $0.id == ticketID }) else { return }
-        let burnerIndices = destinationQueue.indices.filter { destinationQueue[$0].kind == .physicalBurner }
-        guard !burnerIndices.isEmpty else { return }
-
-        let chosenCardIndex: Int = {
-            if let targetCardID, let match = destinationQueue.firstIndex(where: { $0.id == targetCardID && $0.kind == .physicalBurner }) {
-                return match
-            }
-            if let emptySlot = burnerIndices.first(where: { destinationQueue[$0].assignedPoolTicket == nil && destinationQueue[$0].pendingApprovalTicket == nil }) {
-                return emptySlot
-            }
-            return burnerIndices[0]
-        }()
-
-        let promoted = waitingBurnPool.remove(at: waitIdx)
-        if let prevPending = destinationQueue[chosenCardIndex].pendingApprovalTicket {
-            waitingBurnPool.insert(prevPending, at: 0)
-            destinationQueue[chosenCardIndex].pendingApprovalTicket = nil
-        }
-        if let prevAssigned = destinationQueue[chosenCardIndex].assignedPoolTicket {
-            waitingBurnPool.insert(prevAssigned, at: 0)
-        }
-        waitingBurnPool.sort { $0.sequenceNumber < $1.sequenceNumber }
-        destinationQueue[chosenCardIndex].assignedPoolTicket = promoted
-        destinationQueue[chosenCardIndex].spannedDiscNumber = promoted.totalSpannedDiscs > 1 ? promoted.spannedDiscNumber : nil
+        withBurnPool { $0.promote(ticketID, toCardID: targetCardID) }
     }
 
-    /// Moves the currently assigned ticket on an upper burner card back down into the lower waiting pool.
+    /// Moves a burner card's tickets back to the waiting tickets.
     func demoteAssignedTicketToWaitingPool(fromCardID cardID: UUID) {
-        guard let idx = destinationQueue.firstIndex(where: { $0.id == cardID }) else { return }
-        if let pending = destinationQueue[idx].pendingApprovalTicket {
-            waitingBurnPool.insert(pending, at: 0)
-            destinationQueue[idx].pendingApprovalTicket = nil
-        }
-        if let assigned = destinationQueue[idx].assignedPoolTicket {
-            waitingBurnPool.insert(assigned, at: 0)
-            destinationQueue[idx].assignedPoolTicket = nil
-            destinationQueue[idx].spannedDiscNumber = nil
-        }
-        waitingBurnPool.sort { $0.sequenceNumber < $1.sequenceNumber }
+        withBurnPool { $0.demote(cardID: cardID) }
     }
 
-    /// Called when an upper burner finishes its assigned disc:
-    /// - In `.autoAssign` mode: pulls the next waiting ticket from `waitingBurnPool` directly into `assignedPoolTicket`.
-    /// - In `.askOperator` mode: stages the next waiting ticket in `pendingApprovalTicket` so the operator can approve or skip.
+    /// A burner card finished its ticket; it gets the next one (pending approval with Ask / Manual).
     @discardableResult
     func advancePoolAfterCardBurnCompleted(cardID: UUID) -> KroutonPoolBurnTicket? {
-        guard let idx = destinationQueue.firstIndex(where: { $0.id == cardID }) else { return nil }
-        if destinationQueue[idx].assignedPoolTicket != nil {
-            completedPoolTicketCount += 1
-            destinationQueue[idx].completedCopies += 1
-        }
-        destinationQueue[idx].assignedPoolTicket = nil
-        destinationQueue[idx].pendingApprovalTicket = nil
-        destinationQueue[idx].spannedDiscNumber = nil
-
-        guard !waitingBurnPool.isEmpty else { return nil }
-        let driveID = destinationQueue[idx].targetDriveID
-        let nextIdx = waitingBurnPool.firstIndex(where: { $0.preferredDriveID == driveID })
-            ?? waitingBurnPool.firstIndex(where: { $0.preferredDriveID == nil })
-            ?? 0
-        let nextTicket = waitingBurnPool.remove(at: nextIdx)
-        switch poolDispatchMode {
-        case .autoAssign:
-            destinationQueue[idx].assignedPoolTicket = nextTicket
-            destinationQueue[idx].spannedDiscNumber = nextTicket.totalSpannedDiscs > 1 ? nextTicket.spannedDiscNumber : nil
-        case .askOperator:
-            destinationQueue[idx].pendingApprovalTicket = nextTicket
-        }
-        return nextTicket
+        withBurnPool { $0.advanceAfterBurn(cardID: cardID, mode: self.poolDispatchMode) }
     }
 
-    /// Approves the pending ticket on an upper burner slot, moving it into the active assigned state.
+    /// Approves the pending ticket on a burner card.
     func approvePendingTicketOnCard(_ cardID: UUID) {
-        guard let idx = destinationQueue.firstIndex(where: { $0.id == cardID }) else { return }
-        if let pending = destinationQueue[idx].pendingApprovalTicket {
-            destinationQueue[idx].pendingApprovalTicket = nil
-            destinationQueue[idx].assignedPoolTicket = pending
-            destinationQueue[idx].spannedDiscNumber = pending.totalSpannedDiscs > 1 ? pending.spannedDiscNumber : nil
-        } else if !waitingBurnPool.isEmpty {
-            let nextTicket = waitingBurnPool.removeFirst()
-            destinationQueue[idx].assignedPoolTicket = nextTicket
-            destinationQueue[idx].spannedDiscNumber = nextTicket.totalSpannedDiscs > 1 ? nextTicket.spannedDiscNumber : nil
-        }
+        withBurnPool { $0.approvePending(cardID: cardID) }
     }
 
-    /// Skips this burner for the pending approval ticket, returning the ticket to the front of the waiting pool
-    /// and assigning it to another idle burner if one is available in Auto-Assign mode.
+    /// Skips this burner for its pending ticket, which goes back to the waiting tickets.
     func skipDriveForPendingTicket(onCardID cardID: UUID) {
-        guard let idx = destinationQueue.firstIndex(where: { $0.id == cardID }) else { return }
-        if let pending = destinationQueue[idx].pendingApprovalTicket {
-            destinationQueue[idx].pendingApprovalTicket = nil
-            waitingBurnPool.insert(pending, at: 0)
-            waitingBurnPool.sort { $0.sequenceNumber < $1.sequenceNumber }
-        }
+        withBurnPool { $0.skipPending(cardID: cardID) }
+    }
+
+    /// Runs `body` on the burn pool (the queue's cards, the waiting tickets and the finished
+    /// count) and keeps what it changed.
+    @discardableResult
+    func withBurnPool<Result>(_ body: (inout KroutonBurnQueuePool<KroutonBakeBatchItem>) -> Result) -> Result {
+        var pool = KroutonBurnQueuePool(cards: destinationQueue, waiting: waitingBurnPool,
+                                        completedTicketCount: completedPoolTicketCount)
+        let result = body(&pool)
+        if pool.cards != destinationQueue { destinationQueue = pool.cards }
+        if pool.waiting != waitingBurnPool { waitingBurnPool = pool.waiting }
+        if pool.completedTicketCount != completedPoolTicketCount { completedPoolTicketCount = pool.completedTicketCount }
+        return result
     }
 }
