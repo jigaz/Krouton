@@ -1,9 +1,9 @@
 import Foundation
 
-// CD-TEXT block compiler.
+// MARK: - CD-Text Block Compiler
 //
-// Replaces `KroutonAudioEngine.buildCDTextPacks`, which packed one string at a
-// time. A CD-TEXT block is compiled as a whole, because:
+// Compiles a whole CD-Text block, unlike `KroutonAudioEngine.buildCDTextPacks`,
+// which packs one string at a time. A block is compiled as a whole, because:
 //
 //   1. All strings of one pack type (album, track 1, track 2, ...) form ONE byte
 //      stream, each string NUL-terminated, cut into 12-byte payloads. A string
@@ -17,13 +17,12 @@ import Foundation
 //      before they show anything.
 //   5. Text is ISO 8859-1 (or MS-JIS in a double-byte block), never UTF-8.
 //
-// WHEN YOU NEED THIS: only if you hand raw packs to the drive yourself or export a
-// `.cdt` file. cdrdao (CD_TEXT in the TOC file) and DiscRecording (DRCDTextBlock)
-// both do this packing for you from plain strings; prefer them if that is your path.
-//
-// with a line-for-line reference port: CRC check value, contiguous packing, and a
-// round trip through an independent decoder.
+// Where it is used: the audio workspace shows the pack count from it. Burns don't use
+// it: DiscRecording packs CD-Text itself from plain strings (`DRCDTextBlock`, in
+// DriveKit), as cdrdao does from a TOC file. You need these packs only to hand raw
+// packs to a drive yourself or to export a `.cdt` file.
 
+/// The CD-Text pack types Krouton writes.
 public enum CDTextField: UInt8, CaseIterable, Sendable, Codable {
     case title = 0x80
     case performer = 0x81
@@ -35,6 +34,7 @@ public enum CDTextField: UInt8, CaseIterable, Sendable, Codable {
     case upcOrISRC = 0x8E
 }
 
+/// The strings of a CD-Text block: the album's and each track's.
 public struct CDTextInput: Sendable {
     /// Album-level strings (header track number 0).
     public var album: [CDTextField: String]
@@ -57,6 +57,7 @@ public struct CDTextInput: Sendable {
     }
 }
 
+/// A compiled CD-Text block: 18-byte packs, plus warnings for text that couldn't be kept exactly.
 public struct CDTextBlock: Sendable, Equatable {
     /// 18-byte packs in block order.
     public let packs: [[UInt8]]
@@ -65,9 +66,9 @@ public struct CDTextBlock: Sendable, Equatable {
 
     /// Concatenated packs, as the drive expects them.
     var packBytes: [UInt8] { packs.flatMap { $0 } }
-
 }
 
+/// Why a block couldn't be compiled.
 public enum CDTextError: Error, Equatable {
     case noTracks
     case tooManyTracks(Int)
@@ -75,8 +76,9 @@ public enum CDTextError: Error, Equatable {
     case tooManyPacks(Int)
 }
 
+/// Compiles a CD-Text block as a whole (see the comment at the top of this file).
 public enum CDTextBlockCompiler {
-
+    /// Compiles `input` into block `blockNumber` (0 for the first language).
     public static func compile(_ input: CDTextInput, blockNumber: UInt8 = 0) throws -> CDTextBlock {
         guard !input.tracks.isEmpty else { throw CDTextError.noTracks }
         guard Int(input.firstTrackNumber) + input.tracks.count - 1 <= 99 else {
@@ -210,7 +212,7 @@ public enum CDTextBlockCompiler {
     }
 }
 
-// Invariants worth adding to krouton-verify:
+// Invariants worth testing (no test checks them yet):
 //   - every pack is 18 bytes and its CRC verifies
 //   - sequence numbers are 0..<packs.count with no gaps
 //   - joining the payloads of one pack type and splitting on NUL yields

@@ -1,22 +1,21 @@
 import AVFoundation
 import Foundation
 
-// Everything Krouton learns by opening an audio file, done once per file, off the
-// main actor.
+// MARK: - Audio Analysis
 //
-// Replaces `SpliceWaveformCache` (the NSLock-guarded static dictionaries) and its
-// callers in view bodies. Differences that matter:
+// Everything Krouton learns by opening an audio file, done once per file, off the
+// main actor. The rules:
 //
 //   - No file is opened on the main actor, ever. Views receive a finished,
 //     immutable `TrackAnalysis` or a "pending"/"failed" state.
-//   - A file that cannot be decoded throws. The old code fell back to turning the
-//     file's raw bytes into an envelope, then to a random-number waveform, and to
-//     a 210 s duration. Those looked real on screen and fed real calculations.
-//   - Peaks are true sample values. The old cache normalised to 0.92 full scale.
+//   - A file that cannot be decoded throws. Nothing falls back to a made-up
+//     waveform or a made-up length.
+//   - Peaks are true sample values, not normalized.
 //   - Length is an exact frame count from the file, not seconds as a Double.
-//
 
+/// What one audio file holds: its length, the peaks at its start and end, loudness, tags and tempo.
 public struct TrackAnalysis: Sendable {
+    /// The file's sample rate.
     public let sampleRate: Double
     /// Length rounded UP to whole Red Book frames (the stream is zero-padded to match).
     public let redBookFrames: Int64
@@ -27,15 +26,20 @@ public struct TrackAnalysis: Sendable {
     /// BS.1770 loudness of each window, for gain matching across a transition.
     let headLUFS: Double?
     let tailLUFS: Double?
-    // Metadata exactly as found. Nil means the file did not say.
+    /// The title tag, exactly as found; nil when the file has none. The same goes for the
+    /// fields below.
     public let title: String?
+    /// The artist tag.
     public let performer: String?
+    /// The album tag.
     public let album: String?
+    /// The ISRC tag.
     public let isrc: String?
     /// Tempo in BPM estimated from the 75 Hz frame onset envelope (nil if rhythmic pulse is weak).
     public let estimatedBPM: Double?
 }
 
+/// Why a file couldn't be analysed. The descriptions are for the user.
 public enum AudioAnalysisError: LocalizedError {
     case empty(URL)
     case unreadable(URL, reason: String)
@@ -48,10 +52,13 @@ public enum AudioAnalysisError: LocalizedError {
     }
 }
 
+/// Analyses audio files off the main actor, a few at a time, and caches the results by path, size
+/// and date.
 public actor AudioAnalysisService {
+    /// The service the app uses.
     public static let shared = AudioAnalysisService()
 
-    /// Must cover the longest crossfade (15 s) with margin.
+    /// Must cover the longest crossfade (30 s) with margin.
     static let windowSeconds: Double = 35
     private static let maxConcurrentDecodes = 4
     private static let maxCachedAnalyses = 64
@@ -69,6 +76,7 @@ public actor AudioAnalysisService {
     private var activeDecodes = 0
     private var waiters: [CheckedContinuation<Void, Never>] = []
 
+    /// A service with its own cache, for tests.
     public init() {}
 
     /// Returns the cached analysis, joins one already running, or starts one.

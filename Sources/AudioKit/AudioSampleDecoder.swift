@@ -6,18 +6,24 @@ import os
 
 /// Result of decoding and mastering one or more audio files into a Red Book Audio CD `.bin` + `.cue` pair.
 public struct AudioMasteredDiscResult: Sendable, Equatable {
+    /// The `.bin` written.
     public let binURL: URL
+    /// The `.cue` written.
     public let cueURL: URL
+    /// The `.bin`'s length in CD frames.
     public let totalSectors2352: Int
+    /// The `.bin`'s size in bytes.
     public let totalBytes: Int64
+    /// The cue sheet's text.
     public let cueSheetText: String
 }
 
+// MARK: - Decoding and Mastering
+
 extension KroutonAudioEngine {
-    /// Decodes any macOS-supported audio file (.wav, .aiff, .m4a, .mp3, .flac) into raw
-    /// 44.1 kHz, 16-bit, 2-channel signed little-endian Red Book Audio CD PCM bytes, padded to a 2,352-byte sector multiple.
+    /// The file's first audio track, loaded synchronously (it blocks the calling thread).
     @available(macOS, deprecated: 15.0)
-        private static func loadFirstAudioTrackSync(from asset: AVURLAsset) -> AVAssetTrack? {
+    private static func loadFirstAudioTrackSync(from asset: AVURLAsset) -> AVAssetTrack? {
         let trackLock = OSAllocatedUnfairLock<AVAssetTrack?>(uncheckedState: nil)
         let sem = DispatchSemaphore(value: 0)
         Task.detached {
@@ -29,6 +35,9 @@ extension KroutonAudioEngine {
         return trackLock.withLockUnchecked { $0 }
     }
 
+    /// Decodes any audio file AVFoundation reads (.wav, .aiff, .m4a, .mp3, .flac) into CD PCM:
+    /// 44.1 kHz, 16-bit, stereo, little-endian, padded to whole 2,352-byte frames. `maxSeconds`
+    /// above 0 stops early.
     public static func decodeAudioFileToRedBookPCM(url: URL, maxSeconds: Double = 0.0) throws -> Data {
         let asset = AVURLAsset(url: url)
         let reader = try AVAssetReader(asset: asset)
@@ -88,7 +97,8 @@ extension KroutonAudioEngine {
         return pcmData
     }
 
-    /// Masters an array of audio file URLs into a sector-aligned Red Book `.bin` file and companion `.cue` sheet on disk.
+    /// Decodes `sourceURLs` one after another into one CD-frame-aligned `.bin` and writes a `.cue`
+    /// for it in `outputDirectory`.
     public static func masterRedBookAudioTracksToDisk(
         sourceURLs: [URL],
         albumTitle: String,
@@ -175,7 +185,7 @@ extension KroutonAudioEngine {
         )
     }
 
-    /// Synthesizes a valid RIFF WAVE (.wav) file with a 440 Hz stereo sine tone for deterministic AVAssetReader verification.
+    /// Writes a WAV file of a 440 Hz stereo sine tone, for tests of the decoder.
     public static func synthesizeTestToneWAV(at url: URL, durationSeconds: Double = 0.20) throws {
         let sampleRate: Int = 44_100
         let numFrames = max(588, Int(Double(sampleRate) * durationSeconds))
@@ -217,42 +227,58 @@ extension KroutonAudioEngine {
     }
 }
 
-// MARK: - Real Hardware Red Book Audio CD TOC Scanner & AudioToolbox Extractor
+// MARK: - Audio CD Ripping (from the volume macOS mounts)
 
+/// One track of an audio CD as macOS mounts it: an AIFF file per track, with its place on the disc.
 public struct KroutonMountedCDTrackDescriptor: Identifiable, Sendable, Equatable {
     public var id: Int { trackNumber }
     public let trackNumber: Int
+    /// The AIFF file macOS shows for the track.
     public let sourceAIFFURL: URL
+    /// The track's first frame on the disc.
     public let startBlockLBA: Int
     let frameCount75fps: Int
+    /// Its length as MM:SS:FF.
     public let durationMMSSFF: String
+    /// Its PCM size in bytes.
     public let byteSize: Int64
     let preEmphasis: Bool
     public var title: String
     public var performer: String
 }
 
+/// A mounted audio CD: its table of contents (from `.TOC.plist`) and tracks.
 public struct KroutonMountedAudioCDSnapshot: Sendable, Equatable {
     public let mountPath: String
     public let volumeName: String
     public let firstTrack: Int
     let lastTrack: Int
+    /// Where the lead-out starts.
     public let leadoutBlockLBA: Int
+    /// The MusicBrainz disc ID computed from the table of contents.
     public let musicBrainzDiscID: String
     public var albumTitle: String
     public var albumPerformer: String
     public var tracks: [KroutonMountedCDTrackDescriptor]
+    /// PCM bytes of every track together.
     public var totalPCMBytes: Int64 { tracks.reduce(0) { $0 + $1.byteSize } }
 }
 
+/// One ripped track: where it went, its CRC-32 and size.
 public struct KroutonRippedTrackResult: Sendable {
     public let trackNumber: Int
     public let outputURL: URL
+    /// CRC-32 of the track's PCM, as rip logs print it.
     public let crc32Hex: String
+    /// Bytes of the output file.
     public let bytesWritten: Int64
 }
 
+/// Rips audio CDs from the volume macOS mounts (its AIFF files and `.TOC.plist`), not by reading
+/// the drive directly.
 public enum KroutonRealCDExtractor {
+    /// The mounted audio CD, at `preferredMountPath` or the first found under /Volumes; nil when
+    /// there is none.
     public static func scanMountedAudioCD(preferredMountPath: String? = nil) -> KroutonMountedAudioCDSnapshot? {
         let fm = FileManager.default
         var mounts: [String] = []
@@ -328,6 +354,7 @@ public enum KroutonRealCDExtractor {
 
     private static let opticalRipLock = NSLock()
 
+    /// Rips one track to `codec` in `outputDirectory`, one track at a time across the app.
     public static func extractSingleTrack(
         track: KroutonMountedCDTrackDescriptor,
         codec: KroutonRipCodec,

@@ -22,6 +22,7 @@ public enum KroutonRipCodec: String, CaseIterable, Codable, Sendable, Identifiab
         }
     }
 
+    /// The extension the ripped file gets (ALAC goes in .m4a).
     public var fileExtension: String {
         switch self {
         case .flac: return "flac"

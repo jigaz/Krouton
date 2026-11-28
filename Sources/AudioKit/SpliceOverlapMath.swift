@@ -1,9 +1,16 @@
 import CoreGraphics
 import Foundation
 
+// MARK: - Overlap Peaks
+
+/// The peak of each CD frame of a stretch of audio, as the analysis reads it. Two values
+/// are equal only when they are the same analysis (`id`), so comparing them is cheap.
 public struct FramePeaks: Equatable, Sendable {
+    /// Identifies the analysis these peaks came from.
     public let id: UUID
+    /// One peak per CD frame, 0 to 1.
     public let values: [Float]
+    /// The highest of `values`.
     public let maximum: Float
 
     public init(values: [Float]) {
@@ -13,10 +20,13 @@ public struct FramePeaks: Equatable, Sendable {
     }
 
     public static func == (lhs: FramePeaks, rhs: FramePeaks) -> Bool { lhs.id == rhs.id }
-
 }
 
+/// Predicts how loud a crossfade gets.
 public enum SpliceOverlapMath {
+    /// An upper bound for the peak of the mixed overlap, from each frame's peaks and the larger
+    /// gain at either edge of the frame. Nil when not crossfading or when the peaks don't cover the
+    /// overlap.
     public static func peakUpperBound(
         outgoingTail: FramePeaks,
         incomingHead: FramePeaks,
@@ -43,52 +53,69 @@ public enum SpliceOverlapMath {
         return peak
     }
 
+    /// `linear` in dB relative to full scale; nil for 0.
     public static func dBFS(_ linear: Double) -> Double? {
         linear > 0 ? 20 * log10(linear) : nil
     }
 }
 
-// MARK: - Track Montage Editor Pure Geometry & Track-Aware Sub-Index Partitioning
+// MARK: - Splice Editor Geometry and Sub-Index Marks
 
+/// One extra index mark in the splice editor.
 public struct SpliceSubIndexDescriptor: Identifiable, Equatable, Sendable {
     public var id: Int { arrayIndex }
-    /// Index into `spec.subIndexRatios` so drag gestures mutate the exact element
+    /// Index into `spec.subIndexRatios`, so a drag changes the right mark.
     let arrayIndex: Int
-    /// X coordinate in canvas space
+    /// X position on the canvas.
     public let x: CGFloat
-    /// Normalized canvas ratio (0.05 ... 0.95)
+    /// Position as a fraction of the canvas (0.05 to 0.95).
     public let ratio: Double
-    /// True when the marker sits to the right of `INDEX 01` (belongs to Incoming Track N+1)
+    /// True when the mark is right of INDEX 01, so it belongs to the next track.
     public let isIncomingTrack: Bool
-    /// Red Book sub-index number within its owning track (`2` = INDEX 02, `3` = INDEX 03, ...)
+    /// Its index number within its track: 2 for INDEX 02, 3 for INDEX 03 and so on.
     public let redBookIndexNumber: Int
 }
 
+/// Where everything in the splice editor is drawn for a transition at a canvas size and zoom: the
+/// overlap zone, INDEX 01, index marks and curve handles. Pure geometry, shared by drawing and hit
+/// testing.
 public struct SpliceCanvasGeometry: Equatable, Sendable {
     static let baseTimelineSpanSeconds: Double = 15.0
+    /// The height of the ruler with the index flags.
     public static let rulerHeight: CGFloat = 24
     static let handleSlop: CGFloat = 10
 
+    /// The canvas size.
     public let size: CGSize
+    /// The zoom factor.
     public let horizontalZoom: Double
+    /// Seconds shown across the canvas at this zoom.
     public let effectiveSpanSeconds: Double
+    /// The overlap zone's left edge.
     public let zoneX0: CGFloat
+    /// The overlap zone's right edge.
     public let zoneX1: CGFloat
+    /// INDEX 01's position.
     public let index01X: CGFloat
     let index01RatioInCanvas: Double
     let subIndexXs: [CGFloat]
+    /// The extra index marks.
     public let subIndexDescriptors: [SpliceSubIndexDescriptor]
+    /// The curve-body handle.
     public let centerHandle: CGPoint
     public let fadeOutMidAnchor: CGPoint
     public let fadeOutQ3Anchor: CGPoint
     public let fadeInQ1Anchor: CGPoint
     public let fadeInMidAnchor: CGPoint
+    /// The fade-out's quarter handle, when it is in use.
     public let fadeOutMidHandle: CGPoint?
     public let fadeOutQ3Handle: CGPoint?
     public let fadeInQ1Handle: CGPoint?
     public let fadeInMidHandle: CGPoint?
+    /// The span to draw while the overlap is being stretched, if it is.
     public let rubberBandSpan: Double?
 
+    /// Lays out the editor for `spec`.
     public init(size: CGSize, spec: KroutonTrackTransitionSpec, horizontalZoom: Double = 1.0, rubberBandSpan: Double? = nil) {
         self.rubberBandSpan = rubberBandSpan
         let w = max(180, size.width), h = max(36, size.height)
@@ -188,6 +215,8 @@ public struct SpliceCanvasGeometry: Equatable, Sendable {
         self.subIndexDescriptors = descriptors
     }
 
+    /// What a click at `p` grabs: an index flag on the ruler, a curve handle, a zone edge, or the
+    /// curve body.
     public func hitTest(_ p: CGPoint) -> SpliceDragTarget? {
         if p.y < Self.rulerHeight {
             for desc in subIndexDescriptors where abs(p.x - desc.x) <= Self.handleSlop * 1.6 {
@@ -213,7 +242,8 @@ public struct SpliceCanvasGeometry: Equatable, Sendable {
         return nil
     }
 
-    /// Checks whether a click or hover point falls in the hidden vicinity (<= 18 pt) of any of the 4 unspawned quarter-point curve handles.
+    /// The hidden curve handle within 18 pt of `p`, if any: a quarter-point handle that isn't
+    /// shown yet, which a click there creates.
     public func hitTestHiddenMidCurveVicinity(_ p: CGPoint) -> SpliceDragTarget? {
         guard p.y >= Self.rulerHeight, zoneX1 - zoneX0 > 32 else { return nil }
         let radius: CGFloat = 18.0
@@ -231,6 +261,7 @@ public struct SpliceCanvasGeometry: Equatable, Sendable {
     }
 }
 
+/// What a drag in the splice editor moves.
 public enum SpliceDragTarget: Equatable, Sendable {
     case indexFlag
     case subIndexFlag(Int)
@@ -243,15 +274,21 @@ public enum SpliceDragTarget: Equatable, Sendable {
     case curveBody
 }
 
+/// One drag in the splice editor: what it grabbed, the transition when it started, and the axis it
+/// locked to.
 public struct SpliceDragSession: Equatable, Sendable {
+    /// The direction a drag locked to.
     public enum Axis: Sendable { case horizontal, vertical }
 
+    /// What the drag moves.
     public let target: SpliceDragTarget
+    /// The transition when the drag started.
     public let startSpec: KroutonTrackTransitionSpec
     let startGeometry: SpliceCanvasGeometry
     let grabOffsetX: CGFloat
     public private(set) var lockedAxis: Axis?
 
+    /// Starts a drag at `start`; nil when nothing is there.
     public init?(start: CGPoint, spec: KroutonTrackTransitionSpec, geometry: SpliceCanvasGeometry) {
         guard let target = geometry.hitTest(start) else { return nil }
         self.target = target
@@ -268,6 +305,7 @@ public struct SpliceDragSession: Equatable, Sendable {
         }
     }
 
+    /// The transition with the drag applied at `location`. `fine` makes the change smaller.
     public mutating func spec(location: CGPoint, translation: CGSize, fine: Bool = false) -> KroutonTrackTransitionSpec {
         var spec = startSpec
         let g = startGeometry
