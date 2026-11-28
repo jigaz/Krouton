@@ -4,6 +4,10 @@ import Foundation
 import RescueKit
 import Vision
 
+// MARK: - Label Geometry
+
+/// Printable disc sizes: the print diameter and the hub left clear. Not used by the label canvas
+/// yet (see PENDING_INTEGRATION.md).
 public enum KroutonDiscHubGeometry: String, Codable, Sendable, CaseIterable {
     case standard120mmHub41mm     = "Standard 120mm Disc (41mm Clear Hub)"
     case fullFace120mmHub22mm     = "Full-Face Inkjet 120mm (22mm Micro Hub)"
@@ -23,14 +27,17 @@ public enum KroutonDiscHubGeometry: String, Codable, Sendable, CaseIterable {
         }
     }
 
-    /// Standard 120mm physical canvas @ 300 DPI = 1417 x 1417 px (120mm / 25.4mm * 300 dpi)
+    /// The side of a square canvas for a 120 mm disc at `dpi`, in pixels (1,417 at 300 dpi).
     public func canvasPixelDimension(dpi: Double = 300.0) -> Int {
         Int(((120.0 / 25.4) * dpi).rounded())
     }
 }
 
+/// Where one character of curved text goes.
 public struct KroutonPolarArcGlyphPlacement: Sendable, Equatable, Identifiable {
+    /// The character's index in the text.
     public let id: Int
+    /// The character.
     public let character: String
     let xPoints: Double
     let yPoints: Double
@@ -38,10 +45,14 @@ public struct KroutonPolarArcGlyphPlacement: Sendable, Equatable, Identifiable {
     let tangentRotationRadians: Double
 }
 
+/// Label geometry: curved text, shapes, shaders, the PDF print sheet and photo adjustments (see its
+/// extensions).
 public struct KroutonLabelGeometryEngine {
+    /// The module version krouton-verify checks.
     public static let version = "0.1.0-alpha.1"
 
-    /// Evaluates what the optical rescue reader should do when encountering a sector at `lba`
+    /// A copy of `KroutonRescueEngine.evaluateSectorRescue` (RescueKit), not a call to it. Only
+    /// krouton-verify calls it.
     public static func evaluateSectorRescue(
         lba: Int64,
         c2ErrorCount: Int,
@@ -66,12 +77,12 @@ public struct KroutonLabelGeometryEngine {
                 lba: lba,
                 action: .downshiftRetry2xCLV,
                 recommendedSpindleSpeedX: 2,
-                nextCursorLBA: lba, // stay on current LBA for low-speed CLV re-read
+                nextCursorLBA: lba, // read the same sector again, slower
                 replacementSectorBytes: 0
             )
         }
 
-        // Retries exhausted on radial scratch -> zero-pad sector to maintain exact LBA alignment and skip
+        // Out of retries: substitute zeros so every later sector keeps its offset, and skip ahead.
         let step = max(1, fastSkipStepLBA)
         return KroutonSectorRescueDecision(
             lba: lba,
@@ -82,7 +93,8 @@ public struct KroutonLabelGeometryEngine {
         )
     }
 
-    /// Computes polar-to-Cartesian (x, y) coordinates and tangent angles for curved disc label typography
+    /// Places each character of `text` evenly along an arc of `arcSpanRadians` centred on
+    /// `centerAngleRadians` (the top by default), with the rotation that keeps it tangent.
     public static func computePolarArcGlyphLayout(
         text: String,
         centerX: Double,
@@ -128,9 +140,12 @@ public struct KroutonLabelGeometryEngine {
     }
 }
 
-// MARK: - Sprint 3: Unified Bad-Sector Optical Rescue Map & Post-Burn Archival Grading
+// MARK: - Rescue Map and Archival Grade (pass-throughs to RescueKit)
+
+// These are the only reason LabelKit depends on RescueKit (open question #6).
 
 extension KroutonLabelGeometryEngine {
+    /// Calls `KroutonRescueEngine.buildOpticalRescueMap`: a fixed sample pattern, not a disc.
     public static func buildOpticalRescueMap(
         totalSectorsLBA: Int64 = 333_000,
         scratchSeverity: Int = 0
@@ -141,6 +156,8 @@ extension KroutonLabelGeometryEngine {
         )
     }
 
+    /// Calls `KroutonRescueEngine.evaluateArchivalDiscGrade`. The app passes no measurements, so
+    /// the result is always "NOT MEASURED".
     public static func evaluateArchivalDiscGrade(
         driveModel: String,
         mediaType: String,

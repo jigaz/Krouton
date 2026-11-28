@@ -7,6 +7,8 @@ import Vision
 import os
 
 extension KroutonLabelGeometryEngine {
+    /// Up to 12 outline layers traced from the image's top-level contours with Vision
+    /// (`VNDetectContoursRequest`), in label coordinates.
     public static func traceImageContoursWithVision(
         cgImage: CGImage,
         contrastAdjustment: Float = 2.0,
@@ -80,7 +82,7 @@ extension KroutonLabelGeometryEngine {
         return abs(dy * pt.nx - dx * pt.ny + lineEnd.nx * lineStart.ny - lineEnd.ny * lineStart.nx) / mag
     }
 
-    // MARK: - Apple Silicon Metal GPU Kaleidoscope & Vision Foreground Lifter
+    // MARK: - Kaleidoscope and Foreground Cutout (Core Image, Vision)
 
     /// `CIContext` is not `Sendable` in the macOS 26 SDK, so the shared context lives behind a lock
     /// (the same pattern `HybridImageBuilder` uses); renders through it are serialized.
@@ -115,7 +117,7 @@ extension KroutonLabelGeometryEngine {
         return results
     }
 
-    /// Generates a smooth, tasteful workspace seed CIImage (no harsh checkerboard or blinding white starshine)
+    /// The seed image a kaleidoscope pattern starts from, in the two colors given.
     public static func makeGPUSeedCIImage(
         pattern: KroutonGPUSeedPattern,
         primaryColor: KroutonRGBAColor,

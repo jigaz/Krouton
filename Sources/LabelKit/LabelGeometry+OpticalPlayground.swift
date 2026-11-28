@@ -5,7 +5,7 @@ import Foundation
 import OpticalCore
 import os
 
-// MARK: - Stylized Procedural Optical Chamber & CoreImage Kaleidoscope Engine
+// MARK: - Kaleidoscope Backgrounds
 
 extension KroutonLabelGeometryEngine {
 
@@ -40,8 +40,8 @@ extension KroutonLabelGeometryEngine {
     private static let maxCacheEntries = 4
     private static let renderCacheLock = OSAllocatedUnfairLock<[(key: OpticalRenderCacheKey, image: CGImage)]>(initialState: [])
 
-    /// Renders stylized procedural chambers (or adjusted vector gradients) with O(1) memoization
-    /// so 60Hz foreground text dragging never triggers redundant main-thread GPU->CPU readbacks.
+    /// Renders the kaleidoscope background (or an adjusted gradient), caching the last few
+    /// renders by their settings so dragging text over it doesn't render it again.
     public static func renderOpticalPlaygroundCGImage(
         style: KroutonVectorBackgroundStyle,
         seedPattern: KroutonGPUSeedPattern,
@@ -125,7 +125,7 @@ extension KroutonLabelGeometryEngine {
         return cgOut
     }
 
-    // MARK: - Stylized Procedural Object Chamber Dispatcher
+    // MARK: - Pattern Dispatch
 
     static func makePhysicalObjectChamberCIImage(
         pattern: KroutonGPUSeedPattern,
@@ -196,7 +196,7 @@ extension KroutonLabelGeometryEngine {
         return ciOut
     }
 
-    // MARK: - 4 Dedicated Per-Pattern Chamber Renderers
+    // MARK: - Pattern Renderers
 
     private static func drawInkSavingChamberBackdrop(
         ctx: CGContext, w: CGFloat, h: CGFloat,
@@ -323,7 +323,7 @@ extension KroutonLabelGeometryEngine {
         }
     }
 
-    // MARK: - Stylized Faceted Gemstone & Cabochon Primitives
+    // MARK: - Gemstone Primitives
 
     private static func drawStylizedFacetedGemstone(
         ctx: CGContext, center: CGPoint, radius: CGFloat,

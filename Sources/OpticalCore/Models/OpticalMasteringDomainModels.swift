@@ -283,7 +283,8 @@ public enum KroutonVectorShapeKind: String, Codable, CaseIterable, Identifiable,
     public var id: String { rawValue }
 }
 
-/// A point on the label, 0…1 across and down its square.
+/// A point on the label in disc radii from the centre: (0, 0) is the centre, -1 and 1 the edges,
+/// and y grows downwards.
 public struct KroutonNormalizedPoint: Codable, Hashable, Sendable {
     public var nx: Double
     public var ny: Double

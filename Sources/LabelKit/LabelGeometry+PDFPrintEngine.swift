@@ -4,13 +4,13 @@ import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
-// MARK: - 1:1 Millimeter-Calibrated Vector PDF Print Sheet & 300-DPI PNG Encoder
+// MARK: - PDF Print Sheet and PNG Export
 
 extension KroutonLabelGeometryEngine {
-    /// Exact PostScript/PDF points per physical millimeter (72 points/inch / 25.4 mm/inch)
+    /// PDF points per millimetre (72 points an inch, 25.4 mm an inch).
     static let pointsPerMillimeter: CGFloat = 72.0 / 25.4
 
-    /// Encodes a CGImage into 300-DPI PNG data with embedded DPI metadata.
+    /// The image as PNG data that records `dpi` (300 by default) in its metadata.
     static func encodeCGImageToPNGData(_ cgImage: CGImage, dpi: Double = 300.0) -> Data? {
         guard let mutableData = CFDataCreateMutable(nil, 0),
               let dest = CGImageDestinationCreateWithData(
@@ -30,8 +30,8 @@ extension KroutonLabelGeometryEngine {
         return mutableData as Data
     }
 
-    /// Renders a 1:1 millimeter-calibrated US Letter (215.9 x 279.4 mm) PDF print sheet
-    /// with outer rim clipping, inner hub hole punch-out, X/Y tray offsets, and crop crosshairs.
+    /// A US Letter (215.9 × 279.4 mm) PDF with the label at 1:1 scale, clipped to the rim and the
+    /// hub hole, moved by the tray offsets, with crop marks.
     static func renderCalibratedPrintSheetPDFData(
         discCGImage: CGImage,
         presetName: String,
@@ -132,7 +132,8 @@ extension KroutonLabelGeometryEngine {
         return pdfData as Data
     }
 
-    /// Writes exported PNG and/or 1:1 PDF label files to ~/Downloads (or temporaryDirectory fallback).
+    /// Writes the PNG and/or the 1:1 PDF of the label to ~/Downloads, or to the temporary folder
+    /// when there is no Downloads folder.
     public static func writeDiscLabelExportFiles(
         discCGImage: CGImage,
         presetName: String,
