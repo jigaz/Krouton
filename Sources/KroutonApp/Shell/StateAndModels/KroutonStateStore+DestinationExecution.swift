@@ -72,8 +72,14 @@ extension KroutonStateStore {
             )
             return
         }
+        // Abort ends the whole run, not only the card that was burning. Each card is read as it is
+        // when its turn comes, after the cards before it changed the pool.
+        let abortCount = driveManager.abortRequestCount
+        let cardIDs = destinationQueue.map(\.id)
         Task { @MainActor in
-            for target in destinationQueue {
+            for id in cardIDs {
+                guard driveManager.abortRequestCount == abortCount else { break }
+                guard let target = destinationQueue.first(where: { $0.id == id }) else { continue }
                 await runTargetDestination(
                     target,
                     driveManager: driveManager,

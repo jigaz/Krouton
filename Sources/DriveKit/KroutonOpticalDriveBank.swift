@@ -21,7 +21,10 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
     public var selectedDrive: KroutonOpticalDriveInfo?
     public var hardwareStatusLog: String = "Scanning IOKit / DiscRecording bus..."
 
-        public var isExecutingQueue: Bool = false
+    public var isExecutingQueue: Bool = false
+    /// How many times Abort was chosen (`abortActiveBurn`); see `beginPreparingBurn`.
+    public internal(set) var abortRequestCount = 0
+    var preparingBurnCount = 0
     public var activeJobPhase: String = "Idle"
     public var activeJobProgress: Double = 0.0
     public var activeJobDetail: String = ""
@@ -391,10 +394,9 @@ public final class KroutonOpticalDriveBank: OpticalDriveControlling, KroutonDriv
                     } else if remaining <= 1 {
                         self.batchCountdownTimers[key]?.invalidate()
                         self.batchCountdownTimers.removeValue(forKey: key)
-                        st.isWaitingForBlankDisc = false
-                        st.countdownSecondsRemaining = nil
-                        st.statusMessage = "Firing Laser for Copy #\(nextCopy) of \(totalCopies)..."
-                        self.batchStates[key] = st
+                        // The wait is over: a state left here kept the card's banner, and its
+                        // Simulate Blank Disc Insert button, up through the burn and after the last copy.
+                        self.batchStates.removeValue(forKey: key)
                         onFireNextCopy()
                     } else {
                         st.countdownSecondsRemaining = remaining - 1

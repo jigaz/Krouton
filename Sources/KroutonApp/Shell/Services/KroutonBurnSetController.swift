@@ -198,6 +198,12 @@ final class KroutonBurnSetController {
             return
         }
         defer { coordinator.endSet() }
+        // The set's burns don't go through the drive bank, whose busy flag holds the app's sleep
+        // assertion; without this the Mac could idle-sleep in the middle of a disc.
+        let activity = ProcessInfo.processInfo.beginActivity(
+            options: [.userInitiated, .idleSystemSleepDisabled, .suddenTerminationDisabled],
+            reason: "Burning the multi-disc set \(startingProgress.set.title)")
+        defer { ProcessInfo.processInfo.endActivity(activity) }
         phase = .running
 
         let found = await DiscRecordingOpticalDrive.connectedDrives { [weak self] driveID, message in
