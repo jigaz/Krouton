@@ -1,0 +1,86 @@
+# The Xcode project for Krouton.app, for what SwiftPM can't build: the widget extension (and,
+# with the macOS 27.3 SDK, the Live Activity), App Intents metadata for Shortcuts, Siri and
+# Spotlight, and signing the app and extension with the shared app group.
+#
+#   brew install xcodegen
+#   cd XcodeHost && xcodegen generate          # writes XcodeHost/Krouton.xcodeproj
+#   open Krouton.xcodeproj                     # in Xcode 27.2: File inspector › Project Format › JSON
+#
+# The app's code stays in the Swift package (Sources/KroutonApp, a library); this project only
+# adds the entry point, the extension and signing. `swift run Krouton` keeps working without it.
+# Krouton.xcodeproj is generated, so it isn't committed; once the owner switches to Xcode 27.2's
+# JSON format (.xcproj) and commits that, this file and XcodeGen can go (open question 17).
+name: Krouton
+options:
+  bundleIdPrefix: app.krouton
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "27.2"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: D3BJL3F92P
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "100"
+    ENABLE_HARDENED_RUNTIME: YES
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+    GCC_TREAT_WARNINGS_AS_ERRORS: YES
+packages:
+  Krouton:
+    path: ..
+targets:
+  Krouton:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+      - path: ../Resources/PrivacyInfo.xcprivacy
+        buildPhase: resources
+      - path: ../Resources/AppIcon.icns
+        buildPhase: resources
+    dependencies:
+      - package: Krouton
+        product: KroutonApp
+      - target: KroutonWidgets
+        embed: true
+        codeSign: true
+    settings:
+      base:
+        PRODUCT_NAME: Krouton
+        PRODUCT_BUNDLE_IDENTIFIER: app.krouton
+        INFOPLIST_FILE: Info.plist
+        CODE_SIGN_ENTITLEMENTS: Krouton.entitlements
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: NO
+  KroutonWidgets:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: Widgets
+        excludes:
+          - "*.plist"
+          - "*.entitlements"
+    dependencies:
+      - package: Krouton
+        product: OpticalCore
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+    settings:
+      base:
+        PRODUCT_NAME: KroutonWidgets
+        PRODUCT_BUNDLE_IDENTIFIER: app.krouton.widgets
+        INFOPLIST_FILE: Widgets/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Widgets/KroutonWidgets.entitlements
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: NO
+        SKIP_INSTALL: YES
+schemes:
+  Krouton:
+    build:
+      targets:
+        Krouton: all
+    run:
+      config: Debug
+    archive:
+      config: Release

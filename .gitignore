@@ -14,3 +14,4 @@ DerivedData/
 # Cross-platform release artifacts
 dist/
 __pycache__/
+/XcodeHost/Krouton.xcodeproj/

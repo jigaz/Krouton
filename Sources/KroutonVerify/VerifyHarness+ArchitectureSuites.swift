@@ -43,7 +43,7 @@ extension KroutonTestHarness {
             h.lint(packageSwiftText.contains(".swiftLanguageMode(.v6)") && packageSwiftText.contains("-warnings-as-errors"), "Package.swift must enforce .swiftLanguageMode(.v6) and -warnings-as-errors")
             let targetDeclCount = packageSwiftText.components(separatedBy: "Target(").count - 1 + (packageSwiftText.components(separatedBy: ".target(").count - 1)
             let settingsUsageCount = packageSwiftText.components(separatedBy: "swiftSettings: strictSwiftSettings").count - 1
-            h.lint(targetDeclCount == 21 && settingsUsageCount == 21, "All 21 targets in Package.swift must adopt strictSwiftSettings")
+            h.lint(targetDeclCount == 22 && settingsUsageCount == 22, "All 22 targets in Package.swift must adopt strictSwiftSettings")
 
             let culinaryTypeRegex = try! NSRegularExpression(
                 pattern: #"\b(?:struct|enum|class|actor|protocol|typealias)\s+[A-Za-z0-9_]*(?:Toaster|Toast|Loaf|AudioCube|Cube|Recipe|Bakery|Pantry|Crustini|Krustini|Crust|Slice|Dough|Oven|Marmalade|Tartine|Galette|Krumb|Crumb|Baguette|Brioche)[A-Za-z0-9_]*"#,
@@ -222,8 +222,12 @@ extension KroutonTestHarness {
                 }
                 h.lint(reactiveOrderViolation == nil, "\(relPath) declares reactive property wrapper after body/methods (\(reactiveOrderViolation ?? ""))")
 
-                // 8. Access-control law: zero redundant `public` declarations in executable leaf targets (KroutonApp & KroutonVerify)
-                if relPath.hasPrefix("Sources/KroutonApp/") || relPath.hasPrefix("Sources/KroutonVerify/") {
+                // 8. Access-control law: zero redundant `public` declarations in the leaf targets (KroutonApp & KroutonVerify).
+                // KroutonApp is a library only so the Xcode app target can start it: the entry point and the App
+                // Intents package that target names are its only public symbols.
+                let publicEntryFiles = ["Sources/KroutonApp/Shell/CLI/KroutonCLIRunner.swift",
+                                        "Sources/KroutonApp/Shell/Services/KroutonAppIntents.swift"]
+                if (relPath.hasPrefix("Sources/KroutonApp/") && !publicEntryFiles.contains(relPath)) || relPath.hasPrefix("Sources/KroutonVerify/") {
                     let hasPublicDecl = lines.contains {
                         $0.range(of: #"^\s*(?:@[A-Za-z0-9_()]+\s+)*public\s+(?:final\s+|static\s+|class\s+|override\s+|mutating\s+|nonisolated\s+)*(?:struct|class|enum|actor|protocol|extension|func|var|let|init|typealias)\b"#, options: .regularExpression) != nil
                     }

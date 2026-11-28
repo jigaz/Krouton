@@ -6,6 +6,7 @@ struct KroutonApp: App {
 
     init() {
         KroutonAppKitBridge.becomeRegularApp()
+        KroutonWidgetBridge.start()
     }
 
     /// The menu bar item is there always, never, or only while something runs.

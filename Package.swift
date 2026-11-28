@@ -15,7 +15,9 @@ let package = Package(
         .iOS(.v17)
     ],
     products: [
-        .executable(name: "Krouton", targets: ["KroutonApp"]),
+        .executable(name: "Krouton", targets: ["KroutonMain"]),
+        // The app as a library, for the Xcode project's app target (XcodeHost/project.yml).
+        .library(name: "KroutonApp", targets: ["KroutonApp"]),
         .executable(name: "krouton-verify", targets: ["KroutonVerify"]),
         .library(name: "OpticalCore", targets: ["OpticalCore"]),
         .library(name: "DriveKit", targets: ["DriveKit"]),
@@ -39,7 +41,8 @@ let package = Package(
         .target(name: "VideoKit", dependencies: ["OpticalCore"], swiftSettings: strictSwiftSettings),
         .target(name: "NetworkSpool", dependencies: ["OpticalCore"], swiftSettings: strictSwiftSettings),
         .target(name: "Persistence", dependencies: ["OpticalCore"], swiftSettings: strictSwiftSettings),
-        .executableTarget(
+        .executableTarget(name: "KroutonMain", dependencies: ["KroutonApp"], swiftSettings: strictSwiftSettings),
+        .target(
             name: "KroutonApp",
             dependencies: [
                 "OpticalCore",
