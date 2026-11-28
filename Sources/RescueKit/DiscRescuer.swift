@@ -18,11 +18,15 @@ extension KroutonSectorSink {
 public final class KroutonImageFileSink: KroutonSectorSink {
     let handle: FileHandle
 
-    public init(url: URL, totalBytes: Int64) throws {
+    /// Opens (or creates) the image at `totalBytes`. Pass `keepingExistingData: false` when no
+    /// rescue is being resumed: an older file of that name is then emptied first, so sectors this
+    /// rescue never reads come out as zeros and not as another disc's bytes.
+    public init(url: URL, totalBytes: Int64, keepingExistingData: Bool = true) throws {
         if !FileManager.default.fileExists(atPath: url.path) {
             FileManager.default.createFile(atPath: url.path, contents: nil)
         }
         handle = try FileHandle(forWritingTo: url)
+        if !keepingExistingData { try handle.truncate(atOffset: 0) }
         try handle.truncate(atOffset: UInt64(max(0, totalBytes)))
     }
 

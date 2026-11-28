@@ -25,15 +25,18 @@ final class KroutonRescueController {
     var imageURL: URL { outputFolder.appendingPathComponent(imageName.isEmpty ? "Rescued Disc" : imageName).appendingPathExtension("iso") }
     var mapURL: URL { imageURL.appendingPathExtension("map") }
 
-    /// Whether a mapfile from an earlier attempt is waiting at the chosen name.
-    var canResume: Bool { FileManager.default.fileExists(atPath: mapURL.path) }
+    /// Whether an earlier attempt's image and mapfile are both waiting at the chosen name. A mapfile
+    /// without its image can't be resumed: the sectors it lists as copied are gone.
+    var canResume: Bool {
+        FileManager.default.fileExists(atPath: mapURL.path) && FileManager.default.fileExists(atPath: imageURL.path)
+    }
 
     func start(driveID: String?, driveManager: KroutonOpticalDriveBank) {
         guard !isRunning else { return }
         isRunning = true
         status = "Unmounting the disc and opening the drive…"
         let imageURL = imageURL, mapURL = mapURL, plan = KroutonRescuePlan(retryPasses: retryPasses)
-        let previous = (try? String(contentsOf: mapURL, encoding: .utf8)).flatMap(KroutonRescueMap.parse(mapfile:))
+        let previous = canResume ? (try? String(contentsOf: mapURL, encoding: .utf8)).flatMap(KroutonRescueMap.parse(mapfile:)) : nil
         task = Task { @MainActor [self] in
             defer {
                 self.isRunning = false
@@ -88,25 +91,33 @@ final class KroutonRescueController {
         status = "\(phase): \(done) of \(total) copied, \(map.bytes(.badSector) / size) bad sectors so far."
     }
 
-    /// The rescue itself, off the main actor. Saves the mapfile every few seconds and at the end.
+    /// The rescue itself, off the main actor. Saves the mapfile every few seconds, at the end, and
+    /// when the rescue stops early, and passes the map on a few times a second rather than per read.
     nonisolated private static func rescue(
         session: KroutonMMCDeviceSession, imageURL: URL, mapURL: URL, plan: KroutonRescuePlan,
         previous: KroutonRescueMap?, progress: @escaping @Sendable (KroutonRescueMap) -> Void
     ) async -> Result<KroutonRescueMap, any Error> {
         let source = MMCSectorSource(transport: session)
+        let saver = KroutonMapSaver(url: mapURL)
         do {
             let sectors = try await source.sectorCount()
-            let sink: any KroutonSectorSink = try KroutonImageFileSink(url: imageURL, totalBytes: sectors * Int64(KroutonSector.size))
+            let totalBytes = sectors * Int64(KroutonSector.size)
+            // The rescuer resumes only a map of this disc's size; anything else starts from zeros.
+            let resuming = previous?.totalBytes == totalBytes
+            let sink: any KroutonSectorSink = try KroutonImageFileSink(url: imageURL, totalBytes: totalBytes, keepingExistingData: resuming)
             defer { try? sink.close() }
-            let saver = KroutonMapSaver(url: mapURL)
             let rescuer = KroutonDiscRescuer(source: source, sink: sink, plan: plan)
-            let map = try await rescuer.run(resuming: previous) { map in
-                saver.saveIfDue(map)
-                progress(map)
+            let map = try await rescuer.run(resuming: resuming ? previous : nil) { map in
+                if saver.record(map) { progress(map) }
             }
             saver.save(map)
             return .success(map)
         } catch {
+            // Cancelled or the drive failed: keep the newest map, not the one from up to 3 s ago.
+            if let latest = saver.latest {
+                saver.save(latest)
+                progress(latest)
+            }
             return .failure(error)
         }
     }
@@ -120,20 +131,37 @@ final class KroutonRescueController {
     }
 }
 
-/// Writes the mapfile at most every three seconds, so a crash or a pulled cable loses little.
+/// Writes the mapfile at most every three seconds, so a crash or a pulled cable loses little, and
+/// keeps the newest map so a rescue that stops early can save exactly where it got to.
 final class KroutonMapSaver: Sendable {
+    private struct Clock {
+        var lastSave = Date.distantPast
+        var lastPublish = Date.distantPast
+        var latest: KroutonRescueMap?
+    }
+
     let url: URL
-    private let lastSave = OSAllocatedUnfairLock(initialState: Date.distantPast)
+    private let clock = OSAllocatedUnfairLock(initialState: Clock())
 
     init(url: URL) { self.url = url }
 
-    func saveIfDue(_ map: KroutonRescueMap) {
-        let due = lastSave.withLock { last -> Bool in
-            guard Date().timeIntervalSince(last) >= 3 else { return false }
-            last = Date()
-            return true
+    /// The newest map passed to `record`.
+    var latest: KroutonRescueMap? { clock.withLock { $0.latest } }
+
+    /// Remembers `map`, saves it if three seconds have passed since the last save, and returns
+    /// whether it is time to show it again (five times a second at most).
+    func record(_ map: KroutonRescueMap) -> Bool {
+        let now = Date()
+        let (saveDue, publishDue) = clock.withLock { state -> (Bool, Bool) in
+            state.latest = map
+            let saveDue = now.timeIntervalSince(state.lastSave) >= 3
+            let publishDue = now.timeIntervalSince(state.lastPublish) >= 0.2
+            if saveDue { state.lastSave = now }
+            if publishDue { state.lastPublish = now }
+            return (saveDue, publishDue)
         }
-        if due { save(map) }
+        if saveDue { save(map) }
+        return publishDue
     }
 
     func save(_ map: KroutonRescueMap) {
