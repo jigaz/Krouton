@@ -6,7 +6,8 @@ import SwiftUI
 
 struct KroutonDepotWorkspaceView: View {
     var store: KroutonStateStore
-    let isCenterWorkspaceNarrow: Bool
+    @Environment(\.kroutonLayout) var windowLayout
+    var isCenterWorkspaceNarrow: Bool { windowLayout.workspace == .narrow }
 
     @State private var depotSearchQuery: String = ""
 

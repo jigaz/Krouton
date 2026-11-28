@@ -1,3 +1,4 @@
+import BurnKit
 import OpticalCore
 import SwiftUI
 
@@ -236,15 +237,45 @@ struct KroutonKitchenEventRow: Identifiable, Hashable, Sendable {
 /// what the card does: `.videoExtract` remuxes to MKV or copies MPEG (no H.265 transcode), and
 /// `.discPrinter` writes the same 1:1 PDF + PNG print sheet as `.pdfVector` (it drives no disc
 /// printer). Never show `rawValue` to a person.
+/// A destination card's kind. The raw values are what saved sessions and projects store;
+/// they're identifiers, never shown (`title` is).
 enum KroutonBurnDestinationKind: String, CaseIterable, Identifiable, Codable, Sendable {
-    case physicalBurner = "Physical Burner"
-    case networkBurner = "Network Server Burner"
-    case discImage = "Disc Image File"
-    case audioRip = "Audio Rip (ALAC / AAC / FLAC)"
-    case videoExtract = "Video Transcode (H.265 / HEVC)"
-    case discPrinter = "Disc Printer (Epson ET-8550)"
-    case pdfVector = "Vector PDF Label"
+    case physicalBurner = "physical-burner"
+    case networkBurner = "krouton-server"
+    case discImage = "disc-image"
+    case audioRip = "audio-rip"
+    case videoExtract = "video-extract"
+    case discPrinter = "label-print-sheet"
+    case pdfVector = "label-pdf"
     var id: String { rawValue }
+
+    /// The values saved before 2026-11-27, which described more than Krouton does
+    /// ("Video Transcode (H.265 / HEVC)" only ever remuxed; "Disc Printer (Epson ET-8550)"
+    /// writes files). Read, never written.
+    private static let savedBefore20261127: [String: KroutonBurnDestinationKind] = [
+        "Physical Burner": .physicalBurner,
+        "Network Server Burner": .networkBurner,
+        "Disc Image File": .discImage,
+        "Audio Rip (ALAC / AAC / FLAC)": .audioRip,
+        "Video Transcode (H.265 / HEVC)": .videoExtract,
+        "Disc Printer (Epson ET-8550)": .discPrinter,
+        "Vector PDF Label": .pdfVector,
+    ]
+
+    /// A kind from saved text, current or from before 2026-11-27; nil for one this version doesn't know.
+    init?(storedValue: String) {
+        guard let kind = Self(rawValue: storedValue) ?? Self.savedBefore20261127[storedValue] else { return nil }
+        self = kind
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let stored = try container.decode(String.self)
+        guard let kind = Self(storedValue: stored) else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unknown destination kind \(stored)")
+        }
+        self = kind
+    }
 
     /// What the destination does, in the words the card and the notifications use.
     var title: String {
@@ -301,4 +332,11 @@ struct KroutonBakeBatchItem: Identifiable, Hashable, Codable, Sendable {
     var assignedPoolTicket: KroutonPoolBurnTicket? = nil
     /// Ticket waiting for operator confirmation on this burner slot when in Ask/Manual mode.
     var pendingApprovalTicket: KroutonPoolBurnTicket? = nil
+}
+
+// MARK: - Burn Pool
+
+/// A physical burner card takes tickets from the destination queue's burn pool.
+extension KroutonBakeBatchItem: KroutonPoolSlotCard {
+    var isPooledBurner: Bool { kind == .physicalBurner }
 }

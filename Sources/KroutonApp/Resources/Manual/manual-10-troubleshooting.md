@@ -7,7 +7,7 @@ Open Settings with ⌘,. The search field at the top finds a setting by any word
 - **General**: appearance, accent colours, language, and whether Krouton reopens your last project.
 - **Format Chooser**: which disc formats appear in the sidebar.
 - **Disc Image Depot**: where images are kept.
-- **Audio & Video**: whether the DVD-9 shrink keeps menus and extras.
+- **Audio & Video**: whether DVD copies and shrinks keep their menus, or play every title in order without them.
 - **Ripping & Transcoding**: AccurateRip checking and the pattern ripped files are named by.
 - **Burners & Network**: connected drives, Auto-Load and Krouton Servers.
 - **Labels & Printers**: disc sizes and printer tray offsets.
@@ -21,6 +21,10 @@ Open Settings with ⌘,. The search field at the top finds a setting by any word
 - Temporary staging for burns: in your Caches folder; Krouton removes it after each burn.
 - Audio rips: ~/Music/Krouton Rips.
 - Keys for Krouton Servers: in your login keychain.
+
+## A project or session from another version
+
+A project saved by an older or newer Krouton opens even when it lacks settings this version has, or holds choices it doesn't know. Those settings take the values a new project starts with, and the banner says how many. A destination, track or source file that can't be read at all is left out, and the banner counts those too; the rest of the project opens. The same applies to the session Krouton restores at launch. If a file isn't a Krouton project, or is damaged, the banner says it couldn't be opened.
 
 ## The drive doesn't show up
 

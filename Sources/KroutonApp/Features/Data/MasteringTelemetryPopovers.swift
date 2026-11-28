@@ -276,7 +276,7 @@ struct KroutonVideoBitratePopoverView: View {
                 }
                 Text(String(format: "• Main Feature DCT Retention : %.1f%% (%@)", shrinkPlan.requantizationRatio * 100.0, store.fitToDiscDVD9Shrink ? "ACTIVE" : "STANDBY"))
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
-                Text(String(format: "• Menus & Bonus Features     : %@ (%.2f GB source)", shrinkPlan.preserveMenusAndExtras ? "Preserved at 90% Fidelity" : "Stripped (Main Movie Only)", Double(shrinkPlan.sourceMenusAndExtrasBytes) / 1_000_000_000.0))
+                Text(String(format: "• Menus & Bonus Features     : %@ (%.2f GB source)", shrinkPlan.preserveMenusAndExtras ? "Preserved at 90% Fidelity" : "Removed (plays every title in order)", Double(shrinkPlan.sourceMenusAndExtrasBytes) / 1_000_000_000.0))
                     .font(.system(size: 10, design: .monospaced))
                 Text(String(format: "• Requantized VTS Output     : %.3f GB / %.3f GB DVD-5 Safe Ceiling", Double(shrinkPlan.estimatedOutputBytes) / 1_000_000_000.0, Double(shrinkPlan.targetUsableDVD5Bytes) / 1_000_000_000.0))
                     .font(.system(size: 10, design: .monospaced))

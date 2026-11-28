@@ -70,7 +70,7 @@ extension KroutonSettingsWindowView {
     var audioVideoPane: some View {
         VStack(alignment: .leading, spacing: 18) {
             settingsCard(title: "DVD-9 to DVD-5 Shrink (Copy › Duplicate Disc)") {
-                Toggle(KroutonL10n.tr("Keep the menus and extras when shrinking (otherwise only the main feature is kept)"), isOn: Bindable(store).preserveMenusAndExtras)
+                Toggle(KroutonL10n.tr("Keep the DVD menus when copying or shrinking (off: no menus, and the disc plays every title in order)"), isOn: Bindable(store).preserveMenusAndExtras)
                 Text(KroutonL10n.tr("Pauses, crossfades and the MP3 CD options are set in their own workspaces."))
                     .font(.caption)
                     .foregroundStyle(.secondary)

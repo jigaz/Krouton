@@ -1,4 +1,5 @@
 import AudioKit
+import BurnKit
 import DriveKit
 import Foundation
 import OpticalCore
@@ -8,8 +9,8 @@ import OpticalCore
 extension KroutonStateStore {
     /// Burns the deck on a local drive. Audio CDs are rendered from the editor's project and
     /// Blu-ray video becomes a UDF 2.50 image first; everything else goes to the drive bank as
-    /// staged. A burn that finishes advances the burn pool and, with auto-load on, waits for the
-    /// next blank.
+    /// staged. `KroutonBurnCoordinator` runs the burn and decides what follows: the card's next
+    /// pool ticket or copy and, with Auto-Load on, waiting for the next blank.
     func runPhysicalBurn(
         _ target: KroutonBakeBatchItem,
         driveManager: KroutonOpticalDriveBank,
@@ -58,69 +59,39 @@ extension KroutonStateStore {
             driveManager.completionReport = refusalReport(tooBig, title: "Too Big for This Disc")
             return
         }
-        let burnSucceeded = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
-            driveManager.startPhysicalDataBurn(
-                driveID: target.targetDriveID.isEmpty ? nil : target.targetDriveID,
-                stagedFiles: filesToBurn,
-                volumeTitle: discVolumeTitle,
-                requestedSpeedLabel: target.speedOrCodec,
-                simulationMode: target.simulationMode,
-                verifyDisc: target.verifyAfterBurn,
-                allowOverwriteOfWrittenMedia: !isAutoLoadedCopy,
-                leaveDiscOpen: self.leaveDiscOpenForMoreSessions,
-                audioDisc: audioDisc,
-                isoLevel1: activeBurnSupport != nil && activeFormatSpec().formatID == .dataRetroISO
-            ) { report in
-                continuation.resume(returning: report.isSuccess)
-            }
+        let request = KroutonLocalBurnRequest(
+            driveID: target.targetDriveID.isEmpty ? nil : target.targetDriveID,
+            stagedFiles: filesToBurn,
+            volumeTitle: discVolumeTitle,
+            speedLabel: target.speedOrCodec,
+            simulationMode: target.simulationMode,
+            verifyDisc: target.verifyAfterBurn,
+            allowOverwriteOfWrittenMedia: !isAutoLoadedCopy,
+            leaveDiscOpen: self.leaveDiscOpenForMoreSessions,
+            audioDisc: audioDisc,
+            isoLevel1: activeBurnSupport != nil && activeFormatSpec().formatID == .dataRetroISO)
+        let report = await KroutonBurnCoordinator.shared.burnOnThisMac(request, bank: driveManager)
+        let step = withBurnPool { pool in
+            KroutonBurnCoordinator.stepAfterBurn(
+                of: target, copiesToBurn: target.copiesToBurn, succeeded: report.isSuccess, pool: &pool,
+                mode: self.poolDispatchMode, autoLoadNextDisc: self.autoLoadNextDiscBatchMode)
         }
-        if burnSucceeded && (!waitingBurnPool.isEmpty || target.assignedPoolTicket != nil) {
-            let nextTicket = advancePoolAfterCardBurnCompleted(cardID: target.id)
-            if let nextTicket, poolDispatchMode == .autoAssign, autoLoadNextDiscBatchMode {
-                let driveKey = target.targetDriveID.isEmpty ? (driveManager.selectedDrive?.id ?? "") : target.targetDriveID
-                notifyInsertNextBlank()
-            driveManager.startBatchAutoLoadMonitor(
-                    for: driveKey,
-                    completedCopy: max(1, nextTicket.sequenceNumber - 1),
-                    totalCopies: max(nextTicket.totalCopies, nextTicket.totalSpannedDiscs),
-                    countdownSeconds: autoLoadCountdownSeconds
-                ) { [weak self] in
-                    guard let self = self else { return }
-                    if let updatedItem = self.destinationQueue.first(where: { $0.id == target.id }) {
-                        self.executeSingleDestination(
-                            updatedItem,
-                            driveManager: driveManager,
-                            primarySelectedDrive: primarySelectedDrive,
-                            isAutoLoadedCopy: true
-                        )
-                    }
-                }
-            }
-        } else if burnSucceeded && target.copiesToBurn > 1 && autoLoadNextDiscBatchMode {
-            let finishedCount = target.completedCopies + 1
-            if finishedCount < target.copiesToBurn {
-                updateQueueItem(target.id) { $0.completedCopies = finishedCount }
-                let driveKey = target.targetDriveID.isEmpty ? (driveManager.selectedDrive?.id ?? "") : target.targetDriveID
-                notifyInsertNextBlank()
-            driveManager.startBatchAutoLoadMonitor(
-                    for: driveKey,
-                    completedCopy: finishedCount,
-                    totalCopies: target.copiesToBurn,
-                    countdownSeconds: autoLoadCountdownSeconds
-                ) { [weak self] in
-                    guard let self = self else { return }
-                    if let updatedItem = self.destinationQueue.first(where: { $0.id == target.id }) {
-                        self.executeSingleDestination(
-                            updatedItem,
-                            driveManager: driveManager,
-                            primarySelectedDrive: primarySelectedDrive,
-                            isAutoLoadedCopy: true
-                        )
-                    }
-                }
-            } else {
-                updateQueueItem(target.id) { $0.completedCopies = 0 }
-            }
+        guard case .waitForNextBlank(let completedCopy, let totalCopies) = step else { return }
+        let driveKey = target.targetDriveID.isEmpty ? (driveManager.selectedDrive?.id ?? "") : target.targetDriveID
+        notifyInsertNextBlank()
+        driveManager.startBatchAutoLoadMonitor(
+            for: driveKey,
+            completedCopy: completedCopy,
+            totalCopies: totalCopies,
+            countdownSeconds: autoLoadCountdownSeconds
+        ) { [weak self] in
+            guard let self, let updatedItem = self.destinationQueue.first(where: { $0.id == target.id }) else { return }
+            self.executeSingleDestination(
+                updatedItem,
+                driveManager: driveManager,
+                primarySelectedDrive: primarySelectedDrive,
+                isAutoLoadedCopy: true
+            )
         }
     }
 
