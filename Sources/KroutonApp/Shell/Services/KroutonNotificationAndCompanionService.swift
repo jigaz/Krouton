@@ -33,26 +33,26 @@ final class KroutonNotificationAndCompanionService {
         let stamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
         if bannerOn {
             lastDispatchedBannerText = "[\(stamp)] \(title) — \(subtitle)"
-            postSystemNotificationIfBundled(id: eventID, title: title, body: subtitle, playSound: soundOn)
+            postSystemNotificationIfBundled(id: eventID, title: title, body: subtitle)
         }
-        if soundOn {
-            KroutonOSDesktopBridge.playAcousticCue()
+        if soundOn, let sound = matchedRow?.sound {
+            // A real drive gets its own pitch; tests and events without a drive don't.
+            let voice = store.distinctDriveVoices && driveName != "Optical Drive" ? driveName : nil
+            KroutonOSDesktopBridge.playAcousticCue(sound.cue(forDrive: voice))
         }
         if store.voiceOverSpokenTelemetry {
             store.announceForVoiceOver("\(title). \(subtitle)")
         }
     }
 
-    private func postSystemNotificationIfBundled(id: String, title: String, body: String, playSound: Bool) {
+    private func postSystemNotificationIfBundled(id: String, title: String, body: String) {
         guard Bundle.main.bundleIdentifier != nil else { return }
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
             guard granted else { return }
             let content = UNMutableNotificationContent()
             content.title = title
             content.body = body
-            if playSound {
-                content.sound = .default
-            }
+            // No banner sound: Krouton plays the event's own synth sound (dispatchEvent).
             let req = UNNotificationRequest(
                 identifier: "krouton.\(id).\(UUID().uuidString)",
                 content: content,

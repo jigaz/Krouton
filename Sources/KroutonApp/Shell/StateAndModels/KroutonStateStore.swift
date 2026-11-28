@@ -79,7 +79,13 @@ final class KroutonStateStore {
     var finderLayoutBlueprint = KroutonFinderLayoutBlueprint()
     var discFormats: [KroutonOpticalWorkflowSpec] = KroutonOpticalWorkflowCatalog.defaultFormats
 
-    var notificationMatrix: [KroutonKitchenEventRow] = KroutonStateStore.defaultNotificationMatrix
+    var notificationMatrix: [KroutonKitchenEventRow] = KroutonStateStore.defaultNotificationMatrix {
+        didSet { if !isHydratingPreferences { KroutonPreferences.saveNotificationEvents(notificationMatrix) } }
+    }
+    /// Each drive's notifications sound at its own pitch (Settings › Notifications).
+    var distinctDriveVoices: Bool = true {
+        didSet { if !isHydratingPreferences { KroutonPreferences.set(distinctDriveVoices, for: .distinctDriveVoices) } }
+    }
 
     var poolDispatchMode: KroutonPoolDispatchMode = .autoAssign
     var poolTotalCopies: Int = 1
@@ -152,6 +158,8 @@ final class KroutonStateStore {
         isHydratingPreferences = true
         defer { isHydratingPreferences = false }
         appearance.load()
+        notificationMatrix = KroutonPreferences.notificationEvents(defaults: Self.defaultNotificationMatrix)
+        distinctDriveVoices = KroutonPreferences.bool(for: .distinctDriveVoices, default: true)
         if let rawTpl = KroutonPreferences.string(for: .labelTemplate),
            let tpl = KroutonCroutonLabelStyle(rawValue: rawTpl) {
             label.selectedLabelTemplate = tpl

@@ -130,6 +130,7 @@ enum KroutonStorageAndReset {
         store.fitToDiscDVD9Shrink = true
         store.mdiscParityPercent = 10
         store.poolDispatchMode = .autoAssign
+        store.distinctDriveVoices = true
     }
 
     /// The destination queue back to one disc burner card, and the queues saved per workspace cleared.
@@ -187,11 +188,16 @@ extension KroutonStateStore {
     /// What Settings › Notifications starts with, and what Reset Settings goes back to.
     nonisolated static var defaultNotificationMatrix: [KroutonKitchenEventRow] {
         [
-            KroutonKitchenEventRow(id: "start", eventTitle: "Burn or rip started", eventSubtitle: "When a destination card starts or a rip begins", bannerEnabled: true, soundEnabled: false),
-            KroutonKitchenEventRow(id: "done", eventTitle: "Burn or rip finished", eventSubtitle: "When a destination card or a rip finishes without error", bannerEnabled: true, soundEnabled: true),
-            KroutonKitchenEventRow(id: "err", eventTitle: "Burn or rip failed", eventSubtitle: "When a destination card or a rip stops with an error", bannerEnabled: true, soundEnabled: true),
-            KroutonKitchenEventRow(id: "swap", eventTitle: "Insert the next blank", eventSubtitle: "Auto-Load is waiting for a blank disc", bannerEnabled: true, soundEnabled: true),
-            KroutonKitchenEventRow(id: "depot", eventTitle: "Depot download checked", eventSubtitle: "An image was downloaded and matched its SHA-256", bannerEnabled: true, soundEnabled: true)
+            KroutonKitchenEventRow(id: "start", eventTitle: "Burn or rip started", eventSubtitle: "When a destination card starts or a rip begins", bannerEnabled: true, soundEnabled: false,
+                                   sound: KroutonNotificationSound(source: "spindle")),
+            KroutonKitchenEventRow(id: "done", eventTitle: "Burn or rip finished", eventSubtitle: "When a destination card or a rip finishes without error", bannerEnabled: true, soundEnabled: true,
+                                   sound: KroutonNotificationSound(source: "toaster-ding")),
+            KroutonKitchenEventRow(id: "err", eventTitle: "Burn or rip failed", eventSubtitle: "When a destination card or a rip stops with an error", bannerEnabled: true, soundEnabled: true,
+                                   sound: KroutonNotificationSound(source: "burnt-toast")),
+            KroutonKitchenEventRow(id: "swap", eventTitle: "Insert the next blank", eventSubtitle: "Auto-Load is waiting for a blank disc", bannerEnabled: true, soundEnabled: true,
+                                   sound: KroutonNotificationSound(source: "tray-lock")),
+            KroutonKitchenEventRow(id: "depot", eventTitle: "Depot download checked", eventSubtitle: "An image was downloaded and matched its SHA-256", bannerEnabled: true, soundEnabled: true,
+                                   sound: KroutonNotificationSound(source: "calibration"))
         ]
     }
 

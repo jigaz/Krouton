@@ -228,6 +228,7 @@ struct KroutonKitchenEventRow: Identifiable, Hashable, Sendable {
     var eventSubtitle: String
     var bannerEnabled: Bool
     var soundEnabled: Bool
+    var sound: KroutonNotificationSound
 }
 
 /// Where a destination card sends the deck.
