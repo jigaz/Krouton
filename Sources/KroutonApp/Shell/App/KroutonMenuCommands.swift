@@ -5,7 +5,7 @@ import RescueKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - KroutonMenuCommands (Apple HIG Consolidated Top-Level Menus: Krouton, File, Edit, View, Format, Disc, Window, Help)
+// MARK: - Menu Bar Commands
 
 extension Notification.Name {
     static let kroutonMenuScanTOC = Notification.Name("krouton.menu.scanTOC")
@@ -16,12 +16,28 @@ extension Notification.Name {
     static let kroutonMenuInspectVideoBitrate = Notification.Name("krouton.menu.inspectVideoBitrate")
 }
 
-/// Modular macOS Menu Bar Commands following Apple HIG (`Krouton`, `File`, `Edit`, `View`, `Format`, `Disc`, `Window`, `Help`).
+/// The menu bar: Settings in the Krouton menu, then File, Edit, View, Format, Disc, Window and
+/// Help. Most items call the state store or the drive bank directly; the few that act on a
+/// workspace's own view state post one of the notifications above, which that view receives.
+/// Every keyboard shortcut here must be listed in `manual-09-keyboard-shortcuts.md`
+/// (`Scripts/build-manual.py --check` fails otherwise).
 struct KroutonWorkspaceCommands: Commands {
     var wm: KroutonWindowManager
 
     init(wm: KroutonWindowManager) {
         self.wm = wm
+    }
+
+    /// The certificate for the disc in the first drive. Krouton passes no error-scan figures yet,
+    /// so this is always "NOT MEASURED" and the menu item stays off.
+    var archivalCertificate: KroutonArchivalQualityCertificate {
+        let drv = wm.driveManager.availableDrives.first
+        let lba = max(150, Int64((drv?.usedBytes ?? wm.store.totalStagedBytes) / 2048))
+        return KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(
+            driveModel: drv?.displayName ?? "Optical Drive",
+            mediaType: drv?.mediaType ?? "Optical Media",
+            sectorsWrittenLBA: lba
+        )
     }
 
     var body: some Commands {
@@ -37,7 +53,7 @@ struct KroutonWorkspaceCommands: Commands {
     @CommandsBuilder
     var appSettingsCommands: some Commands {
         CommandGroup(replacing: .appSettings) {
-            Button(KroutonL10n.tr("Hardware, Theme & Language Settings...")) {
+            Button(KroutonL10n.tr("Settings…")) {
                 KroutonWindowManager.shared.openSettingsWindow(store: wm.store, driveManager: wm.driveManager)
             }
             .keyboardShortcut(",", modifiers: .command)
@@ -56,19 +72,19 @@ struct KroutonWorkspaceCommands: Commands {
             }
             .keyboardShortcut("n", modifiers: .command)
 
-            Button(KroutonL10n.tr("Open Project (.krut)...")) {
+            Button(KroutonL10n.tr("Open Project…")) {
                 wm.store.presentOpenKrutProjectSheet()
             }
             .keyboardShortcut("o", modifiers: .command)
 
-            Button(KroutonL10n.tr("Save Project (.krut)...")) {
+            Button(KroutonL10n.tr("Save Project…")) {
                 wm.store.presentSaveKrutProjectSheet()
             }
             .keyboardShortcut("s", modifiers: .command)
 
             Divider()
 
-            Button(KroutonL10n.tr("Add Files or Disc Images...")) {
+            Button(KroutonL10n.tr("Add Files or Disc Images…")) {
                 wm.store.selectedCategory = .burn
                 KroutonStageImporterBridge.shared.presentImporter(allowedTypes: [.item, .folder], allowsMultiple: true) { urls in
                     wm.store.addStagedURLs(urls)
@@ -76,7 +92,7 @@ struct KroutonWorkspaceCommands: Commands {
             }
             .keyboardShortcut("a", modifiers: [.command, .shift])
 
-            Button(KroutonL10n.tr("Add Destination Output Card")) {
+            Button(KroutonL10n.tr("Add Destination Card")) {
                 wm.store.appendContextAwareDestination(driveManager: wm.driveManager)
             }
             .keyboardShortcut("d", modifiers: [.command, .shift])
@@ -111,7 +127,7 @@ struct KroutonWorkspaceCommands: Commands {
                 Button(KroutonL10n.tr("Hybrid ISO-9660 + Joliet + UDF")) { selectBurnFormat(.dataHybrid) }
                     .keyboardShortcut("1", modifiers: [.command, .control])
                 Button(KroutonL10n.tr("UDF 2.50 Large-File Volume")) { selectBurnFormat(.dataUDFModern) }
-                Button(KroutonL10n.tr("M-DISC 1,000-Year Archival Vault")) { selectBurnFormat(.mdiscVault) }
+                Button(KroutonL10n.tr("M-DISC Archival Disc")) { selectBurnFormat(.mdiscVault) }
                     .keyboardShortcut("5", modifiers: [.command, .control])
                 Button(KroutonL10n.tr("Burn Disc Image (.iso / .cue / .dmg)")) { selectBurnFormat(.imageBurn) }
                     .keyboardShortcut("6", modifiers: [.command, .control])
@@ -129,10 +145,10 @@ struct KroutonWorkspaceCommands: Commands {
                 Button(KroutonL10n.tr("Blu-ray Disc Single-Layer (BD-R 25 GB)")) { selectBurnFormat(.bd25) }
                     .keyboardShortcut("4", modifiers: [.command, .control])
                 Button(KroutonL10n.tr("Blu-ray Disc Dual-Layer (BD-R 50 GB)")) { selectBurnFormat(.bd50) }
-                Button(KroutonL10n.tr("BDXL Triple/Quad-Layer UHD (100 GB)")) { selectBurnFormat(.bdUHD) }
+                Button(KroutonL10n.tr("Ultra HD Blu-ray (BDXL 100 GB)")) { selectBurnFormat(.bdUHD) }
             }
-            Menu(KroutonL10n.tr("Retro Console Optical Media")) {
-                Button(KroutonL10n.tr("Nintendo Wii Optical Disc")) { selectBurnFormat(.consoleWii) }
+            Menu(KroutonL10n.tr("Game Console Discs")) {
+                Button(KroutonL10n.tr("Nintendo Wii")) { selectBurnFormat(.consoleWii) }
                 Button(KroutonL10n.tr("Nintendo GameCube (MiniDVD)")) { selectBurnFormat(.consoleGC) }
                 Button(KroutonL10n.tr("Sony PlayStation 2 (DVD-ROM)")) { selectBurnFormat(.consolePS2) }
                 Button(KroutonL10n.tr("Sony PlayStation 1 (CD-XA Mode 2)")) { selectBurnFormat(.consolePS1) }
@@ -141,18 +157,18 @@ struct KroutonWorkspaceCommands: Commands {
 
             Divider()
 
-            Menu(KroutonL10n.tr("Copy, Rip & Rescue Workflows")) {
-                Button(KroutonL10n.tr("Duplicate Disc / Fit-to-Disc DVD-9 Shrink")) {
+            Menu(KroutonL10n.tr("Copy, Rip & Rescue")) {
+                Button(KroutonL10n.tr("Duplicate Disc or Shrink a DVD-9")) {
                     selectCopyTask(.duplicateDisc)
                 }
                 .keyboardShortcut("k", modifiers: [.command, .shift])
 
-                Button(KroutonL10n.tr("Video Disc Extractor (Lossless MKV Remux)")) {
+                Button(KroutonL10n.tr("Extract Video Disc")) {
                     selectCopyTask(.extractVideoDisc)
                 }
                 .keyboardShortcut("v", modifiers: [.command, .shift])
 
-                Button(KroutonL10n.tr("Optical Bad-Sector Rescue & Recovery")) {
+                Button(KroutonL10n.tr("Rescue a Damaged Disc")) {
                     selectCopyTask(.rescueDisc)
                 }
                 .keyboardShortcut("d", modifiers: [.command, .option])
@@ -163,15 +179,14 @@ struct KroutonWorkspaceCommands: Commands {
     @CommandsBuilder
     var discMenuCommands: some Commands {
         CommandMenu(KroutonL10n.tr("Disc")) {
-            Button(KroutonL10n.tr("Execute Active Queue / Burn Now")) {
-                let primaryDrive = wm.driveManager.availableDrives.first
-                for item in wm.store.destinationQueue {
-                    wm.store.executeSingleDestination(
-                        item,
-                        driveManager: wm.driveManager,
-                        primarySelectedDrive: primaryDrive
-                    )
-                }
+            Button(KroutonL10n.tr("Run Destination Queue")) {
+                // The same run as the BURN button: one card after another, and Abort ends it all.
+                // The drive matches the main window's: the first burner card's, else the selected one.
+                let dm = wm.driveManager
+                let firstBurner = wm.store.destinationQueue.first(where: { $0.kind == .physicalBurner })
+                let primaryDrive = firstBurner.flatMap { dm.driveForID($0.targetDriveID) }
+                    ?? dm.selectedDrive ?? dm.availableDrives.first
+                wm.store.executeDestinationQueue(driveManager: dm, primarySelectedDrive: primaryDrive)
             }
             .keyboardShortcut("b", modifiers: .command)
             .disabled(wm.driveManager.isExecutingQueue || wm.store.destinationQueue.isEmpty)
@@ -184,7 +199,7 @@ struct KroutonWorkspaceCommands: Commands {
 
             Divider()
 
-            Button(KroutonL10n.tr("Scan Audio CD TOC & Lookup MusicBrainz")) {
+            Button(KroutonL10n.tr("Scan Audio CD & Look Up Track Names")) {
                 selectCopyTask(.ripAudioCD)
                 NotificationCenter.default.post(name: .kroutonMenuScanTOC, object: nil)
             }
@@ -196,7 +211,7 @@ struct KroutonWorkspaceCommands: Commands {
             }
             .keyboardShortcut("r", modifiers: [.command, .shift])
 
-            Button(KroutonL10n.tr("CD Info & Metadata Tags...")) {
+            Button(KroutonL10n.tr("CD Info & Tags…")) {
                 wm.store.selectedCategory = .copy
                 wm.store.selectedTaskID = KroutonCopyTaskID.ripAudioCD.rawValue
                 NotificationCenter.default.post(name: .kroutonMenuShowCDInfo, object: nil)
@@ -210,7 +225,7 @@ struct KroutonWorkspaceCommands: Commands {
             }
             .keyboardShortcut("r", modifiers: .command)
 
-            Button(KroutonL10n.tr("Run Phase Scope Diagnostic Sweep")) {
+            Button(KroutonL10n.tr("Reset Phase Scope")) {
                 if let firstID = wm.driveManager.availableDrives.first?.id {
                     wm.driveManager.runPhaseScopeTestSweep(for: firstID, keepPinnedAfterSweep: true)
                 }
@@ -221,26 +236,21 @@ struct KroutonWorkspaceCommands: Commands {
             Toggle(KroutonL10n.tr("Leave Disc Open for More Sessions"), isOn: Bindable(wm.store).leaveDiscOpenForMoreSessions)
 
             Button(KroutonL10n.tr("Copy Archival Quality Certificate")) {
-                let drv = wm.driveManager.availableDrives.first
-                let lba = max(150, Int64((drv?.usedBytes ?? wm.store.totalStagedBytes) / 2048))
-                let cert = KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(
-                    driveModel: drv?.displayName ?? "Optical Drive",
-                    mediaType: drv?.mediaType ?? "Optical Media",
-                    sectorsWrittenLBA: lba
-                )
-                KroutonOSDesktopBridge.copyTextToClipboard(cert.certificateText)
+                KroutonOSDesktopBridge.copyTextToClipboard(archivalCertificate.certificateText)
             }
             .keyboardShortcut("c", modifiers: [.command, .option])
+            // No C1/C2/jitter scan exists yet, so there is no grade to copy (open question 6).
+            .disabled(archivalCertificate.gradeBadge == "NOT MEASURED")
 
             Divider()
 
-            Button(KroutonL10n.tr("Eject Optical Media")) {
+            Button(KroutonL10n.tr("Eject Disc")) {
                 wm.driveManager.ejectDrive(id: wm.driveManager.availableDrives.first?.id)
             }
             .keyboardShortcut("e", modifiers: .command)
             .disabled(wm.driveManager.availableDrives.isEmpty)
 
-            Menu(KroutonL10n.tr("Erase RW")) {
+            Menu(KroutonL10n.tr("Erase Rewritable Disc")) {
                 Button(KroutonL10n.tr("Quick Erase")) {
                     wm.driveManager.eraseRewritableDisc(
                         driveID: wm.driveManager.selectedDrive?.id ?? wm.driveManager.availableDrives.first?.id,

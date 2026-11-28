@@ -52,136 +52,41 @@ public struct KroutonStreamProbeResult: Identifiable, Hashable, Sendable {
 
 public enum KroutonMediaPrepEngine {
 
-    /// Probes any audio/video/container URL and returns its exact decoder pipeline & hardware acceleration badge
+    /// What the file name alone says about a media file: its container, from the extension.
+    /// Nothing is opened, so the codecs, captions and decoding path are not known and are left
+    /// empty (`videoCodecName` and `subtitleSummary` nil, `audioCodecName` "Not probed",
+    /// `isHardwareAccelerated` false). `accelerationTier` is only the family of file.
     public static func probeFile(_ url: URL) -> KroutonStreamProbeResult {
         let ext = url.pathExtension.lowercased()
+        let (container, tier) = containerByExtension(ext)
+        return KroutonStreamProbeResult(
+            fileExtension: ext.isEmpty ? "MEDIA" : ext.uppercased(),
+            containerFormat: container,
+            videoCodecName: nil,
+            audioCodecName: "Not probed",
+            subtitleSummary: nil,
+            accelerationTier: tier,
+            shortHardwareBadge: "\(container) (codecs not probed)",
+            isHardwareAccelerated: false,
+            targetMasteringPipeline: "Not determined"
+        )
+    }
+
+    static func containerByExtension(_ ext: String) -> (container: String, tier: KroutonHeatTier) {
         switch ext {
-        // --- 1. Apple Compressor / Broadcast Mezzanine ---
-        case "mov", "mxf":
-            return KroutonStreamProbeResult(
-                fileExtension: ext.uppercased(),
-                containerFormat: ext == "mxf" ? "SMPTE MXF Container" : "QuickTime MOV Container",
-                videoCodecName: "Apple ProRes 422 HQ / HEVC 10-Bit",
-                audioCodecName: "24-Bit / 48 kHz Linear PCM",
-                subtitleSummary: "CEA-608/708 Captions",
-                accelerationTier: .videoToolboxASIC,
-                shortHardwareBadge: "VT ProRes / HEVC HW",
-                isHardwareAccelerated: true,
-                targetMasteringPipeline: "VideoToolbox Zero-Copy GPU -> Hardware VBR Encoder"
-            )
-        // --- 2. HandBrake / VLC Matroska & Blu-ray Transport Streams ---
-        case "mkv", "m2ts", "mts", "ts", "webm":
-            return KroutonStreamProbeResult(
-                fileExtension: ext.uppercased(),
-                containerFormat: ext == "mkv" ? "Matroska (.MKV) Multi-Track" : (ext == "webm" ? "WebM Container" : "Blu-ray MPEG-2 Transport Stream (.M2TS)"),
-                videoCodecName: ext == "webm" ? "VP9 / AV1 10-Bit" : "HEVC 10-Bit HDR / H.264 High@L5.1",
-                audioCodecName: "Dolby TrueHD Atmos / DTS-HD MA + AC-3 5.1 Core",
-                subtitleSummary: "Blu-ray CEA-608 / VobSub Track Passthrough (.sup) + ASS/SRT Softsubs",
-                accelerationTier: .hybridDemuxVT,
-                shortHardwareBadge: "Stream Demux -> VT HW",
-                isHardwareAccelerated: true,
-                targetMasteringPipeline: "libavformat Packet Demux -> VideoToolbox ASIC -> BDMV / VIDEO_TS"
-            )
-        // --- 3. Standard MP4 / M4V ---
-        case "mp4", "m4v":
-            return KroutonStreamProbeResult(
-                fileExtension: ext.uppercased(),
-                containerFormat: "ISO Base Media (.MP4)",
-                videoCodecName: "H.264 / HEVC (VideoToolbox)",
-                audioCodecName: "AAC-LC / Dolby Digital Plus (E-AC-3)",
-                subtitleSummary: "tx3g / WebVTT Timed Text",
-                accelerationTier: .videoToolboxASIC,
-                shortHardwareBadge: "VideoToolbox ASIC",
-                isHardwareAccelerated: true,
-                targetMasteringPipeline: "AVFoundation + VideoToolbox Hardware Session"
-            )
-        // --- 4. Legacy DVD VOB / MPEG-2 / AVI / WMV / VC-1 ---
-        case "vob", "mpg", "mpeg", "m2v", "evo":
-            return KroutonStreamProbeResult(
-                fileExtension: ext.uppercased(),
-                containerFormat: "DVD Program Stream (MPEG-PS / VOB)",
-                videoCodecName: "MPEG-2 Main@Main (2,048 B Navigation Packs)",
-                audioCodecName: "AC-3 Dolby Digital 448 kbps / DTS",
-                subtitleSummary: "DVD VobSub (.idx/.sub) RLE Bitmaps",
-                accelerationTier: .bitstreamPassthrough,
-                shortHardwareBadge: "Direct VOB Passthrough",
-                isHardwareAccelerated: true,
-                targetMasteringPipeline: "Zero-Generation Loss MPEG-2 Passthrough (Or Smart Requantize)"
-            )
-        case "avi", "wmv", "asf", "flv", "divx", "dv", "ogv", "rmvb":
-            return KroutonStreamProbeResult(
-                fileExtension: ext.uppercased(),
-                containerFormat: "Legacy Container (\(ext.uppercased()))",
-                videoCodecName: "VC-1 / MPEG-4 ASP (DivX/Xvid) / DV",
-                audioCodecName: "MP3 / WMA / PCM",
-                subtitleSummary: "External .SRT Auto-Mux",
-                accelerationTier: .accelerateSIMD,
-                shortHardwareBadge: "libavcodec NEON -> VT HW",
-                isHardwareAccelerated: true,
-                targetMasteringPipeline: "FFmpeg ARM64 NEON Decode -> VideoToolbox Hardware Encode"
-            )
-        // --- 5. Audiophile Lossless & DSD Audio ---
-        case "flac", "ape", "wv", "tta", "shn":
-            return KroutonStreamProbeResult(
-                fileExtension: ext.uppercased(),
-                containerFormat: "Lossless Audiophile (\(ext.uppercased()))",
-                videoCodecName: nil,
-                audioCodecName: "\(ext.uppercased()) Lossless (Up to 32-Bit / 192 kHz)",
-                subtitleSummary: nil,
-                accelerationTier: .accelerateSIMD,
-                shortHardwareBadge: "NEON + Accelerate vDSP",
-                isHardwareAccelerated: true,
-                targetMasteringPipeline: "libFLAC/WavPack -> vDSP 64-Bit Sinc Resampler -> 44.1 kHz 16-Bit Red Book PCM"
-            )
-        case "dsf", "dff":
-            return KroutonStreamProbeResult(
-                fileExtension: ext.uppercased(),
-                containerFormat: "Scarlet Book 1-Bit DSD (\(ext.uppercased()))",
-                videoCodecName: nil,
-                audioCodecName: "DSD64 / DSD128 (2.8224 / 5.6448 MHz 1-BitPDM)",
-                subtitleSummary: nil,
-                accelerationTier: .accelerateSIMD,
-                shortHardwareBadge: "vDSP DSD->PCM Filter",
-                isHardwareAccelerated: true,
-                targetMasteringPipeline: "8th-OrdervDSP Decimation Filter (Or Native SACD-R Scarlet Book UDF)"
-            )
-        case "wav", "aiff", "aif", "caf", "alac":
-            return KroutonStreamProbeResult(
-                fileExtension: ext.uppercased(),
-                containerFormat: "Uncompressed Linear PCM (\(ext.uppercased()))",
-                videoCodecName: nil,
-                audioCodecName: "Linear PCM / Apple Lossless",
-                subtitleSummary: nil,
-                accelerationTier: .coreAudioHardware,
-                shortHardwareBadge: "CoreAudio Zero-Copy",
-                isHardwareAccelerated: true,
-                targetMasteringPipeline: "AudioToolbox ExtAudioFile Direct PCM Frame Staging"
-            )
-        // --- 6. Surround Bitstreams & Lossy Audio ---
-        case "ac3", "eac3", "thd", "mlp", "dts", "dtshd":
-            return KroutonStreamProbeResult(
-                fileExtension: ext.uppercased(),
-                containerFormat: "Cinema Surround Bitstream (\(ext.uppercased()))",
-                videoCodecName: nil,
-                audioCodecName: "5.1 / 7.1 Surround (\(ext.uppercased()))",
-                subtitleSummary: nil,
-                accelerationTier: .bitstreamPassthrough,
-                shortHardwareBadge: "Bitstream / vDSP",
-                isHardwareAccelerated: true,
-                targetMasteringPipeline: "Direct S/PDIF / BDMV Bitstream Passthrough (Or 5.1 -> Stereo Folddown)"
-            )
-        default:
-            return KroutonStreamProbeResult(
-                fileExtension: ext.isEmpty ? "MEDIA" : ext.uppercased(),
-                containerFormat: "Universal Media Stream",
-                videoCodecName: nil,
-                audioCodecName: "\(ext.uppercased()) Audio Stream (libopus / Vorbis / MP3 / AAC)",
-                subtitleSummary: nil,
-                accelerationTier: .coreAudioHardware,
-                shortHardwareBadge: "AudioToolbox + vDSP",
-                isHardwareAccelerated: true,
-                targetMasteringPipeline: "Hardware-Assisted Decode -> Target Disc Specification"
-            )
+        case "mov": return ("QuickTime movie", .videoToolboxASIC)
+        case "mxf": return ("MXF file", .videoToolboxASIC)
+        case "mp4", "m4v": return ("MPEG-4 file", .videoToolboxASIC)
+        case "mkv": return ("Matroska file", .hybridDemuxVT)
+        case "webm": return ("WebM file", .hybridDemuxVT)
+        case "m2ts", "mts", "ts": return ("MPEG transport stream", .hybridDemuxVT)
+        case "vob", "mpg", "mpeg", "m2v", "evo": return ("MPEG program stream", .bitstreamPassthrough)
+        case "avi", "wmv", "asf", "flv", "divx", "dv", "ogv", "rmvb": return ("\(ext.uppercased()) file", .accelerateSIMD)
+        case "flac", "ape", "wv", "tta", "shn": return ("\(ext.uppercased()) lossless audio", .accelerateSIMD)
+        case "dsf", "dff": return ("\(ext.uppercased()) DSD audio", .accelerateSIMD)
+        case "wav", "aiff", "aif", "caf", "alac": return ("\(ext.uppercased()) audio", .coreAudioHardware)
+        case "ac3", "eac3", "thd", "mlp", "dts", "dtshd": return ("\(ext.uppercased()) audio bitstream", .bitstreamPassthrough)
+        default: return (ext.isEmpty ? "Media file" : "\(ext.uppercased()) file", .coreAudioHardware)
         }
     }
 }
@@ -208,53 +113,25 @@ public enum KroutonElToritoBootInspector {
         public let asciiText: String
     }
 
-    /// Reads 256 bytes at the requested LBA sector from the actual file on disk (with synthetic fallback if file is smaller)
+    /// Reads the first 256 bytes of sector `lba` from the file on disk, 16 bytes a row. Only bytes
+    /// that are really in the file are shown: a sector near the end gives a shorter last row, and
+    /// a sector past the end, or a file that can't be read, gives no rows (see
+    /// `sectorDumpUnavailableReason`).
     public static func readSectorHexDump(url: URL, lba: Int, sectorSize: Int = 2048) -> [HexDumpRow] {
-        let byteOffset = UInt64(max(0, lba)) * UInt64(sectorSize)
-        var buffer = [UInt8](repeating: 0, count: 256)
-        var didReadRealBytes = false
-
-        if let handle = try? FileHandle(forReadingFrom: url) {
-            defer { try? handle.close() }
-            if let fileSize = try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? UInt64,
-               fileSize > 0 {
-                let clampedOffset = byteOffset < fileSize ? byteOffset : 0
-                try? handle.seek(toOffset: clampedOffset)
-                if let data = try? handle.read(upToCount: 256), !data.isEmpty {
-                    for (i, b) in data.enumerated() where i < 256 {
-                        buffer[i] = b
-                    }
-                    didReadRealBytes = true
-                }
-            }
-        }
-
-        // If the image is smaller than the requested LBA (e.g. a 1.44MB floppy .img inspected at LBA 16/17),
-        // overlay canonical optical descriptor signatures so the engineer can inspect the sector structure:
-        if !didReadRealBytes || (byteOffset > 0 && buffer.allSatisfy({ $0 == 0 })) {
-            let sig: String
-            if lba == 0 {
-                sig = "ER\u{08}\u{00}\u{00}\u{00}PM\u{00}\u{00}Apple_partition_map\u{00}KROUTON_BOOT_SECTOR_00"
-            } else if lba == 16 {
-                sig = "\u{01}CD001\u{01}\u{00}MACOS_WINDOWS_LINUX     KROUTON_OPTICAL_MASTER_PVD      "
-            } else if lba == 17 {
-                sig = "\u{00}CD001\u{01}EL TORITO SPECIFICATION\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{00}\u{13}\u{00}\u{00}\u{00}"
-            } else {
-                sig = "\u{02}\u{00}\u{01}\u{00}NSR03\u{01}ECMA-167_UDF_260_ANCHOR_VOLUME_DESCRIPTOR_PTR"
-            }
-            let sigBytes = Array(sig.utf8)
-            for (i, b) in sigBytes.enumerated() where i < buffer.count {
-                buffer[i] = b
-            }
-        }
-
+        guard lba >= 0, sectorSize > 0 else { return [] }
+        let byteOffset = UInt64(lba) * UInt64(sectorSize)
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return [] }
+        defer { try? handle.close() }
+        guard let fileSize = try? handle.seekToEnd(), byteOffset < fileSize else { return [] }
+        guard (try? handle.seek(toOffset: byteOffset)) != nil,
+              let data = try? handle.read(upToCount: 256), !data.isEmpty else { return [] }
+        let bytes = [UInt8](data)
         var rows: [HexDumpRow] = []
-        for rowIdx in 0..<16 {
-            let start = rowIdx * 16
-            let slice = buffer[start..<(start + 16)]
-            let absOffset = Int(byteOffset) + start
-            let offsetStr = String(format: "%08X", absOffset)
-            let hexParts = slice.map { String(format: "%02X", $0) }
+        for (rowIdx, start) in stride(from: 0, to: bytes.count, by: 16).enumerated() {
+            let slice = bytes[start..<min(start + 16, bytes.count)]
+            let offsetStr = String(format: "%08llX", byteOffset + UInt64(start))
+            var hexParts = slice.map { String(format: "%02X", $0) }
+            hexParts += Array(repeating: "  ", count: 16 - hexParts.count)
             let leftHex = hexParts[0..<8].joined(separator: " ")
             let rightHex = hexParts[8..<16].joined(separator: " ")
             let asciiStr = slice.map { (b: UInt8) -> String in
@@ -265,12 +142,36 @@ public enum KroutonElToritoBootInspector {
         return rows
     }
 
-    public static func computeSHA256Hex(url: URL) -> String {
-        guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else {
-            return "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    /// Why `readSectorHexDump` has nothing to show for `lba`, or nil when it has.
+    public static func sectorDumpUnavailableReason(url: URL, lba: Int, sectorSize: Int = 2048) -> String? {
+        guard let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize else {
+            return "The image can't be read."
         }
-        let digest = SHA256.hash(data: data)
-        return digest.map { String(format: "%02x", $0) }.joined()
+        let sectorBytes = Int64(max(1, sectorSize))
+        let sectors = (Int64(size) + sectorBytes - 1) / sectorBytes
+        guard lba >= 0, Int64(lba) < sectors else {
+            return "LBA \(lba) is past the end of the image (\(sectors) sectors of \(sectorBytes) bytes)."
+        }
+        return nil
+    }
+
+    /// The file's SHA-256 as lowercase hex, read in 1 MiB pieces so a disc image of any size uses
+    /// little memory. Nil when the file can't be opened or a read fails.
+    public static func computeSHA256Hex(url: URL) -> String? {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? handle.close() }
+        var hasher = SHA256()
+        while true {
+            let chunk: Data?
+            do {
+                chunk = try handle.read(upToCount: 1 << 20)
+            } catch {
+                return nil
+            }
+            guard let chunk, !chunk.isEmpty else { break }
+            hasher.update(data: chunk)
+        }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 }
 

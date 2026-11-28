@@ -2,10 +2,10 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Stage 1 Disc Label Contextual Tool Inspectors (Background, Curved Text, Disc Size Override)
+// MARK: - Disc Label Inspector and Background Tool
 
 extension KroutonDiscLabelWorkspaceView {
-    // MARK: - 3. Contextual Right Inspector (Shows Only Active Tool's Controls)
+    // MARK: - Inspector (the Chosen Tool's Controls)
 
     @ViewBuilder
     func contextualInspectorPanel() -> some View {
@@ -29,7 +29,7 @@ extension KroutonDiscLabelWorkspaceView {
         }
     }
 
-    // MARK: - Tool Inspector A: Background Fill (Blank White, Solid Color, Circular Gradient)
+    // MARK: - Background Tool
 
     func backgroundToolInspector() -> some View {
         VStack(alignment: .leading, spacing: 14) {

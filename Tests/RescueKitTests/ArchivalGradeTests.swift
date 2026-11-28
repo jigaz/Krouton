@@ -25,5 +25,9 @@ final class ArchivalGradeTests: XCTestCase {
             driveModel: "D", mediaType: "M", sectorsWrittenLBA: 1, c1Rate: 0.8, c2Count: 0, jitterPercent: 6.1
         )
         XCTAssertEqual(cert.gradeBadge, "A+ ARCHIVAL MASTER")
+        // Nothing checked the grade against a standard, so the certificate claims none.
+        XCTAssertFalse(cert.certificateText.contains("Compliant"))
+        XCTAssertFalse(cert.certificateText.contains("ISO/IEC"))
+        XCTAssertFalse(cert.certificateText.contains("ECMA"))
     }
 }

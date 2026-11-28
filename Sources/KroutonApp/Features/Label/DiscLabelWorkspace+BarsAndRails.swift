@@ -2,10 +2,10 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Disc Label Studio Header Bar, Tool Rail & Zoom Bar
+// MARK: - Disc Label Header, Tool Rail and Canvas Bar
 
 extension KroutonDiscLabelWorkspaceView {
-    // MARK: - Top Header Bar (Preset Selector + Export 300-DPI PNG)
+    // MARK: - Header Bar
 
     func topHeaderBar(preset: KroutonDiscLabelGeometry) -> some View {
         HStack(spacing: 10) {
@@ -48,7 +48,7 @@ extension KroutonDiscLabelWorkspaceView {
             .buttonStyle(.borderedProminent)
             .tint(store.activeAccent)
             .controlSize(.small)
-            .help("Automatically harvest embedded/folder/MusicBrainz artwork, extract Display-P3 palette with Vision center-hole avoidance, and lay out curved arc typography")
+            .help("Fill in the label's title and subtitle from the disc's title and artist. With Apple Intelligence, a raw volume or file name becomes a readable title first")
 
             Button {
                 exportLabel(.pdf)
@@ -77,7 +77,7 @@ extension KroutonDiscLabelWorkspaceView {
         .padding(.vertical, 9)
     }
 
-    // MARK: - 1. Photoshop-Style Left-Hand Vertical Icon Rail
+    // MARK: - Tool Rail
 
     func photoshopLeftToolRail() -> some View {
         VStack(spacing: 10) {
@@ -179,7 +179,7 @@ extension KroutonDiscLabelWorkspaceView {
         .background(Color.primary.opacity(0.04))
     }
 
-    // MARK: - 2. Bottom Canvas Bar (Zoom, 10mm Alignment Grid, Test Print)
+    // MARK: - Canvas Bar (Zoom, Grid, Alignment Test)
 
     func bottomCanvasStatusBar(preset: KroutonDiscLabelGeometry) -> some View {
         HStack(spacing: 10) {

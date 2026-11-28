@@ -30,7 +30,7 @@ Each fade is a curve. Hover near a quarter or three-quarter point of either curv
 
 Press **Preview** to hear the transition. Changes are audible as you drag.
 
-The editor can float in its own window: **Window › Open Track Montage Editor Window** (⌥⌘M). Clicking the small waveform left in the track list brings that window to the front.
+The editor can float in its own window: **Window › Track Montage Editor** (⌥⌘M). Clicking the small waveform left in the track list brings that window to the front.
 
 The montage header shows the tempo of both tracks and the difference between them, which helps match beat-driven music.
 
@@ -55,7 +55,7 @@ Converting needs ffmpeg, which you install separately (Homebrew: brew install ff
 ## Ripping a CD
 
 1. Insert an audio CD and open the Audio CD Ripper (⌘5).
-2. Choose **Disc › Scan Audio CD TOC & Lookup MusicBrainz** (⌥⌘R). Krouton reads the track list and fetches album and track names from MusicBrainz. Only the disc's ID is sent.
+2. Choose **Disc › Scan Audio CD & Look Up Track Names** (⌥⌘R). Krouton reads the track list and fetches album and track names from MusicBrainz. Only the disc's ID is sent.
 3. Pick a format: FLAC or ALAC keep every bit in less space; WAV and AIFF are uncompressed.
 4. Choose **Disc › Rip Selected Audio CD Tracks** (⇧⌘R).
 

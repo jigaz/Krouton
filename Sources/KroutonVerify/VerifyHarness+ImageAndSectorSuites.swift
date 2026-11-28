@@ -171,7 +171,12 @@ extension KroutonTestHarness {
     try payload.write(to: tempURL)
 
     let sha = KroutonElToritoBootInspector.computeSHA256Hex(url: tempURL)
-    h.check(sha.count == 64, "SHA-256 digest must be 64 hex characters")
+    h.check(sha?.count == 64, "SHA-256 digest must be 64 hex characters")
+    h.check(KroutonElToritoBootInspector.computeSHA256Hex(url: tempURL.appendingPathExtension("missing")) == nil,
+            "An unreadable file has no SHA-256 (not the empty-input digest)")
+    h.check(KroutonElToritoBootInspector.readSectorHexDump(url: tempURL, lba: 1, sectorSize: 2048).isEmpty
+            && KroutonElToritoBootInspector.sectorDumpUnavailableReason(url: tempURL, lba: 1) != nil,
+            "A sector past the end of the image shows no bytes, and says why")
 
     let rows = KroutonElToritoBootInspector.readSectorHexDump(url: tempURL, lba: 0, sectorSize: 2048)
     h.check(rows.count == 16, "256-byte sector header window at 16 B/row must yield 16 rows")

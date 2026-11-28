@@ -4,7 +4,7 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Hero Banner Text Outline & Contrast Halo Modifier
+// MARK: - Banner Text Outline
 private struct KroutonHeroTextOutlineModifier: ViewModifier {
     let inkColor = Color(red: 0.02, green: 0.04, blue: 0.10)
 
@@ -48,8 +48,7 @@ struct KroutonDepotHeroBannerView: View {
                     )
                 )
 
-            // 2. Multi-Layer Isometric & Pixel-Matrix CAD Blueprint Art Workspace
-            //    Masked with a directional fade gradient so foreground typography pops with 100% clarity!
+            // 2. The disc layout drawing, faded towards the left so the text over it stays readable.
             KroutonWorkflowBlueprintView(item: item, accent: store.activeAccent, isNarrow: isNarrow, useHarmony: store.enableSecondaryAccentUITints).id("\(item.id)-\(store.enableSecondaryAccentUITints)")
                 .mask(
                     LinearGradient(
@@ -65,7 +64,7 @@ struct KroutonDepotHeroBannerView: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 14))
 
-            // 3. Foreground Layout: Left Info Column + Open Vector Showcase + Right Schematic Box
+            // 3. In front: the details on the left, a gap for the drawing, the sector map on the right.
             HStack(alignment: .center, spacing: 12) {
                 depotCardLeftDetailsColumn
                 if !isNarrow {
@@ -121,7 +120,7 @@ struct KroutonDepotHeroBannerView: View {
         let activeProgress = store.depotDownloadProgress[item.id]
         let segments = item.blueprintSectorSegments
         VStack(alignment: .leading, spacing: 8) {
-                    // Top Micro Telemetry Header (Frosted Dark Pill for 100% Contrast Across All Swatches)
+                    // A dark pill behind the header, so it reads on every accent colour.
                     HStack(spacing: 5) {
                         Image(systemName: item.sfSymbol)
                             .font(.system(size: 10, weight: .bold))
@@ -253,7 +252,7 @@ struct KroutonDepotHeroBannerView: View {
                     }
                 }
 
-                Spacer(minLength: isNarrow ? 0 : 95) // Open showcase space so the Vector Blueprint Art shines through!
+                Spacer(minLength: isNarrow ? 0 : 95) // Leaves the drawing behind visible.
 
     }
 

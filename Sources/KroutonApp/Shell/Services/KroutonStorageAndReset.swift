@@ -47,10 +47,13 @@ enum KroutonStorageAndReset {
         return newest
     }
 
-    /// True while something may be writing into the caches or work folders.
+    /// True while something may be writing into the caches or work folders. The drive bank's
+    /// `isExecutingQueue` also covers a burn whose image is still being built in the staging
+    /// cache (`beginPreparingBurn`), before the coordinator counts it as burning.
     static func isBusy(_ store: KroutonStateStore) -> Bool {
         let coordinator = KroutonBurnCoordinator.shared
-        return coordinator.isQueueBurning || coordinator.isSetRunning || KroutonBurnSetController.shared.isBusy
+        return KroutonWindowManager.shared.driveManager.isExecutingQueue
+            || coordinator.isQueueBurning || coordinator.isSetRunning || KroutonBurnSetController.shared.isBusy
             || store.rescue.isRunning || store.avchd.isRunning || !store.depotDownloadProgress.isEmpty
     }
 

@@ -5,7 +5,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 import VideoKit
 
-// MARK: - Optical Audio CD Scanning, MusicBrainz Lookup & Extraction Pipeline
+// MARK: - Reading, Looking Up and Ripping an Audio CD
 
 extension KroutonCopyAndRipWorkspaceView {
     func rescanOpticalDiscForCopyTask(isAudioRipTask: Bool, isShrinkTask: Bool, fetchMetadata: Bool = false) {

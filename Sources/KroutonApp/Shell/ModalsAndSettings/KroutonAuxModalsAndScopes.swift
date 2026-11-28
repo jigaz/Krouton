@@ -85,7 +85,11 @@ struct KroutonDiscMediaPopover: View {
                 HStack {
                     Text("Used: \(usedStr) (\(drive.usedSectorsLBA) LBA)").font(.system(size: 10, weight: .semibold, design: .monospaced))
                     Spacer()
-                    Text("Free: \(freeStr) (\(drive.freeSectorsLBA) LBA) • \(drive.redBookTimecodeCapacity)").font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary)
+                    if drive.freeSectorsLBA > 0 {
+                        Text("Free: \(freeStr) (\(drive.freeSectorsLBA) LBA) • \(drive.redBookTimecodeCapacity)").font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary)
+                    } else {
+                        Text("Free space not reported by the drive").font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary)
+                    }
                 }.padding(9).background(Color.kroutonControlSurface).clipShape(RoundedRectangle(cornerRadius: 8))
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
@@ -110,6 +114,8 @@ struct KroutonDiscMediaPopover: View {
     }
 }
 
+/// The report shown after a destination card runs: the drive, the disc, what was written,
+/// the speed and the time taken.
 struct KroutonMasteringReportSheet: View {
     let report: KroutonBurnSessionReport
     let accent: Color
@@ -121,7 +127,7 @@ struct KroutonMasteringReportSheet: View {
             ("Media Format & Volume", "\(report.mediaFormattedName) • \(report.volumeName)"),
             ("Sectors & Data Written", "\(report.sectorsWrittenLBA) LBA (\(ByteCountFormatter.string(fromByteCount: report.bytesWritten, countStyle: .file)))"),
             ("Transfer Rate (Avg / Peak)", "\(report.averageSpeedText) • Peak \(report.peakSpeedText)"),
-            ("Elapsed Mastering Time", report.elapsedDurationText),
+            ("Time Taken", report.elapsedDurationText),
             ("Archival Quality Grade", KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(driveModel: report.driveModel, mediaType: report.mediaFormattedName, sectorsWrittenLBA: report.sectorsWrittenLBA).summaryLine)
         ]
         VStack(alignment: .leading, spacing: 16) {
@@ -146,10 +152,11 @@ struct KroutonMasteringReportSheet: View {
             Label(report.diagnosticAdvice, systemImage: "info.circle.fill").font(.callout).foregroundStyle(.secondary)
             Spacer()
             HStack {
+                let cert = KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(driveModel: report.driveModel, mediaType: report.mediaFormattedName, sectorsWrittenLBA: report.sectorsWrittenLBA)
                 Button(KroutonL10n.tr("Copy Archival Certificate")) {
-                    let cert = KroutonLabelGeometryEngine.evaluateArchivalDiscGrade(driveModel: report.driveModel, mediaType: report.mediaFormattedName, sectorsWrittenLBA: report.sectorsWrittenLBA)
                     KroutonOSDesktopBridge.copyTextToClipboard(cert.certificateText)
                 }
+                .disabled(cert.gradeBadge == "NOT MEASURED") // no error scan yet (open question 6)
                 Button(KroutonL10n.tr("Copy Telemetry Log")) {
                     KroutonOSDesktopBridge.copyTextToClipboard("\(report.title)\n\(report.summary)\nSectors: \(report.sectorsWrittenLBA) LBA")
                 }

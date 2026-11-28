@@ -46,7 +46,15 @@ extension KroutonStateStore {
         if let sole {
             built = sole
         } else if activeBurnSupport == .bluRayVideo, case .success(let root) = bluRayVideoRoot() {
-            built = try? await buildBluRayImage(root: root)
+            do {
+                built = try await buildBluRayImage(root: root)
+            } catch {
+                // Not "Add files": the writer's reason (no scratch space, an unreadable file) is the one to show.
+                driveManager.completionReport = networkReport(ok: false, title: "Could Not Build the Blu-ray Image",
+                                                              summary: error.localizedDescription,
+                                                              server: "", drive: "", bytes: 0, started: started)
+                return
+            }
         } else {
             built = await masterImageForNetworkBurn(input.files)
         }

@@ -3,6 +3,11 @@ import Foundation
 import OpticalCore
 import SwiftUI
 
+// MARK: - Phase Scope Window
+
+/// The Phase Scope in its own window (Window › Phase Scope Window): one drive's write speed,
+/// spindle speed and buffer fill over the course of a burn, drawn from the drive bank's
+/// telemetry. The small inline version on a destination card is `KroutonMiniPhaseScopeView`.
 struct KroutonFloatingPhaseScopeView: View {
     let driveID: String
     var store: KroutonStateStore
@@ -38,14 +43,14 @@ struct KroutonFloatingPhaseScopeView: View {
                 )
                 VStack(alignment: .leading, spacing: 2) {
                     Text(telemetry.driveName).font(.system(size: 14, weight: .bold))
-                    Text("\(telemetry.phaseTitle) • LBA \(telemetry.currentSectorLBA) / \(telemetry.totalSectorsLBA) • Elapsed \(formatMMSS(elapsedSec)) (Rem \(formatMMSS(remainingSec)))")
+                    Text("\(telemetry.phaseTitle) • LBA \(telemetry.currentSectorLBA) / \(telemetry.totalSectorsLBA) • Elapsed \(formatMMSS(elapsedSec)), \(formatMMSS(remainingSec)) left")
                         .font(.system(size: 10.5, design: .monospaced)).foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer()
                 Button {
                     driveManager.runPhaseScopeTestSweep(for: driveID)
                 } label: {
-                    Label("Test Sweep", systemImage: "waveform.path.ecg").font(.system(size: 11, weight: .semibold))
+                    Label("Reset", systemImage: "waveform.path.ecg").font(.system(size: 11, weight: .semibold))
                 }.buttonStyle(.bordered).controlSize(.small)
                 Button {
                     onDockInline()
@@ -99,9 +104,9 @@ struct KroutonFloatingPhaseScopeView: View {
                                            telemetry.currentSpeedKBs, telemetry.currentSpindleRPM, progress * 100))
                 VStack {
                     HStack {
-                        Text("24.0x MAX SPEED").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundStyle(primaryColor)
+                        Text("Top of scale: 24×").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundStyle(primaryColor)
                         Spacer()
-                        Text("6,000 RPM CEILING").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundStyle(rpmColor)
+                        Text("Top of scale: 6,000 RPM").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundStyle(rpmColor)
                     }
                     Spacer()
                     HStack {
@@ -128,7 +133,7 @@ struct KroutonFloatingPhaseScopeView: View {
         .tint(store.activeAccent)
     }
 
-    // MARK: - Subviews & Helper Methods
+    // MARK: - Formatting
 
     private func formatMMSS(_ totalSeconds: Int) -> String {
         let clamped = max(0, totalSeconds)

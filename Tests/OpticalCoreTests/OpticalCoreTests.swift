@@ -41,3 +41,29 @@ final class OpticalCoreTests: XCTestCase {
         XCTAssertTrue(KroutonDomainIdentity.sessionVaultDirectory().path.contains("app.krouton"))
     }
 }
+
+/// Format names describe only what Krouton writes: no Rock Ridge tree, no UDF 2.60 (the writer
+/// does 2.50), and no lifetime promises.
+final class WorkflowCatalogClaimsTests: XCTestCase {
+    func testDisplayTextClaimsNothingTheWritersDontDo() {
+        for spec in KroutonOpticalWorkflowCatalog.defaultFormats {
+            let text = "\(spec.technicalName) \(spec.colloquialName) \(spec.bookOrFileSystem)"
+            XCTAssertFalse(text.contains("Rock Ridge"))
+            XCTAssertFalse(text.contains("UDF 2.60"))
+            XCTAssertFalse(text.contains("1,000-Year"))
+        }
+    }
+}
+
+final class ISO9660SizeLimitTests: XCTestCase {
+    private func entry(bytes: Int64) -> KroutonStagedFileEntry {
+        KroutonStagedFileEntry(url: URL(fileURLWithPath: "/tmp/big.bin"), name: "big.bin", isDirectory: false,
+                               byteSize: bytes, itemCount: 1, posixPermissions: "rw-r--r--", modifiedDate: Date())
+    }
+
+    func testOneExtentHoldsUpToTwoToTheThirtySecondMinusOneBytes() {
+        XCTAssertFalse(entry(bytes: 4_294_967_294).exceedsISO9660FourGiBLimit)
+        XCTAssertFalse(entry(bytes: 4_294_967_295).exceedsISO9660FourGiBLimit)
+        XCTAssertTrue(entry(bytes: 4_294_967_296).exceedsISO9660FourGiBLimit)
+    }
+}

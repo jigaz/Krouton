@@ -37,7 +37,8 @@ Related: `pure-swiftui-shell.md` (the one AppKit file), `removed-formats.md`, `P
 ## Correctness and honesty
 
 ### 6. The archival quality grade can never be shown
-- **Known:** `RescueKit/RescueEngine.swift` `evaluateArchivalDiscGrade` grades C1/C2/jitter and prints an "ISO/IEC 10149 & ECMA-267 Compliant" certificate. But every caller (`KroutonAuxModalsAndScopes.swift`, `KroutonMenuCommands.swift`, via a pass-through in LabelKit) passes no measurements, so the result is always "NOT MEASURED". The grading branch is unreachable, and the standards claim was never checked.
+- **Known:** `RescueKit/RescueEngine.swift` `evaluateArchivalDiscGrade` grades C1/C2/jitter. Every caller (`KroutonAuxModalsAndScopes.swift`, `KroutonMenuCommands.swift`, via a pass-through in LabelKit) passes no measurements, so the result is always "NOT MEASURED" and the grading branch is unreachable. The grade thresholds and the stability score are Krouton's own, not taken from a standard.
+- **Done 2026-11-28 (`agent/followup-fixes`):** the certificate no longer claims "ISO/IEC 10149 & ECMA-267 Compliant" (nothing checked it; a test keeps it out). **Disc › Copy Archival Quality Certificate** (⌥⌘C) and the burn report's Copy Archival Certificate button are disabled while the grade is NOT MEASURED, i.e. always for now; the manual says so. The burn report still shows the "NOT MEASURED" line.
 - **Answer by:** Find out whether any drive Krouton supports can report C1/C2 errors (vendor commands, as used by QPxTool or Opti Drive Control).
 - **Owner decides:** Either implement real scanning for the drives that support it, or remove the grade, its menu item and the certificate text.
 - **Also:** Why does LabelKit wrap a RescueKit function? It's the only reason LabelKit depends on RescueKit.
@@ -64,7 +65,7 @@ Related: `pure-swiftui-shell.md` (the one AppKit file), `removed-formats.md`, `P
 ### 9. Unused-code report triage (248 findings)
 *Re-examined 2026-11-26* from the CI log of main at 0c569bc: 70 unused, 120 assigned but never read, 56 needlessly public, 2 redundant protocols or conformances.
 - **The 120 write-only properties** are mostly harmless: fields of hashable cache keys (`LabelGeometry+OpticalPlayground.swift`, 11), file-identity snapshots compared whole (`BurnSetStager`, 6), and result fields. Leave them, or mark them with `// periphery:ignore` once checked. Two are features that compute work nobody uses:
-  - **Auto-Label** (`LabelKit/AutoLabelEngine.swift`) harvests artwork, frames it around the hole with Vision, extracts a palette, and builds a tracklist and rim banner. `AutoLabelStoreAdapter` applies only the title and subtitle, yet the summary says "embedded/folder artwork + Vision center-hole framing". Wire the rest in or cut the summary down. **Owner decides.**
+  - **Auto-Label** (`LabelKit/AutoLabelEngine.swift`) harvests artwork, frames it around the hole with Vision, extracts a palette, and builds a tracklist and rim banner. `AutoLabelStoreAdapter` applies only the title and subtitle, yet the summary says "embedded/folder artwork + Vision center-hole framing". Wire the rest in or cut the summary down. **Owner decides.** *2026-11-28 (`agent/followup-fixes`):* the summary now says only that the title (and subtitle) were set, and the rim banner no longer appends "MASTERED WITH KROUTON"; whether to wire in the artwork, palette, tracklist and rim, or delete them, is still open.
   - Head and tail loudness (`AudioAnalysisService`, `headLUFS`/`tailLUFS`) are measured for every track and never read.
 - **Of the 70 unused, the ones that matter:**
   - `preserveMenus` in `VideoKit/VideoAuthoringEngine+Shrink.swift`: the shrink always keeps the menus (`preserveMenusAndExtras: true`), so the Settings toggle "otherwise only the main feature is kept" does nothing. Remove the toggle, or make the flag work.
@@ -155,3 +156,35 @@ Related: `pure-swiftui-shell.md` (the one AppKit file), `removed-formats.md`, `P
 - **To do:** sign and notarize the Xcode build in `bundle-app.sh` (`xcodebuild archive`, then `-exportArchive` with Developer ID), confirm the app-group container works for a Developer ID build on macOS 26/27, then document the widget and Shortcuts in the manual.
 - **Owner decides:** convert the generated project to Xcode 27.2's JSON format (`.xcproj`) in Xcode and commit it, retiring XcodeGen, or keep generating it.
 - **Also:** Swift 6.4's default build system still doesn't write `-emit-localized-strings-path` output or an index store Periphery finds, so those CI jobs use `--build-system native` (see 12).
+
+---
+
+## Found by the 2026-11-28 reviews
+
+### 18. DVD-9 → DVD-5 shrink: chapters, memory, and no fit check
+*Found 2026-11-28.*
+- **Known:**
+  - `VideoKit/VideoAuthoringEngine+Shrink.swift` `executeDVD9ToDVD5ShrinkOnDisk` requantizes each title set with ffmpeg, then reads the whole result into memory (`Data(contentsOf: combinedOut)`, about line 172) and patches copies of it, so a full DVD-5's worth of video is held several times over: roughly 12 GB of memory for one disc.
+  - `DVDVideoIFORelinker.swift` rebuilds `VTS_C_ADT`, `VTS_VOBU_ADMAP` and the cell offsets from the new VOBUs, and when ffmpeg's output has no NV_PCKs it makes one cell for the whole title (about line 97). The chapter (PTT) table and the program map then point at cells that no longer exist, so chapters are lost.
+  - The target bitrate comes from an estimated duration, and nothing checks that the output fits a DVD-5 (4,700,372,992 bytes) before it is offered for burning.
+- **Proposal:** mark the shrink **experimental** in the interface and the manual now. Then: stream the patching through `FileHandle` in VOBU-sized pieces; keep the source's cell and PTT structure (remap cell ranges instead of making one); and refuse to burn an output larger than a DVD-5, saying by how much.
+- **Answer by:** shrink a DVD-9 with chapters, check memory in Instruments, and check chapter skipping in VLC and a hardware player.
+- **Owner decides** whether to ship it as experimental or hide it until fixed.
+
+### 19. Pairing doesn't prove the identity key or bind the TLS session
+*Found 2026-11-28.*
+- **Known:** `krouton-server/crates/krsp/src/pairing.rs` `transcript_salt` hashes the two hellos (identity public key, ephemeral key, nonce), and Swift's `SpoolPairing.complete` derives the code from the same transcript. Nothing signs the transcript with the identity private key, and the TLS exporter isn't part of it. So during an open pairing window, a client can present another Mac's identity public key; once the operator confirms the code, `ClientStore::upsert` (`server-core/src/clients.rs`) replaces the real Mac's record, which unpairs it (jobs are keyed by identity, so it also takes over that Mac's job ownership, though it can't sign later sessions as that Mac). A relay between two TLS sessions is likewise not ruled out by the transcript itself.
+- **Proposal (protocol v1.1):** add the TLS exporter to the transcript salt on both sides, and have each side sign the transcript hash with its identity key in the confirm step; the server rejects a pairing whose signature doesn't verify. Keep v1 accepted for one release, behind a version check. Regenerate `Vectors/krsp-control-v1.txt` (or a `-v1.1` file) and add a Swift/Rust vector for the new transcript.
+- **Owner decides** the version bump and how long v1 pairing stays accepted.
+
+### 20. Paired-server pins live in UserDefaults
+*Found 2026-11-28.*
+- **Known:** `NetworkSpool/SpoolServerDirectory.swift` (about line 42) saves the paired servers, including the TLS pin and identity each burn trusts, as JSON in `UserDefaults` (`app.krouton.pairedBurnServers`). Any process running as the user can rewrite that plist and point Krouton at a server of its choosing. The client's own private keys are a separate question (`SpoolClientIdentity`).
+- **Proposal:** keep the list in the keychain (one generic-password item, or one per server, with `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`), migrate the UserDefaults copy on first launch and delete it. This keeps working on iOS, so the portable-core rule holds.
+- **Answer by:** check where `SpoolClientIdentity` keeps its keys, and do both together.
+
+### 21. Queue burns write no crash journal, and nothing shows interrupted burns
+*Found 2026-11-28.*
+- **Known:** `KroutonCrashRecoveryController.burnJournal` (`Persistence`'s `BurnJournal`) is read at launch (`interruptedJobs()`, `KroutonSessionPersistence.swift` about line 149) into `interruptedBurns`, and Settings › Storage & Reset offers to clear it, but no burn from the destination queue ever writes to it, and no view shows `interruptedBurns`. Only multi-disc sets journal their discs (`BurnEventJournal`, through `KroutonBurnSetController`). So the Storage & Reset text "Lets Krouton tell you about a burn a crash interrupted" describes nothing that happens today.
+- **Proposal:** record a start and an end around `KroutonBurnCoordinator.burnOnThisMac` (drive, volume, disc type, time), and after launch show interrupted ones once, with what they mean for the disc (a write-once disc is likely spoiled; a rewritable one needs erasing). Until then, change the Storage & Reset text.
+- **Owner decides** whether this waits for the single burn path (open question 11).

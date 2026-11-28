@@ -7,7 +7,7 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - .krut Optical Mastering Workspace Project Format, Sidecar Ticket & Encrypted Vault
+// MARK: - .krut Project Files
 
 extension UTType {
     static var kroutonProject: UTType {

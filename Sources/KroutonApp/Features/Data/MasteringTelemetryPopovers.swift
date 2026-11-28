@@ -7,14 +7,10 @@ import SwiftUI
 import UniformTypeIdentifiers
 import VideoKit
 
-//
-//  KroutonMasteringWorkspaces.swift
-//  Krouton — Optical Media Mastering Package (Optical Media Mastering Workspace)
-//
-//  Format-Specific Mastering Workspaces (Data/Archival, Red Book Audio, Video Authoring, Car-Safe Audio, Retro Console ROMs, and Disc Image Inspector).
-//
+// The popovers opened from a workspace's Inspect buttons and the View menu: the hybrid
+// disc's sector map, the audio CD's cue sheet and CD-Text, and the video bitrate budget.
 
-// MARK: - Standalone Mastering Telemetry Popover Views
+// MARK: - Inspector Popovers
 
 struct KroutonHybridLBAMapPopoverView: View {
     var store: KroutonStateStore
@@ -232,7 +228,7 @@ struct KroutonVideoBitratePopoverView: View {
             HStack {
                 Image(systemName: "film.stack.fill")
                     .foregroundStyle(store.activeAccent)
-                Text("VIDEOKIT BITRATE BUDGET & DVD-9 SHRINK INSPECTOR")
+                Text("VIDEO BITRATE BUDGET")
                     .font(.system(size: 11, weight: .heavy, design: .monospaced))
                 Spacer()
                 Button {
@@ -240,7 +236,7 @@ struct KroutonVideoBitratePopoverView: View {
                     MEDIUM: \(medium.rawValue) (\(medium.totalSectorsLBA) LBA sectors / \(medium.capacityBytes) B)
                     TARGET VIDEO BITRATE: \(budget.targetVideoKbps) kbps (Max Ceiling: \(budget.maxHardwareCeilingKbps) kbps)
                     VBV BUFFER: \(budget.vbvBufferKilobits) kilobits • Audio: \(budget.audioBitrateKbps) kbps
-                    DVD-9 -> DVD-5 REQUIEM SHRINK RATIO: \(String(format: "%.1f%%", shrinkPlan.requantizationRatio * 100.0))
+                    DVD-9 -> DVD-5 SHRINK RATIO: \(String(format: "%.1f%%", shrinkPlan.requantizationRatio * 100.0))
                     ESTIMATED OUTPUT: \(shrinkPlan.estimatedOutputBytes) bytes (Preserve Menus: \(shrinkPlan.preserveMenusAndExtras))
                     """
                     KroutonOSDesktopBridge.copyTextToClipboard(summary)
@@ -255,11 +251,11 @@ struct KroutonVideoBitratePopoverView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 5) {
-                Text("• Target Optical Medium : \(medium.rawValue) (\(medium.totalSectorsLBA) × 2048-B sectors)")
-                Text("• Target Video Bitrate  : \(budget.targetVideoKbps) kbps (Hardware Spec Ceiling: \(budget.maxHardwareCeilingKbps) kbps)")
+                Text("• Disc            : \(medium.rawValue) (\(medium.totalSectorsLBA) sectors of 2,048 bytes)")
+                Text("• Video bitrate   : \(budget.targetVideoKbps) kbps (the format allows up to \(budget.maxHardwareCeilingKbps) kbps)")
                     .foregroundStyle(store.activeAccent)
-                Text("• VBV Decoder Buffer    : \(budget.vbvBufferKilobits) kilobits • Audio Stream: \(budget.audioBitrateKbps) kbps")
-                Text(String(format: "• Usable Video Payload  : %.2f GB (Est. Disc Fill: %.1f%%)", Double(budget.usableVideoBytes) / 1_000_000_000.0, budget.estimatedDiscFillRatio * 100.0))
+                Text("• Decoder buffer  : \(budget.vbvBufferKilobits) kilobits • Audio: \(budget.audioBitrateKbps) kbps")
+                Text(String(format: "• Room for video  : %.2f GB (about %.1f%% of the disc)", Double(budget.usableVideoBytes) / 1_000_000_000.0, budget.estimatedDiscFillRatio * 100.0))
                     .foregroundStyle(.green)
             }
             .font(.system(size: 11, design: .monospaced))
@@ -270,15 +266,15 @@ struct KroutonVideoBitratePopoverView: View {
                 HStack {
                     Image(systemName: "arrow.down.right.and.arrow.up.left")
                         .foregroundStyle(.orange)
-                    Text("DVD-9 (8.54 GB DL) -> DVD-5 (4.70 GB SL) FIT-TO-DISC REQUANTIZATION PLAN")
+                    Text("SHRINKING A DVD-9 (8.5 GB) TO FIT A DVD-5 (4.7 GB): ESTIMATE")
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .foregroundStyle(.orange)
                 }
-                Text(String(format: "• Main Feature DCT Retention : %.1f%% (%@)", shrinkPlan.requantizationRatio * 100.0, store.fitToDiscDVD9Shrink ? "ACTIVE" : "STANDBY"))
+                Text(String(format: "• Main feature kept at : %.1f%% of its size (shrink %@)", shrinkPlan.requantizationRatio * 100.0, store.fitToDiscDVD9Shrink ? "on" : "off"))
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
-                Text(String(format: "• Menus & Bonus Features     : %@ (%.2f GB source)", shrinkPlan.preserveMenusAndExtras ? "Preserved at 90% Fidelity" : "Removed (plays every title in order)", Double(shrinkPlan.sourceMenusAndExtrasBytes) / 1_000_000_000.0))
+                Text(String(format: "• Menus and extras     : %@ (%.2f GB on the source)", shrinkPlan.preserveMenusAndExtras ? "kept" : "removed (the disc plays every title in order)", Double(shrinkPlan.sourceMenusAndExtrasBytes) / 1_000_000_000.0))
                     .font(.system(size: 10, design: .monospaced))
-                Text(String(format: "• Requantized VTS Output     : %.3f GB / %.3f GB DVD-5 Safe Ceiling", Double(shrinkPlan.estimatedOutputBytes) / 1_000_000_000.0, Double(shrinkPlan.targetUsableDVD5Bytes) / 1_000_000_000.0))
+                Text(String(format: "• Shrunk video         : %.3f GB of the %.3f GB a DVD-5 holds", Double(shrinkPlan.estimatedOutputBytes) / 1_000_000_000.0, Double(shrinkPlan.targetUsableDVD5Bytes) / 1_000_000_000.0))
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(.secondary)
             }
@@ -301,16 +297,16 @@ struct KroutonVideoBitratePopoverView: View {
                 HStack {
                     Image(systemName: "MenuCard" == "" ? "list.bullet.rectangle.fill" : "menubar.rectangle")
                         .foregroundStyle(.cyan)
-                    Text("DVD-9 -> DVD-5 MENU BUTTONS, .IFO RELINKING & LAYER-BREAK REMOVAL")
+                    Text("MENUS, .IFO POINTERS AND THE LAYER BREAK: ESTIMATE")
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .foregroundStyle(.cyan)
                 }
-                Text("• Menu NV_PCK & SPU Highlights : 100% Bit-Exact Passthrough (Menu Video @ \(Int(blueprint.menuVobRetentionRatio * 100))%)")
+                Text("• Menu buttons and highlights : copied as they are (menu video at \(Int(blueprint.menuVobRetentionRatio * 100))%)")
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundStyle(.green)
-                Text("• VTS_01_0.IFO / .BUP Pointers : \(blueprint.relinkedCells.count) PGC Cells Relinked to Shrunk VOBU Sectors (32K ECC Guarded)")
+                Text("• VTS_01_0.IFO / .BUP pointers : \(blueprint.relinkedCells.count) cells pointed at their new sectors")
                     .font(.system(size: 10, design: .monospaced))
-                Text("• Former DVD-9 Layer-Break Cell: \(blueprint.layerBreakPauseRemoved ? "SPLB Pause Flag Cleared -> 100% Seamless DVD-5 Playback" : "Seamless")")
+                Text("• Layer break                  : \(blueprint.layerBreakPauseRemoved ? "its pause is removed, as a DVD-5 has one layer" : "none")")
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(store.activeAccent)
             }

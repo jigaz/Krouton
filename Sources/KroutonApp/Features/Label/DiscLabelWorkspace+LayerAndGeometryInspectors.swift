@@ -3,10 +3,10 @@ import LabelKit
 import OpticalCore
 import SwiftUI
 
-// MARK: - Disc Label Geometry Override, Layer Overview & Vision Trace Inspectors
+// MARK: - Disc Size, Layers and Contour Tracing
 
 extension KroutonDiscLabelWorkspaceView {
-    // MARK: - Tool Inspector C: Disc Size Override & Save as Preset
+    // MARK: - Disc Size Tool
 
     func discSizeOverrideInspector() -> some View {
         let pIdx = safePresetIndex
@@ -131,7 +131,7 @@ extension KroutonDiscLabelWorkspaceView {
         store.labelTextElements.remove(at: idx); store.labelSelectedTextID = store.labelTextElements.last?.id
     }
 
-    // MARK: - Tool Inspector D: Select / Layer Overview
+    // MARK: - Select Tool and Layer List
 
     func selectOverviewInspector() -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -241,7 +241,7 @@ extension KroutonDiscLabelWorkspaceView {
         showTransientBanner("Traced \(min(6, traced.count)) Vision Vector Contours onto Disc")
     }
 
-    // MARK: - 1-Click Project Tracklist & Staged File Manifest Stamp
+    // MARK: - Stamping the Track List or File List
 
     func stampProjectTracklistOrManifestOnDisc() {
         Task { @MainActor in

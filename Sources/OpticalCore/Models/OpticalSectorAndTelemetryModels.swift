@@ -49,8 +49,10 @@ public struct KroutonStagedFileEntry: Identifiable, Hashable, Sendable {
         max(1, (byteSize + 2047) / 2048)
     }
 
+    /// ISO 9660 records a file extent's size in 32 bits, so one extent holds up to 2^32 - 1
+    /// bytes (4,294,967,295). A file of exactly that size still fits; one byte more doesn't.
     public var exceedsISO9660FourGiBLimit: Bool {
-        byteSize >= 4_294_967_295
+        byteSize > Int64(UInt32.max)
     }
 
     public var exceedsJoliet64CharLimit: Bool {

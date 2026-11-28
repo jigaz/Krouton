@@ -5,7 +5,7 @@ import Foundation
 import OpticalCore
 import SwiftUI
 
-// MARK: - Automatic Right-Column Destination Rack & Waiting Burn Pool Synchronization
+// MARK: - KroutonStateStore — Spanned Discs, Copies and the Burn Pool
 
 @MainActor
 extension KroutonStateStore {
@@ -151,7 +151,7 @@ extension KroutonStateStore {
         savedQueuesByDomain[currentDestinationDomainKey] = destinationQueue
     }
 
-    // MARK: - Multi-Burner Pool & Lower Waiting Queue Management
+    // MARK: - Burn Pool
 
     /// Synchronizes the upper assigned physical burner slots and the lower `waitingBurnPool`
     /// based on spanned disc count, requested copy count, and connected burner write speeds.

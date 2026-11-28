@@ -3,7 +3,7 @@ import Foundation
 import OpticalCore
 import SwiftUI
 
-// MARK: - Upper Assigned Burner Slot Banner & Lower Secondary-Colored Waiting Burn Pool
+// MARK: - Burner Card's Ticket Banner and the Waiting Pool
 
 extension KroutonDestinationCardView {
     @ViewBuilder
@@ -157,7 +157,7 @@ extension KroutonDestinationCardView {
     }
 }
 
-// MARK: - KroutonDestinationRackColumnView — Graphical Divider & Secondary-Colored Waiting Burn Pool
+// MARK: - KroutonDestinationRackColumnView — Divider and Waiting Pool
 
 extension KroutonDestinationRackColumnView {
     var shouldShowBurnPoolZone: Bool {

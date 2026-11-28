@@ -2,7 +2,7 @@
 
 ## Destination cards
 
-The right-hand column lists where the disc goes. Each destination is a card. **Add Output** (⇧⌘D) adds one; right-click a card for **Remove Destination Card**, **Eject** and **Execute Only This Destination**.
+The right-hand column lists where the disc goes. Each destination is a card. **File › Add Destination Card** (⇧⌘D) adds one; right-click a card for **Run This Card Only**, **Eject Disc** and **Remove Destination Card**.
 
 A burner card has:
 
@@ -44,13 +44,13 @@ Some old DVD players and early game consoles only accept discs that say they are
 
 ## After the burn
 
-When a burn ends, the burn report shows the drive, the disc, the speed it reached, how long it took and whether verification passed. **Disc › Copy Archival Quality Certificate** (⌥⌘C) copies a summary you can keep with the disc.
+When a burn ends, the burn report shows the drive, the disc, the speed it reached, how long it took and whether verification passed.
 
-A real quality grade needs a C1/C2 error scan of the disc, which few drives can do. Without one, the certificate says the disc was **not measured**, rather than guessing.
+A quality grade needs a C1/C2 error scan of the disc, which few drives can do and Krouton can't run yet. So the burn report says the disc was **not measured**, rather than guessing, and **Disc › Copy Archival Quality Certificate** (⌥⌘C) stays unavailable.
 
 ## Watching a burn
 
-**Window › Open Floating Phase Scope Telemetry** (⌥⌘P) shows a live view of the drive: write speed, buffer fill and progress. **Disc › Run Phase Scope Diagnostic Sweep** (⇧⌘P) runs a short test of the drive you have selected.
+**Window › Phase Scope Window** (⌥⌘P) shows a live view of the drive: write speed, buffer fill and progress. **Disc › Reset Phase Scope** (⇧⌘P) clears the first drive's graph and keeps its scope on show; it doesn't test the drive.
 
 ## Stopping
 

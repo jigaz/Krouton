@@ -8,6 +8,7 @@ import os
 
 // MARK: - CopyAndRipWorkspaces
 
+/// Lets the Stop buttons cancel a rip that runs off the main actor: the whole rip, or single tracks.
 final class KroutonRipCancelToken: Sendable {
     private struct State: Sendable {
         var isCancelled: Bool = false
@@ -28,6 +29,8 @@ final class KroutonRipCancelToken: Sendable {
     init() {}
 }
 
+/// The Copy workspace: Duplicate Disc, Rip Audio CD, Extract Video Disc and Rescue a Damaged
+/// Disc, chosen by `store.selectedCopyTaskID`.
 struct KroutonCopyAndRipWorkspaceView: View {
     var store: KroutonStateStore
     let primarySelectedDrive: KroutonOpticalDriveInfo?
