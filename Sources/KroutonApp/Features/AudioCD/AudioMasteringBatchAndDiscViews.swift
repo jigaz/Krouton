@@ -3,7 +3,7 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Multi-Track Batch Selection Bar & Inline Disc 2+ Spanning Header Card
+// MARK: - Track Selection Bar and Disc Break Header
 
 struct AudioBatchSelectionActionBarView: View {
     var store: KroutonStateStore

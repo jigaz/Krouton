@@ -16,7 +16,7 @@ If the burner is plugged into a Raspberry Pi, a Linux box, a Windows PC or an ol
 2. Drag files and folders onto the middle of the window, or choose **File › Add Files or Disc Images…** (⇧⌘A).
 3. Watch the **capacity bar** at the bottom of the middle column. It shows how full the disc is. If the files don't fit, Krouton plans a set of discs for you.
 4. Put a blank disc in the burner. Its card appears on the right under **Active Burners**.
-5. Choose **Disc › Execute Active Queue / Burn Now** (⌘B).
+5. Choose **Disc › Run Destination Queue** (⌘B).
 
 Krouton copies your files to a private staging area first, so a file you change or move during the burn can't spoil the disc. When the burn finishes, Krouton reads the disc back to check it if **Verify** is on, then ejects it.
 
@@ -28,7 +28,7 @@ The main window has three columns.
 - **Mastering deck** (middle). What goes on the disc: files, tracks or a disc image, plus the settings for that kind of disc and the capacity bar.
 - **Destination queue** (right). Where the result goes. A destination can be a burner on this Mac, a burner on a Krouton Server, a disc image file, an audio rip folder or a label print sheet. Hide it with ⌥⌘S.
 
-The five workspaces have their own shortcuts: ⌘1 Burn Station, ⌘2 Disc Image Depot, ⌘3 Copy, Rip & Rescue, ⌘4 Polar Disc Label Studio and ⌘5 Audio CD Ripper.
+The five workspaces have their own shortcuts: ⌘1 Burn, ⌘2 Disc Image Depot, ⌘3 Copy, Rip & Rescue, ⌘4 Disc Label and ⌘5 Rip Audio CD.
 
 ## Projects
 
@@ -65,7 +65,7 @@ These are still being built. Their screens are there so you can see where Krouto
 
 ## Getting help
 
-- Choose **Help › Interactive Guided Tutorials** for a tour that highlights the controls on screen.
+- Choose **Help › Guided Tours** for a tour that highlights the controls on screen.
 - Every chapter of this manual is also online at krouton.app/manual.
 - **Help › Report a Problem** opens the project's issue tracker on GitHub.
 - **Help › Report a Drive** explains how to share what your burner can do, so people with the same model know what to expect.

@@ -4,19 +4,20 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Settings Window: Burners & Network Hardware Pane
+// MARK: - Settings › Burners & Network
 
 extension KroutonSettingsWindowView {
-    // MARK: - 6. BURNERS & NETWORK PANE (Live Connected Hardware via KroutonOpticalDriveBank)
+    /// The drives connected to this Mac (from `KroutonOpticalDriveBank`), paired Krouton
+    /// Servers, and Auto-Load for burning several copies in a row.
     var burnersNetworkPane: some View {
         VStack(alignment: .leading, spacing: 18) {
-            settingsCard(title: "Connected Optical Burners (Live IOKit / DiscRecording Bus)") {
+            settingsCard(title: "Burners Connected to This Mac") {
                 HStack {
                     Text(driveManager.hardwareStatusLog)
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(.secondary)
                     Spacer()
-                    pillToggleButton(title: "Rescan Bus", sfSymbol: "arrow.clockwise", isSelected: false) {
+                    pillToggleButton(title: "Rescan", sfSymbol: "arrow.clockwise", isSelected: false) {
                         driveManager.refreshDrives()
                     }
                 }
@@ -26,7 +27,7 @@ extension KroutonSettingsWindowView {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
-                        Text(KroutonL10n.tr("No physical optical drives detected. Plug in your USB burner and click Rescan Bus."))
+                        Text(KroutonL10n.tr("No optical drive found. Connect a burner, then click Rescan."))
                             .font(.caption)
                     }
                 } else {
@@ -44,7 +45,7 @@ extension KroutonSettingsWindowView {
                                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                                             .foregroundStyle(.secondary)
                                     }
-                                    Text("Write Capabilities: \(drive.capabilitiesSummary)")
+                                    Text("Writes: \(drive.capabilitiesSummary)")
                                         .font(.system(size: 11))
                                         .foregroundStyle(.secondary)
                                 }
@@ -60,7 +61,7 @@ extension KroutonSettingsWindowView {
                                 .padding(.trailing, 6)
 
                                 if drive.isMediaErasable {
-                                    pillToggleButton(title: "Quick Erase RW", sfSymbol: "eraser.fill", isSelected: false) {
+                                    pillToggleButton(title: "Quick Erase", sfSymbol: "eraser.fill", isSelected: false) {
                                         driveManager.eraseRewritableDisc(driveID: drive.id, fullErase: false) { _ in }
                                     }
                                 }
@@ -85,17 +86,17 @@ extension KroutonSettingsWindowView {
     var burnersNetworkBottomSection: some View {
         VStack(alignment: .leading, spacing: 14) {
 
-            settingsCard(title: "Hands-Free Multi-Copy Duplication & Spanned Disc Auto-Loader") {
-                Toggle(KroutonL10n.tr("Auto-Load Next Disc: Eject finished disc & automatically start next burn after fresh blank disc insertion"), isOn: Bindable(store).autoLoadNextDiscBatchMode)
+            settingsCard(title: "Auto-Load") {
+                Toggle(KroutonL10n.tr("Auto-Load the next disc: eject each finished disc and start the next burn when a blank goes in"), isOn: Bindable(store).autoLoadNextDiscBatchMode)
                     .fontWeight(.semibold)
-                Text(KroutonL10n.tr("Turns your Mac into a hands-free duplication station when burning multiple copies or multi-disc spanned archives."))
+                Text(KroutonL10n.tr("For several copies, or files spread over several discs: swap discs when asked, and Krouton carries on by itself."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Divider()
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(KroutonL10n.tr("Post-Insertion Spin-Up & Auto-Fire Delay"))
-                        Text(KroutonL10n.tr("Waits for macOS DiskArbitration and optical spindle lock before firing the laser"))
+                        Text(KroutonL10n.tr("Wait After a Blank Goes In"))
+                        Text(KroutonL10n.tr("Gives the drive time to spin up and read the new blank before the burn starts"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }

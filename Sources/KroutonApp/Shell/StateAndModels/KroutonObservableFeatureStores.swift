@@ -3,9 +3,9 @@ import Observation
 import OpticalCore
 import SwiftUI
 
-/// Value-type snapshot of the Polar Disc Label Workspace canvas for 32-level Undo/Redo (`Cmd+Z` / `Cmd+Shift+Z`).
-// MARK: - KroutonObservableFeatureStores
+// MARK: - Label Canvas Undo
 
+/// One state of the label canvas, as Undo and Redo (⌘Z, ⇧⌘Z) step through them.
 struct KroutonLabelCanvasSnapshot: Equatable, Sendable {
     var templateStyle: KroutonCroutonLabelStyle
     var backgroundStyle: KroutonVectorBackgroundStyle
@@ -105,7 +105,9 @@ struct KroutonLabelCanvasSnapshot: Equatable, Sendable {
     }
 }
 
-/// Cursor-based 32-step Undo/Redo engine for the Polar Disc Label Workspace.
+/// The label workspace's own state: the undo history (up to 32 steps, a cursor into
+/// `timeline`), the geometry override, freehand drawing and the transient status line. The
+/// Edit menu's Undo and Redo act on this history.
 @Observable
 @MainActor
 final class KroutonLabelWorkspaceSubStore {
@@ -185,7 +187,7 @@ final class KroutonLabelWorkspaceSubStore {
     }
 }
 
-/// Fine-grained `@Observable` sub-store isolating hardware & image destination queue telemetry.
+/// Holds nothing yet: a place for destination queue state to move out of `KroutonStateStore`.
 @Observable
 @MainActor
 final class KroutonBurnQueueSubStore {

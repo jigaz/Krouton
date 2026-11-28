@@ -4,11 +4,12 @@ import Observation
 import OpticalCore
 import SwiftUI
 
-// Runs a multi-disc set from the UI: plan -> stage and freeze -> BurnSetScheduler on
-// every connected burner -> per-disc status. Everything shown here is derived from the
-// scheduler's events, which are journalled first, so a set survives a quit and can be
-// resumed with its finished discs still finished.
+// MARK: - Multi-Disc Set Controller
 
+/// Runs a multi-disc set for the Burn as Multi-Disc Set window (`KroutonBurnSetSheetView`):
+/// plan, stage and freeze the files, run `BurnSetScheduler` on every connected burner, and show
+/// each disc's status. Everything shown is derived from the scheduler's events, which are
+/// journalled first, so a set survives a quit and resumes with its finished discs still finished.
 @Observable
 @MainActor
 final class KroutonBurnSetController {

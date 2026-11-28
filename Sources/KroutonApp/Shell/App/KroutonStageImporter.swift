@@ -2,13 +2,16 @@ import Observation
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Deterministic SwiftUI .fileImporter Coordinator for Optical Payloads & Copy/Rip Paths
+// MARK: - Open Panel for Adding Files
 
+/// What the open panel's result is for: the deck, or a caller's own completion.
 enum KroutonImporterIntent: Sendable {
     case stageOpticalPayload
     case customCallback
 }
 
+/// Lets any code (a menu item, a button deep in a workspace) show the one SwiftUI
+/// `.fileImporter` that `KroutonStageImporterModifier` attaches to the main window.
 @Observable
 @MainActor
 final class KroutonStageImporterBridge {
@@ -28,6 +31,8 @@ final class KroutonStageImporterBridge {
     }
 }
 
+/// Attaches the open panel to the main window and sends what's picked to the deck or to the
+/// caller's completion.
 struct KroutonStageImporterModifier: ViewModifier {
     var store: KroutonStateStore
     @State private var bridge = KroutonStageImporterBridge.shared

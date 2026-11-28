@@ -4,14 +4,9 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-//
-//  KroutonDepotCatalogViews.swift
-//  Krouton — Optical Media Mastering Package (Optical Media Mastering Workspace)
-//
-//  Disc Image Depot Interactive Hero Banner & App-Store Style Catalog Cards.
-//
+// The Disc Image Depot's cards: one per disc image, in a grid.
 
-// MARK: - Standalone Depot Hero Banner & App-Store Card Views
+// MARK: - Depot Banner and Catalogue Cards
 
 struct KroutonDepotAppStoreCardView: View {
     var store: KroutonStateStore

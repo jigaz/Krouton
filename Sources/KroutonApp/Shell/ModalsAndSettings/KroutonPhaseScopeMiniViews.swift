@@ -2,8 +2,10 @@ import Foundation
 import OpticalCore
 import SwiftUI
 
-// MARK: - Step 2B & 2C: Per-Burner Auto-Hiding Inline Mini Phase Scope & High-Detail Floating Window
-// MARK: - Low-Allocation Smooth Spline Helper for 120Hz Oscilloscope Traces
+// MARK: - Phase Scope Traces
+
+/// The paths of one Phase Scope graph: write speed, spindle speed and buffer fill, smoothed.
+/// Shared by the inline scope on a card and the Phase Scope window.
 struct ScopeTraceBundle {
     var speedArea = Path()
     var speedLine = Path()
@@ -100,6 +102,10 @@ func buildSmoothScopeTraces(
     return out
 }
 
+// MARK: - Inline Phase Scope
+
+/// The small Phase Scope on a burner's destination card. It appears while the drive works or
+/// when pinned; clicking it opens the Phase Scope window.
 struct KroutonMiniPhaseScopeView: View {
     let telemetry: KroutonDrivePhaseScopeTelemetry
     let accent: Color
@@ -180,11 +186,11 @@ struct KroutonMiniPhaseScopeView: View {
         .onTapGesture {
             onPopOut()
         }
-        .help("Click anywhere on the mini Phase Scope to pop out the full hardware telemetry analyzer")
+        .help("Click to open the Phase Scope in its own window")
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Inline Phase Scope Telemetry")
+        .accessibilityLabel("Phase Scope")
         .accessibilityValue(String(format: "%.0f kilobytes per second, %d RPM", telemetry.currentSpeedKBs, telemetry.currentSpindleRPM))
-        .accessibilityHint("Double-click to open the floating Phase Scope window")
+        .accessibilityHint("Opens the Phase Scope in its own window")
     }
 
     private var miniHeaderRow: some View {
@@ -320,7 +326,7 @@ struct KroutonMiniPhaseScopeView: View {
 
 }
 
-// MARK: - ISO-9660 Level 1 Filename Helper & 6-Channel Telemetry Grid
+// MARK: - ISO 9660 Level 1 Names and the Phase Scope Window's Readouts
 
 extension KroutonStagedFileEntry {
     var iso9660Level1Name: String {

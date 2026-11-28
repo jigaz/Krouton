@@ -3,7 +3,7 @@ import LabelKit
 import OpticalCore
 import SwiftUI
 
-// MARK: - Stage 1 Clean Printable Disc Canvas (Live Reactive Inputs + Interactive Drag-on-Disc)
+// MARK: - Disc Label Canvas
 
 struct KroutonDiscLabelArtworkCanvas: View {
     @State var activeDragTargetID: UUID?

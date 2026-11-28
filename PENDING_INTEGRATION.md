@@ -29,6 +29,7 @@ deleting a type whose plan offers "wire it in" as the first choice.
 
 ## Burn pool
 
+- `BurnClaimLedger` — project owner · 2027-01-31 · claim tickets from the destination queue's burn pool (the queue doesn't use it yet; a tutorial line used to name it), or delete it with `BurnPoolSnapshot` (OpticalCore/Burning/BurnPoolQueue.swift)
 - `BurnPoolSnapshot` — project owner · 2027-01-31 · show `BurnClaimLedger.snapshot` in the burn-set sheet, or delete it with the ledger (OpticalCore/Burning/BurnPoolQueue.swift)
 - `DriveBufferSample` — project owner · 2027-01-31 · feed DiscRecording's buffer-fill readings into the scheduler's arbiter (`record`), or delete it (BurnKit/BurnPowerAndBandwidthArbiter.swift)
 - `KroutonPoolDriveDescriptor` — project owner · 2027-01-31 · route the card pool through `KroutonDrivePoolState.populateAndAssignInitialSlots`, or delete it with that function (OpticalCore/Burning/BurnPoolQueue.swift)

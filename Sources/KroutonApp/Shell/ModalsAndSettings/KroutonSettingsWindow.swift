@@ -4,8 +4,10 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - KroutonSettingsWindow & Live Search Index
+// MARK: - Settings Window and Its Search
 
+/// The panes of the Settings window. The raw values are the panes' names as shown;
+/// `searchKeywords` are the extra words the settings search matches for each pane.
 enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendable {
     case general = "General"
     case formatChooser = "Format Chooser"
@@ -68,6 +70,8 @@ enum KroutonSettingsCategory: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// The Settings window: a searchable list of panes on the left, the chosen pane on the right.
+/// Each pane is in its own `KroutonSettingsWindow+*.swift` extension.
 struct KroutonSettingsWindowView: View {
     var store: KroutonStateStore
     var driveManager: KroutonOpticalDriveBank

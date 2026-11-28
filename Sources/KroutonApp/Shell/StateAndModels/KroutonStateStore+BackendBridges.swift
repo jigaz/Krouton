@@ -6,7 +6,7 @@ import OpticalCore
 import SwiftUI
 import VideoKit
 
-// MARK: - Live Backend Engine Bridge Across Culinary Modules
+// MARK: - KroutonStateStore — Calls Into the Audio, Image and Video Modules
 extension KroutonStateStore {
     func compileLiveAudioCueSheet(
         albumTitle: String = "",

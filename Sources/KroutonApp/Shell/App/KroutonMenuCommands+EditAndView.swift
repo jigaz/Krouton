@@ -3,7 +3,7 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Edit, View, Window & Help Menu Commands (Apple HIG Separation of View vs. Window)
+// MARK: - Edit, View, Window and Help Menus
 
 extension KroutonWorkspaceCommands {
     @CommandsBuilder
@@ -23,7 +23,7 @@ extension KroutonWorkspaceCommands {
         }
 
         CommandGroup(after: .pasteboard) {
-            Button(KroutonL10n.tr("Copy Selected Disc or Image Metadata")) {
+            Button(KroutonL10n.tr("Copy Disc Summary")) {
                 let summary = "Volume: \(wm.store.discVolumeTitle) • Task: \(wm.store.selectedTaskID) • Staged: \(wm.store.stagedFiles.count) items (\(wm.store.totalStagedBytes) bytes)"
                 KroutonOSDesktopBridge.copyTextToClipboard(summary)
             }
@@ -82,7 +82,7 @@ extension KroutonWorkspaceCommands {
                 NotificationCenter.default.post(name: NSNotification.Name("krouton.toggleRightSidebar"), object: nil)
             }.keyboardShortcut("s", modifiers: [.option, .command])
             Divider()
-            Button(KroutonL10n.tr("Burn Station Workspace")) {
+            Button(KroutonL10n.tr("Burn")) {
                 wm.store.selectedCategory = .burn
                 if wm.store.selectedTaskID.hasPrefix("depot-") || wm.store.selectedTaskID.hasPrefix("copy-") || wm.store.selectedTaskID.hasPrefix("label-") {
                     wm.store.selectedTaskID = "data-hybrid"
@@ -90,25 +90,25 @@ extension KroutonWorkspaceCommands {
             }
             .keyboardShortcut("1", modifiers: .command)
 
-            Button(KroutonL10n.tr("Disc Image Depot Library")) {
+            Button(KroutonL10n.tr("Disc Image Depot")) {
                 wm.store.selectedCategory = .depot
                 wm.store.selectedTaskID = "depot-all"
             }
             .keyboardShortcut("2", modifiers: .command)
 
-            Button(KroutonL10n.tr("Copy, Rip & Rescue Workspace")) {
+            Button(KroutonL10n.tr("Copy, Rip & Rescue")) {
                 wm.store.selectedCategory = .copy
                 wm.store.selectedTaskID = "copy-duplicate"
             }
             .keyboardShortcut("3", modifiers: .command)
 
-            Button(KroutonL10n.tr("Polar Disc Label Workspace")) {
+            Button(KroutonL10n.tr("Disc Label")) {
                 wm.store.selectedCategory = .label
                 wm.store.selectedTaskID = "label-manual"
             }
             .keyboardShortcut("4", modifiers: .command)
 
-            Button(KroutonL10n.tr("Audio CD Ripper & AccurateRip Archiver")) {
+            Button(KroutonL10n.tr("Rip Audio CD")) {
                 wm.store.selectedCategory = .copy
                 wm.store.selectedTaskID = "copy-rip-audio"
                 wm.store.syncDefaultDestinationForCategory(.copy, taskID: "copy-rip-audio", driveManager: wm.driveManager)
@@ -154,7 +154,7 @@ extension KroutonWorkspaceCommands {
 
             Divider()
 
-            Button(wm.store.labelShowAlignmentGrid ? KroutonL10n.tr("Hide 10mm Alignment Grid") : KroutonL10n.tr("Show 10mm Alignment Grid")) {
+            Button(wm.store.labelShowAlignmentGrid ? KroutonL10n.tr("Hide 10 mm Alignment Grid") : KroutonL10n.tr("Show 10 mm Alignment Grid")) {
                 wm.store.labelShowAlignmentGrid.toggle()
             }
             .keyboardShortcut("g", modifiers: .command)
@@ -181,17 +181,17 @@ extension KroutonWorkspaceCommands {
     @CommandsBuilder
     var windowAndHelpMenuCommands: some Commands {
         CommandGroup(after: .windowArrangement) {
-            Button(KroutonL10n.tr("Show Main Krouton Workspace Window")) {
+            Button(KroutonL10n.tr("Show Main Window")) {
                 KroutonWindowManager.shared.openMainWindow()
             }
             .keyboardShortcut("0", modifiers: .command)
 
-            Button(KroutonL10n.tr("Open Track Montage Editor Window")) {
+            Button(KroutonL10n.tr("Track Montage Editor")) {
                 KroutonWindowManager.shared.openTrackMontageWindow()
             }
             .keyboardShortcut("m", modifiers: [.command, .option])
 
-            Button(KroutonL10n.tr("Open Floating Phase Scope Telemetry")) {
+            Button(KroutonL10n.tr("Phase Scope Window")) {
                 let firstID = wm.driveManager.availableDrives.first?.id ?? "network-spool-drive"
                 KroutonWindowManager.shared.openFloatingPhaseScopeWindow(driveID: firstID)
             }
@@ -199,12 +199,12 @@ extension KroutonWorkspaceCommands {
         }
 
         CommandGroup(replacing: .help) {
-            Button(KroutonL10n.tr("Krouton User Manual & Mastering Guide...")) {
+            Button(KroutonL10n.tr("Krouton Manual")) {
                 KroutonWindowManager.shared.openUserManualWindow()
             }
             .keyboardShortcut("?", modifiers: .command)
 
-            Menu(KroutonL10n.tr("Interactive Guided Tutorials")) {
+            Menu(KroutonL10n.tr("Guided Tours")) {
                 ForEach(KroutonGuidedTutorialID.allCases) { tour in
                     Button(KroutonL10n.tr(tour.title)) {
                         KroutonWindowManager.shared.startGuidedTutorialOnMainWorkspace(tour)
@@ -212,7 +212,7 @@ extension KroutonWorkspaceCommands {
                 }
                 if KroutonGuidedTutorialController.shared.isRunning {
                     Divider()
-                    Button(KroutonL10n.tr("Exit Active Guided Tutorial")) {
+                    Button(KroutonL10n.tr("End Guided Tour")) {
                         KroutonGuidedTutorialController.shared.stop()
                     }
                 }
@@ -220,7 +220,7 @@ extension KroutonWorkspaceCommands {
 
             Divider()
 
-            Link(KroutonL10n.tr("Krouton Manual Online (krouton.app)"), destination: KroutonDomainIdentity.manualURL)
+            Link(KroutonL10n.tr("Krouton Manual on krouton.app"), destination: KroutonDomainIdentity.manualURL)
             Link(KroutonL10n.tr("Report a Drive"), destination: KroutonDomainIdentity.driveReportURL)
             Link(KroutonL10n.tr("Report a Problem"), destination: KroutonDomainIdentity.problemReportURL)
         }

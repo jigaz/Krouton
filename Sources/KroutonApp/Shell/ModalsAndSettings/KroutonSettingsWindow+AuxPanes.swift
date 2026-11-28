@@ -4,7 +4,7 @@ import OpticalCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Settings Window: Labels, Notifications, Accessibility & Shared Controls
+// MARK: - Settings › Labels & Printers, Notifications, Accessibility & Language
 
 extension KroutonSettingsWindowView {
 
@@ -20,7 +20,7 @@ extension KroutonSettingsWindowView {
                     .foregroundStyle(.secondary)
             }
 
-            settingsCard(title: "Saved Disc Label Geometry & Tray Offset Presets (Epson EcoTank ET-8550 & Standard Trays)") {
+            settingsCard(title: "Disc Sizes and Tray Offsets") {
                 ForEach(Array(store.labelPresets.enumerated()), id: \.element.id) { idx, preset in
                     HStack {
                         Image(systemName: "circle.circle")
@@ -153,39 +153,39 @@ extension KroutonSettingsWindowView {
 
     var accessibilityLanguagePane: some View {
         VStack(alignment: .leading, spacing: 18) {
-            settingsCard(title: "VoiceOver & Spoken Hardware Telemetry") {
-                Toggle(KroutonL10n.tr("Announce optical drive events, disc insertions, and burn phase changes via macOS VoiceOver"), isOn: Bindable(store).voiceOverSpokenTelemetry)
+            settingsCard(title: "VoiceOver") {
+                Toggle(KroutonL10n.tr("Have VoiceOver read out what Krouton reports"), isOn: Bindable(store).voiceOverSpokenTelemetry)
                     .fontWeight(.semibold)
-                Text(KroutonL10n.tr("Posts priority VoiceOver Accessibility announcements when blank media is locked, when the 5-second Auto-Load timer counts down, and when verification completes."))
+                Text(KroutonL10n.tr("When VoiceOver is on, Krouton speaks each notification, and says when a file is turned away or a task's report is ready."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Divider()
                 HStack {
-                    Text(KroutonL10n.tr("Test VoiceOver Telemetry Speech"))
+                    Text(KroutonL10n.tr("Hear an Announcement"))
                     Spacer()
-                    pillToggleButton(title: "Speak Status Now", sfSymbol: "speaker.wave.3.fill", isSelected: false) {
-                        let drv = driveManager.selectedDrive?.displayName ?? "Optical Burner"
-                        store.announceForVoiceOver("Krouton Accessibility Ready. Active burner: \(drv).")
+                    pillToggleButton(title: "Speak", sfSymbol: "speaker.wave.3.fill", isSelected: false) {
+                        let drv = driveManager.selectedDrive?.displayName ?? "no burner"
+                        store.announceForVoiceOver("Krouton announcements are on. Selected burner: \(drv).")
                         KroutonOSDesktopBridge.playAcousticCue()
                     }
                 }
             }
 
-            settingsCard(title: "Acoustic Telemetry Soundboard & DSP Lab") {
+            settingsCard(title: "Sound Lab") {
                 KroutonAcousticSoundboardCardView(accent: store.activeAccent)
             }
 
-            settingsCard(title: "Display, Contrast & Motion Accessibility") {
-                Toggle(KroutonL10n.tr("Increase Contrast (High-contrast borders on Format Chooser, Tracklists & Phase Scope)"), isOn: Bindable(store).a11yIncreaseContrast)
+            settingsCard(title: "Display") {
+                Toggle(KroutonL10n.tr("Increase contrast: stronger borders in the Format Chooser, track lists and Phase Scope"), isOn: Bindable(store).a11yIncreaseContrast)
                 Text(KroutonL10n.tr("Reduce Motion in System Settings › Accessibility › Display turns off Krouton's animations."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
             }
 
-            settingsCard(title: "Internationalization & Foreign Languages") {
+            settingsCard(title: "Language") {
                 HStack {
-                    Text(KroutonL10n.tr("Active Interface Language"))
+                    Text(KroutonL10n.tr("Application Language"))
                         .fontWeight(.semibold)
                     Spacer()
                     Picker("", selection: Bindable(store).appLanguage) {

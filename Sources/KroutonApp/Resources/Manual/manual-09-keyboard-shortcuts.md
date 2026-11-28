@@ -6,7 +6,7 @@
 - ⌘O Open Project
 - ⌘S Save Project
 - ⇧⌘A Add Files or Disc Images
-- ⇧⌘D Add Destination Output Card
+- ⇧⌘D Add Destination Card
 - ⌥⌘⌫ Clear Staged Files
 - ⇧⌘F Reveal Staged Files in Finder
 - ⇧⌘O Reveal Krouton Rips Folder in Finder
@@ -14,18 +14,18 @@
 ## Edit
 
 - ⌘Z Undo, ⇧⌘Z Redo
-- ⌥⇧⌘C Copy Selected Disc or Image Metadata
+- ⌥⇧⌘C Copy Disc Summary
 - ⌘T Add Curved Text Layer (labels)
 - ⌘D Duplicate Selected Text Layer (labels)
 - ⌘⌫ Delete Selected Text Layer (labels)
 
 ## View
 
-- ⌘1 Burn Station
+- ⌘1 Burn
 - ⌘2 Disc Image Depot
 - ⌘3 Copy, Rip & Rescue
-- ⌘4 Polar Disc Label Studio
-- ⌘5 Audio CD Ripper
+- ⌘4 Disc Label
+- ⌘5 Rip Audio CD
 - ⌃⌘S Show or hide the Format Chooser
 - ⌥⌘S Show or hide the Destination Queue
 - ⌃⌘L Inspect Hybrid ISO/UDF LBA Layout
@@ -40,28 +40,28 @@
 - ⌃⌘2 Red Book Audio CD
 - ⌃⌘3 DVD-Video
 - ⌃⌘4 Blu-ray 25 GB
-- ⌃⌘5 M-DISC Archival Vault
+- ⌃⌘5 M-DISC Archival Disc
 - ⌃⌘6 Burn Disc Image
-- ⇧⌘K Duplicate Disc / Fit-to-Disc DVD-9 Shrink
-- ⇧⌘V Video Disc Extractor
-- ⌥⌘D Optical Bad-Sector Rescue & Recovery
+- ⇧⌘K Duplicate Disc or Shrink a DVD-9
+- ⇧⌘V Extract Video Disc
+- ⌥⌘D Rescue a Damaged Disc
 
 ## Disc
 
-- ⌘B Execute Active Queue / Burn Now
+- ⌘B Run Destination Queue
 - ⌘. Abort Active Operation
-- ⌥⌘R Scan Audio CD TOC & Lookup MusicBrainz
+- ⌥⌘R Scan Audio CD & Look Up Track Names
 - ⇧⌘R Rip Selected Audio CD Tracks
-- ⌘I CD Info & Metadata Tags
+- ⌘I CD Info & Tags
 - ⌘R Rescan Optical Drives
-- ⇧⌘P Run Phase Scope Diagnostic Sweep
+- ⇧⌘P Reset Phase Scope
 - ⌥⌘C Copy Archival Quality Certificate
-- ⌘E Eject Optical Media
+- ⌘E Eject Disc
 
 ## Window and Help
 
-- ⌘0 Show the main Krouton window
-- ⌥⌘M Track Montage Editor window
-- ⌥⌘P Floating Phase Scope
+- ⌘0 Show Main Window
+- ⌥⌘M Track Montage Editor
+- ⌥⌘P Phase Scope Window
 - ⌘, Settings
-- ⌘? This manual
+- ⌘? Krouton Manual

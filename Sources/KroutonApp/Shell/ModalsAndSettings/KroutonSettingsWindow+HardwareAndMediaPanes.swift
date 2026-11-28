@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Settings Window: Depot, Audio/Video, Ripping & Burners/Network Panes
+// MARK: - Settings › Disc Image Depot, Audio & Video, Ripping
 
 extension KroutonSettingsWindowView {
 
