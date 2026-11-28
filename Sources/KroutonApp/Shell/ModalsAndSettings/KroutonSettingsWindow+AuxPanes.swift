@@ -118,6 +118,12 @@ extension KroutonSettingsWindowView {
                 Divider()
                 Toggle(KroutonL10n.tr("Give each drive its own pitch, so you can tell by ear which burner finished or wants a disc"),
                        isOn: Bindable(store).distinctDriveVoices)
+                Picker(KroutonL10n.tr("Show progress in the menu bar"), selection: Bindable(store).menuBarStatusMode) {
+                    ForEach(KroutonLiveStatus.MenuBarMode.allCases) { mode in
+                        Text(KroutonL10n.tr(mode.rawValue)).tag(mode)
+                    }
+                }
+                .fixedSize()
                 Divider()
                 HStack {
                     Text(KroutonNotificationAndCompanionService.shared.lastDispatchedBannerText)

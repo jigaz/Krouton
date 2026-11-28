@@ -86,6 +86,10 @@ final class KroutonStateStore {
     var distinctDriveVoices: Bool = true {
         didSet { if !isHydratingPreferences { KroutonPreferences.set(distinctDriveVoices, for: .distinctDriveVoices) } }
     }
+    /// When the menu bar shows Krouton's progress (Settings › Notifications).
+    var menuBarStatusMode: KroutonLiveStatus.MenuBarMode = .whileWorking {
+        didSet { if !isHydratingPreferences { KroutonPreferences.set(menuBarStatusMode.rawValue, for: .menuBarStatus) } }
+    }
 
     var poolDispatchMode: KroutonPoolDispatchMode = .autoAssign
     var poolTotalCopies: Int = 1
@@ -152,6 +156,7 @@ final class KroutonStateStore {
     init() {
         Self.shared = self
         hydratePreferencesFromUserDefaults()
+        KroutonCloudSettings.start(store: self)
     }
 
     func hydratePreferencesFromUserDefaults() {
@@ -160,6 +165,7 @@ final class KroutonStateStore {
         appearance.load()
         notificationMatrix = KroutonPreferences.notificationEvents(defaults: Self.defaultNotificationMatrix)
         distinctDriveVoices = KroutonPreferences.bool(for: .distinctDriveVoices, default: true)
+        menuBarStatusMode = KroutonPreferences.string(for: .menuBarStatus).flatMap(KroutonLiveStatus.MenuBarMode.init(rawValue:)) ?? .whileWorking
         if let rawTpl = KroutonPreferences.string(for: .labelTemplate),
            let tpl = KroutonCroutonLabelStyle(rawValue: rawTpl) {
             label.selectedLabelTemplate = tpl

@@ -39,7 +39,7 @@ struct KroutonStorageAndResetPaneView: View {
             case .clearBurnHistory:
                 return KroutonL10n.tr("The record of past burns is deleted, so a burn a crash interrupted before now won't be reported.")
             case .resetSettings:
-                return KroutonL10n.tr("Appearance, language, units, notifications, the label template, the format list and the copy and pool choices go back to their defaults. The language follows the system from the next launch. Projects and servers stay.")
+                return KroutonL10n.tr("Appearance, language, units, notifications, the label template, the format list and the copy and pool choices go back to their defaults. The language follows the system from the next launch. With settings kept in iCloud, the copy there is cleared too. Projects and servers stay.")
             case .resetQueues:
                 return KroutonL10n.tr("The destination queue goes back to one disc burner card, and the queues saved for each workspace are cleared.")
             case .forgetServers:

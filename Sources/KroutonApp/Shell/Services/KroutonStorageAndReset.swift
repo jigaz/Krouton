@@ -121,7 +121,14 @@ enum KroutonStorageAndReset {
     /// copy, shrink and pool choices go back to what a first launch shows. Projects, the
     /// workspace and paired servers stay.
     static func resetSettings(_ store: KroutonStateStore) {
+        let syncing = KroutonCloudSettings.isOn
         KroutonPreferences.removeAll()
+        // Keeping settings in iCloud is this Mac's choice, not a setting to reset; the copy in
+        // iCloud is reset with this Mac's.
+        if syncing {
+            KroutonPreferences.setLocally(true, for: .syncSettingsWithICloud)
+            KroutonCloudSettings.resetCloudCopy()
+        }
         store.appearance.resetToDefaults()
         store.label.selectedLabelTemplate = .synthGrid
         store.notificationMatrix = KroutonStateStore.defaultNotificationMatrix
@@ -131,6 +138,7 @@ enum KroutonStorageAndReset {
         store.mdiscParityPercent = 10
         store.poolDispatchMode = .autoAssign
         store.distinctDriveVoices = true
+        store.menuBarStatusMode = .whileWorking
     }
 
     /// The destination queue back to one disc burner card, and the queues saved per workspace cleared.

@@ -5,6 +5,12 @@ import os
 // MARK: - KroutonOSDesktopBridge (desktop services; AppKit calls go through KroutonAppKitBridge)
 
 enum KroutonOSDesktopBridge {
+    /// Brings Krouton in front of other apps, as clicking its Dock icon does.
+    @MainActor
+    static func bringKroutonForward() {
+        KroutonAppKitBridge.activate()
+    }
+
     static func playAcousticCue(_ cue: KroutonAcousticCue = .warning) {
         KroutonAcousticEngine.shared.play(cue)
     }

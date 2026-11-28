@@ -144,3 +144,8 @@ Related: `pure-swiftui-shell.md` (the one AppKit file), `removed-formats.md`, `P
 ### 15. Checks that need a person: VoiceOver and performance
 - **Known:** The VoiceOver descriptions added on 2026-11-26 (label canvas layers, splice waveform, burn graph) have only been checked by CI. The Panorama Planet renders on the main thread whenever a setting changes.
 - **Answer by:** Turn VoiceOver on (⌘F5) and go through the label workspace and audio editor, noting anything confusing. Measure planet rendering at the largest canvas zoom on Apple Silicon. If it stutters, render off the main actor and show the last image meanwhile.
+
+### 16. Live updates beyond the menu bar: Mac Live Activities, iPhone and Apple Watch
+- **Known:** The menu bar item (Settings › Notifications › Show progress in the menu bar), Dock badge and synth notifications ship. macOS 27.3 (beta since 2026-11-03) lets Mac apps start their own Live Activities with ActivityKit; an iPhone app's Live Activity also reaches the Apple Watch Smart Stack. Both need a Widget extension, which SwiftPM can't build.
+- **Plan and costs:** `live-updates-iphone-watch-mac.md` (shared model, plan A for the Mac, routes B1–B3 for iPhone and Watch).
+- **Owner decides:** move the app host to an Xcode 27.2 `.xcproj`; start plan A when the macOS 27.3 SDK ships; iCloud (B1) or a relay (B2) for the phone.

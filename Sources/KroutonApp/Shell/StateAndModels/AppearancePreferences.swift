@@ -20,6 +20,9 @@ enum KroutonPreferenceKey: String, CaseIterable, Sendable {
     case burnSetMedium = "krouton.pref.burnSetMedium"
     case notificationEvents = "krouton.pref.notificationEvents"
     case distinctDriveVoices = "krouton.pref.distinctDriveVoices"
+    case menuBarStatus = "krouton.pref.menuBarStatus"
+    /// Whether this Mac keeps its settings in iCloud. Never synced itself.
+    case syncSettingsWithICloud = "krouton.pref.syncSettingsWithICloud"
     /// macOS's own per-app language list, read when the app opens (`KroutonL10n`).
     case appleLanguages = "AppleLanguages"
 }
@@ -40,6 +43,14 @@ enum KroutonPreferences {
     }
     static func set(_ value: Any?, for key: KroutonPreferenceKey) {
         UserDefaults.standard.set(value, forKey: key.rawValue)
+        KroutonCloudSettings.didChange(key, to: value)
+    }
+    /// A value from iCloud: stored here without being sent back.
+    static func setLocally(_ value: Any?, for key: KroutonPreferenceKey) {
+        UserDefaults.standard.set(value, forKey: key.rawValue)
+    }
+    static func object(for key: KroutonPreferenceKey) -> Any? {
+        UserDefaults.standard.object(forKey: key.rawValue)
     }
     static func has(_ key: KroutonPreferenceKey) -> Bool {
         UserDefaults.standard.object(forKey: key.rawValue) != nil
