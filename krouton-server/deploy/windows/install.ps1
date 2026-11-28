@@ -1,6 +1,6 @@
 # Installs Krouton Server on Windows 10 or 11 (x64, x86 or ARM64).
 # Run from an elevated PowerShell:  .\install.ps1 [-Binary .\krouton-server.exe]
-param([string]$Binary = (Join-Path $PSScriptRoot '..\krouton-server.exe'))
+param([string]$Binary = (Join-Path $PSScriptRoot '..\..\krouton-server.exe'))
 $ErrorActionPreference = 'Stop'
 
 $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())

@@ -3,7 +3,7 @@
 # Usage: sudo ./install.sh [path/to/krouton-server]
 set -eu
 
-BIN="${1:-$(dirname "$0")/../krouton-server}"
+BIN="${1:-$(dirname "$0")/../../krouton-server}"
 HOME_DIR=/var/lib/krouton-server
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
